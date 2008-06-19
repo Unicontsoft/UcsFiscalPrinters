@@ -8,11 +8,11 @@ BEGIN
 END
 Attribute VB_Name = "cDatecsPrinter"
 Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = False
+Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = False
+Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/cDatecsPrinter.cls 1     18.06.08 16:45 Wqw $
+' $Header: /UcsFiscalPrinter/cDatecsPrinter.cls 2     19.06.08 10:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/cDatecsPrinter.cls $
 ' 
+' 2     19.06.08 10:48 Wqw
+' REF: public class weche
+'
 ' 1     18.06.08 16:45 Wqw
 ' Initial implementation
 '
