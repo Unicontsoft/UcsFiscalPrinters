@@ -21,7 +21,7 @@ echo Compile setup...
 %wix_dir%\candle.exe -nologo UcsFiscalPrinter.wxs
 if errorlevel 1 goto :end
 echo Link setup...
-%wix_dir%\light.exe -nologo -out UcsFP10.msm UcsFiscalPrinter.wixobj
+%wix_dir%\light.exe -nologo -out UcsFiscalPrinter.msm UcsFiscalPrinter.wixobj
 popd
 :end
 pause
