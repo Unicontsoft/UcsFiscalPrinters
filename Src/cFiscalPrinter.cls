@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/cFiscalPrinter.cls 1     18.06.08 16:45 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 2     19.06.08 18:26 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
 '
 '   Interfacen class za uprawlenie na fiscalni printer
 '
-' $Log: /UcsFiscalPrinter/cFiscalPrinter.cls $
+' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 2     19.06.08 18:26 Wqw
+' REF: ne prowerqwa za is numeric quantity
+'
 ' 1     18.06.08 16:45 Wqw
 ' Initial implementation
 '
@@ -355,7 +358,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, sSecondRow As String, dblTota
     
     On Error GoTo EH
     uRow.Price = Format(C_Dbl(uRow.Price), "0.00")
-    If IsNumeric(uRow.Quantity) And C_Dbl(uRow.Quantity) <> 1 Then
+    If LenB(uRow.Quantity) <> 0 And C_Dbl(uRow.Quantity) <> 1 Then
         If Len(uRow.Price) < 7 Then
             sQuantity = Space(7 - Len(uRow.Price))
         End If
