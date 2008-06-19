@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2003/01/wi">
+  <?define ProductID="ba665e4a-2030-438b-829d-fa376732abcd" ?>
+  <?define PackageID="ba665e4a-2030-438b-829d-fa376732abcd" ?>
+  <?define ProductPath="C:\Work\UcsFiscalPrinter\Binn\" ?>
+  <?define ProductDesc="Unicontsoft Fiscal Printers Component" ?>
+  <?define CompanyName="Unicontsoft" ?>
+  <?include Version.wxi ?>
+	  
+  <Module Id='UcsFiscalPrinters'
+      Language='0'
+      Guid='$(var.ProductID)'
+      Version='$(var.ProductVersion)'>
+    <Package Id="$(var.PackageID)"
+    	Keywords="MergeModule, MSI, Database"
+    	Description="$(var.ProductDesc)"
+    	Comments="$(var.ProductDesc) build $(var.ProductVersion)"
+    	Manufacturer="$(var.CompanyName)"
+    	InstallerVersion="200"
+    	Platforms="Intel"
+    	Languages="1026"
+    	SummaryCodepage="1251"
+    	Compressed="yes" />
+    	
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder" Name="ProgramF">
+        <Directory Id="CommonFilesFolder" Name="CommonFi">
+          <Directory Id="Unicontsoft" Name="Uniconts" LongName="Unicontsoft">
+            <Directory Id="FiscalPrinters" Name="FiscalPr" LongName="Fiscal Printers">
+              <Component Id="UcsFP10.dll" Guid="4310378a-ee23-41c4-92dd-e4ebea5f213e" SharedDllRefCount="yes">
+                <File Id="UcsFP10.dll" Name="UcsFP10.dll" LongName="UcsFP10.dll" KeyPath="yes" src="$(var.ProductPath)\UcsFP10.dll" />
+                <File Id="UcsFP10.pdb" Name="UcsFP10.PDB" LongName="UcsFP10.pdb" src="$(var.ProductPath)\UcsFP10.pdb"/>
+                <?include Registry_UcsFP10.wxi ?>
+              </Component>
+            </Directory>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+  </Module>
+</Wix>
