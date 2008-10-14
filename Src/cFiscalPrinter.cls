@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 2     19.06.08 18:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 3     14.10.08 19:10 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 3     14.10.08 19:10 Wqw
+' ADD: Function PrintReport, OpenDoor. REF: GetHeaderFooter wryshta
+' selektiwno rezultat
+'
 ' 2     19.06.08 18:26 Wqw
 ' REF: ne prowerqwa za is numeric quantity
 '
@@ -50,6 +54,13 @@ Public Enum UcsFiscalPrinterReceiptTypeEnum
     ucsFptInvoice
 End Enum
 
+Public Enum UcsFiscalPrinterReportTypeEnum
+    ucsFprDaily = 1
+    ucsFprNumber
+    ucsFprDate
+    ucsFprOperator
+End Enum
+
 Public Enum UcsFiscalPrinterIndexesEnum
     ucsFpiItem = 0
     ucsFpiPrice
@@ -65,6 +76,9 @@ Public Enum UcsFiscalPrinterIndexesEnum
     ucsFpiOperatorCode = 0
     ucsFpiOperatorPass
     ucsFpiCashDeskNo
+    ucsFpiWayOfPayment
+    ucsFpiPaymentSuma
+    ucsFpiLastReceipt
 End Enum
 
 '=========================================================================
@@ -78,6 +92,7 @@ Private Const STR_ERRORS_ONLY           As String = "Синтактична грешка|Невалидн
 Private Const STR_DIP_SWITCHES          As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_MEMORY                As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
 Private Const STR_ERROR_LINE            As String = "Грешка при печат на ред "
+Private Const STR_OR_INCORRECT_LOGIN    As String = " или невалидна парола на оператор"
 
 Private WithEvents m_oFP            As cDatecsPrinter
 Attribute m_oFP.VB_VarHelpID = -1
@@ -115,26 +130,67 @@ Public Function GetHeaderFooter( _
             Optional RetVal As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+    Dim vInput      As Variant
+    
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
     '--- fetch header & footer
-    ReDim RetVal(0 To 12)
-    RetVal(0) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I0")
-    RetVal(1) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I1")
-    RetVal(2) = m_oFP.SendCommand(ucsFpcInfoBulstat)
-    RetVal(3) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I2")
-    RetVal(4) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I3")
-    RetVal(5) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I4")
-    RetVal(6) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I5")
-    RetVal(7) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
-    RetVal(8) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
-    RetVal(9) = m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0")
-    If LenB(pvAccess(OperatorData, 0)) <> 0 Then
-        RetVal(10) = m_oFP.SendCommand(ucsFpcInfoOperator, pvAccess(OperatorData, 0))
+    vInput = RetVal
+    ReDim RetVal(0 To 16)
+    If LenB(pvAccess(vInput, 0, "1")) <> 0 Then
+        RetVal(0) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I0")
     End If
-    RetVal(11) = m_oFP.SendCommand(ucsFpcInfoDateTime)
-    RetVal(12) = m_oFP.SendCommand(ucsFpcInfoLastReceipt)
+    If LenB(pvAccess(vInput, 1, "1")) <> 0 Then
+        RetVal(1) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I1")
+    End If
+    If LenB(pvAccess(vInput, 2, "1")) <> 0 Then
+        RetVal(2) = m_oFP.SendCommand(ucsFpcInfoBulstat)
+    End If
+    If LenB(pvAccess(vInput, 3, "1")) <> 0 Then
+        RetVal(3) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I2")
+    End If
+    If LenB(pvAccess(vInput, 4, "1")) <> 0 Then
+        RetVal(4) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I3")
+    End If
+    If LenB(pvAccess(vInput, 5, "1")) <> 0 Then
+        RetVal(5) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I4")
+    End If
+    If LenB(pvAccess(vInput, 6, "1")) <> 0 Then
+        RetVal(6) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I5")
+    End If
+    If LenB(pvAccess(vInput, 7, "1")) <> 0 Then
+        RetVal(7) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
+    End If
+    If LenB(pvAccess(vInput, 8, "1")) <> 0 Then
+        RetVal(8) = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
+    End If
+    If LenB(pvAccess(vInput, 9, "1")) <> 0 Then
+        RetVal(9) = m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0")
+    End If
+    If LenB(pvAccess(vInput, 10, "1")) <> 0 Then
+        If LenB(pvAccess(OperatorData, 0)) <> 0 Then
+            RetVal(10) = m_oFP.SendCommand(ucsFpcInfoOperator, pvAccess(OperatorData, 0))
+        End If
+    End If
+    If LenB(pvAccess(vInput, 11, "1")) <> 0 Then
+        RetVal(11) = m_oFP.SendCommand(ucsFpcInfoDateTime)
+    End If
+    If LenB(pvAccess(vInput, 12, "1")) <> 0 Then
+        RetVal(12) = m_oFP.SendCommand(ucsFpcInfoLastReceipt)
+    End If
+    If LenB(pvAccess(vInput, 13, "1")) <> 0 Then
+        RetVal(13) = m_oFP.SendCommand(ucsFpcInitPaymentType, "I")
+    End If
+    If LenB(pvAccess(vInput, 14, "1")) <> 0 Then
+        RetVal(14) = m_oFP.SendCommand(ucsFpcInitPaymentType, "J")
+    End If
+    If LenB(pvAccess(vInput, 15, "1")) <> 0 Then
+        RetVal(15) = m_oFP.SendCommand(ucsFpcInitPaymentType, "K")
+    End If
+    If LenB(pvAccess(vInput, 16, "1")) <> 0 Then
+        RetVal(16) = m_oFP.SendCommand(ucsFpcInitPaymentType, "L")
+    End If
     '--- disconnect
     Set m_oFP = Nothing
     CommandLog = m_sLog
@@ -196,6 +252,7 @@ Public Function PrintReceipt( _
     Dim vElem           As Variant
     Dim sSecondRow      As String
     Dim bInTrans        As Boolean
+    Dim bInLogin        As Boolean
     Dim lCurrentRow     As Long
     Dim sOperLogin      As String
     Dim dblTotal        As Double
@@ -234,14 +291,18 @@ Public Function PrintReceipt( _
         End If
         m_oFP.SendCommand ucsFpcNonFiscalText, vbNullString
     Case ucsFptFiscal
+        bInLogin = True
         m_oFP.SendCommand ucsFpcFiscalOpen, sOperLogin
+        bInLogin = False
     Case ucsFptInvoice
         m_oFP.Exceptions = False
         If LenB(pvAccess(InvoiceData, ucsFpiInvoiceNo)) <> 0 Then
             m_oFP.SendCommand ucsFpcInitInvoiceNo, pvAccess(InvoiceData, ucsFpiInvoiceNo) & "," & pvAccess(InvoiceData, ucsFpiInvoiceNo)
         End If
         m_oFP.Exceptions = True
+        bInLogin = True
         m_oFP.SendCommand ucsFpcFiscalOpen, sOperLogin & ",I"
+        bInLogin = False
     End Select
     bInTrans = True
     '--- print rows
@@ -274,10 +335,10 @@ Public Function PrintReceipt( _
         '--- closing footer
         m_oFP.SendCommand ucsFpcNonFiscalClose
     Case ucsFptFiscal
-        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
+        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & pvAccess(OperatorData, ucsFpiPaymentSuma)
         m_oFP.SendCommand ucsFpcFiscalClose
     Case ucsFptInvoice
-        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
+        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & pvAccess(OperatorData, ucsFpiPaymentSuma)
         If LenB(pvAccess(InvoiceData, ucsFpiCgBulstat)) <> 0 Or LenB(pvAccess(InvoiceData, ucsFpiCgName)) <> 0 Then
             m_oFP.SendCommand ucsFpcFiscalCgInfo, _
                 Left(pvAccess(InvoiceData, ucsFpiCgBulstat), 14) & vbTab & _
@@ -289,6 +350,9 @@ Public Function PrintReceipt( _
         End If
         m_oFP.SendCommand ucsFpcFiscalClose
     End Select
+    If LenB(pvAccess(OperatorData, ucsFpiLastReceipt, vbNullString)) <> 0 Then
+        OperatorData(ucsFpiLastReceipt) = m_oFP.SendCommand(ucsFpcInfoLastReceipt)
+    End If
     bInTrans = False
     If PrintDuplicate Then
         m_oFP.SendCommand ucsFpcPrintDuplicate, "1"
@@ -305,6 +369,10 @@ EH:
 NextLine:
     On Error Resume Next
     If Not m_oFP Is Nothing Then
+        If bInLogin Then
+            LastError = LastError & STR_OR_INCORRECT_LOGIN
+            OperatorData(ucsFpiOperatorPass) = Empty
+        End If
         If m_oFP.Status(ucsStbPrintingError) And lCurrentRow > 0 Then
             LastError = STR_ERROR_LINE & lCurrentRow & ": " & LastError
         End If
@@ -322,6 +390,92 @@ NextLine:
         End If
         Set m_oFP = Nothing
     End If
+    CommandLog = m_sLog
+End Function
+
+Public Function PrintReport( _
+            Device As String, _
+            Timeout As Long, _
+            ByVal ReportType As UcsFiscalPrinterReportTypeEnum, _
+            Optional ReportData As Variant, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Dim eCmd            As UcsFiscalPrinterCommandsEnum
+    Dim vResult         As Variant
+    
+    On Error GoTo EH
+    '--- init & localize fiscal printer
+    pvInit Device, Timeout
+    Select Case ReportType
+    Case ucsFprDaily
+        '-- ReportData = { IsClear, IsItems, IsDepartments }
+        If C_Bool(pvAccess(ReportData, 1)) And C_Bool(pvAccess(ReportData, 2)) Then
+            eCmd = ucsFpcPrintDailyReportItemsDepartments
+        ElseIf C_Bool(pvAccess(ReportData, 1)) Then
+            eCmd = ucsFpcPrintDailyReportItems
+        ElseIf C_Bool(pvAccess(ReportData, 2)) Then
+            eCmd = ucsFpcPrintDailyReportDepartments
+        Else
+            eCmd = ucsFpcPrintDailyReport
+        End If
+        vResult = m_oFP.SendCommand(eCmd, IIf(C_Bool(pvAccess(ReportData, 0)), "0", "2") & "N")
+    Case ucsFprNumber
+        '-- ReportData = { FromNum, ToNum, IsDetailed }
+        If C_Bool(pvAccess(ReportData, 2)) Then
+            eCmd = ucsFpcPrintReportByNumberDetailed
+        Else
+            eCmd = ucsFpcPrintReportByNumberShort
+        End If
+        vResult = m_oFP.SendCommand(eCmd, pvAccess(ReportData, 0) & "," & pvAccess(ReportData, 1))
+    Case ucsFprDate
+        '-- ReportData = { FromDate, ToDate, IsDetailed }
+        If C_Bool(pvAccess(ReportData, 0)) Then
+            eCmd = ucsFpcPrintReportByDateDetailed
+        Else
+            eCmd = ucsFpcPrintReportByDateShort
+        End If
+        vResult = m_oFP.SendCommand(eCmd, pvAccess(ReportData, 0) & "," & pvAccess(ReportData, 1))
+    Case ucsFprOperator
+        '-- ReportData = Empty
+        vResult = m_oFP.SendCommand(ucsFpcPrintReportByOperators)
+    End Select
+    ReportData = vResult
+    '--- disconnect
+    Set m_oFP = Nothing
+    CommandLog = m_sLog
+    '--- success
+    PrintReport = True
+    Exit Function
+EH:
+    LastError = Err.Description
+    Resume NextLine
+NextLine:
+    On Error Resume Next
+    Set m_oFP = Nothing
+    CommandLog = m_sLog
+End Function
+
+Public Function OpenDoor( _
+            Device As String, _
+            Timeout As Long, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    On Error GoTo EH
+    '--- init & localize fiscal printer
+    pvInit Device, Timeout
+    m_oFP.SendCommand ucsFpcInitOpenDoor
+    '--- disconnect
+    Set m_oFP = Nothing
+    CommandLog = m_sLog
+    '--- success
+    OpenDoor = True
+    Exit Function
+EH:
+    LastError = Err.Description
+    Resume NextLine
+NextLine:
+    On Error Resume Next
+    Set m_oFP = Nothing
     CommandLog = m_sLog
 End Function
 
@@ -405,6 +559,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow) As String
     Const FUNC_NAME     As String = "pvGetFiscalRow"
     Const MAX_WIDTH     As Long = 25
     Dim lIdx            As Long
+    Dim sSign           As String
     
     On Error GoTo EH
     With uRow
@@ -421,10 +576,16 @@ Private Function pvGetFiscalRow(uRow As UcsRow) As String
             End If
             pvGetFiscalRow = Left(pvGetFiscalRow, lIdx) & vbLf & Mid(pvGetFiscalRow, lIdx + 1, MAX_WIDTH)
         End If
-        '--- append rest
-        pvGetFiscalRow = pvGetFiscalRow & vbTab & .Group & Replace(Format(C_Dbl(.Price), "0.00"), ",", ".")
+        '--- figure out sign
         If LenB(.Quantity) <> 0 Then
-            pvGetFiscalRow = pvGetFiscalRow & "*" & Replace(Format(C_Dbl(.Quantity), "0.000"), ",", ".")
+            sSign = IIf(C_Dbl(.Price) * C_Dbl(.Quantity) < 0, "-", vbNullString)
+        Else
+            sSign = IIf(C_Dbl(.Price) < 0, "-", vbNullString)
+        End If
+        '--- append rest
+        pvGetFiscalRow = pvGetFiscalRow & vbTab & .Group & sSign & Replace(Format(Abs(C_Dbl(.Price)), "0.00"), ",", ".")
+        If LenB(.Quantity) <> 0 Then
+            pvGetFiscalRow = pvGetFiscalRow & "*" & Replace(Format(Abs(C_Dbl(.Quantity)), "0.000"), ",", ".")
         End If
     End With
     Exit Function
@@ -495,6 +656,12 @@ End Function
 Private Function C_Dbl(v As Variant) As Double
     On Error Resume Next
     C_Dbl = CDbl(Replace(C_Str(v), ".", pvGetDecimalSeparator()))
+    On Error GoTo 0
+End Function
+
+Private Function C_Bool(v As Variant) As Boolean
+    On Error Resume Next
+    C_Bool = CBool(v)
     On Error GoTo 0
 End Function
 
