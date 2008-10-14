@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/cDatecsPrinter.cls 2     19.06.08 10:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 3     14.10.08 19:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
 '
-'   Uprawlenie na DATECS fiscalni printer
+'   Uprawlenie na fiscalni printer po ICL protocol (Datecs, Daisy)
 '
-' $Log: /UcsFiscalPrinter/cDatecsPrinter.cls $
+' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 3     14.10.08 19:09 Wqw
+' REF: impl logo i door open
+'
 ' 2     19.06.08 10:48 Wqw
 ' REF: public class weche
 '
@@ -101,6 +104,8 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInitOperatorName = 102
     ucsFpcInitOperatorReset = 104
     ucsFpcInitItem = 107
+    ucsFpcInitLogo = 115
+    ucsFpcInitOpenDoor = 106
     '--- transaction
     ucsFpcNonFiscalOpen = 38
     ucsFpcNonFiscalClose = 39
@@ -422,14 +427,14 @@ Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional
     '--- check result
     sText = pvReadData(m_hComm, m_lTimeout, m_sLastError)
     If LenB(m_sLastError) = 0 Then
-        If Left(sText, 1) = Chr(1) Then
-            lIdx = InStr(sText, Chr(4))
+        If Left(sText, 1) = Chr$(1) Then
+            lIdx = InStr(sText, Chr$(4))
             If lIdx > 2 Then
-                lSize = Asc(Mid(sText, 2, 1)) - &H20 - 11
+                lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
                 '--- check message length
                 If lIdx - 5 = lSize Then
-                    pvSetStatus Mid(sText, lIdx + 1, 6)
-                    SendCommand = Mid(sText, 5, lSize)
+                    pvSetStatus Mid$(sText, lIdx + 1, 6)
+                    SendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
                     GoTo QH
                 Else
                     m_sLastError = pvInternal(11, "Invalid response length")
@@ -516,14 +521,14 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     On Error GoTo EH
     '--- prepare command and transcode cyrillic
     sText = pvTranscode(sData, True)
-    sText = Chr(1) & Chr(&H20 + 4 + Len(sText)) & Chr(lSequence) & Chr(eCmd) & sText & Chr(5)
+    sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(lSequence) & Chr$(eCmd) & sText & Chr$(5)
     '--- calc checksum
     baText = StrConv(sText, vbFromUnicode)
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
-    sText = sText & Chr((lSum \ &H1000 Mod &H10) + &H30) & Chr((lSum \ &H100 Mod &H10) + &H30) & Chr((lSum \ &H10 Mod &H10) + &H30) & Chr((lSum \ &H1 Mod &H10) + &H30) & Chr(3)
+    sText = sText & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
     If WriteFile(hComm, ByVal sText, Len(sText), lWritten, 0) = 0 Then
         sError = pvInternal(5, "WriteFile failure: ") & pvGetApiErr(Err.LastDllError)
     Else
@@ -565,12 +570,12 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
             Case Else
                 Exit Do
             End Select
-            sBuffer = Mid(sBuffer, 2)
+            sBuffer = Mid$(sBuffer, 2)
             dwRead = dwRead - 1
         Loop
     Loop While dwRead = 0 And LenB(pvReadData) = 0
 '    Call FlushFileBuffers(hComm)
-    pvReadData = pvTranscode(Left(sBuffer, dwRead), False)
+    pvReadData = Left(sBuffer, dwRead)
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -585,15 +590,15 @@ Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As St
     On Error GoTo EH
     pvTranscode = sText
     For lIdx = 1 To Len(pvTranscode)
-        lChar = Asc(Mid(pvTranscode, lIdx, 1))
+        lChar = Asc(Mid$(pvTranscode, lIdx, 1))
         If lChar < &H7F Then
             '--- do nothing
         ElseIf lChar >= &HC0 And lChar <= &HFF And bToPrinter Then
-            Mid(pvTranscode, lIdx, 1) = Chr$(lChar - &H40)
+            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar - &H40)
         ElseIf lChar >= &H80 And lChar < &HC0 And Not bToPrinter Then
-            Mid(pvTranscode, lIdx, 1) = Chr$(lChar + &H40)
+            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + &H40)
         Else
-            Mid(pvTranscode, lIdx, 1) = "?"
+            Mid$(pvTranscode, lIdx, 1) = "?"
         End If
     Next
     Exit Function
@@ -677,7 +682,7 @@ Private Function pvGetApiErr(ByVal lLastDllError As Long) As String
     pvGetApiErr = Space$(2000)
     lRet = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, lLastDllError, 0&, pvGetApiErr, Len(pvGetApiErr), 0&)
     If lRet > 2 Then
-        If Mid(pvGetApiErr, lRet - 1, 2) = vbCrLf Then
+        If Mid$(pvGetApiErr, lRet - 1, 2) = vbCrLf Then
             lRet = lRet - 2
         End If
     End If
