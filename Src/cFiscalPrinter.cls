@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 3     14.10.08 19:10 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 4     15.10.08 16:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 4     15.10.08 16:13 Wqw
+' REF: suma za plashtane
+'
 ' 3     14.10.08 19:10 Wqw
 ' ADD: Function PrintReport, OpenDoor. REF: GetHeaderFooter wryshta
 ' selektiwno rezultat
@@ -335,10 +338,10 @@ Public Function PrintReceipt( _
         '--- closing footer
         m_oFP.SendCommand ucsFpcNonFiscalClose
     Case ucsFptFiscal
-        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & pvAccess(OperatorData, ucsFpiPaymentSuma)
+        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & Replace(pvAccess(OperatorData, ucsFpiPaymentSuma), ",", ".")
         m_oFP.SendCommand ucsFpcFiscalClose
     Case ucsFptInvoice
-        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & pvAccess(OperatorData, ucsFpiPaymentSuma)
+        m_oFP.SendCommand ucsFpcFiscalPayment, vbTab & pvAccess(OperatorData, ucsFpiWayOfPayment) & Replace(pvAccess(OperatorData, ucsFpiPaymentSuma), ",", ".")
         If LenB(pvAccess(InvoiceData, ucsFpiCgBulstat)) <> 0 Or LenB(pvAccess(InvoiceData, ucsFpiCgName)) <> 0 Then
             m_oFP.SendCommand ucsFpcFiscalCgInfo, _
                 Left(pvAccess(InvoiceData, ucsFpiCgBulstat), 14) & vbTab & _
