@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 4     15.10.08 16:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 5     29.10.08 13:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 5     29.10.08 13:52 Wqw
+' REF: impl pechat na dublikat prez PrintReceipt (bez Rows)
+'
 ' 4     15.10.08 16:13 Wqw
 ' REF: suma za plashtane
 '
@@ -308,19 +311,21 @@ Public Function PrintReceipt( _
         bInLogin = False
     End Select
     bInTrans = True
-    '--- print rows
-    For Each vElem In Rows
-        lCurrentRow = lCurrentRow + 1
-        If ReceiptType = ucsFptNonFiscal Then
-            m_oFP.SendCommand ucsFpcNonFiscalText, pvGetNonFiscalRow(pvGetRowData(vElem), sSecondRow, dblTotal)
-            If LenB(sSecondRow) <> 0 Then
-                m_oFP.SendCommand ucsFpcNonFiscalText, sSecondRow
+    If IsArray(Rows) Then
+        '--- print rows
+        For Each vElem In Rows
+            lCurrentRow = lCurrentRow + 1
+            If ReceiptType = ucsFptNonFiscal Then
+                m_oFP.SendCommand ucsFpcNonFiscalText, pvGetNonFiscalRow(pvGetRowData(vElem), sSecondRow, dblTotal)
+                If LenB(sSecondRow) <> 0 Then
+                    m_oFP.SendCommand ucsFpcNonFiscalText, sSecondRow
+                End If
+            Else
+                m_oFP.SendCommand ucsFpcFiscalSell, pvGetFiscalRow(pvGetRowData(vElem))
             End If
-        Else
-            m_oFP.SendCommand ucsFpcFiscalSell, pvGetFiscalRow(pvGetRowData(vElem))
-        End If
-    Next
-    lCurrentRow = 0
+        Next
+        lCurrentRow = 0
+    End If
     '--- commit transaction
     Select Case ReceiptType
     Case ucsFptNonFiscal
