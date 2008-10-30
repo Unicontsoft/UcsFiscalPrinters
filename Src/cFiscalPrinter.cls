@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 5     29.10.08 13:52 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 6     30.10.08 22:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 6     30.10.08 22:49 Wqw
+' REF: cancel outstanding transaction razbira ot neplaten bon
+'
 ' 5     29.10.08 13:52 Wqw
 ' REF: impl pechat na dublikat prez PrintReceipt (bez Rows)
 '
@@ -271,12 +274,16 @@ Public Function PrintReceipt( _
     If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
         If m_oFP.Status(ucsStbFiscalPrinting) Then
             m_oFP.Exceptions = False
-            '--- note: when printing invoice, if no contragent info set then cancel fails!
-            m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
             '--- note: FP3530 moje da anulira winagi, FP550F ne moje
             m_oFP.SendCommand ucsFpcFiscalCancel
-            '--- zaradi FP550F
-            m_oFP.SendCommand ucsFpcFiscalClose
+            If m_oFP.Status(ucsStbFiscalPrinting) Then
+                '--- note: ako platenata suma e po-malka ot sumata na bona, towa pomaga
+                m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
+                '--- note: when printing invoice, if no contragent info set then cancel fails!
+                m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
+                '--- zaradi FP550F
+                m_oFP.SendCommand ucsFpcFiscalClose
+            End If
             m_oFP.Exceptions = True
         Else
             m_oFP.SendCommand ucsFpcNonFiscalClose
