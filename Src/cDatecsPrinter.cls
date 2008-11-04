@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 4     30.10.08 22:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 5     4.11.08 14:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 5     4.11.08 14:19 Wqw
+' REF: polzwa overlapped I/O pri dostyp do com port-a
+'
 ' 4     30.10.08 22:49 Wqw
 ' REF: STR_STATUSES
 '
@@ -154,10 +157,17 @@ End Enum
 Private Const GENERIC_READ                  As Long = &H80000000
 Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
-Private Const FILE_FLAG_NO_BUFFERING        As Long = &H20000000
+Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
+'--- for WaitCommEvent
+Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
+'--- for WaitForMultipleObjects
+Private Const WAIT_OBJECT_0                 As Long = 0
+Private Const WAIT_TIMEOUT                  As Long = 258
+'--- for overlapped I/O
+Private Const ERROR_IO_PENDING              As Long = 997
 
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
@@ -168,6 +178,11 @@ Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVa
 Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
+Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
+Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As OVERLAPPED) As Long
+Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
+Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -207,11 +222,19 @@ Private Type DCB
     EvtChar                     As Byte
 End Type
 
+Private Type OVERLAPPED
+    Internal                    As Long
+    InternalHigh                As Long
+    offset                      As Long
+    OffsetHigh                  As Long
+    hEvent                      As Long
+End Type
+
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length|Response missing postamble|Response missing preamble"
+Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length|Response missing postamble|Response missing preamble|WaitCommEvent failed: "
 Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allow|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
@@ -482,30 +505,33 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     vSplit = Split(sDevice, ",")
     If LenB(pvAccess(vSplit, 0)) = 0 Then
         sError = pvInternal(0, "No device info set")
-        Exit Function
+        GoTo QH
     End If
-    pvOpenPort = CreateFile("\\.\" & pvAccess(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, 0)
+    pvOpenPort = CreateFile("\\.\" & pvAccess(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = -1 Then
         sError = pvInternal(1, "CreateFile failed: ") & pvGetApiErr(Err.LastDllError)
-        Exit Function
+        GoTo QH
     End If
-    uTimeout.ReadIntervalTimeout = 65
-    uTimeout.ReadTotalTimeoutConstant = 1
-    uTimeout.ReadTotalTimeoutMultiplier = 1
-    uTimeout.WriteTotalTimeoutConstant = 500
-    uTimeout.WriteTotalTimeoutMultiplier = 1
+    With uTimeout
+        .ReadIntervalTimeout = -1
+        .ReadTotalTimeoutConstant = 0
+        .ReadTotalTimeoutMultiplier = 0
+        .WriteTotalTimeoutConstant = 500
+        .WriteTotalTimeoutMultiplier = 1
+    End With
     If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
         sError = pvInternal(2, "SetCommTimeouts failed: ") & pvGetApiErr(Err.LastDllError)
-        Exit Function
+        GoTo QH
     End If
     If BuildCommDCB("baud=" & pvAccess(vSplit, 1, 9600) & " data=" & pvAccess(vSplit, 2, 8) & " parity=" & pvAccess(vSplit, 3, "N") & " stop=" & pvAccess(vSplit, 4, 1), uDCB) = 0 Then
         sError = pvInternal(3, "BuildCommDCB failed: ") & pvGetApiErr(Err.LastDllError)
-        Exit Function
+        GoTo QH
     End If
     If SetCommState(pvOpenPort, uDCB) = 0 Then
         sError = pvInternal(4, "SetCommState failed: ") & pvGetApiErr(Err.LastDllError)
-        Exit Function
+        GoTo QH
     End If
+QH:
     pvSetStatus vbNullString '--- clear
     Exit Function
 EH:
@@ -520,8 +546,12 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     Dim lIdx            As Long
     Dim lSum            As Long
     Dim lWritten        As Long
+    Dim uOver           As OVERLAPPED
+    Dim lSize           As Long
+    Dim lResult         As Long
     
     On Error GoTo EH
+    uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
     sText = pvTranscode(sData, True)
     sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(lSequence) & Chr$(eCmd) & sText & Chr$(5)
@@ -532,11 +562,23 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     Next
     '--- append checksum and terminator
     sText = sText & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
-    If WriteFile(hComm, ByVal sText, Len(sText), lWritten, 0) = 0 Then
-        sError = pvInternal(5, "WriteFile failure: ") & pvGetApiErr(Err.LastDllError)
-    Else
-        pvWriteData = True
+    lSize = Len(sText)
+    baText = StrConv(sText, vbFromUnicode)
+    lResult = WriteFile(hComm, baText(0), lSize, lWritten, VarPtr(uOver))
+    If lResult = 0 Then
+        If Err.LastDllError <> ERROR_IO_PENDING Then
+            sError = pvInternal(5, "WriteFile failure: ") & pvGetApiErr(Err.LastDllError)
+            GoTo QH
+        End If
     End If
+    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, m_lTimeout)
+    If lResult = WAIT_OBJECT_0 Then
+        pvWriteData = True
+    Else
+        Call CancelIo(hComm)
+    End If
+QH:
+    Call CloseHandle(uOver.hEvent)
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -548,37 +590,52 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
     Dim sBuffer         As String
     Dim dwRead          As Long
     Dim lResult         As Long
-    Dim dblTimer        As Double
+    Dim lMask           As Long
+    Dim uOver           As OVERLAPPED
     
     On Error GoTo EH
-    sBuffer = String(1000, 0)
-    dblTimer = Timer
+    Call SetCommMask(hComm, EV_RXCHAR)
+    uOver.hEvent = CreateEvent(0, 1, 0, 0)
     Do
-        If Timer - dblTimer > lTimeout / 1000# Then
-            sError = pvInternal(6, "Timeout waiting for response")
-            Exit Do
-        End If
-        lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), dwRead, 0)
+        lResult = WaitCommEvent(hComm, lMask, uOver)
         If lResult = 0 Then
-            sError = pvInternal(7, "ReadFile failed: ") & pvGetApiErr(Err.LastDllError)
+            If Err.LastDllError <> ERROR_IO_PENDING Then
+                sError = pvInternal(14, "WaitCommEvent failed: ") & pvGetApiErr(Err.LastDllError)
+                GoTo QH
+            End If
+        End If
+        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+        If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
+            sBuffer = String(1000, 0)
+            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), dwRead, VarPtr(uOver))
+            If lResult = 0 Then
+                If Err.LastDllError <> ERROR_IO_PENDING Then
+                    sError = pvInternal(7, "ReadFile failed: ") & pvGetApiErr(Err.LastDllError)
+                    GoTo QH
+                End If
+            End If
+            lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+            If lResult = WAIT_OBJECT_0 Then
+                sBuffer = Left(StrConv(sBuffer, vbUnicode), dwRead)
+                '--- check for NAK (&H15)
+                If InStr(sBuffer, Chr$(&H15)) > 0 Then
+                    sError = pvInternal(8, "Invalid message format or checksum (NAK)")
+                    GoTo QH
+                End If
+                '--- remove SYN (&H16)
+                pvReadData = pvReadData & Replace(sBuffer, Chr$(&H16), vbNullString)
+            End If
+        End If
+        If lResult <> WAIT_OBJECT_0 Then
+            If lResult = WAIT_TIMEOUT Then
+                sError = pvInternal(6, "Timeout waiting for response")
+            End If
+            Call CancelIo(hComm)
             Exit Do
         End If
-        Do While dwRead > 0
-            Select Case Asc(sBuffer)
-            Case &H15 '--- NAK
-                sError = pvInternal(8, "Invalid message format or checksum (NAK)")
-                Exit Do
-            Case &H16 '--- SYN
-                dblTimer = Timer
-            Case Else
-                Exit Do
-            End Select
-            sBuffer = Mid$(sBuffer, 2)
-            dwRead = dwRead - 1
-        Loop
-    Loop While dwRead = 0 And LenB(pvReadData) = 0
-'    Call FlushFileBuffers(hComm)
-    pvReadData = Left(sBuffer, dwRead)
+    Loop While Right(pvReadData, 1) <> Chr$(&H3) '--- until Terminator (&H3) found
+QH:
+    Call CloseHandle(uOver.hEvent)
     Exit Function
 EH:
     PrintError FUNC_NAME
