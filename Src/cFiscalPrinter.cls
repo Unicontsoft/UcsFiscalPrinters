@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 6     30.10.08 22:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 7     4.11.08 14:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -20,6 +20,9 @@ Attribute VB_Exposed = True
 '   Interfacen class za uprawlenie na fiscalni printer
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
+' 
+' 7     4.11.08 14:19 Wqw
+' REF: internal errors
 ' 
 ' 6     30.10.08 22:49 Wqw
 ' REF: cancel outstanding transaction razbira ot neplaten bon
@@ -95,7 +98,7 @@ End Enum
 '=========================================================================
 
 Private Const STR_TOTAL                 As String = "ОБЩО: "
-Private Const STR_INTERNAL              As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за край на отговора|Липсва символ за начало на отговора"
+Private Const STR_INTERNAL              As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за край на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: "
 Private Const STR_STATUSES              As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
 Private Const STR_ERRORS_ONLY           As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механицва на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
