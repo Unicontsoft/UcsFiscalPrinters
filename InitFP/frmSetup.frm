@@ -3186,7 +3186,7 @@ Private Sub lstCmds_Click()
     End If
     pvStatus = STR_STATUS_FETCHING
     If pvFetchData(lstCmds.ListIndex) Then
-        If pvStatus = STR_STATUS_FETCHING Then
+        If pvStatus = STR_STATUS_FETCHING Or LenB(pvStatus) = 0 Then
             pvStatus = Printf(STR_STATUS_SUCCESS_FETCH, Trim(lstCmds.List(lstCmds.ListIndex)), Round(Timer - dblTimer, 2))
         End If
         lVisibleFrame = lstCmds.ListIndex
