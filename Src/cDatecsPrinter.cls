@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 5     4.11.08 14:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 6     7.11.08 13:02 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 6     7.11.08 13:02 Wqw
+' REF: enum ports pyrwo enumerira wsichki serial ports
+'
 ' 5     4.11.08 14:19 Wqw
 ' REF: polzwa overlapped I/O pri dostyp do com port-a
 '
@@ -158,6 +161,7 @@ Private Const GENERIC_READ                  As Long = &H80000000
 Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
 Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
+Private Const INVALID_HANDLE_VALUE          As Long = -1
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
@@ -166,8 +170,14 @@ Private Const EV_RXCHAR                     As Long = &H1                '  Any 
 '--- for WaitForMultipleObjects
 Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
-'--- for overlapped I/O
+'--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
+Private Const ERROR_ACCESS_DENIED           As Long = 5&
+Private Const ERROR_GEN_FAILURE             As Long = 31&
+Private Const ERROR_SHARING_VIOLATION       As Long = 32&
+Private Const ERROR_SEM_TIMEOUT             As Long = 121&
+'--- for GetVersionEx
+Private Const VER_PLATFORM_WIN32_NT         As Long = 2
 
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
@@ -183,6 +193,8 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
+Private Declare Function QueryDosDevice Lib "kernel32" Alias "QueryDosDeviceA" (ByVal lpDeviceName As Long, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
+Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -228,6 +240,15 @@ Private Type OVERLAPPED
     offset                      As Long
     OffsetHigh                  As Long
     hEvent                      As Long
+End Type
+
+Private Type OSVERSIONINFO
+    dwOSVersionInfoSize         As Long
+    dwMajorVersion              As Long
+    dwMinorVersion              As Long
+    dwBuildNumber               As Long
+    dwPlatformID                As Long
+    szCSDVersion                As String * 128      '  Maintenance string for PSS usage
 End Type
 
 '=========================================================================
@@ -316,7 +337,7 @@ Property Get Device() As String
 End Property
 
 Property Get IsConnected() As Boolean
-    IsConnected = (m_hComm <> -1)
+    IsConnected = (m_hComm <> INVALID_HANDLE_VALUE)
 End Property
 
 Property Get LocalizedText(ByVal eIdx As UcsLocalizedIndexesEnum) As String
@@ -346,48 +367,46 @@ End Property
 '=========================================================================
 
 Public Function EnumPorts() As Variant
-    Dim lIdx            As Long
     Dim hComm           As Long
     Dim sError          As String
     Dim sResult         As String
-    Dim cPrinters       As Collection
-    Dim vResult         As Variant
+    Dim vPort           As Variant
+    Dim vRet            As Variant
+    Dim lCount          As Long
     
-    Set cPrinters = New Collection
-    For lIdx = 1 To 9
+    ReDim vRet(0 To 255)
+    For Each vPort In pvEnumSerialPorts
         sError = vbNullString
-        hComm = pvOpenPort("COM" & lIdx & ",9600,8,N,1", sError)
-        If hComm <> -1 And LenB(sError) = 0 Then
+        hComm = pvOpenPort(vPort & ",9600,8,N,1", sError)
+        If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
             If pvWriteData(hComm, ucsFpcInfoStatus, &H20) Then
                 sError = vbNullString
                 sResult = pvReadData(hComm, 500, sError)
-                If LenB(sError) = 0 Then
-                    If Asc(Left(sResult, 1)) = 1 Then
-                        cPrinters.Add "COM" & lIdx
+                If LenB(sResult) <> 0 And LenB(sError) = 0 Then
+                    If Asc(sResult) = 1 Then
+                        vRet(lCount) = vPort
+                        lCount = lCount + 1
                     End If
                 End If
             End If
             Call CloseHandle(hComm)
         End If
     Next
-    If cPrinters.Count = 0 Then
-        vResult = Split("")
+    If lCount = 0 Then
+        EnumPorts = Split("")
     Else
-        ReDim vResult(0 To cPrinters.Count - 1)
-        For lIdx = 1 To cPrinters.Count
-            vResult(lIdx - 1) = cPrinters(lIdx)
-        Next
+        ReDim Preserve vRet(0 To lCount - 1)
+        EnumPorts = vRet
     End If
-    EnumPorts = vResult
 End Function
 
 Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) As Boolean
     Dim vSplit          As Variant
     
     m_sLastError = vbNullString
-    If m_hComm <> -1 Then
+    If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
-        m_hComm = -1
+        m_hComm = INVALID_HANDLE_VALUE
     End If
     m_lTimeout = lTimeout
     vSplit = Split(sDevice, ",")
@@ -407,7 +426,7 @@ End Function
 
 Public Function Connect() As Boolean
     m_sLastError = vbNullString
-    If m_hComm <> -1 Then
+    If m_hComm <> INVALID_HANDLE_VALUE Then
         m_sLastError = pvInternal(9, "Already connected")
         GoTo QH
     End If
@@ -422,12 +441,12 @@ End Function
 
 Public Function Disconnect() As Boolean
     m_sLastError = vbNullString
-    If m_hComm = -1 Then
+    If m_hComm = INVALID_HANDLE_VALUE Then
         m_sLastError = pvInternal(10, "Not connected")
         GoTo QH
     End If
     Call CloseHandle(m_hComm)
-    m_hComm = -1
+    m_hComm = INVALID_HANDLE_VALUE
     '--- success
     Disconnect = True
 QH:
@@ -508,7 +527,7 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         GoTo QH
     End If
     pvOpenPort = CreateFile("\\.\" & pvAccess(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
-    If pvOpenPort = -1 Then
+    If pvOpenPort = INVALID_HANDLE_VALUE Then
         sError = pvInternal(1, "CreateFile failed: ") & pvGetApiErr(Err.LastDllError)
         GoTo QH
     End If
@@ -753,20 +772,87 @@ Private Function pvInternal(ByVal lIdx As Long, Optional sDefault As String) As 
     pvInternal = pvAccess(Split(LocalizedText(ucsLciInternalErrors), "|"), lIdx, sDefault)
 End Function
 
+Private Function pvEnumSerialPorts() As Variant
+    Const FUNC_NAME     As String = "pvEnumSerialPorts"
+    Dim sBuffer         As String
+    Dim lIdx            As Long
+    Dim hFile           As Long
+    Dim vRet            As Variant
+    Dim lCount          As Long
+    
+    On Error GoTo EH
+    ReDim vRet(0 To 255)
+    If IsNT Then
+        sBuffer = String(100000, 1)
+        Call QueryDosDevice(0, sBuffer, Len(sBuffer))
+        sBuffer = Chr$(0) & sBuffer
+        For lIdx = 1 To 255
+            If InStr(1, sBuffer, Chr$(0) & "COM" & lIdx & Chr$(0), vbTextCompare) > 0 Then
+                vRet(lCount) = "COM" & lIdx
+                lCount = lCount + 1
+            End If
+        Next
+    Else
+        For lIdx = 1 To 255
+            hFile = CreateFile("COM" & lIdx, GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0)
+            If hFile = INVALID_HANDLE_VALUE Then
+                Select Case Err.LastDllError
+                Case ERROR_ACCESS_DENIED, ERROR_GEN_FAILURE, ERROR_SHARING_VIOLATION, ERROR_SEM_TIMEOUT
+                    hFile = 0
+                End Select
+            Else
+                Call CloseHandle(hFile)
+                hFile = 0
+            End If
+            If hFile = 0 Then
+                vRet(lCount) = "COM" & lIdx
+                lCount = lCount + 1
+            End If
+        Next
+    End If
+    If lCount = 0 Then
+        pvEnumSerialPorts = Split("")
+    Else
+        ReDim Preserve vRet(0 To lCount - 1)
+        pvEnumSerialPorts = vRet
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function IsNT() As Boolean
+    Const FUNC_NAME     As String = "IsNT"
+    Dim udtVer          As OSVERSIONINFO
+    
+    On Error GoTo EH
+    udtVer.dwOSVersionInfoSize = Len(udtVer)
+    If GetVersionEx(udtVer) Then
+        If udtVer.dwPlatformID = VER_PLATFORM_WIN32_NT Then
+            IsNT = True
+        End If
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
 
 Private Sub Class_Initialize()
-    m_hComm = -1
+    m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = 3000
     m_lSequence = &H20
     m_bExceptions = True
 End Sub
 
 Private Sub Class_Terminate()
-    If m_hComm <> -1 Then
+    If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
-        m_hComm = -1
+        m_hComm = INVALID_HANDLE_VALUE
     End If
 End Sub
