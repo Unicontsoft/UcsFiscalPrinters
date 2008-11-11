@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 6     7.11.08 13:02 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 7     11.11.08 17:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 7     11.11.08 17:20 Wqw
+' REF: Private pvGetFlagsText -> Friend frGetFlagsText
+'
 ' 6     7.11.08 13:02 Wqw
 ' REF: enum ports pyrwo enumerira wsichki serial ports
 '
@@ -297,11 +300,11 @@ Property Get Status(ByVal eValue As UcsStatusBitsEnum) As Boolean
 End Property
 
 Property Get StatusText() As String
-    StatusText = pvGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterStatuses))
+    StatusText = frGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterStatuses))
 End Property
 
 Property Get ErrorText() As String
-    ErrorText = pvGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterErrors))
+    ErrorText = frGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterErrors))
 End Property
 
 Property Get Dip(ByVal eValue As UcsDipSwitchesEnum) As Boolean
@@ -309,7 +312,7 @@ Property Get Dip(ByVal eValue As UcsDipSwitchesEnum) As Boolean
 End Property
 
 Property Get DipText() As String
-    DipText = pvGetFlagsText(m_eDip, LocalizedText(ucsLciDipSwitchesTexts))
+    DipText = frGetFlagsText(m_eDip, LocalizedText(ucsLciDipSwitchesTexts))
 End Property
 
 Property Get Memory(ByVal eValue As UcsFiscalMemoryEnum) As Boolean
@@ -317,7 +320,7 @@ Property Get Memory(ByVal eValue As UcsFiscalMemoryEnum) As Boolean
 End Property
 
 Property Get MemoryText() As String
-    MemoryText = pvGetFlagsText(m_eMemory, LocalizedText(ucsLciMemoryTexts))
+    MemoryText = frGetFlagsText(m_eMemory, LocalizedText(ucsLciMemoryTexts))
 End Property
 
 Property Get LastError() As String
@@ -713,8 +716,8 @@ EH:
     Resume Next
 End Sub
 
-Private Function pvGetFlagsText(ByVal lFlags As Long, sTexts As String) As String
-    Const FUNC_NAME     As String = "pvGetFlagsText"
+Friend Function frGetFlagsText(ByVal lFlags As Long, sTexts As String) As String
+    Const FUNC_NAME     As String = "frGetFlagsText"
     Dim lIdx            As Long
     Dim vSplit          As Variant
     
@@ -723,10 +726,10 @@ Private Function pvGetFlagsText(ByVal lFlags As Long, sTexts As String) As Strin
     For lIdx = 0 To UBound(vSplit)
         If (lFlags And (2 ^ lIdx)) <> 0 Then
             If Len(vSplit(lIdx)) > 1 Then
-                If LenB(pvGetFlagsText) <> 0 Then
-                    pvGetFlagsText = pvGetFlagsText & ", "
+                If LenB(frGetFlagsText) <> 0 Then
+                    frGetFlagsText = frGetFlagsText & ", "
                 End If
-                pvGetFlagsText = pvGetFlagsText & vSplit(lIdx)
+                frGetFlagsText = frGetFlagsText & vSplit(lIdx)
             End If
         End If
     Next
