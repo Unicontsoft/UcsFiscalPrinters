@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 8     11.11.08 17:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 9     11.11.08 18:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 9     11.11.08 18:20 Wqw
+' REF: pri slujebnite bonowe moje da ima otritsatelni plashtaniq
+'
 ' 8     11.11.08 17:19 Wqw
 ' ADD: InitDateTime. REF: impl na redowe za plashtane i free text pri
 ' pechat na bonowe
@@ -689,8 +692,8 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
                 ReDim vRet(0 To 0)
             End If
             sWayOfPmt = IIf(.WayOfPayment = "D", STR_CARD, STR_CASH)
-            vRet(UBound(vRet)) = sWayOfPmt & Right(Space(MAX_WIDTH) & pvSafeFormat(Abs(C_Dbl(.Amount)), "0.00"), MAX_WIDTH - Len(sWayOfPmt) - 2)
-            uCtx.Amount = uCtx.Amount + Round(Abs(C_Dbl(.Amount)), 2)
+            vRet(UBound(vRet)) = sWayOfPmt & Right(Space(MAX_WIDTH) & pvSafeFormat(C_Dbl(.Amount), "0.00"), MAX_WIDTH - Len(sWayOfPmt) - 2)
+            uCtx.Amount = uCtx.Amount + Round(C_Dbl(.Amount), 2)
         ElseIf .Type = ucsRwtText Then
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), MAX_WIDTH)
             If Not uCtx.ChangePrinted And uCtx.PmtPrinted Then
