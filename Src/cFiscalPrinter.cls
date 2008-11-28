@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 9     11.11.08 18:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 10    28.11.08 2:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 10    28.11.08 2:06 Wqw
+' REF: manual open door pri nefiskalni bonowe, impl open door
+'
 ' 9     11.11.08 18:20 Wqw
 ' REF: pri slujebnite bonowe moje da ima otritsatelni plashtaniq
 '
@@ -390,6 +393,8 @@ Public Function PrintReceipt( _
         m_oFP.SendCommand ucsFpcNonFiscalText, vbNullString
         '--- closing footer
         m_oFP.SendCommand ucsFpcNonFiscalClose
+        '--- open door
+        m_oFP.SendCommand ucsFpcInitOpenDoor
     Case ucsFptFiscal
         '--- print outstanding payment
         For Each vCmd In pvGetFiscalRow(pvGetRowData(Array("")), uCtx)
@@ -531,6 +536,8 @@ Public Function OpenDoor( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
+    '--- note: ucsFpcInitOpenDoor ne moje da e pyrwata komanda
+    m_oFP.SendCommand ucsFpcInfoTransaction
     m_oFP.SendCommand ucsFpcInitOpenDoor
     '--- disconnect
     Set m_oFP = Nothing
