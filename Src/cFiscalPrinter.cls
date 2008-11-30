@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 10    28.11.08 2:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 11    1.12.08 0:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 11    1.12.08 0:43 Wqw
+' REF: polzwat pvReset
+'
 ' 10    28.11.08 2:06 Wqw
 ' REF: manual open door pri nefiskalni bonowe, impl open door
 '
@@ -304,24 +307,7 @@ Public Function PrintReceipt( _
     '--- init & localize fiscal printer
     pvInit Device, Timeout
     '--- cancel outstanding transaction
-    If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
-        If m_oFP.Status(ucsStbFiscalPrinting) Then
-            m_oFP.Exceptions = False
-            '--- note: FP3530 moje da anulira winagi, FP550F ne moje
-            m_oFP.SendCommand ucsFpcFiscalCancel
-            If m_oFP.Status(ucsStbFiscalPrinting) Then
-                '--- note: ako platenata suma e po-malka ot sumata na bona, towa pomaga
-                m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
-                '--- note: when printing invoice, if no contragent info set then cancel fails!
-                m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
-                '--- zaradi FP550F
-                m_oFP.SendCommand ucsFpcFiscalClose
-            End If
-            m_oFP.Exceptions = True
-        Else
-            m_oFP.SendCommand ucsFpcNonFiscalClose
-        End If
-    End If
+    pvReset
     '--- open transaction
     sOperLogin = pvAccess(OperatorData, ucsFpiOperatorCode, "1") & "," & pvAccess(OperatorData, ucsFpiOperatorPass, "0000") & "," & pvAccess(OperatorData, ucsFpiCashDeskNo, "1")
     Select Case ReceiptType
@@ -395,6 +381,8 @@ Public Function PrintReceipt( _
         m_oFP.SendCommand ucsFpcNonFiscalClose
         '--- open door
         m_oFP.SendCommand ucsFpcInitOpenDoor
+        '--- success
+        PrintReceipt = True
     Case ucsFptFiscal
         '--- print outstanding payment
         For Each vCmd In pvGetFiscalRow(pvGetRowData(Array("")), uCtx)
@@ -403,6 +391,8 @@ Public Function PrintReceipt( _
             End If
         Next
         m_oFP.SendCommand ucsFpcFiscalClose
+        '--- success
+        PrintReceipt = True
     Case ucsFptInvoice
         '--- print outstanding payment
         For Each vCmd In pvGetFiscalRow(pvGetRowData(Array("")), uCtx)
@@ -420,6 +410,10 @@ Public Function PrintReceipt( _
                 pvSplitCgAddress(pvAccess(InvoiceData, ucsFpiCgAddress))
         End If
         m_oFP.SendCommand ucsFpcFiscalClose
+        '--- success
+        PrintReceipt = True
+    Case Else
+        '--- moje da se pechata dublikat
     End Select
     bInTrans = False
     If LenB(pvAccess(OperatorData, ucsFpiLastReceipt, vbNullString)) <> 0 Then
@@ -427,12 +421,12 @@ Public Function PrintReceipt( _
     End If
     If PrintDuplicate Then
         m_oFP.SendCommand ucsFpcPrintDuplicate, "1"
+        '--- success
+        PrintReceipt = True
     End If
     '--- disconnect
     Set m_oFP = Nothing
     CommandLog = m_sLog
-    '--- success
-    PrintReceipt = True
     Exit Function
 EH:
     LastError = Err.Description
@@ -479,6 +473,7 @@ Public Function PrintReport( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
+    pvReset
     Select Case ReportType
     Case ucsFprDaily
         '-- ReportData = { IsClear, IsItems, IsDepartments }
@@ -536,8 +531,7 @@ Public Function OpenDoor( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
-    '--- note: ucsFpcInitOpenDoor ne moje da e pyrwata komanda
-    m_oFP.SendCommand ucsFpcInfoTransaction
+    pvReset
     m_oFP.SendCommand ucsFpcInitOpenDoor
     '--- disconnect
     Set m_oFP = Nothing
@@ -563,6 +557,7 @@ Public Function InitDateTime( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
+    pvReset
     If LenB(sDateTime) = 0 Then
         sDateTime = Format(Now, "dd-MM-yy") & " " & Format(Now, "hh:mm:ss")
     End If
@@ -596,6 +591,27 @@ Private Sub pvInit(Device As String, ByVal Timeout As Long)
     m_oFP.LocalizedText(ucsLciDipSwitchesTexts) = STR_DIP_SWITCHES
     m_oFP.LocalizedText(ucsLciMemoryTexts) = STR_MEMORY
     m_oFP.Init Device, Timeout
+End Sub
+
+Private Sub pvReset()
+    If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
+        If m_oFP.Status(ucsStbFiscalPrinting) Then
+            m_oFP.Exceptions = False
+            '--- note: FP3530 moje da anulira winagi, FP550F ne moje
+            m_oFP.SendCommand ucsFpcFiscalCancel
+            If m_oFP.Status(ucsStbFiscalPrinting) Then
+                '--- note: ako platenata suma e po-malka ot sumata na bona, towa pomaga
+                m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
+                '--- note: when printing invoice, if no contragent info set then cancel fails!
+                m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
+                '--- zaradi FP550F
+                m_oFP.SendCommand ucsFpcFiscalClose
+            End If
+            m_oFP.Exceptions = True
+        Else
+            m_oFP.SendCommand ucsFpcNonFiscalClose
+        End If
+    End If
 End Sub
 
 Private Function pvGetRowData(vRow As Variant) As UcsRow
