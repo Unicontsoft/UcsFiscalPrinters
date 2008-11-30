@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 7     11.11.08 17:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 8     1.12.08 0:42 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 8     1.12.08 0:42 Wqw
+' REF: UcsFiscalPrinterCommandsEnum, STR_ERRORS_ONLY
+'
 ' 7     11.11.08 17:20 Wqw
 ' REF: Private pvGetFlagsText -> Friend frGetFlagsText
 '
@@ -153,6 +156,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcPrintDailyReportItems = 108
     ucsFpcPrintDailyReportDepartments = 117
     ucsFpcPrintDailyReportItemsDepartments = 118
+    ucsFpcPrintReportTaxRates = 50
 End Enum
 
 '=========================================================================
@@ -260,7 +264,7 @@ End Type
 
 Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length|Response missing postamble|Response missing preamble|WaitCommEvent failed: "
 Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
-Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allow|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
+Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_MEMORY                As String = "Write error|1|No memory module|Memory low|Out of memory|Fiscal memory error|6|7|Read only|Memory formatted|2|Fiscal mode|Tax rates set|Tax number set|6|7"
 
