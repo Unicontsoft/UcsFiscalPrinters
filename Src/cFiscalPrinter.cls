@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 13    1.12.08 23:02 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 14    2.12.08 0:15 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 14    2.12.08 0:15 Wqw
+' REF: logging
+'
 ' 13    1.12.08 23:02 Wqw
 ' REF: logging
 '
@@ -1028,9 +1031,9 @@ Private Sub DebugLog(sFunc As String, sText As String)
     
     On Error Resume Next
     nFile = FreeFile
-    Open Environ$("TEMP") & "\UcsFP.log" For Binary Access Write As nFile
-    Print nFile, MODULE_NAME & "." & sFunc & "(" & Now & "): " & sText
-    Close nFile
+    Open Environ$("TEMP") & "\UcsFP.log" For Append Access Write As #nFile
+    Print #nFile, MODULE_NAME & "." & sFunc & "(" & Now & "): " & sText
+    Close #nFile
     On Error GoTo 0
 End Sub
 
