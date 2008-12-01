@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 11    1.12.08 0:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 12    1.12.08 16:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 12    1.12.08 16:14 Wqw
+' REF: impl debug log
+'
 ' 11    1.12.08 0:43 Wqw
 ' REF: polzwat pvReset
 '
@@ -156,6 +159,7 @@ End Type
 
 Private Sub PrintError(sFunc As String)
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
+    DebugLog sFunc, "Run-time error: " & Error
 End Sub
 
 '=========================================================================
@@ -293,6 +297,7 @@ Public Function PrintReceipt( _
             Optional PrintDuplicate As Boolean, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "PrintReceipt"
     Const MAX_WIDTH     As Long = 30
     Dim vElem           As Variant
     Dim bInTrans        As Boolean
@@ -445,6 +450,7 @@ NextLine:
             If ReceiptType = ucsFptNonFiscal Then
                 m_oFP.SendCommand ucsFpcNonFiscalClose
             Else
+                DebugLog FUNC_NAME, "EH bInTrans And m_oFP.IsConnected, ReceiptType = ucsFptFiscal"
                 '--- note: when printing invoice, if no contragent info set then cancel fails!
                 m_oFP.Exceptions = False
                 m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
@@ -457,6 +463,7 @@ NextLine:
         End If
         Set m_oFP = Nothing
     End If
+    DebugLog FUNC_NAME, "EH LastError=" & LastError & ", m_sLog=" & m_sLog
     CommandLog = m_sLog
 End Function
 
@@ -467,6 +474,7 @@ Public Function PrintReport( _
             Optional ReportData As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "PrintReport"
     Dim eCmd            As UcsFiscalPrinterCommandsEnum
     Dim vResult         As Variant
     
@@ -520,6 +528,7 @@ EH:
 NextLine:
     On Error Resume Next
     Set m_oFP = Nothing
+    DebugLog FUNC_NAME, "EH LastError=" & LastError & ", m_sLog=" & m_sLog
     CommandLog = m_sLog
 End Function
 
@@ -528,6 +537,8 @@ Public Function OpenDoor( _
             Timeout As Long, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "OpenDoor"
+    
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
@@ -545,6 +556,7 @@ EH:
 NextLine:
     On Error Resume Next
     Set m_oFP = Nothing
+    DebugLog FUNC_NAME, "EH LastError=" & LastError & ", m_sLog=" & m_sLog
     CommandLog = m_sLog
 End Function
 
@@ -554,6 +566,8 @@ Public Function InitDateTime( _
             sDateTime As String, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "InitDateTime"
+    
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
@@ -577,6 +591,7 @@ EH:
 NextLine:
     On Error Resume Next
     Set m_oFP = Nothing
+    DebugLog FUNC_NAME, "EH LastError=" & LastError & ", m_sLog=" & m_sLog
     CommandLog = m_sLog
 End Function
 
@@ -1004,6 +1019,17 @@ Private Function pvGetDecimalSeparator() As String
         pvGetDecimalSeparator = "."
     End If
 End Function
+
+Private Sub DebugLog(sFunc As String, sText As String)
+    Dim nFile           As Integer
+    
+    On Error Resume Next
+    nFile = FreeFile
+    Open Environ$("TEMP") & "\UcsFP.log" For Binary Access Write As nFile
+    Print nFile, MODULE_NAME & "." & sFunc & "(" & Timer & "): " & sText
+    Close nFile
+    On Error GoTo 0
+End Sub
 
 Private Sub Class_Initialize()
     m_sDecimalSeparator = pvGetDecimalSeparator()

@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 8     1.12.08 0:42 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 9     1.12.08 16:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 9     1.12.08 16:14 Wqw
+' REF: impl debug log
+'
 ' 8     1.12.08 0:42 Wqw
 ' REF: UcsFiscalPrinterCommandsEnum, STR_ERRORS_ONLY
 '
@@ -285,6 +288,7 @@ Private m_sLocalizedText(0 To 5)    As String
 
 Private Sub PrintError(sFunc As String)
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
+    DebugLog sFunc, "Run-time error: " & Error
 End Sub
 
 '=========================================================================
@@ -408,8 +412,10 @@ Public Function EnumPorts() As Variant
 End Function
 
 Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) As Boolean
+    Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
+    DebugLog FUNC_NAME, "sDevice=" & sDevice & "; lTimeout=" & lTimeout
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
@@ -432,6 +438,9 @@ QH:
 End Function
 
 Public Function Connect() As Boolean
+    Const FUNC_NAME     As String = "Connect"
+    
+    DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         m_sLastError = pvInternal(9, "Already connected")
@@ -447,6 +456,9 @@ QH:
 End Function
 
 Public Function Disconnect() As Boolean
+    Const FUNC_NAME     As String = "Disconnect"
+    
+    DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
         m_sLastError = pvInternal(10, "Not connected")
@@ -463,10 +475,12 @@ QH:
 End Function
 
 Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional sData As String) As String
+    Const FUNC_NAME     As String = "SendCommand"
     Dim sText           As String
     Dim lIdx            As Long
     Dim lSize           As Long
         
+    DebugLog FUNC_NAME, "eCmd=" & eCmd & ", sData=" & sData
     m_sLastError = vbNullString
     If Not pvWriteData(m_hComm, eCmd, m_lSequence, sData, m_sLastError) Then
         GoTo QH
@@ -500,21 +514,28 @@ Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional
     End If
     pvSetStatus vbNullString '--- clear
 QH:
+    DebugLog FUNC_NAME, "RetVal=" & SendCommand
     RaiseEvent CommandComplete(eCmd, sData, SendCommand)
     If Exceptions Then
         If LenB(m_sLastError) <> 0 Then
+            DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
             Err.Raise vbObjectError, , m_sLastError
         End If
         If Status(ucsStbPrintingError) Then
+            DebugLog FUNC_NAME, "ErrorText=" & ErrorText
             Err.Raise vbObjectError, , ErrorText
         End If
     End If
 End Function
 
 Public Function ReadData(Optional ByVal lTimeout As Long) As String
+    Const FUNC_NAME     As String = "ReadData"
+    
     m_sLastError = vbNullString
     ReadData = pvReadData(m_hComm, IIf(lTimeout > 0, lTimeout, m_lTimeout), m_sLastError)
+    DebugLog FUNC_NAME, "RetVal=" & ReadData
     If LenB(m_sLastError) <> 0 And Exceptions Then
+        DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Function
@@ -601,6 +622,7 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     If lResult = WAIT_OBJECT_0 Then
         pvWriteData = True
     Else
+        DebugLog FUNC_NAME, "CancelIo, hComm=" & hComm
         Call CancelIo(hComm)
     End If
 QH:
@@ -626,6 +648,7 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
         lResult = WaitCommEvent(hComm, lMask, uOver)
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
+                DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
                 sError = pvInternal(14, "WaitCommEvent failed: ") & pvGetApiErr(Err.LastDllError)
                 GoTo QH
             End If
@@ -653,9 +676,11 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
+            DebugLog FUNC_NAME, "WaitForMultipleObjects, lResult=" & lResult
             If lResult = WAIT_TIMEOUT Then
                 sError = pvInternal(6, "Timeout waiting for response")
             End If
+            DebugLog FUNC_NAME, "CancelIo, hComm=" & hComm
             Call CancelIo(hComm)
             Exit Do
         End If
@@ -845,6 +870,17 @@ EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Private Sub DebugLog(sFunc As String, sText As String)
+    Dim nFile           As Integer
+    
+    On Error Resume Next
+    nFile = FreeFile
+    Open Environ$("TEMP") & "\UcsFP.log" For Binary Access Write As nFile
+    Print nFile, MODULE_NAME & "." & sFunc & "(" & Timer & "): " & sText
+    Close nFile
+    On Error GoTo 0
+End Sub
 
 '=========================================================================
 ' Base class events
