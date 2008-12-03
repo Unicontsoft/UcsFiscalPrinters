@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 14    2.12.08 0:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 15    3.12.08 23:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 15    3.12.08 23:49 Wqw
+' REF: custom impl na Round, sumi s natrupwaniq se zakryglqwat
+'
 ' 14    2.12.08 0:15 Wqw
 ' REF: logging
 '
@@ -680,10 +683,10 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
                 End If
                 sQuantity = Right(" " & pvSafeFormat(C_Dbl(.Quantity), "0.0##") & " x " & sQuantity & sPrice & "  ", MAX_WIDTH)
                 sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), "0.00") & " " & .Group
-                uCtx.Total = uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2)
+                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
             Else
                 sPrice = sPrice & " " & .Group
-                uCtx.Total = uCtx.Total + Round(C_Dbl(.Price), 2)
+                uCtx.Total = Round(uCtx.Total + Round(C_Dbl(.Price), 2), 2)
             End If
             '--- split long item name
             sItem = RTrim(pvSafeText(.Item))
@@ -737,12 +740,12 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             End If
             sWayOfPmt = IIf(.WayOfPayment = "D", STR_CARD, STR_CASH)
             vRet(UBound(vRet)) = sWayOfPmt & Right(Space(MAX_WIDTH) & pvSafeFormat(C_Dbl(.Amount), "0.00"), MAX_WIDTH - Len(sWayOfPmt) - 2)
-            uCtx.Amount = uCtx.Amount + Round(C_Dbl(.Amount), 2)
+            uCtx.Amount = Round(uCtx.Amount + Round(C_Dbl(.Amount), 2), 2)
         ElseIf .Type = ucsRwtText Then
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), MAX_WIDTH)
             If Not uCtx.ChangePrinted And uCtx.PmtPrinted Then
                 uCtx.ChangePrinted = True
-                If Abs(uCtx.Amount - uCtx.Total) >= 0.01 Then
+                If Round(uCtx.Amount, 2) > Round(uCtx.Total, 2) Then
                     ReDim Preserve vRet(0 To UBound(vRet) + 1)
                     For lIdx = UBound(vRet) To 1 Step -1
                         vRet(lIdx) = vRet(lIdx - 1)
@@ -801,9 +804,9 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             sText = sText & vbTab & .Group & sSign & pvSafeFormat(Abs(C_Dbl(.Price)), "0.00")
             If LenB(.Quantity) <> 0 Then
                 sText = sText & "*" & pvSafeFormat(Abs(C_Dbl(.Quantity)), "0.000")
-                uCtx.Total = uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2)
+                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
             Else
-                uCtx.Total = uCtx.Total + Round(C_Dbl(.Price), 2)
+                uCtx.Total = Round(uCtx.Total + Round(C_Dbl(.Price), 2), 2)
             End If
             vRet(UBound(vRet)) = Array(ucsFpcFiscalSell, sText)
             pvGetFiscalRow = vRet
@@ -816,7 +819,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             If LenB(.Amount) = 0 Then
                 uCtx.Amount = uCtx.Total
             Else
-                uCtx.Amount = uCtx.Amount + Round(Abs(C_Dbl(.Amount)), 2)
+                uCtx.Amount = Round(uCtx.Amount + Abs(C_Dbl(.Amount)), 2)
             End If
             ReDim vRet(0 To 0)
             '--- split item
@@ -846,7 +849,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             For lIdx = 0 To UBound(vRet)
                 vRet(lIdx) = Array(ucsFpcFiscalText, vSplit(lIdx))
             Next
-            If Not uCtx.PmtPrinted Or uCtx.Amount < uCtx.Total Then
+            If Not uCtx.PmtPrinted Or Round(uCtx.Amount, 2) < Round(uCtx.Total, 2) Then
                 uCtx.PmtPrinted = True
                 uCtx.ChangePrinted = True
                 uCtx.Amount = uCtx.Total
@@ -1024,6 +1027,12 @@ Private Function pvGetDecimalSeparator() As String
     Else
         pvGetDecimalSeparator = "."
     End If
+End Function
+
+Private Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double
+    On Error Resume Next
+    Round = VBA.Round(Value + IIf(Value > 0, 10 ^ -13, -10 ^ -13), NumDigits)
+    On Error GoTo 0
 End Function
 
 Private Sub DebugLog(sFunc As String, sText As String)
