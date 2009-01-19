@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 16    17.12.08 18:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 17    19.01.09 17:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008 Unicontsoft
+'   Copyright (c) 2008-2009 Unicontsoft
 '
 '   Interfacen class za uprawlenie na fiscalni printer
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 17    19.01.09 17:37 Wqw
+' REF: log-wa fiscalno plashtane
+'
 ' 16    17.12.08 18:28 Wqw
 ' REF: impl pechat na kreditno izwestie, DebugLog prowerqwa dali log
 ' file-a syshtestwuwa
@@ -122,6 +125,7 @@ Public Enum UcsFiscalPrinterIndexesEnum
     ucsFpiOperatorPass
     ucsFpiCashDeskNo
     ucsFpiLastReceipt
+    ucsFpiFiscalPayment
 End Enum
 
 '=========================================================================
@@ -161,6 +165,7 @@ Private Const STR_ARTICLE_SINGLE        As String = "1 ¿–“» ”À"
 Private WithEvents m_oFP            As cDatecsPrinter
 Attribute m_oFP.VB_VarHelpID = -1
 Private m_sLog                      As String
+Private m_bLogFiscalPayment         As Boolean
 Private m_sDecimalSeparator         As String
 
 Private Enum UcsRowTypeEnum
@@ -219,6 +224,7 @@ Public Function GetHeaderFooter( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
+    m_oFP.Exceptions = False
     '--- fetch header & footer
     vInput = RetVal
     ReDim RetVal(0 To 16)
@@ -539,6 +545,9 @@ Public Function PrintReceipt( _
     If LenB(pvAccess(OperatorData, ucsFpiLastReceipt, vbNullString)) <> 0 Then
         OperatorData(ucsFpiLastReceipt) = m_oFP.SendCommand(ucsFpcInfoLastReceipt)
     End If
+    If LenB(pvAccess(OperatorData, ucsFpiFiscalPayment, vbNullString)) <> 0 Then
+        OperatorData(ucsFpiFiscalPayment) = m_bLogFiscalPayment
+    End If
     If PrintDuplicate Then
         m_oFP.SendCommand ucsFpcPrintDuplicate, "1"
         '--- success
@@ -553,28 +562,35 @@ EH:
     Resume NextLine
 NextLine:
     On Error Resume Next
+    If bInLogin Then
+        LastError = LastError & STR_OR_INCORRECT_LOGIN
+        OperatorData(ucsFpiOperatorPass) = Empty
+    End If
+    If lCurrentRow > 0 Then
+        LastError = STR_ERROR_LINE & lCurrentRow & ": " & LastError
+    End If
+    If LenB(pvAccess(OperatorData, ucsFpiFiscalPayment, vbNullString)) <> 0 Then
+        OperatorData(ucsFpiFiscalPayment) = m_bLogFiscalPayment
+    End If
     If Not m_oFP Is Nothing Then
-        If bInLogin Then
-            LastError = LastError & STR_OR_INCORRECT_LOGIN
-            OperatorData(ucsFpiOperatorPass) = Empty
-        End If
-        If lCurrentRow > 0 Then ' m_oFP.Status(ucsStbPrintingError)
-            LastError = STR_ERROR_LINE & lCurrentRow & ": " & LastError
-        End If
-        If bInTrans And m_oFP.IsConnected Then
-            If ReceiptType = ucsFptNonFiscal Then
-                m_oFP.SendCommand ucsFpcNonFiscalClose
-            Else
-                DebugLog FUNC_NAME, "EH bInTrans And m_oFP.IsConnected, ReceiptType = ucsFptFiscal"
-                '--- note: when printing invoice, if no contragent info set then cancel fails!
-                m_oFP.Exceptions = False
-                m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
-                m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
-                m_oFP.SendCommand ucsFpcFiscalCancel
-                m_oFP.SendCommand ucsFpcFiscalClose
-                m_oFP.Exceptions = True
+        If m_oFP.IsConnected Then
+            m_oFP.Exceptions = False
+            If LenB(pvAccess(OperatorData, ucsFpiLastReceipt, vbNullString)) <> 0 Then
+                OperatorData(ucsFpiLastReceipt) = m_oFP.SendCommand(ucsFpcInfoLastReceipt)
             End If
-            bInTrans = False
+            If bInTrans Then
+                If ReceiptType = ucsFptNonFiscal Then
+                    m_oFP.SendCommand ucsFpcNonFiscalClose
+                Else
+                    DebugLog FUNC_NAME, "EH bInTrans And m_oFP.IsConnected, ReceiptType = ucsFptFiscal"
+                    '--- note: when printing invoice, if no contragent info set then cancel fails!
+                    m_oFP.SendCommand ucsFpcFiscalCancel
+                    m_oFP.SendCommand ucsFpcFiscalPayment, vbTab
+                    m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
+                    m_oFP.SendCommand ucsFpcFiscalClose
+                End If
+                bInTrans = False
+            End If
         End If
         Set m_oFP = Nothing
     End If
@@ -686,13 +702,12 @@ Public Function InitDateTime( _
     On Error GoTo EH
     '--- init & localize fiscal printer
     pvInit Device, Timeout
+    m_oFP.Exceptions = False
     pvReset
     If LenB(sDateTime) = 0 Then
         sDateTime = Format(Now, "dd-MM-yy") & " " & Format(Now, "hh:mm:ss")
     End If
-    m_oFP.Exceptions = False
     m_oFP.SendCommand ucsFpcInitDateTime, sDateTime
-    m_oFP.Exceptions = True
     sDateTime = m_oFP.SendCommand(ucsFpcInfoDateTime)
     '--- disconnect
     Set m_oFP = Nothing
@@ -714,6 +729,7 @@ End Function
 
 Private Sub pvInit(Device As String, ByVal Timeout As Long)
     m_sLog = vbNullString
+    m_bLogFiscalPayment = False
     Set m_oFP = New cDatecsPrinter
     m_oFP.LocalizedText(ucsLciInternalErrors) = STR_INTERNAL
     m_oFP.LocalizedText(ucsLciPrinterStatuses) = STR_STATUSES
@@ -724,8 +740,11 @@ Private Sub pvInit(Device As String, ByVal Timeout As Long)
 End Sub
 
 Private Sub pvReset()
+    Dim bExceptions     As Boolean
+    
     If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
         If m_oFP.Status(ucsStbFiscalPrinting) Then
+            bExceptions = m_oFP.Exceptions
             m_oFP.Exceptions = False
             '--- note: FP3530 moje da anulira winagi, FP550F ne moje
             m_oFP.SendCommand ucsFpcFiscalCancel
@@ -737,7 +756,7 @@ Private Sub pvReset()
                 '--- zaradi FP550F
                 m_oFP.SendCommand ucsFpcFiscalClose
             End If
-            m_oFP.Exceptions = True
+            m_oFP.Exceptions = bExceptions
         Else
             m_oFP.SendCommand ucsFpcNonFiscalClose
         End If
@@ -1273,6 +1292,9 @@ Private Sub m_oFP_CommandComplete(ByVal lCmd As Long, sData As String, sResult A
     Const FUNC_NAME     As String = "m_oFP_CommandComplete"
     
     On Error GoTo EH
+    If lCmd = ucsFpcFiscalPayment Then
+        m_bLogFiscalPayment = True
+    End If
     m_sLog = m_sLog & lCmd & IIf(LenB(sData) <> 0, "<-" & sData, vbNullString) & IIf(LenB(sResult) <> 0, "->" & sResult, vbNullString) & vbCrLf
     If LenB(m_oFP.LastError) <> 0 Then
         m_sLog = m_sLog & m_oFP.LastError & vbCrLf
