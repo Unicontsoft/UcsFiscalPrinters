@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 12    17.12.08 18:27 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 13    19.01.09 17:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008 Unicontsoft
+'   Copyright (c) 2008-2009 Unicontsoft
 '
 '   Uprawlenie na fiscalni printer po ICL protocol (Datecs, Daisy)
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 13    19.01.09 17:36 Wqw
+' REF: exception podtiska samo pri print error
+'
 ' 12    17.12.08 18:27 Wqw
 ' REF: DebugLog prowerqwa dali log file-a syshtestwuwa
 '
@@ -155,6 +158,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInfoDiagnostics = 90
     ucsFpcInfoTaxRates = 97
     ucsFpcInfoBulstat = 99
+    ucsFpcInfoSums = 103
     ucsFpcInfoOperator = 112
     ucsFpcInfoLastReceipt = 113
     '--- print
@@ -441,7 +445,7 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) 
     '--- success
     Init = True
 QH:
-    If LenB(m_sLastError) <> 0 And Exceptions Then
+    If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Function
@@ -459,7 +463,7 @@ Public Function Connect() As Boolean
     '--- success
     Connect = True
 QH:
-    If LenB(m_sLastError) <> 0 And Exceptions Then
+    If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Function
@@ -478,7 +482,7 @@ Public Function Disconnect() As Boolean
     '--- success
     Disconnect = True
 QH:
-    If LenB(m_sLastError) <> 0 And Exceptions Then
+    If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Function
@@ -525,11 +529,11 @@ Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional
 QH:
     DebugLog FUNC_NAME, "RetVal=" & SendCommand
     RaiseEvent CommandComplete(eCmd, sData, SendCommand)
+    If LenB(m_sLastError) <> 0 Then
+        DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
+        Err.Raise vbObjectError, , m_sLastError
+    End If
     If Exceptions Then
-        If LenB(m_sLastError) <> 0 Then
-            DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
-            Err.Raise vbObjectError, , m_sLastError
-        End If
         If Status(ucsStbPrintingError) Then
             DebugLog FUNC_NAME, "ErrorText=" & ErrorText
             Err.Raise vbObjectError, , ErrorText
@@ -543,7 +547,7 @@ Public Function ReadData(Optional ByVal lTimeout As Long) As String
     m_sLastError = vbNullString
     ReadData = pvReadData(m_hComm, IIf(lTimeout > 0, lTimeout, m_lTimeout), m_sLastError)
     DebugLog FUNC_NAME, "RetVal=" & ReadData
-    If LenB(m_sLastError) <> 0 And Exceptions Then
+    If LenB(m_sLastError) <> 0 Then
         DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
         Err.Raise vbObjectError, , m_sLastError
     End If
