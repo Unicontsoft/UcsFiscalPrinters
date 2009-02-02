@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 13    19.01.09 17:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 14    2.02.09 13:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2009 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 14    2.02.09 13:52 Wqw
+' REF: pvReadData probwa da chete pyrwo posle wait-wa za comm event
+'
 ' 13    19.01.09 17:36 Wqw
 ' REF: exception podtiska samo pri print error
 '
@@ -657,6 +660,7 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
     On Error GoTo EH
     Call SetCommMask(hComm, EV_RXCHAR)
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
+    GoTo InLoop
     Do
         lResult = WaitCommEvent(hComm, lMask, uOver)
         If lResult = 0 Then
@@ -665,9 +669,13 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
                 sError = pvInternal(14, "WaitCommEvent failed: ") & pvGetApiErr(Err.LastDllError)
                 GoTo QH
             End If
+            lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+        Else
+            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult
+            lResult = WAIT_OBJECT_0
         End If
-        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
+InLoop:
             sBuffer = String(1000, 0)
             lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), dwRead, VarPtr(uOver))
             If lResult = 0 Then
@@ -675,8 +683,10 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
                     sError = pvInternal(7, "ReadFile failed: ") & pvGetApiErr(Err.LastDllError)
                     GoTo QH
                 End If
+                lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+            Else
+                lResult = WAIT_OBJECT_0
             End If
-            lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
             If lResult = WAIT_OBJECT_0 Then
                 sBuffer = Left(StrConv(sBuffer, vbUnicode), dwRead)
                 '--- check for NAK (&H15)
@@ -889,6 +899,7 @@ Private Sub DebugLog(sFunc As String, sText As String)
     Dim nFile           As Integer
     
     On Error Resume Next
+'    Debug.Print MODULE_NAME & "." & sFunc & "(" & Now & "): " & sText
     sFile = Environ$("TEMP") & "\UcsFP.log"
     If GetAttr(sFile) = -1 Then
         Exit Sub
