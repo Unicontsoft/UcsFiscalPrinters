@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 17    19.01.09 17:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 18    14.03.09 16:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2009 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 18    14.03.09 16:14 Wqw
+' REF: impl non-invoice
+'
 ' 17    19.01.09 17:37 Wqw
 ' REF: log-wa fiscalno plashtane
 '
@@ -95,8 +98,8 @@ Private Declare Function GetUserDefaultLCID Lib "kernel32" () As Long
 Public Enum UcsFiscalPrinterReceiptTypeEnum
     ucsFptNonFiscal = 1
     ucsFptFiscal
+    ucsFptNonInvoice
     ucsFptInvoice
-    ucsFptCreditNote
 End Enum
 
 Public Enum UcsFiscalPrinterReportTypeEnum
@@ -111,6 +114,7 @@ Public Enum UcsFiscalPrinterIndexesEnum
     ucsFpiPrice
     ucsFpiGroup
     ucsFpiQuantity
+    ucsFpiDiscount
     ucsFpiWayOfPmt = ucsFpiPrice
     ucsFpiAmount
     ucsFpiInvoiceNo = 0
@@ -121,6 +125,7 @@ Public Enum UcsFiscalPrinterIndexesEnum
     ucsFpiCgPersonReceiver
     ucsFpiOwnPersonSeller
     ucsFpiLnkDoc
+    ucsFpiInvoiceNoPrefix
     ucsFpiOperatorCode = 0
     ucsFpiOperatorPass
     ucsFpiCashDeskNo
@@ -161,6 +166,7 @@ Private Const STR_GROUP_VAT             As String = "ƒƒ— "
 Private Const STR_GROUP_NETO            As String = "Õ≈“Œ —“Œ…ÕŒ—“"
 Private Const STR_ARTICLES              As String = " ¿–“» ”À¿"
 Private Const STR_ARTICLE_SINGLE        As String = "1 ¿–“» ”À"
+Private Const STR_DISCOUNT              As String = "Œ“—“⁄œ ¿ "
 
 Private WithEvents m_oFP            As cDatecsPrinter
 Attribute m_oFP.VB_VarHelpID = -1
@@ -178,6 +184,7 @@ Private Type UcsRow
     Type            As UcsRowTypeEnum
     Item            As String
     Price           As String
+    Discount        As String
     Group           As String
     Quantity        As String
     WayOfPayment    As String
@@ -187,6 +194,7 @@ End Type
 Private Type UcsContext
     Total           As Double
     Amount          As Double
+    RowPrinted      As Boolean
     PmtPrinted      As Boolean
     ChangePrinted   As Boolean
     GrpTotal(0 To 10) As Double
@@ -380,10 +388,10 @@ Public Function PrintReceipt( _
         bInLogin = True
         m_oFP.SendCommand ucsFpcFiscalOpen, sOperLogin & ",I"
         bInLogin = False
-    Case ucsFptCreditNote
+    Case ucsFptNonInvoice
         m_oFP.SendCommand ucsFpcNonFiscalOpen
         If LenB(pvAccess(InvoiceData, ucsFpiInvoiceNo)) <> 0 Then
-            sText = STR_HEAD_CREDIT_NOTE & pvAccess(InvoiceData, ucsFpiInvoiceNo)
+            sText = pvAccess(InvoiceData, ucsFpiInvoiceNoPrefix, STR_HEAD_CREDIT_NOTE) & pvAccess(InvoiceData, ucsFpiInvoiceNo)
             m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText  '--- center
         End If
         If LenB(pvAccess(InvoiceData, ucsFpiLnkDoc)) <> 0 Then
@@ -415,7 +423,7 @@ Public Function PrintReceipt( _
                 For Each vCmd In pvGetFiscalRow(pvGetRowData(vElem), uCtx)
                     Rows(lCurrentRow - 1) = m_oFP.SendCommand(vCmd(0), pvAccess(vCmd, 1))
                 Next
-            Case ucsFptCreditNote
+            Case ucsFptNonInvoice
                 For Each vCmd In pvGetCreditNoteRow(pvGetRowData(vElem), uCtx)
                     Rows(lCurrentRow - 1) = m_oFP.SendCommand(ucsFpcNonFiscalText, C_Str(vCmd))
                 Next
@@ -426,29 +434,31 @@ Public Function PrintReceipt( _
     '--- commit transaction
     Select Case ReceiptType
     Case ucsFptNonFiscal
-        '--- print payment
-        If Not uCtx.PmtPrinted Then
-            For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
-                m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
-            Next
-        End If
-        '--- print change
-        If Not uCtx.ChangePrinted Then
-            For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("")), uCtx)
-                m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
-            Next
-        End If
-        '--- print custom footer
-        sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
-        If LenB(sText) <> 0 Then
+        If uCtx.RowPrinted Then
+            '--- print payment
+            If Not uCtx.PmtPrinted Then
+                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
+                    m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+                Next
+            End If
+            '--- print change
+            If Not uCtx.ChangePrinted Then
+                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("")), uCtx)
+                    m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+                Next
+            End If
+            '--- print custom footer
+            sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
+            If LenB(sText) <> 0 Then
+                m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
+            End If
+            sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
+            If LenB(sText) <> 0 Then
+                m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
+            End If
+            sText = IIf(uCtx.Count = 1, STR_ARTICLE_SINGLE, uCtx.Count & STR_ARTICLES)
             m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
         End If
-        sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
-        If LenB(sText) <> 0 Then
-            m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
-        End If
-        sText = IIf(uCtx.Count = 1, STR_ARTICLE_SINGLE, uCtx.Count & STR_ARTICLES)
-        m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
         '--- closing footer
         m_oFP.SendCommand ucsFpcNonFiscalClose
         '--- open door
@@ -484,54 +494,56 @@ Public Function PrintReceipt( _
         m_oFP.SendCommand ucsFpcFiscalClose
         '--- success
         PrintReceipt = True
-    Case ucsFptCreditNote
-        '--- print payment
-        If Not uCtx.PmtPrinted Then
-            For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
-                m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+    Case ucsFptNonInvoice
+        If uCtx.RowPrinted Then
+            '--- print payment
+            If Not uCtx.PmtPrinted Then
+                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
+                    m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+                Next
+            End If
+            '--- print change
+            If Not uCtx.ChangePrinted Then
+                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("")), uCtx)
+                    m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+                Next
+            End If
+            '--- print credit note info
+            sText = STR_SELLER
+            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(MAX_WIDTH - Len(sText), ".")  '--- pad with dots
+            sText = "/" & pvAccess(InvoiceData, ucsFpiOwnPersonSeller) & "/"
+            m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(MAX_WIDTH) & sText, MAX_WIDTH)   '--- right align
+            sText = STR_RECEIVER
+            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(MAX_WIDTH - Len(sText), ".")  '--- pad with dots
+            sText = "/" & pvAccess(InvoiceData, ucsFpiCgPersonReceiver) & "/"
+            m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(MAX_WIDTH) & sText, MAX_WIDTH)   '--- right align
+            sText = STR_BUYER
+            For Each vElem In pvWrapText(pvAccess(InvoiceData, ucsFpiCgName), MAX_WIDTH - Len(sText))
+                m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, MAX_WIDTH)
+                sText = Space(Len(STR_BUYER))
             Next
-        End If
-        '--- print change
-        If Not uCtx.ChangePrinted Then
-            For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("")), uCtx)
-                m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
+            sText = STR_BULSTAT & pvAccess(InvoiceData, ucsFpiCgBulstat)
+            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, MAX_WIDTH)
+            sText = STR_VATNO & pvAccess(InvoiceData, ucsFpiCgVatNo)
+            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, MAX_WIDTH)
+            sText = STR_ADDRESS
+            For Each vElem In Split(pvSplitCgAddress(pvAccess(InvoiceData, ucsFpiCgAddress)), vbLf)
+                m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, MAX_WIDTH)
+                sText = Space(Len(STR_ADDRESS))
             Next
-        End If
-        '--- print credit note info
-        sText = STR_SELLER
-        m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(MAX_WIDTH - Len(sText), ".")  '--- pad with dots
-        sText = "/" & pvAccess(InvoiceData, ucsFpiOwnPersonSeller) & "/"
-        m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(MAX_WIDTH) & sText, MAX_WIDTH)   '--- right align
-        sText = STR_RECEIVER
-        m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(MAX_WIDTH - Len(sText), ".")  '--- pad with dots
-        sText = "/" & pvAccess(InvoiceData, ucsFpiCgPersonReceiver) & "/"
-        m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(MAX_WIDTH) & sText, MAX_WIDTH)   '--- right align
-        sText = STR_BUYER
-        For Each vElem In pvWrapText(pvAccess(InvoiceData, ucsFpiCgName), MAX_WIDTH - Len(sText))
-            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, MAX_WIDTH)
-            sText = Space(Len(STR_BUYER))
-        Next
-        sText = STR_BULSTAT & pvAccess(InvoiceData, ucsFpiCgBulstat)
-        m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, MAX_WIDTH)
-        sText = STR_VATNO & pvAccess(InvoiceData, ucsFpiCgVatNo)
-        m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, MAX_WIDTH)
-        sText = STR_ADDRESS
-        For Each vElem In Split(pvSplitCgAddress(pvAccess(InvoiceData, ucsFpiCgAddress)), vbLf)
-            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, MAX_WIDTH)
-            sText = Space(Len(STR_ADDRESS))
-        Next
-        m_oFP.SendCommand ucsFpcNonFiscalText, vbNullString
-        '--- print custom footer
-        sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
-        If LenB(sText) <> 0 Then
+            m_oFP.SendCommand ucsFpcNonFiscalText, vbNullString
+            '--- print custom footer
+            sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
+            If LenB(sText) <> 0 Then
+                m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
+            End If
+            sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
+            If LenB(sText) <> 0 Then
+                m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
+            End If
+            sText = IIf(uCtx.Count = 1, STR_ARTICLE_SINGLE, uCtx.Count & STR_ARTICLES)
             m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
         End If
-        sText = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
-        If LenB(sText) <> 0 Then
-            m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
-        End If
-        sText = IIf(uCtx.Count = 1, STR_ARTICLE_SINGLE, uCtx.Count & STR_ARTICLES)
-        m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((MAX_WIDTH - Len(sText)) \ 2) & sText    '--- center
         '--- closing footer
         m_oFP.SendCommand ucsFpcNonFiscalClose
         '--- open door
@@ -636,7 +648,7 @@ Public Function PrintReport( _
         vResult = m_oFP.SendCommand(eCmd, pvAccess(ReportData, 0) & "," & pvAccess(ReportData, 1))
     Case ucsFprDate
         '-- ReportData = { FromDate, ToDate, IsDetailed }
-        If C_Bool(pvAccess(ReportData, 0)) Then
+        If C_Bool(pvAccess(ReportData, 2)) Then
             eCmd = ucsFpcPrintReportByDateDetailed
         Else
             eCmd = ucsFpcPrintReportByDateShort
@@ -779,6 +791,7 @@ Private Function pvGetRowData(vRow As Variant) As UcsRow
         pvGetRowData.Price = C_Str(vRow(ucsFpiPrice))
         pvGetRowData.Group = C_Str(vRow(ucsFpiGroup))
         pvGetRowData.Quantity = C_Str(vRow(ucsFpiQuantity))
+        pvGetRowData.Discount = pvAccess(vRow, ucsFpiDiscount)
     End If
     On Error GoTo 0
 End Function
@@ -791,12 +804,13 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
     Dim sQuantity       As String
     Dim sPrice          As String
     Dim sTotal          As String
-    Dim vSplit          As Variant
+    Dim sDiscount       As String
     Dim vRet            As Variant
     Dim sWayOfPmt       As String
     Dim lGroup          As Long
     Dim vPecents        As Variant
     Dim dblNeto         As Double
+    Dim dblTotal        As Double
     
     On Error GoTo EH
     With uRow
@@ -805,6 +819,7 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
                 On Error GoTo 0
                 Err.Raise vbObjectError, , m_oFP.frGetFlagsText(ucsStbInvalidCommand, m_oFP.LocalizedText(ucsLciPrinterStatuses))
             End If
+            uCtx.RowPrinted = True
             sPrice = pvSafeFormat(C_Dbl(.Price), "0.00", ",")
             If LenB(.Group) <> 0 Then
                 lGroup = Asc(UCase(.Group)) - Asc("¿")
@@ -813,20 +828,29 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
             End If
             If LenB(.Quantity) <> 0 And C_Dbl(.Quantity) <> 1 Then
                 sQuantity = pvSafeFormat(C_Dbl(.Quantity), "0.000", ",")
-                sTotal = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), "0.00", ",")
-                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
-                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
+                dblTotal = Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * (100 - Round(C_Dbl(.Discount))) / 100, 2)
+                sTotal = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), "0.00", ",") & " " & .Group
+                uCtx.Total = Round(uCtx.Total + dblTotal, 2)
+                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
+                sDiscount = pvSafeFormat(Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * -Round(C_Dbl(.Discount)) / 100, 2), "0.00", ",") & " " & .Group
             Else
                 sQuantity = pvSafeFormat(1, "0.000", ",")
-                sTotal = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",")
-                uCtx.Total = Round(uCtx.Total + Round(C_Dbl(.Price), 2), 2)
-                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + Round(C_Dbl(.Price), 2), 2)
+                dblTotal = Round(Round(C_Dbl(.Price), 2) * (100 - Round(C_Dbl(.Discount))) / 100, 2)
+                sTotal = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",") & " " & .Group
+                uCtx.Total = Round(uCtx.Total + dblTotal, 2)
+                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
+                sDiscount = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Discount)) / 100, 2), "0.00", ",") & " " & .Group
             End If
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), MAX_WIDTH)
             ReDim Preserve vRet(0 To UBound(vRet) + 3)
             vRet(UBound(vRet) - 2) = STR_UNIT_PRICE & Right(pvSpace(MAX_WIDTH) & sPrice, MAX_WIDTH - 2 - Len(STR_UNIT_PRICE))
             vRet(UBound(vRet) - 1) = STR_UNIT_QUO & Right(pvSpace(MAX_WIDTH) & sQuantity, MAX_WIDTH - 2 - Len(STR_UNIT_QUO))
-            vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right(pvSpace(MAX_WIDTH) & sTotal & " " & .Group, MAX_WIDTH - Len(STR_UNIT_SUM))
+            vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right(pvSpace(MAX_WIDTH) & sTotal, MAX_WIDTH - Len(STR_UNIT_SUM))
+            If LenB(.Discount) <> 0 Then
+                ReDim Preserve vRet(0 To UBound(vRet) + 1)
+                sItem = STR_DISCOUNT & pvSafeFormat(C_Dbl(.Discount), "", ",") & "%"
+                vRet(UBound(vRet)) = sItem & Right(pvSpace(MAX_WIDTH) & sDiscount, MAX_WIDTH - Len(sItem))
+            End If
             uCtx.Count = uCtx.Count + 1
         ElseIf .Type = ucsRwtPayment Then
             If uCtx.ChangePrinted Then
@@ -889,6 +913,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
     Dim sItem           As String
     Dim sQuantity       As String
     Dim sPrice          As String
+    Dim sDiscount       As String
     Dim vSplit          As Variant
     Dim vRet            As Variant
     Dim sWayOfPmt       As String
@@ -900,14 +925,17 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
                 On Error GoTo 0
                 Err.Raise vbObjectError, , m_oFP.frGetFlagsText(ucsStbInvalidCommand, m_oFP.LocalizedText(ucsLciPrinterStatuses))
             End If
+            uCtx.RowPrinted = True
             sPrice = pvSafeFormat(C_Dbl(.Price), "0.00", ",")
             If LenB(.Quantity) <> 0 And C_Dbl(.Quantity) <> 1 Then
                 sQuantity = Right(" " & pvSafeFormat(C_Dbl(.Quantity), "0.0##", ",") & " x " & pvSpace(7 - Len(sPrice)) & sPrice & "  ", MAX_WIDTH)
                 sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), "0.00", ",") & " " & .Group
-                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
+                uCtx.Total = Round(uCtx.Total + Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * (100 - Round(C_Dbl(.Discount), 2)) / 100, 2), 2)
+                sDiscount = pvSafeFormat(Round(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Quantity), 3), 2) * Round(C_Dbl(.Discount), 2) / 100, 2), "0.00", ",") & " " & .Group
             Else
                 sPrice = sPrice & " " & .Group
-                uCtx.Total = Round(uCtx.Total + Round(C_Dbl(.Price), 2), 2)
+                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * (100 - Round(C_Dbl(.Discount), 2)) / 100, 2), 2)
+                sDiscount = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Discount), 2) / 100, 2), "0.00", ",") & " " & .Group
             End If
             '--- split long item name
             sItem = RTrim(pvSafeText(.Item))
@@ -946,6 +974,12 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             For lIdx = 0 To UBound(vRet)
                 vRet(lIdx) = vSplit(UBound(vSplit) - lIdx)
             Next
+            '--- append discount
+            If C_Dbl(.Discount) <> 0 Then
+                ReDim Preserve vRet(0 To UBound(vRet) + 1)
+                sItem = STR_DISCOUNT & pvSafeFormat(C_Dbl(.Discount), "", ",") & "%"
+                vRet(UBound(vRet)) = sItem & pvSpace(MAX_WIDTH - Len(sItem) - Len(sDiscount)) & sDiscount
+            End If
             uCtx.Count = uCtx.Count + 1
         ElseIf .Type = ucsRwtPayment Then
             If uCtx.ChangePrinted Then
@@ -993,6 +1027,11 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
     Dim sText           As String
     Dim vSplit          As Variant
     Dim vRet            As Variant
+    Dim dblPrice        As Double
+    Dim dblQuantity     As Double
+    Dim dblDiscount     As Double
+    Dim dblAbsPrice     As Double
+    Dim dblAbsQuantity  As Double
     
     On Error GoTo EH
     With uRow
@@ -1001,6 +1040,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
                 On Error GoTo 0
                 Err.Raise vbObjectError, , m_oFP.frGetFlagsText(ucsStbInvalidCommand, m_oFP.LocalizedText(ucsLciPrinterStatuses))
             End If
+            uCtx.RowPrinted = True
             ReDim vRet(0 To 0)
             '--- split item
             vSplit = pvWrapText(RTrim(pvSafeText(.Item)), MAX_WIDTH)
@@ -1016,19 +1056,27 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
                     vRet(lIdx) = Array(ucsFpcFiscalText, vSplit(lIdx))
                 Next
             End If
+            dblPrice = Round(C_Dbl(.Price), 2)
+            dblQuantity = Round(C_Dbl(.Quantity), 3)
+            dblDiscount = Round(C_Dbl(.Discount), 2)
+            dblAbsPrice = Round(Abs(C_Dbl(.Price)), 2)
+            dblAbsQuantity = Round(Abs(C_Dbl(.Quantity)), 3)
             '--- figure out sign
             If LenB(.Quantity) <> 0 Then
-                sSign = IIf(C_Dbl(.Price) * C_Dbl(.Quantity) < 0, "-", vbNullString)
+                sSign = IIf(dblPrice * dblQuantity < 0, "-", vbNullString)
             Else
-                sSign = IIf(C_Dbl(.Price) < 0, "-", vbNullString)
+                sSign = IIf(dblPrice < 0, "-", vbNullString)
             End If
             '--- append rest
-            sText = sText & vbTab & .Group & sSign & pvSafeFormat(Abs(C_Dbl(.Price)), "0.00")
+            sText = sText & vbTab & .Group & sSign & pvSafeFormat(dblAbsPrice, "0.00")
             If LenB(.Quantity) <> 0 Then
-                sText = sText & "*" & pvSafeFormat(Abs(C_Dbl(.Quantity)), "0.000")
-                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), 2)
+                sText = sText & "*" & pvSafeFormat(dblAbsQuantity, "0.000")
+                uCtx.Total = Round(uCtx.Total + Round(Round(dblPrice * dblQuantity, 2) * (100 - dblDiscount) / 100, 2), 2)
             Else
-                uCtx.Total = Round(uCtx.Total + Round(C_Dbl(.Price), 2), 2)
+                uCtx.Total = Round(uCtx.Total + Round(dblPrice * (100 - dblDiscount) / 100, 2), 2)
+            End If
+            If LenB(.Discount) <> 0 Then
+                sText = sText & "," & pvSafeFormat(-dblDiscount, "0.00")
             End If
             vRet(UBound(vRet)) = Array(ucsFpcFiscalSell, sText)
             pvGetFiscalRow = vRet
@@ -1042,7 +1090,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             If LenB(.Amount) = 0 Then
                 uCtx.Amount = uCtx.Total
             Else
-                uCtx.Amount = Round(uCtx.Amount + Abs(C_Dbl(.Amount)), 2)
+                uCtx.Amount = Round(uCtx.Amount + Round(Abs(C_Dbl(.Amount)), 2), 2)
             End If
             ReDim vRet(0 To 0)
             '--- split item
@@ -1062,7 +1110,7 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             '--- append rest
             sText = sText & vbTab
             If LenB(.Amount) <> 0 Then
-                sText = sText & .WayOfPayment & pvSafeFormat(Abs(C_Dbl(.Amount)), "0.00")
+                sText = sText & .WayOfPayment & pvSafeFormat(Round(Abs(C_Dbl(.Amount)), 2), "0.00")
             End If
             vRet(UBound(vRet)) = Array(ucsFpcFiscalPayment, sText)
         ElseIf .Type = ucsRwtText Then
