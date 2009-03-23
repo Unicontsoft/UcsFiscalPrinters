@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 18    14.03.09 16:14 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 19    23.03.09 19:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2009 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 19    23.03.09 19:05 Wqw
+' ADD: pvCalcRow i pvCalcDiscount za unifitsirane na smqtane na otstypka
+'
 ' 18    14.03.09 16:14 Wqw
 ' REF: impl non-invoice
 '
@@ -551,7 +554,7 @@ Public Function PrintReceipt( _
         '--- success
         PrintReceipt = True
     Case Else
-        '--- moje da se pechata dublikat
+        '--- do nothing. moje da se pechata dublikat
     End Select
     bInTrans = False
     If LenB(pvAccess(OperatorData, ucsFpiLastReceipt, vbNullString)) <> 0 Then
@@ -811,6 +814,7 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
     Dim vPecents        As Variant
     Dim dblNeto         As Double
     Dim dblTotal        As Double
+    Dim dblQuantity     As Double
     
     On Error GoTo EH
     With uRow
@@ -820,27 +824,23 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
                 Err.Raise vbObjectError, , m_oFP.frGetFlagsText(ucsStbInvalidCommand, m_oFP.LocalizedText(ucsLciPrinterStatuses))
             End If
             uCtx.RowPrinted = True
-            sPrice = pvSafeFormat(C_Dbl(.Price), "0.00", ",")
+            sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",")
             If LenB(.Group) <> 0 Then
                 lGroup = Asc(UCase(.Group)) - Asc("À")
             Else
                 lGroup = 1
             End If
             If LenB(.Quantity) <> 0 And C_Dbl(.Quantity) <> 1 Then
-                sQuantity = pvSafeFormat(C_Dbl(.Quantity), "0.000", ",")
-                dblTotal = Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * (100 - Round(C_Dbl(.Discount))) / 100, 2)
-                sTotal = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2), "0.00", ",") & " " & .Group
-                uCtx.Total = Round(uCtx.Total + dblTotal, 2)
-                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
-                sDiscount = pvSafeFormat(Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * -Round(C_Dbl(.Discount)) / 100, 2), "0.00", ",") & " " & .Group
+                dblQuantity = Round(C_Dbl(.Quantity), 3)
             Else
-                sQuantity = pvSafeFormat(1, "0.000", ",")
-                dblTotal = Round(Round(C_Dbl(.Price), 2) * (100 - Round(C_Dbl(.Discount))) / 100, 2)
-                sTotal = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",") & " " & .Group
-                uCtx.Total = Round(uCtx.Total + dblTotal, 2)
-                uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
-                sDiscount = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Discount)) / 100, 2), "0.00", ",") & " " & .Group
+                dblQuantity = 1
             End If
+            sQuantity = pvSafeFormat(dblQuantity, "0.000", ",")
+            sTotal = pvSafeFormat(pvCalcRow(dblQuantity, C_Dbl(.Price)), "0.00", ",") & " " & .Group
+            sDiscount = pvSafeFormat(-pvCalcDiscount(dblQuantity, C_Dbl(.Price), C_Dbl(.Discount)), "0.00", ",") & " " & .Group
+            dblTotal = pvCalcRow(dblQuantity, C_Dbl(.Price), C_Dbl(.Discount))
+            uCtx.Total = Round(uCtx.Total + dblTotal, 2)
+            uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), MAX_WIDTH)
             ReDim Preserve vRet(0 To UBound(vRet) + 3)
             vRet(UBound(vRet) - 2) = STR_UNIT_PRICE & Right(pvSpace(MAX_WIDTH) & sPrice, MAX_WIDTH - 2 - Len(STR_UNIT_PRICE))
@@ -848,7 +848,7 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
             vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right(pvSpace(MAX_WIDTH) & sTotal, MAX_WIDTH - Len(STR_UNIT_SUM))
             If LenB(.Discount) <> 0 Then
                 ReDim Preserve vRet(0 To UBound(vRet) + 1)
-                sItem = STR_DISCOUNT & pvSafeFormat(C_Dbl(.Discount), "", ",") & "%"
+                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), "", ",") & "%"
                 vRet(UBound(vRet)) = sItem & Right(pvSpace(MAX_WIDTH) & sDiscount, MAX_WIDTH - Len(sItem))
             End If
             uCtx.Count = uCtx.Count + 1
@@ -917,6 +917,8 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
     Dim vSplit          As Variant
     Dim vRet            As Variant
     Dim sWayOfPmt       As String
+    Dim dblQuantity     As Double
+    Dim dblTotal        As Double
     
     On Error GoTo EH
     With uRow
@@ -926,17 +928,17 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
                 Err.Raise vbObjectError, , m_oFP.frGetFlagsText(ucsStbInvalidCommand, m_oFP.LocalizedText(ucsLciPrinterStatuses))
             End If
             uCtx.RowPrinted = True
-            sPrice = pvSafeFormat(C_Dbl(.Price), "0.00", ",")
+            sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",")
             If LenB(.Quantity) <> 0 And C_Dbl(.Quantity) <> 1 Then
-                sQuantity = Right(" " & pvSafeFormat(C_Dbl(.Quantity), "0.0##", ",") & " x " & pvSpace(7 - Len(sPrice)) & sPrice & "  ", MAX_WIDTH)
-                sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), "0.00", ",") & " " & .Group
-                uCtx.Total = Round(uCtx.Total + Round(Round(Round(C_Dbl(.Price), 2) * Round(C_Dbl(.Quantity), 3), 2) * (100 - Round(C_Dbl(.Discount), 2)) / 100, 2), 2)
-                sDiscount = pvSafeFormat(Round(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Quantity), 3), 2) * Round(C_Dbl(.Discount), 2) / 100, 2), "0.00", ",") & " " & .Group
+                dblQuantity = Round(C_Dbl(.Quantity), 3)
+                sQuantity = Right(" " & pvSafeFormat(dblQuantity, "0.0##", ",") & " x " & pvSpace(7 - Len(sPrice)) & sPrice & "  ", MAX_WIDTH)
             Else
-                sPrice = sPrice & " " & .Group
-                uCtx.Total = Round(uCtx.Total + Round(Round(C_Dbl(.Price), 2) * (100 - Round(C_Dbl(.Discount), 2)) / 100, 2), 2)
-                sDiscount = pvSafeFormat(Round(Round(C_Dbl(.Price), 2) * -Round(C_Dbl(.Discount), 2) / 100, 2), "0.00", ",") & " " & .Group
+                dblQuantity = 1
             End If
+            sPrice = pvSafeFormat(pvCalcRow(dblQuantity, C_Dbl(.Price)), "0.00", ",") & " " & .Group
+            sDiscount = pvSafeFormat(-pvCalcDiscount(dblQuantity, C_Dbl(.Price), C_Dbl(.Discount)), "0.00", ",") & " " & .Group
+            dblTotal = pvCalcRow(dblQuantity, C_Dbl(.Price), C_Dbl(.Discount))
+            uCtx.Total = Round(uCtx.Total + dblTotal, 2)
             '--- split long item name
             sItem = RTrim(pvSafeText(.Item))
             ReDim vSplit(-1 To -1)
@@ -977,7 +979,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             '--- append discount
             If C_Dbl(.Discount) <> 0 Then
                 ReDim Preserve vRet(0 To UBound(vRet) + 1)
-                sItem = STR_DISCOUNT & pvSafeFormat(C_Dbl(.Discount), "", ",") & "%"
+                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), "", ",") & "%"
                 vRet(UBound(vRet)) = sItem & pvSpace(MAX_WIDTH - Len(sItem) - Len(sDiscount)) & sDiscount
             End If
             uCtx.Count = uCtx.Count + 1
@@ -1063,17 +1065,17 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             dblAbsQuantity = Round(Abs(C_Dbl(.Quantity)), 3)
             '--- figure out sign
             If LenB(.Quantity) <> 0 Then
-                sSign = IIf(dblPrice * dblQuantity < 0, "-", vbNullString)
+                sSign = IIf(pvCalcRow(dblQuantity, dblPrice) < 0, "-", vbNullString)
             Else
-                sSign = IIf(dblPrice < 0, "-", vbNullString)
+                sSign = IIf(pvCalcRow(1, dblPrice) < 0, "-", vbNullString)
             End If
             '--- append rest
             sText = sText & vbTab & .Group & sSign & pvSafeFormat(dblAbsPrice, "0.00")
             If LenB(.Quantity) <> 0 Then
                 sText = sText & "*" & pvSafeFormat(dblAbsQuantity, "0.000")
-                uCtx.Total = Round(uCtx.Total + Round(Round(dblPrice * dblQuantity, 2) * (100 - dblDiscount) / 100, 2), 2)
+                uCtx.Total = Round(uCtx.Total + pvCalcRow(dblQuantity, dblPrice, dblDiscount), 2)
             Else
-                uCtx.Total = Round(uCtx.Total + Round(dblPrice * (100 - dblDiscount) / 100, 2), 2)
+                uCtx.Total = Round(uCtx.Total + pvCalcRow(1, dblPrice, dblDiscount), 2)
             End If
             If LenB(.Discount) <> 0 Then
                 sText = sText & "," & pvSafeFormat(-dblDiscount, "0.00")
@@ -1326,6 +1328,15 @@ Private Function pvSpace(ByVal lSize As Long) As String
     If lSize > 0 Then
         pvSpace = Space$(lSize)
     End If
+End Function
+
+Private Function pvCalcRow(dblQuantity As Double, dblPrice As Double, Optional dblDiscount As Double) As Double
+    pvCalcRow = Round(Round(dblQuantity, 3) * Round(dblPrice, 2), 2)
+    pvCalcRow = Round(pvCalcRow - Round(pvCalcRow * Round(dblDiscount, 2) / 100#, 2), 2)
+End Function
+
+Private Function pvCalcDiscount(dblQuantity As Double, dblPrice As Double, dblDiscount As Double) As Double
+    pvCalcDiscount = Round(Round(dblQuantity, 3) * Round(dblPrice, 2) * Round(dblDiscount, 2) / 100#, 2)
 End Function
 
 Private Sub Class_Initialize()
