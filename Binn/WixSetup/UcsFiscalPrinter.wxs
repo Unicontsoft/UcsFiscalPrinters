@@ -29,7 +29,7 @@
             <Directory Id="FiscalPrinters" Name="FiscalPr" LongName="Fiscal Printers">
               <Component Id="UcsFP10.dll" Guid="4310378a-ee23-41c4-92dd-e4ebea5f213e" SharedDllRefCount="yes">
                 <File Id="UcsFP10.dll" Name="UcsFP10.dll" LongName="UcsFP10.dll" KeyPath="yes" src="$(var.ProductPath)\UcsFP10.dll" />
-                <File Id="UcsFP10.pdb" Name="UcsFP10.PDB" LongName="UcsFP10.pdb" src="$(var.ProductPath)\UcsFP10.pdb"/>
+<!--                <File Id="UcsFP10.pdb" Name="UcsFP10.PDB" LongName="UcsFP10.pdb" src="$(var.ProductPath)\UcsFP10.pdb"/> -->
                 <?include Registry_UcsFP10.wxi ?>
               </Component>
             </Directory>
