@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 14    2.02.09 13:52 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 15    17.05.10 16:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2009 Unicontsoft
+'   Copyright (c) 2008-2010 Unicontsoft
 '
 '   Uprawlenie na fiscalni printer po ICL protocol (Datecs, Daisy)
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 15    17.05.10 16:16 Wqw
+' REF: debug log
+'
 ' 14    2.02.09 13:52 Wqw
 ' REF: pvReadData probwa da chete pyrwo posle wait-wa za comm event
 '
@@ -899,10 +902,12 @@ Private Sub DebugLog(sFunc As String, sText As String)
     Dim nFile           As Integer
     
     On Error Resume Next
-'    Debug.Print MODULE_NAME & "." & sFunc & "(" & Now & "): " & sText
-    sFile = Environ$("TEMP") & "\UcsFP.log"
-    If GetAttr(sFile) = -1 Then
-        Exit Sub
+    sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
+    If LenB(sFile) = 0 Then
+        sFile = Environ$("TEMP") & "\UcsFP.log"
+        If GetAttr(sFile) = -1 Then
+            Exit Sub
+        End If
     End If
     nFile = FreeFile
     Open sFile For Append Access Write As #nFile

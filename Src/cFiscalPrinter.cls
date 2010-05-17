@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 19    23.03.09 19:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 20    17.05.10 16:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2009 Unicontsoft
+'   Copyright (c) 2008-2010 Unicontsoft
 '
 '   Interfacen class za uprawlenie na fiscalni printer
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 20    17.05.10 16:16 Wqw
+' REF: debug log
+'
 ' 19    23.03.09 19:05 Wqw
 ' ADD: pvCalcRow i pvCalcDiscount za unifitsirane na smqtane na otstypka
 '
@@ -1313,9 +1316,12 @@ Private Sub DebugLog(sFunc As String, sText As String)
     Dim nFile           As Integer
     
     On Error Resume Next
-    sFile = Environ$("TEMP") & "\UcsFP.log"
-    If GetAttr(sFile) = -1 Then
-        Exit Sub
+    sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
+    If LenB(sFile) = 0 Then
+        sFile = Environ$("TEMP") & "\UcsFP.log"
+        If GetAttr(sFile) = -1 Then
+            Exit Sub
+        End If
     End If
     nFile = FreeFile
     Open sFile For Append Access Write As #nFile
