@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 20    17.05.10 16:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 21    5.08.10 15:55 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2010 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 21    5.08.10 15:55 Wqw
+' REF: impl pechat na text mejdu redowe na fiskalna belejka
+'
 ' 20    17.05.10 16:16 Wqw
 ' REF: debug log
 '
@@ -1125,16 +1128,16 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             For lIdx = 0 To UBound(vRet)
                 vRet(lIdx) = Array(ucsFpcFiscalText, vSplit(lIdx))
             Next
-            If Not uCtx.PmtPrinted Or Round(uCtx.Amount, 2) < Round(uCtx.Total, 2) Then
-                uCtx.PmtPrinted = True
-                uCtx.ChangePrinted = True
-                uCtx.Amount = uCtx.Total
-                ReDim Preserve vRet(0 To UBound(vRet) + 1)
-                For lIdx = UBound(vRet) To 1 Step -1
-                    vRet(lIdx) = vRet(lIdx - 1)
-                Next
-                vRet(0) = Array(ucsFpcFiscalPayment, vbTab)
-            End If
+'            If Not uCtx.PmtPrinted Or Round(uCtx.Amount, 2) < Round(uCtx.Total, 2) Then
+'                uCtx.PmtPrinted = True
+'                uCtx.ChangePrinted = True
+'                uCtx.Amount = uCtx.Total
+'                ReDim Preserve vRet(0 To UBound(vRet) + 1)
+'                For lIdx = UBound(vRet) To 1 Step -1
+'                    vRet(lIdx) = vRet(lIdx - 1)
+'                Next
+'                vRet(0) = Array(ucsFpcFiscalPayment, vbTab)
+'            End If
         End If
     End With
     pvGetFiscalRow = vRet
