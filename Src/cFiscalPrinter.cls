@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 21    5.08.10 15:55 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 22    17.08.10 15:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2010 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 22    17.08.10 15:34 Wqw
+' REF: finalizirane fiskalen bon pri pechat na prazen tekst samo
+'
 ' 21    5.08.10 15:55 Wqw
 ' REF: impl pechat na text mejdu redowe na fiskalna belejka
 '
@@ -1128,16 +1131,19 @@ Private Function pvGetFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Variant
             For lIdx = 0 To UBound(vRet)
                 vRet(lIdx) = Array(ucsFpcFiscalText, vSplit(lIdx))
             Next
-'            If Not uCtx.PmtPrinted Or Round(uCtx.Amount, 2) < Round(uCtx.Total, 2) Then
-'                uCtx.PmtPrinted = True
-'                uCtx.ChangePrinted = True
-'                uCtx.Amount = uCtx.Total
-'                ReDim Preserve vRet(0 To UBound(vRet) + 1)
-'                For lIdx = UBound(vRet) To 1 Step -1
-'                    vRet(lIdx) = vRet(lIdx - 1)
-'                Next
-'                vRet(0) = Array(ucsFpcFiscalPayment, vbTab)
-'            End If
+            '--- finalizirane
+            If LenB(.Item) = 0 Then
+                If Not uCtx.PmtPrinted Or Round(uCtx.Amount, 2) < Round(uCtx.Total, 2) Then
+                    uCtx.PmtPrinted = True
+                    uCtx.ChangePrinted = True
+                    uCtx.Amount = uCtx.Total
+                    ReDim Preserve vRet(0 To UBound(vRet) + 1)
+                    For lIdx = UBound(vRet) To 1 Step -1
+                        vRet(lIdx) = vRet(lIdx - 1)
+                    Next
+                    vRet(0) = Array(ucsFpcFiscalPayment, vbTab)
+                End If
+            End If
         End If
     End With
     pvGetFiscalRow = vRet
