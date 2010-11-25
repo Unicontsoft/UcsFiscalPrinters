@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 15    17.05.10 16:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 16    25.11.10 13:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2010 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
 ' 
+' 16    25.11.10 13:49 Wqw
+' ADD: Consts. REF: err handling na SendCommand prowerqwa i za memory
+' error
+'
 ' 15    17.05.10 16:16 Wqw
 ' REF: debug log
 '
@@ -142,6 +146,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInitItem = 107
     ucsFpcInitLogo = 115
     ucsFpcInitOpenDoor = 106
+    ucsFpcInitDaisyText = 149
     '--- transaction
     ucsFpcNonFiscalOpen = 38
     ucsFpcNonFiscalClose = 39
@@ -167,6 +172,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInfoSums = 103
     ucsFpcInfoOperator = 112
     ucsFpcInfoLastReceipt = 113
+    ucsFpcInfoDaisyConsts = 128
     '--- print
     ucsFpcPrintDailyReport = 69
     ucsFpcPrintDiagnostics = 71
@@ -543,6 +549,10 @@ QH:
         If Status(ucsStbPrintingError) Then
             DebugLog FUNC_NAME, "ErrorText=" & ErrorText
             Err.Raise vbObjectError, , ErrorText
+        End If
+        If Memory(ucsFmeMemoryError) Then
+            DebugLog FUNC_NAME, "MemoryText=" & ErrorText
+            Err.Raise vbObjectError, , MemoryText
         End If
     End If
 End Function
