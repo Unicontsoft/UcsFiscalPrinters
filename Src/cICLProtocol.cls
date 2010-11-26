@@ -6,21 +6,24 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cDatecsPrinter"
+Attribute VB_Name = "cICLProtocol"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cDatecsPrinter.cls 16    25.11.10 13:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 17    26.11.10 13:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2010 Unicontsoft
 '
 '   Uprawlenie na fiscalni printer po ICL protocol (Datecs, Daisy)
 '
-' $Log: /UcsFiscalPrinter/Src/cDatecsPrinter.cls $
+' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 17    26.11.10 13:20 Wqw
+' REF: impl poddryjka daisy FP
+'
 ' 16    25.11.10 13:49 Wqw
 ' ADD: Consts. REF: err handling na SendCommand prowerqwa i za memory
 ' error
@@ -72,7 +75,8 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 Option Explicit
-Private Const MODULE_NAME As String = "cDatecsPrinter"
+DefObj A-Z
+Private Const MODULE_NAME As String = "cICLProtocol"
 
 '=========================================================================
 ' Public events
@@ -146,6 +150,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInitItem = 107
     ucsFpcInitLogo = 115
     ucsFpcInitOpenDoor = 106
+    ucsFpcInitEcTape = 120
     ucsFpcInitDaisyText = 149
     '--- transaction
     ucsFpcNonFiscalOpen = 38
@@ -410,7 +415,7 @@ Public Function EnumPorts() As Variant
     Dim vRet            As Variant
     Dim lCount          As Long
     
-    ReDim vRet(0 To 255)
+    ReDim vRet(0 To 255) As Variant
     For Each vPort In pvEnumSerialPorts
         sError = vbNullString
         hComm = pvOpenPort(vPort & ",9600,8,N,1", sError)
@@ -431,7 +436,7 @@ Public Function EnumPorts() As Variant
     If lCount = 0 Then
         EnumPorts = Split("")
     Else
-        ReDim Preserve vRet(0 To lCount - 1)
+        ReDim Preserve vRet(0 To lCount - 1) As Variant
         EnumPorts = vRet
     End If
 End Function
@@ -448,8 +453,8 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) 
     End If
     m_lTimeout = lTimeout
     vSplit = Split(sDevice, ",")
-    m_sDevice = Trim(pvAccess(vSplit, 0, "COM1")) & "," & C_Lng(pvAccess(vSplit, 1, "9600")) & "," & C_Lng(pvAccess(vSplit, 2, "8")) & "," & _
-        IIf(UCase(pvAccess(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(pvAccess(vSplit, 4, "1"))
+    m_sDevice = Trim(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
+        IIf(UCase(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
@@ -579,11 +584,11 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
-    If LenB(pvAccess(vSplit, 0)) = 0 Then
+    If LenB(At(vSplit, 0)) = 0 Then
         sError = pvInternal(0, "No device info set")
         GoTo QH
     End If
-    pvOpenPort = CreateFile("\\.\" & pvAccess(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
+    pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = INVALID_HANDLE_VALUE Then
         sError = pvInternal(1, "CreateFile failed: ") & pvGetApiErr(Err.LastDllError)
         GoTo QH
@@ -599,7 +604,7 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         sError = pvInternal(2, "SetCommTimeouts failed: ") & pvGetApiErr(Err.LastDllError)
         GoTo QH
     End If
-    If BuildCommDCB("baud=" & pvAccess(vSplit, 1, 9600) & " data=" & pvAccess(vSplit, 2, 8) & " parity=" & pvAccess(vSplit, 3, "N") & " stop=" & pvAccess(vSplit, 4, 1), uDCB) = 0 Then
+    If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 2, 8) & " parity=" & At(vSplit, 3, "N") & " stop=" & At(vSplit, 4, 1), uDCB) = 0 Then
         sError = pvInternal(3, "BuildCommDCB failed: ") & pvGetApiErr(Err.LastDllError)
         GoTo QH
     End If
@@ -804,10 +809,10 @@ EH:
     Resume Next
 End Function
 
-Private Function pvAccess(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
+Private Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
     On Error Resume Next
-    pvAccess = sDefault
-    pvAccess = C_Str(vData(lIdx))
+    At = sDefault
+    At = C_Str(vData(lIdx))
     On Error GoTo 0
 End Function
 
@@ -837,7 +842,7 @@ Private Function pvGetApiErr(ByVal lLastDllError As Long) As String
 End Function
 
 Private Function pvInternal(ByVal lIdx As Long, Optional sDefault As String) As String
-    pvInternal = pvAccess(Split(LocalizedText(ucsLciInternalErrors), "|"), lIdx, sDefault)
+    pvInternal = At(Split(LocalizedText(ucsLciInternalErrors), "|"), lIdx, sDefault)
 End Function
 
 Private Function pvEnumSerialPorts() As Variant
@@ -849,7 +854,7 @@ Private Function pvEnumSerialPorts() As Variant
     Dim lCount          As Long
     
     On Error GoTo EH
-    ReDim vRet(0 To 255)
+    ReDim vRet(0 To 255) As Variant
     If IsNT Then
         sBuffer = String(100000, 1)
         Call QueryDosDevice(0, sBuffer, Len(sBuffer))
@@ -881,7 +886,7 @@ Private Function pvEnumSerialPorts() As Variant
     If lCount = 0 Then
         pvEnumSerialPorts = Split("")
     Else
-        ReDim Preserve vRet(0 To lCount - 1)
+        ReDim Preserve vRet(0 To lCount - 1) As Variant
         pvEnumSerialPorts = vRet
     End If
     Exit Function
