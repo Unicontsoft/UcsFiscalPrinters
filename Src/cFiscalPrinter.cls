@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 23    26.11.10 13:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 24    29.11.10 10:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2010 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 24    29.11.10 10:51 Wqw
+' REF: dublikat na nefiskalen bon
+'
 ' 23    26.11.10 13:20 Wqw
 ' REF: impl daisy FP
 '
@@ -417,6 +420,10 @@ Public Function PrintReceipt( _
     Select Case ReceiptType
     Case ucsFptNonFiscal
         m_oFP.SendCommand ucsFpcNonFiscalOpen
+        If PrintDuplicate Then
+            sText = STR_DUPLICATE
+            m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((uCtx.FpCommentLen - Len(sText)) \ 2) & sText      '--- center
+        End If
         If LenB(At(OperatorData, ucsFpiOperatorCode)) <> 0 Then
             vElem = Split(m_oFP.SendCommand(ucsFpcInfoOperator, At(OperatorData, ucsFpiOperatorCode)), ",")
             sText = Format(At(OperatorData, ucsFpiOperatorCode), "0000") & " " & At(vElem, 5)
