@@ -2934,7 +2934,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Dim vResult         As Variant
     Dim sPass           As String
     Dim bCheckPass      As Boolean
-    Dim eCmd            As UcsFiscalPrinterCommandsEnum
+    Dim eCmd            As UcsIclCommandsEnum
     Dim lIdx            As Long
     
     On Error GoTo EH
