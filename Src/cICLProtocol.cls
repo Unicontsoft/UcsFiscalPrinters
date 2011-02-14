@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 17    26.11.10 13:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 18    14.02.11 18:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2010 Unicontsoft
+'   Copyright (c) 2008-2011 Unicontsoft
 '
-'   Uprawlenie na fiscalni printer po ICL protocol (Datecs, Daisy)
+'   Protocol za fiscalni printer na Datecs i Daisy po ICL protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 18    14.02.11 18:14 Wqw
+' REF: constanti za internal msgs
+'
 ' 17    26.11.10 13:20 Wqw
 ' REF: impl poddryjka daisy FP
 '
@@ -50,7 +53,7 @@ Attribute VB_Exposed = True
 ' REF: impl debug log
 '
 ' 8     1.12.08 0:42 Wqw
-' REF: UcsFiscalPrinterCommandsEnum, STR_ERRORS_ONLY
+' REF: UcsIclCommandsEnum, STR_ERRORS_ONLY
 '
 ' 7     11.11.08 17:20 Wqw
 ' REF: Private pvGetFlagsText -> Friend frGetFlagsText
@@ -88,7 +91,7 @@ Event CommandComplete(ByVal lCmd As Long, sData As String, sResult As String)
 ' Public enums
 '=========================================================================
 
-Public Enum UcsStatusBitsEnum
+Public Enum UcsIclStatusBitsEnum
     ucsStbSyntaxError = 2 ^ 0
     ucsStbInvalidCommand = 2 ^ 1
     ucsStbClockNotSet = 2 ^ 2
@@ -103,7 +106,7 @@ Public Enum UcsStatusBitsEnum
     ucsStbNonFiscalPrinting = 2 ^ (16 + 5)
 End Enum
 
-Public Enum UcsDipSwitchesEnum
+Public Enum UcsIclDipSwitchesEnum
     ucsDipCenterHeaderFooter = 2 ^ 0
     ucsDipPrintHeader = 2 ^ 1
     ucsDipSwitch_1_3 = 2 ^ 2
@@ -113,7 +116,7 @@ Public Enum UcsDipSwitchesEnum
     ucsDipShowToDisplay = 2 ^ 6
 End Enum
 
-Public Enum UcsFiscalMemoryEnum
+Public Enum UcsIclFiscalMemoryEnum
     ucsFmeWriteError = 2 ^ 0
     ucsFmeNoMemoryModule = 2 ^ 2
     ucsFmeLowMemory = 2 ^ 3
@@ -126,15 +129,7 @@ Public Enum UcsFiscalMemoryEnum
     ucsFmeIdentNoSet = 2 ^ (8 + 5)
 End Enum
 
-Public Enum UcsLocalizedIndexesEnum
-    ucsLciInternalErrors
-    ucsLciPrinterStatuses
-    ucsLciPrinterErrors
-    ucsLciDipSwitchesTexts
-    ucsLciMemoryTexts
-End Enum
-
-Public Enum UcsFiscalPrinterCommandsEnum
+Public Enum UcsIclCommandsEnum
     '--- init
     ucsFpcInitHeaderFooter = 43
     ucsFpcInitDateTime = 61
@@ -149,7 +144,7 @@ Public Enum UcsFiscalPrinterCommandsEnum
     ucsFpcInitOperatorReset = 104
     ucsFpcInitItem = 107
     ucsFpcInitLogo = 115
-    ucsFpcInitOpenDoor = 106
+    ucsFpcInitOpenDrawer = 106
     ucsFpcInitEcTape = 120
     ucsFpcInitDaisyText = 149
     '--- transaction
@@ -202,9 +197,6 @@ Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
 Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 Private Const INVALID_HANDLE_VALUE          As Long = -1
-'--- for FormatMessage
-Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
-Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
 '--- for WaitForMultipleObjects
@@ -212,12 +204,6 @@ Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
-Private Const ERROR_ACCESS_DENIED           As Long = 5&
-Private Const ERROR_GEN_FAILURE             As Long = 31&
-Private Const ERROR_SHARING_VIOLATION       As Long = 32&
-Private Const ERROR_SEM_TIMEOUT             As Long = 121&
-'--- for GetVersionEx
-Private Const VER_PLATFORM_WIN32_NT         As Long = 2
 
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
@@ -227,14 +213,11 @@ Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lp
 Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
 Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
-Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
 Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As OVERLAPPED) As Long
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
-Private Declare Function QueryDosDevice Lib "kernel32" Alias "QueryDosDeviceA" (ByVal lpDeviceName As Long, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
-Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -282,15 +265,6 @@ Private Type OVERLAPPED
     hEvent                      As Long
 End Type
 
-Private Type OSVERSIONINFO
-    dwOSVersionInfoSize         As Long
-    dwMajorVersion              As Long
-    dwMinorVersion              As Long
-    dwBuildNumber               As Long
-    dwPlatformID                As Long
-    szCSDVersion                As String * 128      '  Maintenance string for PSS usage
-End Type
-
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -300,17 +274,36 @@ Private Const STR_STATUSES              As String = "Syntax error|Invalid comman
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_MEMORY                As String = "Write error|1|No memory module|Memory low|Out of memory|Fiscal memory error|6|7|Read only|Memory formatted|2|Fiscal mode|Tax rates set|Tax number set|6|7"
+Private Const DEF_TIMEOUT               As Long = 3000
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
 Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
-Private m_eStatus                   As UcsStatusBitsEnum
-Private m_eDip                      As UcsDipSwitchesEnum
-Private m_eMemory                   As UcsFiscalMemoryEnum
+Private m_eStatus                   As UcsIclStatusBitsEnum
+Private m_eDip                      As UcsIclDipSwitchesEnum
+Private m_eMemory                   As UcsIclFiscalMemoryEnum
 Private m_sLastError                As String
 Private m_bExceptions               As Boolean
 Private m_sLocalizedText(0 To 5)    As String
+
+Private Enum UcsInternalErrors
+    ucsErrNoDeviceInfoSet
+    ucsErrCreateFileFailed
+    ucsErrSetCommTimeoutsFailed
+    ucsErrBuildCommDCBFailed
+    ucsErrSetCommStateFailed
+    ucsErrWriteFileFailure
+    ucsErrTimeoutWaitingForResponse
+    ucsErrReadFileFailed
+    ucsErrInvalidMessageFormatOrChecksum
+    ucsErrAlreadyConnected
+    ucsErrNotConnected
+    ucsErrInvalidResponseLength
+    ucsErrResponseMissingPostamble
+    ucsErrResponseMissingPreamble
+    ucsErrWaitCommEventFailed
+End Enum
 
 '=========================================================================
 ' Error handling
@@ -318,7 +311,11 @@ Private m_sLocalizedText(0 To 5)    As String
 
 Private Sub PrintError(sFunc As String)
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-    DebugLog sFunc, "Run-time error: " & Error
+    OutputDebugLog MODULE_NAME, sFunc, "Run-time error: " & Error
+End Sub
+
+Private Sub DebugLog(sFunc As String, sText As String)
+    OutputDebugLog MODULE_NAME, sFunc, sText
 End Sub
 
 '=========================================================================
@@ -333,32 +330,32 @@ Property Let Timeout(ByVal lValue As Long)
     m_lTimeout = lValue
 End Property
 
-Property Get Status(ByVal eValue As UcsStatusBitsEnum) As Boolean
+Property Get Status(ByVal eValue As UcsIclStatusBitsEnum) As Boolean
     Status = (m_eStatus And eValue) <> 0
 End Property
 
 Property Get StatusText() As String
-    StatusText = frGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterStatuses))
+    StatusText = frGetFlagsText(m_eStatus, LocalizedText(ucsFscLciPrinterStatuses))
 End Property
 
 Property Get ErrorText() As String
-    ErrorText = frGetFlagsText(m_eStatus, LocalizedText(ucsLciPrinterErrors))
+    ErrorText = frGetFlagsText(m_eStatus, LocalizedText(ucsFscLciPrinterErrors))
 End Property
 
-Property Get Dip(ByVal eValue As UcsDipSwitchesEnum) As Boolean
+Property Get Dip(ByVal eValue As UcsIclDipSwitchesEnum) As Boolean
     Dip = (m_eDip And eValue) <> 0
 End Property
 
 Property Get DipText() As String
-    DipText = frGetFlagsText(m_eDip, LocalizedText(ucsLciDipSwitchesTexts))
+    DipText = frGetFlagsText(m_eDip, LocalizedText(ucsFscLciDipSwitchesTexts))
 End Property
 
-Property Get Memory(ByVal eValue As UcsFiscalMemoryEnum) As Boolean
+Property Get Memory(ByVal eValue As UcsIclFiscalMemoryEnum) As Boolean
     Memory = (m_eMemory And eValue) <> 0
 End Property
 
 Property Get MemoryText() As String
-    MemoryText = frGetFlagsText(m_eMemory, LocalizedText(ucsLciMemoryTexts))
+    MemoryText = frGetFlagsText(m_eMemory, LocalizedText(ucsFscLciMemoryTexts))
 End Property
 
 Property Get LastError() As String
@@ -381,25 +378,25 @@ Property Get IsConnected() As Boolean
     IsConnected = (m_hComm <> INVALID_HANDLE_VALUE)
 End Property
 
-Property Get LocalizedText(ByVal eIdx As UcsLocalizedIndexesEnum) As String
+Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
     LocalizedText = m_sLocalizedText(eIdx)
     If LenB(LocalizedText) = 0 Then
         Select Case eIdx
-        Case ucsLciInternalErrors
+        Case ucsFscLciInternalErrors
             LocalizedText = STR_INTERNAL
-        Case ucsLciPrinterStatuses
+        Case ucsFscLciPrinterStatuses
             LocalizedText = STR_STATUSES
-        Case ucsLciPrinterErrors
+        Case ucsFscLciPrinterErrors
             LocalizedText = STR_ERRORS_ONLY
-        Case ucsLciDipSwitchesTexts
+        Case ucsFscLciDipSwitchesTexts
             LocalizedText = STR_DIP_SWITCHES
-        Case ucsLciMemoryTexts
+        Case ucsFscLciMemoryTexts
             LocalizedText = STR_MEMORY
         End Select
     End If
 End Property
 
-Property Let LocalizedText(ByVal eIdx As UcsLocalizedIndexesEnum, sValue As String)
+Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
     m_sLocalizedText(eIdx) = sValue
 End Property
 
@@ -416,7 +413,7 @@ Public Function EnumPorts() As Variant
     Dim lCount          As Long
     
     ReDim vRet(0 To 255) As Variant
-    For Each vPort In pvEnumSerialPorts
+    For Each vPort In EnumSerialPorts
         sError = vbNullString
         hComm = pvOpenPort(vPort & ",9600,8,N,1", sError)
         If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
@@ -441,7 +438,7 @@ Public Function EnumPorts() As Variant
     End If
 End Function
 
-Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) As Boolean
+Public Function Init(sDevice As String, Optional ByVal lTimeout As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
@@ -451,7 +448,11 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long = 3000) 
         Call CloseHandle(m_hComm)
         m_hComm = INVALID_HANDLE_VALUE
     End If
-    m_lTimeout = lTimeout
+    If lTimeout <= 0 Then
+        m_lTimeout = DEF_TIMEOUT
+    Else
+        m_lTimeout = lTimeout
+    End If
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
         IIf(UCase(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
@@ -473,7 +474,7 @@ Public Function Connect() As Boolean
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
-        m_sLastError = pvInternal(9, "Already connected")
+        m_sLastError = pvInternal(ucsErrAlreadyConnected)
         GoTo QH
     End If
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
@@ -491,7 +492,7 @@ Public Function Disconnect() As Boolean
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
-        m_sLastError = pvInternal(10, "Not connected")
+        m_sLastError = pvInternal(ucsErrNotConnected)
         GoTo QH
     End If
     Call CloseHandle(m_hComm)
@@ -504,7 +505,7 @@ QH:
     End If
 End Function
 
-Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional sData As String) As String
+Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As String) As String
     Const FUNC_NAME     As String = "SendCommand"
     Dim sText           As String
     Dim lIdx            As Long
@@ -533,21 +534,20 @@ Public Function SendCommand(ByVal eCmd As UcsFiscalPrinterCommandsEnum, Optional
                     SendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
                     GoTo QH
                 Else
-                    m_sLastError = pvInternal(11, "Invalid response length")
+                    m_sLastError = pvInternal(ucsErrInvalidResponseLength)
                 End If
             Else
-                m_sLastError = pvInternal(12, "Response missing postamble")
+                m_sLastError = pvInternal(ucsErrResponseMissingPostamble)
             End If
         Else
-            m_sLastError = pvInternal(13, "Response missing preamble")
+            m_sLastError = pvInternal(ucsErrResponseMissingPreamble)
         End If
     End If
     pvSetStatus vbNullString '--- clear
 QH:
-    DebugLog FUNC_NAME, "RetVal=" & SendCommand
+    DebugLog FUNC_NAME, "RetVal=" & SendCommand & IIf(LenB(m_sLastError) <> 0, ", m_sLastError=" & m_sLastError, vbNullString)
     RaiseEvent CommandComplete(eCmd, sData, SendCommand)
     If LenB(m_sLastError) <> 0 Then
-        DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
         Err.Raise vbObjectError, , m_sLastError
     End If
     If Exceptions Then
@@ -585,12 +585,12 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
     If LenB(At(vSplit, 0)) = 0 Then
-        sError = pvInternal(0, "No device info set")
+        sError = pvInternal(ucsErrNoDeviceInfoSet)
         GoTo QH
     End If
     pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = INVALID_HANDLE_VALUE Then
-        sError = pvInternal(1, "CreateFile failed: ") & pvGetApiErr(Err.LastDllError)
+        sError = pvInternal(ucsErrCreateFileFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
     With uTimeout
@@ -601,15 +601,15 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
-        sError = pvInternal(2, "SetCommTimeouts failed: ") & pvGetApiErr(Err.LastDllError)
+        sError = pvInternal(ucsErrSetCommTimeoutsFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 2, 8) & " parity=" & At(vSplit, 3, "N") & " stop=" & At(vSplit, 4, 1), uDCB) = 0 Then
-        sError = pvInternal(3, "BuildCommDCB failed: ") & pvGetApiErr(Err.LastDllError)
+        sError = pvInternal(ucsErrBuildCommDCBFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
     If SetCommState(pvOpenPort, uDCB) = 0 Then
-        sError = pvInternal(4, "SetCommState failed: ") & pvGetApiErr(Err.LastDllError)
+        sError = pvInternal(ucsErrSetCommStateFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
 QH:
@@ -620,7 +620,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinterCommandsEnum, ByVal lSequence As Long, Optional sData As String, Optional sError As String) As Boolean
+Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEnum, ByVal lSequence As Long, Optional sData As String, Optional sError As String) As Boolean
     Const FUNC_NAME     As String = "pvWriteData"
     Dim sText           As String
     Dim baText()        As Byte
@@ -648,7 +648,7 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     lResult = WriteFile(hComm, baText(0), lSize, lWritten, VarPtr(uOver))
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
-            sError = pvInternal(5, "WriteFile failure: ") & pvGetApiErr(Err.LastDllError)
+            sError = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
             GoTo QH
         End If
     End If
@@ -656,7 +656,6 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsFiscalPrinter
     If lResult = WAIT_OBJECT_0 Then
         pvWriteData = True
     Else
-        DebugLog FUNC_NAME, "CancelIo, hComm=" & hComm
         Call CancelIo(hComm)
     End If
 QH:
@@ -684,7 +683,7 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
                 DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
-                sError = pvInternal(14, "WaitCommEvent failed: ") & pvGetApiErr(Err.LastDllError)
+                sError = pvInternal(ucsErrWaitCommEventFailed) & GetApiErr(Err.LastDllError)
                 GoTo QH
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
@@ -698,7 +697,8 @@ InLoop:
             lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), dwRead, VarPtr(uOver))
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
-                    sError = pvInternal(7, "ReadFile failed: ") & pvGetApiErr(Err.LastDllError)
+                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
+                    sError = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
                     GoTo QH
                 End If
                 lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
@@ -709,7 +709,8 @@ InLoop:
                 sBuffer = Left(StrConv(sBuffer, vbUnicode), dwRead)
                 '--- check for NAK (&H15)
                 If InStr(sBuffer, Chr$(&H15)) > 0 Then
-                    sError = pvInternal(8, "Invalid message format or checksum (NAK)")
+                    DebugLog FUNC_NAME, "NAK, sBuffer=" & sBuffer
+                    sError = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
                     GoTo QH
                 End If
                 '--- remove SYN (&H16)
@@ -717,11 +718,9 @@ InLoop:
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
-            DebugLog FUNC_NAME, "WaitForMultipleObjects, lResult=" & lResult
             If lResult = WAIT_TIMEOUT Then
-                sError = pvInternal(6, "Timeout waiting for response")
+                sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
-            DebugLog FUNC_NAME, "CancelIo, hComm=" & hComm
             Call CancelIo(hComm)
             Exit Do
         End If
@@ -809,127 +808,9 @@ EH:
     Resume Next
 End Function
 
-Private Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
-    On Error Resume Next
-    At = sDefault
-    At = C_Str(vData(lIdx))
-    On Error GoTo 0
+Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
+    pvInternal = At(Split(LocalizedText(ucsFscLciInternalErrors), "|"), lIdx, At(Split(STR_INTERNAL, "|"), lIdx))
 End Function
-
-Private Function C_Lng(v As Variant) As Long
-    On Error Resume Next
-    C_Lng = CLng(v)
-    On Error GoTo 0
-End Function
-
-Private Function C_Str(v As Variant) As String
-    On Error Resume Next
-    C_Str = CStr(v)
-    On Error GoTo 0
-End Function
-
-Private Function pvGetApiErr(ByVal lLastDllError As Long) As String
-    Dim lRet            As Long
-   
-    pvGetApiErr = Space$(2000)
-    lRet = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, lLastDllError, 0&, pvGetApiErr, Len(pvGetApiErr), 0&)
-    If lRet > 2 Then
-        If Mid$(pvGetApiErr, lRet - 1, 2) = vbCrLf Then
-            lRet = lRet - 2
-        End If
-    End If
-    pvGetApiErr = Left$(pvGetApiErr, lRet)
-End Function
-
-Private Function pvInternal(ByVal lIdx As Long, Optional sDefault As String) As String
-    pvInternal = At(Split(LocalizedText(ucsLciInternalErrors), "|"), lIdx, sDefault)
-End Function
-
-Private Function pvEnumSerialPorts() As Variant
-    Const FUNC_NAME     As String = "pvEnumSerialPorts"
-    Dim sBuffer         As String
-    Dim lIdx            As Long
-    Dim hFile           As Long
-    Dim vRet            As Variant
-    Dim lCount          As Long
-    
-    On Error GoTo EH
-    ReDim vRet(0 To 255) As Variant
-    If IsNT Then
-        sBuffer = String(100000, 1)
-        Call QueryDosDevice(0, sBuffer, Len(sBuffer))
-        sBuffer = Chr$(0) & sBuffer
-        For lIdx = 1 To 255
-            If InStr(1, sBuffer, Chr$(0) & "COM" & lIdx & Chr$(0), vbTextCompare) > 0 Then
-                vRet(lCount) = "COM" & lIdx
-                lCount = lCount + 1
-            End If
-        Next
-    Else
-        For lIdx = 1 To 255
-            hFile = CreateFile("COM" & lIdx, GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0)
-            If hFile = INVALID_HANDLE_VALUE Then
-                Select Case Err.LastDllError
-                Case ERROR_ACCESS_DENIED, ERROR_GEN_FAILURE, ERROR_SHARING_VIOLATION, ERROR_SEM_TIMEOUT
-                    hFile = 0
-                End Select
-            Else
-                Call CloseHandle(hFile)
-                hFile = 0
-            End If
-            If hFile = 0 Then
-                vRet(lCount) = "COM" & lIdx
-                lCount = lCount + 1
-            End If
-        Next
-    End If
-    If lCount = 0 Then
-        pvEnumSerialPorts = Split("")
-    Else
-        ReDim Preserve vRet(0 To lCount - 1) As Variant
-        pvEnumSerialPorts = vRet
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Function IsNT() As Boolean
-    Const FUNC_NAME     As String = "IsNT"
-    Dim udtVer          As OSVERSIONINFO
-    
-    On Error GoTo EH
-    udtVer.dwOSVersionInfoSize = Len(udtVer)
-    If GetVersionEx(udtVer) Then
-        If udtVer.dwPlatformID = VER_PLATFORM_WIN32_NT Then
-            IsNT = True
-        End If
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Sub DebugLog(sFunc As String, sText As String)
-    Dim sFile           As String
-    Dim nFile           As Integer
-    
-    On Error Resume Next
-    sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
-    If LenB(sFile) = 0 Then
-        sFile = Environ$("TEMP") & "\UcsFP.log"
-        If GetAttr(sFile) = -1 Then
-            Exit Sub
-        End If
-    End If
-    nFile = FreeFile
-    Open sFile For Append Access Write As #nFile
-    Print #nFile, MODULE_NAME & "." & sFunc & "(" & Now & "): " & sText
-    Close #nFile
-    On Error GoTo 0
-End Sub
 
 '=========================================================================
 ' Base class events
