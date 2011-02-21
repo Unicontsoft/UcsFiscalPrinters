@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 2     21.02.11 13:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 3     21.02.11 16:28 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 3     21.02.11 16:28 Wqw
+' ADD: Function RegReadString, GetSystemDirectory
+'
 ' 2     21.02.11 13:43 Wqw
 ' ADD: Function SplitCgAddress, AlignText, CenterText, SumArray,
 ' IsComCtl6Loaded, FixThemeSupport
@@ -20,6 +23,11 @@ Attribute VB_Name = "mdGlobals"
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "mdGlobals"
+
+Public Enum UcsRegistryRootsEnum
+    HKEY_CLASSES_ROOT = &H80000000
+    HKEY_LOCAL_MACHINE = &H80000002
+End Enum
 
 '=========================================================================
 ' API
@@ -45,6 +53,8 @@ Private Const LOCALE_SDECIMAL               As Long = &HE   ' decimal separator
 '--- windows messages
 Private Const WM_PRINTCLIENT                As Long = &H318
 Private Const WM_MOUSELEAVE                 As Long = &H2A3
+'--- registry
+Private Const REG_SZ                        As Long = 1
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
@@ -57,6 +67,10 @@ Private Declare Function DllGetVersion Lib "comctl32.dll" (pdvi As DLLVERSIONINF
 Private Declare Function SetWindowSubclass Lib "comctl32" (ByVal hWnd As Long, ByVal pfnSubclass As Long, ByVal uIdSubclass As Long, ByVal dwRefData As Long) As Long
 Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Function RegOpenKeyEx Lib "advapi32.dll" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
+Private Declare Function RegQueryValueEx Lib "advapi32.dll" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
+Private Declare Function RegCloseKey Lib "advapi32.dll" (ByVal hKey As Long) As Long
+Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize         As Long
@@ -484,3 +498,26 @@ EH:
     Resume Next
 End Function
 
+Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As String, sValue As String) As String
+    Dim hKey            As Long
+    Dim lType           As Long
+    Dim lNeeded         As Long
+    Dim sBuffer         As String
+    
+    If RegOpenKeyEx(hRoot, sKey, 0, &H20001, hKey) = 0 Then '--- &H20001 = READ_CONTROL Or KEY_QUERY_VALUE
+        Call RegQueryValueEx(hKey, sValue, 0, lType, ByVal vbNullString, lNeeded)
+        If lType = REG_SZ Then
+            sBuffer = String(lNeeded + 1, 0)
+            If RegQueryValueEx(hKey, sValue, 0, lType, ByVal sBuffer, Len(sBuffer)) = 0 Then
+                RegReadString = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+            End If
+        End If
+        Call RegCloseKey(hKey)
+    End If
+End Function
+
+Public Function GetSystemDirectory() As String
+    GetSystemDirectory = String(1000, 0)
+    APIGetSystemDirectory GetSystemDirectory, Len(GetSystemDirectory) - 1
+    GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, Chr$(0)) - 1)
+End Function
