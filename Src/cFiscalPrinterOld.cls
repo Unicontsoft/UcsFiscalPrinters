@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls 25    14.02.11 18:14 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls 26    21.02.11 13:45 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls $
 ' 
+' 26    21.02.11 13:45 Wqw
+' REF: prazen string, pechat periodichen report
+'
 ' 25    14.02.11 18:14 Wqw
 ' REF: param timeout impl w DeviceString
 '
@@ -473,13 +476,13 @@ Public Function PrintReceipt( _
         If uCtx.RowPrinted Then
             '--- print payment
             If Not uCtx.PmtPrinted Then
-                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
+                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array(vbNullString, "P", uCtx.Total)), uCtx)
                     m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
                 Next
             End If
             '--- print change
             If Not uCtx.ChangePrinted Then
-                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array("")), uCtx)
+                For Each vCmd In pvGetNonFiscalRow(pvGetRowData(Array(vbNullString)), uCtx)
                     m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
                 Next
             End If
@@ -507,7 +510,7 @@ Public Function PrintReceipt( _
         PrintReceipt = True
     Case ucsFscRetFiscal
         '--- print outstanding payment
-        For Each vCmd In pvGetFiscalRow(pvGetRowData(Array("")), uCtx)
+        For Each vCmd In pvGetFiscalRow(pvGetRowData(Array(vbNullString)), uCtx)
             If vCmd(0) <> ucsFpcFiscalText Then
                 m_oFP.SendCommand vCmd(0), At(vCmd, 1)
             End If
@@ -517,7 +520,7 @@ Public Function PrintReceipt( _
         PrintReceipt = True
     Case ucsFscRetInvoiceFiscal
         '--- print outstanding payment
-        For Each vCmd In pvGetFiscalRow(pvGetRowData(Array("")), uCtx)
+        For Each vCmd In pvGetFiscalRow(pvGetRowData(Array(vbNullString)), uCtx)
             If vCmd(0) <> ucsFpcFiscalText Then
                 m_oFP.SendCommand vCmd(0), At(vCmd, 1)
             End If
@@ -538,13 +541,13 @@ Public Function PrintReceipt( _
         If uCtx.RowPrinted Then
             '--- print payment
             If Not uCtx.PmtPrinted Then
-                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("", "P", uCtx.Total)), uCtx)
+                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array(vbNullString, "P", uCtx.Total)), uCtx)
                     m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
                 Next
             End If
             '--- print change
             If Not uCtx.ChangePrinted Then
-                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array("")), uCtx)
+                For Each vCmd In pvGetCreditNoteRow(pvGetRowData(Array(vbNullString)), uCtx)
                     m_oFP.SendCommand ucsFpcNonFiscalText, C_Str(vCmd)
                 Next
             End If
@@ -724,7 +727,7 @@ Public Function PrintReport( _
         Else
             eCmd = ucsFpcPrintReportByDateShort
         End If
-        vResult = m_oFP.SendCommand(eCmd, At(ReportData, 0) & "," & At(ReportData, 1))
+        vResult = m_oFP.SendCommand(eCmd, Format$(C_Date(At(ReportData, 0)), "ddmmyy") & "," & Format$(C_Date(At(ReportData, 1)), "ddmmyy"))
     Case ucsFscRptOperator
         '-- ReportData = Empty
         vResult = m_oFP.SendCommand(ucsFpcPrintReportByOperators)
@@ -916,7 +919,7 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
             vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right(pvSpace(uCtx.FpCommentLen) & sTotal, uCtx.FpCommentLen - Len(STR_UNIT_SUM))
             If LenB(.Discount) <> 0 Then
                 ReDim Preserve vRet(0 To UBound(vRet) + 1) As Variant
-                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), "", ",") & "%"
+                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), vbNullString, ",") & "%"
                 vRet(UBound(vRet)) = sItem & Right(pvSpace(uCtx.FpCommentLen) & sDiscount, uCtx.FpCommentLen - Len(sItem))
             End If
             uCtx.Count = uCtx.Count + 1
@@ -1046,7 +1049,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             '--- append discount
             If C_Dbl(.Discount) <> 0 Then
                 ReDim Preserve vRet(0 To UBound(vRet) + 1) As Variant
-                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), "", ",") & "%"
+                sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), vbNullString, ",") & "%"
                 vRet(UBound(vRet)) = sItem & pvSpace(uCtx.FpCommentLen - Len(sItem) - Len(sDiscount)) & sDiscount
             End If
             uCtx.Count = uCtx.Count + 1
@@ -1299,7 +1302,7 @@ Private Function pvWrapText(ByVal sText As String, ByVal lWidth As Long) As Vari
         sText = Mid(sText, lRight)
     Loop
     If lCount = 0 Then
-        pvWrapText = Array("")
+        pvWrapText = Array(vbNullString)
     Else
         ReDim Preserve vRet(0 To lCount - 1) As Variant
         pvWrapText = vRet
