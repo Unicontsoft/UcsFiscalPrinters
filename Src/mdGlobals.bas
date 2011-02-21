@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 1     14.02.11 18:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 2     21.02.11 13:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,10 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 2     21.02.11 13:43 Wqw
+' ADD: Function SplitCgAddress, AlignText, CenterText, SumArray,
+' IsComCtl6Loaded, FixThemeSupport
+'
 ' 1     14.02.11 18:13 Wqw
 ' Initial implementation
 '
@@ -38,6 +42,9 @@ Private Const ERROR_SHARING_VIOLATION       As Long = 32&
 Private Const ERROR_SEM_TIMEOUT             As Long = 121&
 '--- for GetLocaleInfo
 Private Const LOCALE_SDECIMAL               As Long = &HE   ' decimal separator
+'--- windows messages
+Private Const WM_PRINTCLIENT                As Long = &H318
+Private Const WM_MOUSELEAVE                 As Long = &H2A3
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
@@ -46,6 +53,10 @@ Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lp
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function GetLocaleInfo Lib "kernel32" Alias "GetLocaleInfoA" (ByVal Locale As Long, ByVal LCType As Long, ByVal lpLCData As String, ByVal cchData As Long) As Long
 Private Declare Function GetUserDefaultLCID Lib "kernel32" () As Long
+Private Declare Function DllGetVersion Lib "comctl32.dll" (pdvi As DLLVERSIONINFO) As Long
+Private Declare Function SetWindowSubclass Lib "comctl32" (ByVal hWnd As Long, ByVal pfnSubclass As Long, ByVal uIdSubclass As Long, ByVal dwRefData As Long) As Long
+Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Private Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize         As Long
@@ -54,6 +65,14 @@ Private Type OSVERSIONINFO
     dwBuildNumber               As Long
     dwPlatformID                As Long
     szCSDVersion                As String * 128      '  Maintenance string for PSS usage
+End Type
+
+Private Type DLLVERSIONINFO
+    cbSize              As Long
+    dwMajor             As Long
+    dwMinor             As Long
+    dwBuildNumber       As Long
+    dwPlatformID        As Long
 End Type
 
 '=========================================================================
@@ -118,7 +137,7 @@ Public Function C_Dbl(v As Variant) As Double
     On Error GoTo 0
 End Function
 
-Public Function C_Date(v As Variant) As Boolean
+Public Function C_Date(v As Variant) As Date
     On Error Resume Next
     C_Date = CDate(v)
     On Error GoTo 0
@@ -126,6 +145,10 @@ End Function
 
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
     Zn = IIf(LenB(sText) = 0, IfEmptyString, sText)
+End Function
+
+Public Function Zndbl(ByVal dblValue As Double, Optional IfZeroDouble As Variant = Null) As Variant
+    Zndbl = IIf(C_Dbl(CStr(dblValue)) = 0, IfZeroDouble, dblValue)
 End Function
 
 Public Function GetApiErr(ByVal lLastDllError As Long) As String
@@ -157,6 +180,19 @@ EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Public Property Get OsVersion() As Long
+    Static lVersion     As Long
+    Dim uVer            As OSVERSIONINFO
+
+    If lVersion = 0 Then
+        uVer.dwOSVersionInfoSize = Len(uVer)
+        If GetVersionEx(uVer) Then
+            lVersion = uVer.dwMajorVersion * 100 + uVer.dwMinorVersion
+        End If
+    End If
+    OsVersion = lVersion
+End Property
 
 Public Function EnumSerialPorts() As Variant
     Const FUNC_NAME     As String = "EnumSerialPorts"
@@ -197,7 +233,7 @@ Public Function EnumSerialPorts() As Variant
         Next
     End If
     If lCount = 0 Then
-        EnumSerialPorts = Split("")
+        EnumSerialPorts = Split(vbNullString)
     Else
         ReDim Preserve vRet(0 To lCount - 1) As Variant
         EnumSerialPorts = vRet
@@ -305,7 +341,7 @@ Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
         sText = Mid(sText, lRight)
     Loop
     If lCount = 0 Then
-        WrapText = Array("")
+        WrapText = Array(vbNullString)
     Else
         ReDim Preserve vRet(0 To lCount - 1) As Variant
         WrapText = vRet
@@ -333,5 +369,118 @@ Public Function LimitLong( _
     Else
         LimitLong = lValue
     End If
+End Function
+
+Public Function SplitCgAddress( _
+            ByVal sAddress As String, _
+            sRow1 As String, _
+            sRow2 As String, _
+            ByVal lRowChars As Long) As String
+    Dim vSplit          As Variant
+    
+    Do While Left$(sAddress, 2) = vbCrLf
+        sAddress = LTrim$(Mid$(sAddress, 3))
+    Loop
+    Do While Right$(sAddress, 2) = vbCrLf
+        sAddress = RTrim$(Left$(sAddress, Len(sAddress) - 2))
+    Loop
+    Do While InStr(sAddress, " " & vbCrLf) > 0
+        sAddress = Replace(sAddress, " " & vbCrLf, vbCrLf)
+    Loop
+    sAddress = Replace(sAddress, vbCrLf, "; ")
+    vSplit = WrapText(sAddress, lRowChars)
+    sRow1 = Trim$(At(vSplit, 0))
+    If Right$(sRow1, 1) = ";" Then
+        sRow1 = Left$(sRow1, Len(sRow1) - 1)
+    End If
+    sRow2 = Trim$(At(vSplit, 1))
+    If Right$(sRow2, 1) = ";" Then
+        sRow2 = Left$(sRow2, Len(sRow2) - 1)
+    End If
+End Function
+
+Public Function AlignText( _
+            ByVal sLeft As String, _
+            ByVal sRight As String, _
+            ByVal lWidth As Long) As String
+    sLeft = Left$(sLeft, lWidth)
+    If Left$(sRight, 1) = Chr$(1) Then
+        sRight = String(lWidth - Len(sLeft), Right$(sRight, 1))
+    Else
+        sRight = Right$(sRight, lWidth)
+    End If
+    AlignText = sLeft & Space(lWidth - Len(sLeft))
+    Mid$(AlignText, lWidth - Len(sRight) + 1, Len(sRight)) = sRight
+End Function
+
+Public Function CenterText(ByVal sText As String, ByVal lWidth As Long) As String
+    sText = Left$(sText, lWidth)
+    CenterText = Space(LimitLong((lWidth - Len(sText)) \ 2, 0)) & sText
+End Function
+
+Public Function SumArray(vArray As Variant) As Double
+    Dim vElem           As Variant
+    
+    For Each vElem In vArray
+        SumArray = SumArray + C_Dbl(vElem)
+    Next
+End Function
+
+Public Function IsComCtl6Loaded() As Boolean
+    Const FUNC_NAME     As String = "IsComCtl6Loaded"
+    Dim uVer            As DLLVERSIONINFO
+    
+    On Error GoTo EH
+    uVer.cbSize = Len(uVer)
+    Call DllGetVersion(uVer)
+    IsComCtl6Loaded = (uVer.dwMajor >= 6)
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function FixThemeSupport(oControls As Object) As Boolean
+    Const FUNC_NAME     As String = "FixThemeSupport"
+    Dim oCtl            As Object
+    
+    On Error GoTo EH
+    If IsComCtl6Loaded() Then
+        For Each oCtl In oControls
+            If TypeOf oCtl Is VB.Frame Then
+                SetWindowSubclass oCtl.hWnd, AddressOf pvRedirectFrame, 0, 0
+            End If
+        Next
+        '--- success
+        FixThemeSupport = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvRedirectFrame( _
+            ByVal hWnd As Long, _
+            ByVal wMsg As Long, _
+            ByVal wParam As Long, _
+            ByVal lParam As Long, _
+            ByVal uIdSubclass As Long, _
+            ByVal dwRefData As Long) As Long
+    Const FUNC_NAME     As String = "pvRedirectFrame"
+    
+    On Error GoTo EH
+    #If uIdSubclass And dwRefData Then '--- touch args
+    #End If
+    Select Case wMsg
+    Case WM_PRINTCLIENT, WM_MOUSELEAVE
+        pvRedirectFrame = DefWindowProc(hWnd, wMsg, wParam, lParam)
+    Case Else
+        pvRedirectFrame = DefSubclassProc(hWnd, wMsg, wParam, lParam)
+    End Select
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
