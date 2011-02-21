@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 1     14.02.11 18:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 2     21.02.11 13:44 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 2     21.02.11 13:44 Wqw
+' REF: rename bon to receipt. ADD: Function RunPeriodReport
+'
 ' 1     14.02.11 18:13 Wqw
 ' Initial implementation
 '
@@ -55,6 +58,17 @@ Public Enum UcsFiscalLocalizedIndexesEnum
     ucsFscLciPrinterErrors
     ucsFscLciDipSwitchesTexts
     ucsFscLciMemoryTexts
+    ucsFscLciReceiptTexts
+    [_ucsFscLciMax]
+End Enum
+
+Public Enum UcsFiscalReportsTypeEnum
+    ucsFscRstDaily
+    ucsFscRstDailyByItems
+    ucsFscRstDailyByDepartment
+    ucsFscRstDailyByItemsAndDepartment
+    ucsFscRstPeriodShort
+    ucsFscRstPeriodDetailed
 End Enum
 
 Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
@@ -73,10 +87,11 @@ Public Function GetLastError() As String
 
 End Function
 
-Public Function StartBon( _
-            ByVal BonType As UcsFiscalReceiptTypeEnum, _
-            ByVal PLUNumbering As Boolean, _
-            CashierName As String, _
+Public Function StartReceipt( _
+            ByVal ReceiptType As UcsFiscalReceiptTypeEnum, _
+            OperatorCode As String, _
+            OperatorName As String, _
+            OperatorPassword As String, _
             Optional InvNumber As String, _
             Optional InvTaxNumber As String, _
             Optional InvVatNumber As String, _
@@ -89,7 +104,6 @@ Public Function StartBon( _
 End Function
 
 Public Function AddPLU( _
-            ByVal Number As Long, _
             Name As String, _
             Price As Double, _
             Quantity As Double, _
@@ -114,15 +128,15 @@ Public Function AddPayment( _
             ByVal Number As UcsFiscalPaymentTypeEnum, _
             Name As String, _
             Amount As Double, _
-            Rate As Double) As Boolean
+            Optional Rate As Double) As Boolean
             
 End Function
 
-Public Function EndBon() As Boolean
+Public Function EndReceipt() As Boolean
 
 End Function
 
-Public Function CopyLastBon() As Boolean
+Public Function CopyLastReceipt() As Boolean
 
 End Function
 
@@ -134,15 +148,19 @@ Public Sub SetClock(ByVal NewDate As Date)
 
 End Sub
 
-Public Function RunXReport() As Boolean
+Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
 
 End Function
 
-Public Function RunZReport() As Boolean
+Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
 
 End Function
 
-Public Function GetLastBonNumber() As Long
+Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+
+End Function
+
+Public Function GetLastReceiptNumber() As Long
 
 End Function
 
@@ -182,7 +200,7 @@ Public Function OpenDrawer() As Boolean
 
 End Function
 
-Public Function GetPaymentType(ByVal Index As Long) As String
+Public Function GetPaymentName(ByVal Index As Long) As String
 
 End Function
 
