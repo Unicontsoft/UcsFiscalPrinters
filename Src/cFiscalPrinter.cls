@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 1     14.02.11 18:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 2     21.02.11 13:46 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 2     21.02.11 13:46 Wqw
+' REF: impl datecs fp and daisy ecr support
+'
 ' 1     14.02.11 18:13 Wqw
 ' Initial implementation
 '
@@ -70,7 +73,14 @@ End Enum
 '=========================================================================
 
 'Private Const STR_PAYMENT               As String = "В БРОЙ|КАРТА|С ЧЕК|КРЕДИТ"
-Private Const STR_ELTRADE_ECR_INTERNAL  As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Вече има отворена връзка|Няма отворена връзка|Невалидно заглавие на отговор от устройството|Грешка при WaitCommEvent: |Няма започната бележка|Липсва хартия или друга фатална грешка|Невалиден параметър 'Command'|Непозволена команда за печат на повече от един дубликат"
+Private Const STR_ELTRADE_ECR_INTERNAL  As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Вече има отворена връзка|Няма отворена връзка|Невалидно заглавие на отговор от устройството|Грешка при WaitCommEvent: |Няма започната бележка|Липсва хартия|Невалиден параметър 'Command'|Непозволена команда за печат на повече от един дубликат|Фатална грешка при печат|Невъзможно отказване на предишна транзакция"
+Private Const STR_ELTRADE_ECR_TEXTS     As String = "СУМА|МЕЖДИННА СУМА|Продажби %1|ед. цена|количество|сума*%1|РЕСТО|всичко|ДДС*%1|нето ст-ст|Фактура #|Продавач:|   * * * * * * * *|Получател:|ИДЕНТ # |ЗДДС # |%1 артикули|МОЛ:|Получил:|НАДБАВКА|ОТСТЪПКА"
+Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за край на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция"
+Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
+Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механицва на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
+Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
+Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
+Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|КАРТА|С ЧЕК|КРЕДИТ|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: "
 Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
 Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
 Private Const STR_DUPLICATE             As String = "ДУБЛИКАТ"
@@ -111,6 +121,19 @@ End Sub
 '=========================================================================
 ' Methods
 '=========================================================================
+
+Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
+    Dim oFrmIcl         As New frmIclSetup
+    Dim oFrmEltrade     As New frmEltradeSetup
+    
+    '--- figure out model
+    Select Case UCase(At(Split(DeviceString, ";"), 0))
+    Case "ELTRADE ECR"
+        ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
+    Case "DATECS FP550F", "DAISY MICRO"
+        ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
+    End Select
+End Function
 
 Public Function EnumPorts() As Variant
     EnumPorts = EnumSerialPorts
@@ -164,19 +187,19 @@ Public Function GetHeaderFooter( _
         RetVal(11) = oFP.GetClock()
     End If
     If LenB(At(vInput, 12, "1")) <> 0 Then
-        RetVal(12) = oFP.GetLastBonNumber()
+        RetVal(12) = oFP.GetLastReceiptNumber()
     End If
     If LenB(At(vInput, 13, "1")) <> 0 Then
-        RetVal(13) = oFP.GetPaymentType(1)
+        RetVal(13) = oFP.GetPaymentName(1)
     End If
     If LenB(At(vInput, 14, "1")) <> 0 Then
-        RetVal(14) = oFP.GetPaymentType(2)
+        RetVal(14) = oFP.GetPaymentName(2)
     End If
     If LenB(At(vInput, 15, "1")) <> 0 Then
-        RetVal(15) = oFP.GetPaymentType(3)
+        RetVal(15) = oFP.GetPaymentName(3)
     End If
     If LenB(At(vInput, 16, "1")) <> 0 Then
-        RetVal(16) = oFP.GetPaymentType(4)
+        RetVal(16) = oFP.GetPaymentName(4)
     End If
     If LenB(At(vInput, 17, "1")) <> 0 Then
         RetVal(17) = oFP.GetCharsPerLine()
@@ -215,11 +238,17 @@ Public Function PrintReceipt( _
     On Error GoTo EH
     Set oFP = pvInit(DeviceString)
     If IsArray(Rows) Then
-        oFP.StartBon ReceiptType, True, At(OperatorData, ucsFscPixOperatorName, STR_CASHIER), _
-            At(InvoiceData, ucsFscPixInvoiceNoPrefix) & At(InvoiceData, ucsFscPixInvoiceNo), At(InvoiceData, ucsFscPixCgBulstat), _
-            At(InvoiceData, ucsFscPixCgVatNo), At(InvoiceData, ucsFscPixCgName), _
-            vbNullString, At(InvoiceData, ucsFscPixCgAddress), _
-            At(InvoiceData, ucsFscPixCgPersonReceiver), vbNullString
+        oFP.StartReceipt ReceiptType, At(OperatorData, ucsFscPixOperatorCode), _
+            At(OperatorData, ucsFscPixOperatorName, STR_CASHIER), _
+            At(OperatorData, ucsFscPixOperatorPass), _
+            IIf(ReceiptType = ucsFscRetInvoiceNonFiscal, At(InvoiceData, ucsFscPixInvoiceNoPrefix), vbNullString) & At(InvoiceData, ucsFscPixInvoiceNo), _
+            At(InvoiceData, ucsFscPixCgBulstat), _
+            At(InvoiceData, ucsFscPixCgVatNo), _
+            At(InvoiceData, ucsFscPixCgName), _
+            vbNullString, _
+            At(InvoiceData, ucsFscPixCgAddress), _
+            At(InvoiceData, ucsFscPixCgPersonReceiver), _
+            vbNullString
         If LenB(At(InvoiceData, ucsFscPixLnkDoc)) <> 0 Then
             oFP.AddLine STR_HEAD_CREDIT_NOTE2 & At(InvoiceData, ucsFscPixLnkDoc)
         End If
@@ -232,7 +261,7 @@ Public Function PrintReceipt( _
             With pvGetRowData(vElem)
                 Select Case .Type
                 Case ucsRwtSell
-                    oFP.AddPLU 0, .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetVatGroup(.Group)
+                    oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetVatGroup(.Group)
                     If C_Dbl(.Discount) <> 0 Then
                         oFP.AddDiscount ucsFscDstPlu, -C_Dbl(.Discount)
                     End If
@@ -240,11 +269,12 @@ Public Function PrintReceipt( _
                     oFP.AddLine .Item
                 Case ucsRwtPayment
                     lIdx = LimitLong(C_Lng(.WayOfPayment), 1, 8)
-                    oFP.AddPayment lIdx, Zn(.Item, oFP.GetPaymentType(lIdx)), C_Dbl(.Amount), 1
+                    oFP.AddPayment lIdx, Zn(.Item, oFP.GetPaymentName(lIdx)), C_Dbl(.Amount)
                 End Select
             End With
         Next
-        oFP.EndBon
+        oFP.EndReceipt
+        oFP.OpenDrawer
         '--- success
         PrintReceipt = True
     End If
@@ -256,7 +286,7 @@ Public Function PrintReceipt( _
                 GoTo QH
             End If
         Case Else
-            If Not oFP.CopyLastBon() Then
+            If Not oFP.CopyLastReceipt() Then
                 LastError = oFP.GetLastError()
                 GoTo QH
             End If
@@ -265,7 +295,7 @@ Public Function PrintReceipt( _
         End Select
     End If
     If LenB(At(OperatorData, ucsFscPixLastReceipt, vbNullString)) <> 0 Then
-        OperatorData(ucsFscPixLastReceipt) = oFP.GetLastBonNumber()
+        OperatorData(ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
     End If
     If LenB(At(OperatorData, ucsFscPixFiscalPayment, vbNullString)) <> 0 Then
         OperatorData(ucsFscPixFiscalPayment) = oFP.GetPaymentExecuted()
@@ -297,22 +327,37 @@ Public Function PrintReport( _
     Case ucsFscRptDaily
         '-- ReportData = { IsClear, IsItems, IsDepartments }
         If C_Bool(At(ReportData, 1)) And C_Bool(At(ReportData, 2)) Then
-            
+            If C_Bool(At(ReportData, 0)) Then
+                oFP.RunZReport ucsFscRstDailyByItemsAndDepartment
+            Else
+                oFP.RunXReport ucsFscRstDailyByItemsAndDepartment
+            End If
         ElseIf C_Bool(At(ReportData, 1)) Then
-            
+            If C_Bool(At(ReportData, 0)) Then
+                oFP.RunZReport ucsFscRstDailyByItems
+            Else
+                oFP.RunXReport ucsFscRstDailyByItems
+            End If
         ElseIf C_Bool(At(ReportData, 2)) Then
-            
+            If C_Bool(At(ReportData, 0)) Then
+                oFP.RunZReport ucsFscRstDailyByDepartment
+            Else
+                oFP.RunXReport ucsFscRstDailyByDepartment
+            End If
         Else
             If C_Bool(At(ReportData, 0)) Then
-                oFP.RunZReport
+                oFP.RunZReport ucsFscRstDaily
             Else
-                oFP.RunXReport
+                oFP.RunXReport ucsFscRstDaily
             End If
         End If
     Case ucsFscRptNumber
         '-- ReportData = { FromNum, ToNum, IsDetailed }
     Case ucsFscRptDate
         '-- ReportData = { FromDate, ToDate, IsDetailed }
+        If C_Date(At(ReportData, 0)) <> 0 And C_Date(At(ReportData, 1)) <> 0 Then
+            oFP.RunPeriodReport IIf(C_Bool(At(ReportData, 2)), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(At(ReportData, 0)), C_Date(At(ReportData, 1))
+        End If
     Case ucsFscRptOperator
         '-- ReportData = Empty
         
@@ -397,9 +442,19 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
     Case "ELTRADE ECR"
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
+    Case "DATECS FP550F", "DAISY MICRO"
+        Set pvInit = New cICLProtocol
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_DATECS_FP_INTERNAL
+        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_DATECS_FP_STATUSES
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_DATECS_FP_ERRORS
+        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, STR_DATECS_FP_DIP_SWITCHES
+        pvInit.SetLocalizedText ucsFscLciMemoryTexts, STR_DATECS_FP_MEMORY
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_DATECS_FP_TEXTS
     Case Else
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
     End Select
     If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
         Err.Raise vbObjectError, , Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE))
@@ -435,19 +490,3 @@ Private Function pvGetVatGroup(sVatGroup As String) As Long
         pvGetVatGroup = 2
     End If
 End Function
-
-Private Function pvGetPmtNumber(sWayOfPayment As String) As Long
-    Select Case UCase(sWayOfPayment)
-    Case "N" '--- credit
-        pvGetPmtNumber = 4
-    Case "C" '--- check
-        pvGetPmtNumber = 3
-    Case "D" '--- card
-        pvGetPmtNumber = 2
-    Case "P" '--- cash
-        pvGetPmtNumber = 1
-    Case Else
-        pvGetPmtNumber = 1
-    End Select
-End Function
-
