@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 1     22.02.11 10:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 2     22.02.11 10:26 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 2     22.02.11 10:26 Wqw
+' DEL: EnumPorts
+'
 ' 1     22.02.11 10:05 Wqw
 ' Initial implementation
 '
@@ -177,41 +180,5 @@ Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As
     Case STR_MODEL_DATECS_FP, STR_MODEL_DAISY_ECR
         ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
     End Select
-End Function
-
-Public Function EnumPorts() As Variant
-    Dim vDevices        As Variant
-    Dim vRet            As Variant
-    Dim lCount          As Long
-    Dim vPort           As Variant
-    Dim vElem           As Variant
-    Dim pDevice         As IDeviceProtocol
-    Dim sModel          As String
-    
-    On Error Resume Next
-    vDevices = Array(New cICLProtocol, New cEltradeProtocol)
-    ReDim vRet(0 To 255) As Variant
-    For Each vPort In EnumSerialPorts
-        sModel = vbNullString
-        For Each vElem In vDevices
-            Set pDevice = vElem
-            If Not pDevice.Init(C_Str(vPort), 500, 0) Then
-            Else
-                sModel = pDevice.GetDeviceModel()
-                If LenB(sModel) <> 0 Then
-                    Exit For
-                End If
-            End If
-            pDevice.Disconnect
-        Next
-        vRet(lCount) = Array(vPort, sModel)
-        lCount = lCount + 1
-    Next
-    If lCount > 0 Then
-        ReDim Preserve vRet(0 To lCount - 1) As Variant
-    Else
-        vRet = Split(vbNullString)
-    End If
-    EnumPorts = vRet
 End Function
 
