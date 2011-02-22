@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 3     22.02.11 10:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 4     22.02.11 13:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 4     22.02.11 13:51 Wqw
+' ADD: Function GetDeviceProtocol
+'
 ' 3     22.02.11 10:05 Wqw
 ' ADD: Function GetDeviceModel
 '
@@ -442,7 +445,7 @@ Public Function Init( _
     m_lCashDesk = lCashDesk
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
-        IIf(UCase(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
+        IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
@@ -638,7 +641,7 @@ Public Function AddLine( _
     If m_lRowCount = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
     End If
-    If InStr("DBWIDTH|CONDENSED", UCase(Command)) = 0 Then
+    If InStr("DBWIDTH|CONDENSED", UCase$(Command)) = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrInvalidCommandParameter)
     End If
     With uRow
@@ -1134,14 +1137,20 @@ Public Sub SetClock(ByVal NewDate As Date)
 End Sub
 
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    RunXReport = pvRunReport(ucsKlcXReport, Chr$(ucsChrTotal) & Chr$(ucsChrClear) & Chr$(ucsChrTotal))
+    Select Case ReportType
+    Case ucsFscRstDaily
+        RunXReport = pvRunReport(ucsKlcXReport, Chr$(ucsChrTotal) & Chr$(ucsChrClear) & Chr$(ucsChrTotal))
+    End Select
 End Function
 
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-'    RunZReport = pvRunReport(ucsKlcZReport, Chr$(ucsChrTotal))
-    SendCommand ucsEltCmdPrintZReport
-    '--- success
-    RunZReport = True
+    Select Case ReportType
+    Case ucsFscRstDaily
+'        RunZReport = pvRunReport(ucsKlcZReport, Chr$(ucsChrTotal))
+        SendCommand ucsEltCmdPrintZReport
+        '--- success
+        RunZReport = True
+    End Select
 End Function
 
 Public Function GetLastReceiptNumber() As Long
@@ -1238,18 +1247,48 @@ Public Function CancelReceipt() As Boolean
     CancelReceipt = (pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4) = 0)
 End Function
 
-Public Function GetDeviceModel() As String
-    Const FUNC_NAME     As String = "GetDeviceModel"
+Public Function GetDeviceProtocol() As String
+    Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
     If LenB(GetSerialNumber()) = 0 Then
     Else
-        GetDeviceModel = STR_MODEL_ELTRADE_ECR
+        GetDeviceProtocol = STR_PROTOCOL_ELTRADE_ECR
     End If
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
+End Function
+
+Public Function GetDeviceModel() As String
+    Dim sResult         As String
+    Dim sModel          As String
+    
+    sResult = SendCommand(ucsEltCmdInfoEcrParams)
+    Select Case pvPeek(sResult, 2)
+    Case 1
+        sModel = "A100"
+    Case 2
+        sModel = "A300"
+    Case 4
+        sModel = "A500"
+    Case 8
+        sModel = "A800"
+    Case 16
+        sModel = "A600"
+    Case Else
+        sModel = "Model 0x" & Hex(pvPeek(sResult, 2))
+    End Select
+    Select Case pvPeek(sResult, 1)
+    Case &H30, &H70, &HF0
+        sResult = "70a"
+    Case &HF4
+        sResult = "70x"
+    Case Else
+        sResult = "Unknown 0x" & Hex(pvPeek(sResult, 1))
+    End Select
+    GetDeviceModel = sModel & " (" & sResult & ")"
 End Function
 
 '= private ===============================================================
@@ -1469,12 +1508,12 @@ Private Function pvPrintLine( _
     Dim sData           As String
     
     If bWordWrap Then
-        vSplit = WrapText(sText, IIf(UCase(sCommand) = "DBWIDTH", pvRowChars \ 2 - 1, pvRowChars - 2))
+        vSplit = WrapText(sText, IIf(UCase$(sCommand) = "DBWIDTH", pvRowChars \ 2 - 1, pvRowChars - 2))
     Else
         vSplit = Array(sText)
     End If
     For lIdx = 0 To UBound(vSplit)
-        Select Case UCase(sCommand)
+        Select Case UCase$(sCommand)
         Case "DBWIDTH"
             sData = sData & Chr$(&H90)
         Case "CONDENSED"
@@ -1806,6 +1845,14 @@ Private Function IDeviceProtocol_GetDefaultPassword() As String
     '--- not implemented
 End Function
 
+Private Function IDeviceProtocol_GetDeviceModel() As String
+    IDeviceProtocol_GetDeviceModel = GetDeviceModel()
+End Function
+
+Private Function IDeviceProtocol_GetDeviceProtocol() As String
+    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+End Function
+
 Private Function IDeviceProtocol_GetFiscalNumber() As String
     IDeviceProtocol_GetFiscalNumber = GetFiscalNumber()
 End Function
@@ -1852,10 +1899,6 @@ End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
     IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
-End Function
-
-Private Function IDeviceProtocol_GetDeviceModel() As String
-    IDeviceProtocol_GetDeviceModel = GetDeviceModel
 End Function
 
 Private Function IDeviceProtocol_OpenDrawer() As Boolean
