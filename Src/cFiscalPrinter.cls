@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 3     21.02.11 16:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 4     22.02.11 10:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 4     22.02.11 10:07 Wqw
+' REF: izneseni metodi w otdelen admin class
+'
 ' 3     21.02.11 16:28 Wqw
 ' ADD: Property IsShared
 '
@@ -90,8 +93,6 @@ Private Const STR_DUPLICATE             As String = "ƒ”¡À» ¿“"
 Private Const STR_ORIGINAL              As String = "Œ–»√»Õ¿À"
 Private Const STR_HEAD_CREDIT_NOTE2     As String = "Í˙Ï Ù-‡ "
 Private Const STR_CASHIER               As String = " ‡ÒËÂ"
-Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "UcsFiscalPrinters.cFiscalPrinter|UcsFiscalPrinters.cICLProtocol|UcsFiscalPrinters.cEltradeProtocol"
 
 Private Enum UcsRowTypeEnum
     ucsRwtSell = 1
@@ -114,148 +115,18 @@ End Type
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-    DebugLog sFunc, "Run-time error: " & Error
-End Sub
+'Private Sub PrintError(sFunc As String)
+'    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
+'    DebugLog sFunc, "Run-time error: " & Error
+'End Sub
 
 Private Sub DebugLog(sFunc As String, sText As String)
     OutputDebugLog MODULE_NAME, sFunc, sText
 End Sub
 
 '=========================================================================
-' Properties
-'=========================================================================
-
-Public Property Get IsShared() As Boolean
-    Const FUNC_NAME     As String = "IsShared [get]"
-    Dim lIdx            As Long
-    
-    On Error GoTo EH
-    With CreateObject("COMAdmin.COMAdminCatalog")
-        With .GetCollection("Applications")
-            .Populate
-            For lIdx = .Count - 1 To 0 Step -1
-                If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
-                    IsShared = True
-                    Exit For
-                End If
-            Next
-        End With
-    End With
-    Exit Property
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Property
-
-Public Property Let IsShared(ByVal bValue As Boolean)
-    Const FUNC_NAME     As String = "IsShared [let]"
-    Dim sDll            As String
-    Dim sDllHostImage   As String
-    Dim oApp            As Object
-    Dim oRole           As Object
-    Dim lIdx            As Long
-    Dim vElem           As Variant
-    
-    On Error GoTo EH
-    With CreateObject("COMAdmin.COMAdminCatalog")
-        If bValue Then
-            sDll = RegReadString(HKEY_CLASSES_ROOT, "UcsFiscalPrinters.cFiscalPrinter\Clsid", vbNullString)
-            If LenB(sDll) <> 0 Then
-                sDll = RegReadString(HKEY_CLASSES_ROOT, "CLSID\" & sDll & "\InProcServer32", vbNullString)
-            End If
-            If LenB(sDll) <> 0 Then
-                With .GetCollection("Applications")
-                    .Populate
-                    For lIdx = .Count - 1 To 0 Step -1
-                        If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
-                            Set oApp = .Item(lIdx)
-                            Exit For
-                        End If
-                    Next
-                    If oApp Is Nothing Then
-                        Set oApp = .Add
-                        With oApp
-                            .Value("Name") = STR_COMPLUS_APP_NAME
-        '                    If Len(sUser) <> 0 Then
-        '                        .Value("Identity") = sUser
-        '                        .Value("Password") = sPass
-        '                    End If
-                            .Value("Authentication") = 2 '--- "Connect". for win98 clients
-                        End With
-                        .SaveChanges
-                        With .GetCollection("Roles", oApp.Key)
-                            .Populate
-                            Set oRole = .Add
-                            oRole.Value("Name") = "CreatorOwner"
-                            .SaveChanges
-                            With .GetCollection("UsersInRole", oRole.Key)
-                                .Populate
-                                .Add.Value("User") = "Everyone"
-                                .SaveChanges
-                            End With
-                        End With
-                    End If
-                End With
-                .ShutdownApplication oApp.Key
-                For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
-                    .ImportComponent oApp.Key, C_Str(vElem)
-                Next
-            End If
-            '--- add dllhost.exe to allowed firewall applications
-            sDllHostImage = GetSystemDirectory() & "\dllhost.exe"
-            If LenB(Dir(sDllHostImage)) Then
-                Set oApp = CreateObject("HNetCfg.FwAuthorizedApplication")
-                oApp.ProcessImageFileName = sDllHostImage
-                oApp.Name = STR_COMPLUS_APP_NAME
-                oApp.Scope = 1      ' NET_FW_SCOPE_LOCAL_SUBNET
-                oApp.IpVersion = 2  ' NET_FW_IP_VERSION_ANY
-                oApp.Enabled = False
-                CreateObject("HNetCfg.FwMgr").LocalPolicy.CurrentProfile.AuthorizedApplications.Add oApp
-            End If
-        Else
-            .ShutdownApplication STR_COMPLUS_APP_NAME
-            With .GetCollection("Applications")
-                .Populate
-                Set oApp = Nothing
-                For lIdx = .Count - 1 To 0 Step -1
-                    If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
-                        Set oApp = .Item(lIdx)
-                        .Remove lIdx
-                        .SaveChanges
-                        Exit For
-                    End If
-                Next
-            End With
-        End If
-    End With
-    Exit Property
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Property
-
-'=========================================================================
 ' Methods
 '=========================================================================
-
-Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
-    Dim oFrmIcl         As New frmIclSetup
-    Dim oFrmEltrade     As New frmEltradeSetup
-    
-    '--- figure out model
-    Select Case UCase(At(Split(DeviceString, ";"), 0))
-    Case "ELTRADE ECR"
-        ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
-    Case "DATECS FP550F", "DAISY MICRO"
-        ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
-    End Select
-End Function
-
-Public Function EnumPorts() As Variant
-    EnumPorts = EnumSerialPorts
-End Function
 
 Public Function GetHeaderFooter( _
             DeviceString As String, _
@@ -557,11 +428,11 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
     vSplit = Split(DeviceString, ";")
     '--- figure out model
     Select Case UCase(At(vSplit, 0))
-    Case "ELTRADE ECR"
+    Case STR_MODEL_ELTRADE_ECR
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
-    Case "DATECS FP550F", "DAISY MICRO"
+    Case STR_MODEL_DATECS_FP, STR_MODEL_DAISY_ECR
         Set pvInit = New cICLProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_DATECS_FP_INTERNAL
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_DATECS_FP_STATUSES
