@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 4     22.02.11 13:51 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 5     22.02.11 15:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 5     22.02.11 15:19 Wqw
+' REF: impl debug logging
+'
 ' 4     22.02.11 13:51 Wqw
 ' ADD: Function GetDeviceProtocol
 '
@@ -431,7 +434,7 @@ Public Function Init( _
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
-    DebugLog FUNC_NAME, "sDevice=" & sDevice & "; lTimeout=" & lTimeout
+    DebugLog FUNC_NAME, "sDevice=" & sDevice & ", lTimeout=" & lTimeout
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
@@ -448,6 +451,7 @@ Public Function Init( _
         IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
+        DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", m_sLastError=" & m_sLastError
         Err.Raise vbObjectError, , m_sLastError
     End If
     '--- success
@@ -499,7 +503,6 @@ Public Function SendCommand( _
     
     m_sLastError = vbNullString
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, sData, eRetCmd, m_sLastError)
-    DebugLog FUNC_NAME, "RetVal=" & pvDumpHex(SendCommand) & ", RetCmd=0x" & Hex(eRetCmd) & IIf(LenB(m_sLastError) <> 0, ", m_sLastError = " & m_sLastError, vbNullString)
     '--- append internal log
     m_sCommandLog = m_sCommandLog & pvDumpHex(Chr$(eCmd)) & IIf(LenB(sData) <> 0, "<-" & pvDumpHex(sData), vbNullString) & IIf(LenB(SendCommand) <> 0, "->" & pvDumpHex(SendCommand), vbNullString) & vbCrLf
     If LenB(m_sLastError) <> 0 Then
@@ -542,7 +545,6 @@ Public Function WaitDevice(Optional ByVal lWait As Long) As Boolean
     End If
     Do
         sResult = pvSendCommand(m_hComm, m_lTimeout, ucsEltCmdInfoDeviceStatus, vbNullString, eRetCmd, m_sLastError)
-        DebugLog FUNC_NAME, "sResult=" & pvDumpHex(sResult) & ", RetCmd=0x" & Hex(eRetCmd) & IIf(LenB(m_sLastError) <> 0, ", m_sLastError=" & m_sLastError, vbNullString)
         If LenB(m_sLastError) <> 0 Then
             Err.Raise vbObjectError, , m_sLastError
         End If
@@ -1356,6 +1358,7 @@ Private Function pvSendCommand( _
     Dim lMask           As Long
     
     On Error GoTo EH
+    DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", sData=" & pvDumpHex(sData)
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     sText = Chr$(&HAA) & Chr$(&H55) & Chr$(m_lCashDesk) & Chr$(eCmd) & Chr$(Len(sData)) & sData
     '--- calc checksum
@@ -1420,7 +1423,8 @@ InLoop:
                 sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
             Call CancelIo(hComm)
-            Exit Do
+            DebugLog FUNC_NAME, "CancelIo, lResult=" & lResult
+            GoTo QH
         End If
         '--- check if response complete
         If Len(sText) >= 5 Then
@@ -1428,12 +1432,14 @@ InLoop:
             If baText(0) <> &HAA Or baText(1) <> &H55 Or baText(2) <> m_lCashDesk Then
                 sError = pvInternal(ucsErrInvalidResponseHeader)
                 Call CancelIo(hComm)
-                Exit Do
+                DebugLog FUNC_NAME, "Invalid response header, sText=" & pvDumpHex(sText)
+                GoTo QH
             End If
             '--- baText(4) = size of response, 5 = sizeof header
             If Len(sText) >= baText(4) + 5 Then
                 eRetCmd = baText(3)
                 pvSendCommand = Mid$(sText, 6, baText(4))
+                DebugLog FUNC_NAME, "eRetCmd=0x" & Hex(eRetCmd) & ", RetVal=" & pvDumpHex(pvSendCommand)
                 Exit Do
             End If
         End If
