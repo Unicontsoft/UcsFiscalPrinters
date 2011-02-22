@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 2     22.02.11 10:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 3     22.02.11 13:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 3     22.02.11 13:51 Wqw
+' ADD: Function CreateObject
+'
 ' 2     22.02.11 10:26 Wqw
 ' DEL: EnumPorts
 '
@@ -37,7 +40,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 '=========================================================================
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "UcsFiscalPrinters.cFiscalPrinter|UcsFiscalPrinters.cICLProtocol|UcsFiscalPrinters.cEltradeProtocol"
+Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol"
 
 '=========================================================================
 ' Error handling
@@ -61,11 +64,12 @@ Public Property Get IsShared() As Boolean
     Dim lIdx            As Long
     
     On Error GoTo EH
-    With CreateObject("COMAdmin.COMAdminCatalog")
+    With VBA.CreateObject("COMAdmin.COMAdminCatalog")
         With .GetCollection("Applications")
             .Populate
             For lIdx = .Count - 1 To 0 Step -1
-                If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
+                If LCase$(.Item(lIdx).Name) <> LCase$(STR_COMPLUS_APP_NAME) Then
+                Else
                     IsShared = True
                     Exit For
                 End If
@@ -88,9 +92,9 @@ Public Property Let IsShared(ByVal bValue As Boolean)
     Dim vElem           As Variant
     
     On Error GoTo EH
-    With CreateObject("COMAdmin.COMAdminCatalog")
+    With VBA.CreateObject("COMAdmin.COMAdminCatalog")
         If bValue Then
-            sDll = RegReadString(HKEY_CLASSES_ROOT, "UcsFiscalPrinters.cFiscalPrinter\Clsid", vbNullString)
+            sDll = RegReadString(HKEY_CLASSES_ROOT, LIB_NAME & ".cFiscalPrinter\Clsid", vbNullString)
             If LenB(sDll) <> 0 Then
                 sDll = RegReadString(HKEY_CLASSES_ROOT, "CLSID\" & sDll & "\InProcServer32", vbNullString)
             End If
@@ -98,7 +102,7 @@ Public Property Let IsShared(ByVal bValue As Boolean)
                 With .GetCollection("Applications")
                     .Populate
                     For lIdx = .Count - 1 To 0 Step -1
-                        If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
+                        If LCase$(.Item(lIdx).Name) = LCase$(STR_COMPLUS_APP_NAME) Then
                             Set oApp = .Item(lIdx)
                             Exit For
                         End If
@@ -129,19 +133,19 @@ Public Property Let IsShared(ByVal bValue As Boolean)
                 End With
                 .ShutdownApplication oApp.Key
                 For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
-                    .ImportComponent oApp.Key, C_Str(vElem)
+                    .ImportComponent oApp.Key, LIB_NAME & "." & vElem
                 Next
             End If
             '--- add dllhost.exe to allowed firewall applications
             sDllHostImage = GetSystemDirectory() & "\dllhost.exe"
             If LenB(Dir(sDllHostImage)) Then
-                Set oApp = CreateObject("HNetCfg.FwAuthorizedApplication")
+                Set oApp = VBA.CreateObject("HNetCfg.FwAuthorizedApplication")
                 oApp.ProcessImageFileName = sDllHostImage
                 oApp.Name = STR_COMPLUS_APP_NAME
                 oApp.Scope = 1      ' NET_FW_SCOPE_LOCAL_SUBNET
                 oApp.IpVersion = 2  ' NET_FW_IP_VERSION_ANY
                 oApp.Enabled = False
-                CreateObject("HNetCfg.FwMgr").LocalPolicy.CurrentProfile.AuthorizedApplications.Add oApp
+                VBA.CreateObject("HNetCfg.FwMgr").LocalPolicy.CurrentProfile.AuthorizedApplications.Add oApp
             End If
         Else
             .ShutdownApplication STR_COMPLUS_APP_NAME
@@ -149,7 +153,8 @@ Public Property Let IsShared(ByVal bValue As Boolean)
                 .Populate
                 Set oApp = Nothing
                 For lIdx = .Count - 1 To 0 Step -1
-                    If LCase(.Item(lIdx).Name) = LCase(STR_COMPLUS_APP_NAME) Then
+                    If LCase$(.Item(lIdx).Name) <> LCase$(STR_COMPLUS_APP_NAME) Then
+                    Else
                         Set oApp = .Item(lIdx)
                         .Remove lIdx
                         .SaveChanges
@@ -174,11 +179,21 @@ Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As
     Dim oFrmEltrade     As New frmEltradeSetup
     
     '--- figure out model
-    Select Case UCase(At(Split(DeviceString, ";"), 0))
-    Case STR_MODEL_ELTRADE_ECR
+    Select Case UCase$(At(Split(DeviceString, ";"), 0))
+    Case STR_PROTOCOL_ELTRADE_ECR
         ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
-    Case STR_MODEL_DATECS_FP, STR_MODEL_DAISY_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
         ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
     End Select
 End Function
 
+Public Function CreateObject(sProgID As String) As Object
+    Select Case LCase$(sProgID)
+    Case LCase$(LIB_NAME & ".cFiscalPrinter")
+        Set CreateObject = New cFiscalPrinter
+    Case LCase$(LIB_NAME & ".cICLProtocol")
+        Set CreateObject = New cICLProtocol
+    Case LCase$(LIB_NAME & ".cEltradeProtocol")
+        Set CreateObject = New cEltradeProtocol
+    End Select
+End Function
