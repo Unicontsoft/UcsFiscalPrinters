@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 2     22.02.11 10:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 3     22.02.11 10:33 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 3     22.02.11 10:33 Wqw
+' REF: show s owner moje da fail-ne
+'
 ' 2     22.02.11 10:06 Wqw
 ' REF: polzwa string functions
 '
@@ -2491,7 +2494,12 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     If OwnerForm Is Nothing Then
         Show vbModal
     Else
+        On Error Resume Next
         Show vbModal, OwnerForm
+        If Err.Number <> 0 Then
+            Show vbModal
+        End If
+        On Error GoTo EH
     End If
     '--- success
     frInit = True
