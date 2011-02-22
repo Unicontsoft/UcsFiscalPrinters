@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 3     21.02.11 16:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 4     22.02.11 10:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 4     22.02.11 10:06 Wqw
+' REF: polzwa string functions
+'
 ' 3     21.02.11 16:28 Wqw
 ' ADD: Function RegReadString, GetSystemDirectory
 '
@@ -94,6 +97,9 @@ End Type
 '=========================================================================
 
 Public Const STR_NONE               As String = "(Няма)"
+Public Const STR_MODEL_ELTRADE_ECR  As String = "ELTRADE ECR"
+Public Const STR_MODEL_DATECS_FP    As String = "DATECS FP550F"
+Public Const STR_MODEL_DAISY_ECR    As String = "DAISY MICRO"
 
 Public g_sDecimalSeparator      As String
 
@@ -219,7 +225,7 @@ Public Function EnumSerialPorts() As Variant
     On Error GoTo EH
     ReDim vRet(0 To 255) As Variant
     If IsNT Then
-        sBuffer = String(100000, 1)
+        sBuffer = String$(100000, 1)
         Call QueryDosDevice(0, sBuffer, Len(sBuffer))
         sBuffer = Chr$(0) & sBuffer
         For lIdx = 1 To 255
@@ -306,15 +312,15 @@ End Function
 
 Public Function IsDelimiter(sText As String) As Boolean
     Const STR_DELIMS As String = "~#$^&*_+-=\|/ " & vbTab & vbCrLf
-    If InStr(1, STR_DELIMS, Left(sText, 1)) > 0 Then
+    If InStr(1, STR_DELIMS, Left$(sText, 1)) > 0 Then
         IsDelimiter = True
     End If
 End Function
 
-Public Function IsWhitespace(sText As String) As Boolean
+Public Function IsWhiteSpace(sText As String) As Boolean
     Const STR_WHITESPACE As String = " " & vbTab & vbCrLf
-    If InStr(1, STR_WHITESPACE, Left(sText, 1)) > 0 Then
-        IsWhitespace = True
+    If InStr(1, STR_WHITESPACE, Left$(sText, 1)) > 0 Then
+        IsWhiteSpace = True
     End If
 End Function
 
@@ -330,13 +336,13 @@ Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
         If lRight > Len(sText) Then
             lRight = Len(sText) + 1
         Else
-            If IsDelimiter(Mid(sText, lRight, 1)) Then
-                Do While IsWhitespace(Mid(sText, lRight, 1)) And lRight <= Len(sText)
+            If IsDelimiter(Mid$(sText, lRight, 1)) Then
+                Do While IsWhiteSpace(Mid$(sText, lRight, 1)) And lRight <= Len(sText)
                     lRight = lRight + 1
                 Loop
             Else
                 Do While lRight > 1
-                    If IsDelimiter(Mid(sText, lRight - 1, 1)) Then
+                    If IsDelimiter(Mid$(sText, lRight - 1, 1)) Then
                         Exit Do
                     End If
                     lRight = lRight - 1
@@ -347,12 +353,12 @@ Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
             End If
         End If
         lLeft = lRight - 1
-        Do While IsWhitespace(Mid(sText, lLeft, 1)) And lLeft > 0
+        Do While IsWhiteSpace(Mid$(sText, lLeft, 1)) And lLeft > 0
             lLeft = lLeft - 1
         Loop
-        vRet(lCount) = Left(sText, lLeft)
+        vRet(lCount) = Left$(sText, lLeft)
         lCount = lCount + 1
-        sText = Mid(sText, lRight)
+        sText = Mid$(sText, lRight)
     Loop
     If lCount = 0 Then
         WrapText = Array(vbNullString)
@@ -419,17 +425,17 @@ Public Function AlignText( _
             ByVal lWidth As Long) As String
     sLeft = Left$(sLeft, lWidth)
     If Left$(sRight, 1) = Chr$(1) Then
-        sRight = String(lWidth - Len(sLeft), Right$(sRight, 1))
+        sRight = String$(lWidth - Len(sLeft), Right$(sRight, 1))
     Else
         sRight = Right$(sRight, lWidth)
     End If
-    AlignText = sLeft & Space(lWidth - Len(sLeft))
+    AlignText = sLeft & Space$(lWidth - Len(sLeft))
     Mid$(AlignText, lWidth - Len(sRight) + 1, Len(sRight)) = sRight
 End Function
 
 Public Function CenterText(ByVal sText As String, ByVal lWidth As Long) As String
     sText = Left$(sText, lWidth)
-    CenterText = Space(LimitLong((lWidth - Len(sText)) \ 2, 0)) & sText
+    CenterText = Space$(LimitLong((lWidth - Len(sText)) \ 2, 0)) & sText
 End Function
 
 Public Function SumArray(vArray As Variant) As Double
@@ -507,7 +513,7 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
     If RegOpenKeyEx(hRoot, sKey, 0, &H20001, hKey) = 0 Then '--- &H20001 = READ_CONTROL Or KEY_QUERY_VALUE
         Call RegQueryValueEx(hKey, sValue, 0, lType, ByVal vbNullString, lNeeded)
         If lType = REG_SZ Then
-            sBuffer = String(lNeeded + 1, 0)
+            sBuffer = String$(lNeeded + 1, 0)
             If RegQueryValueEx(hKey, sValue, 0, lType, ByVal sBuffer, Len(sBuffer)) = 0 Then
                 RegReadString = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
             End If
@@ -517,7 +523,7 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
 End Function
 
 Public Function GetSystemDirectory() As String
-    GetSystemDirectory = String(1000, 0)
+    GetSystemDirectory = String$(1000, 0)
     APIGetSystemDirectory GetSystemDirectory, Len(GetSystemDirectory) - 1
     GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, Chr$(0)) - 1)
 End Function

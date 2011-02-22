@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 1     21.02.11 13:42 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 2     22.02.11 10:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 2     22.02.11 10:06 Wqw
+' REF: polzwa string functions
+'
 ' 1     21.02.11 13:42 Wqw
 ' Initial implementation
 '
@@ -2401,23 +2404,23 @@ End Property
 
 Private Property Get pvLogoPixel(ByVal lX As Long, ByVal lY As Long) As Boolean
     On Error GoTo EH
-    pvLogoPixel = ((CLng("&H" & Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)) And (2 ^ (7 - lX Mod 8))) <> 0)
+    pvLogoPixel = ((CLng("&H" & Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)) And (2 ^ (7 - lX Mod 8))) <> 0)
     Exit Property
 EH:
-    Debug.Print lY, lX, Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)
+    Debug.Print lY, lX, Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)
     Resume Next
 End Property
 
 Private Property Let pvLogoPixel(ByVal lX As Long, ByVal lY As Long, ByVal bValue As Boolean)
     Dim lValue          As Long
     
-    lValue = C_Lng("&H" & Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2))
+    lValue = C_Lng("&H" & Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2))
     If bValue Then
         lValue = lValue Or (2 ^ (7 - lX Mod 8))
     Else
         lValue = lValue And (Not 2 ^ (7 - lX Mod 8))
     End If
-    Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right("0" & Hex(lValue), 2)
+    Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right$("0" & Hex(lValue), 2)
 End Property
 
 '=========================================================================
@@ -2699,12 +2702,12 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         For lIdx = 0 To 7
             dblSum = dblSum + pvPeek(sResult, lIdx * 4, 4) / 100#
         Next
-        txtCashTotal.Text = Format(dblSum, "0.00")
+        txtCashTotal.Text = Format$(dblSum, "0.00")
     Case ucsCmdReports
         pvStatus = labConnectCurrent.Caption
     Case ucsCmdStatus
         sResult = m_oFP.SendCommand(ucsEltCmdInfoStatus)
-        txtStatus(0).Text = Format(pvPeek(sResult, 0, 4) / 100#, "0.00")
+        txtStatus(0).Text = Format$(pvPeek(sResult, 0, 4) / 100#, "0.00")
         For lIdx = 1 To 8
             txtStatus(lIdx).Text = pvPeek(sResult, 2 + lIdx * 2, 2)
         Next
@@ -2716,10 +2719,10 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         lstYesNoParams.ListIndex = 0
     Case ucsCmdKeys
         sResult = m_oFP.SendCommand(ucsEltCmdInfoKeyFunctions)
-        txtKeysNoNumber.Text = pvDumpHex(Mid(sResult, 1, Len(sResult) \ 2))
-        txtKeysWithNumber.Text = pvDumpHex(Mid(sResult, 1 + Len(sResult) \ 2, Len(sResult)))
+        txtKeysNoNumber.Text = pvDumpHex(Mid$(sResult, 1, Len(sResult) \ 2))
+        txtKeysWithNumber.Text = pvDumpHex(Mid$(sResult, 1 + Len(sResult) \ 2, Len(sResult)))
     Case ucsCmdLog
-        m_sLog = Right(m_sLog, 32000)
+        m_sLog = Right$(m_sLog, 32000)
         txtLog.Text = m_sLog
         txtLog.SelStart = Len(m_sLog)
         pvStatus = labConnectCurrent.Caption
@@ -2870,7 +2873,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             GoTo QH
         End If
         If LenB(txtOperName.Text) <> 0 Then
-            If Left(txtOperPass.Text, 4) <> Left(txtOperPass2.Text, 4) Then
+            If Left$(txtOperPass.Text, 4) <> Left$(txtOperPass2.Text, 4) Then
                 txtOperPass2.SetFocus
                 txtOperPass2.SelStart = 0
                 txtOperPass2.SelLength = Len(txtOperPass2.Text)
@@ -2975,7 +2978,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Case ucsCmdYesNoParams
         sData = m_oFP.SendCommand(ucsEltCmdInfoYesNoParams)
         For lIdx = 0 To 14
-            Mid(sData, lIdx * 2 + 1, 2) = pvPoke(lstYesNoParams.Selected(lIdx), 2)
+            Mid$(sData, lIdx * 2 + 1, 2) = pvPoke(lstYesNoParams.Selected(lIdx), 2)
         Next
         sResult = m_oFP.SendCommand(ucsEltCmdInitYesNoParams, sData)
     End Select
@@ -3018,9 +3021,9 @@ Private Function pvPoke(ByVal cValue As Currency, Optional ByVal lSize As Long =
     Dim sTemp           As String
     
     cValue = cValue / 10000@
-    sTemp = String(8, 0)
+    sTemp = String$(8, 0)
     Call CopyMemory(ByVal sTemp, cValue, 8)
-    pvPoke = Right(StrReverse(sTemp), lSize)
+    pvPoke = Right$(StrReverse(sTemp), lSize)
 End Function
 
 Private Function pvSPeek(sText As String, ByVal lOffset As Long, ByVal lSize As Long) As String
@@ -3030,15 +3033,15 @@ End Function
 Private Function pvSPoke(sText As String, ByVal lSize As Long, Optional ByVal eAlign As AlignmentConstants = vbLeftJustify, Optional ByVal lFillChar As Long = 32) As String
     Select Case eAlign
     Case vbLeftJustify
-        pvSPoke = Left(sText, lSize)
-        pvSPoke = pvSPoke & String(lSize - Len(pvSPoke), lFillChar)
+        pvSPoke = Left$(sText, lSize)
+        pvSPoke = pvSPoke & String$(lSize - Len(pvSPoke), lFillChar)
     Case vbRightJustify
-        pvSPoke = Right(sText, lSize)
-        pvSPoke = String(lSize - Len(pvSPoke), lFillChar) & pvSPoke
+        pvSPoke = Right$(sText, lSize)
+        pvSPoke = String$(lSize - Len(pvSPoke), lFillChar) & pvSPoke
     Case vbCenter
-        pvSPoke = Left(sText, lSize)
-        pvSPoke = String((lSize - Len(pvSPoke) + 1) \ 2, lFillChar) & pvSPoke
-        pvSPoke = pvSPoke & String(lSize - Len(pvSPoke), lFillChar)
+        pvSPoke = Left$(sText, lSize)
+        pvSPoke = String$((lSize - Len(pvSPoke) + 1) \ 2, lFillChar) & pvSPoke
+        pvSPoke = pvSPoke & String$(lSize - Len(pvSPoke), lFillChar)
     End Select
     pvSPoke = pvToMik(pvSPoke)
 End Function
@@ -3049,7 +3052,7 @@ Private Function pvFromPbcd(sText As String) As String
     
     baText = StrConv(sText, vbFromUnicode)
     For lIdx = 0 To UBound(baText)
-        pvFromPbcd = pvFromPbcd & Right("0" & Hex(baText(lIdx)), 2)
+        pvFromPbcd = pvFromPbcd & Right$("0" & Hex(baText(lIdx)), 2)
     Next
 End Function
 
@@ -3083,9 +3086,9 @@ Private Function pvDumpHex(sText As String, Optional sSeparator As String = " ")
     Dim lIdx        As Long
     
     For lIdx = 1 To Len(sText)
-        pvDumpHex = pvDumpHex & sSeparator & Right("0" & Hex(Asc(Mid(sText, lIdx, 1))), 2)
+        pvDumpHex = pvDumpHex & sSeparator & Right$("0" & Hex(Asc(Mid$(sText, lIdx, 1))), 2)
     Next
-    pvDumpHex = Mid(pvDumpHex, 1 + Len(sSeparator), Len(pvDumpHex))
+    pvDumpHex = Mid$(pvDumpHex, 1 + Len(sSeparator), Len(pvDumpHex))
 End Function
 
 '=========================================================================
@@ -3246,8 +3249,8 @@ Private Sub lstDeps_Click()
     If LenB(txtDepNo.Text) <> 0 Then
         cobDepGroup.ListIndex = C_Lng(At(vResult, 3))
         txtDepItemGroup.Text = C_Lng(At(vResult, 2))
-        txtDepSales.Text = Format(C_Lng(At(vResult, 5)) / 1000#, "0.000")
-        txtDepTotalSum.Text = Format(C_Lng(At(vResult, 4)) / 100#, "0.00")
+        txtDepSales.Text = Format$(C_Lng(At(vResult, 5)) / 1000#, "0.000")
+        txtDepTotalSum.Text = Format$(C_Lng(At(vResult, 4)) / 100#, "0.00")
     Else
         cobDepGroup.ListIndex = -1
         txtDepItemGroup.Text = vbNullString
@@ -3272,13 +3275,13 @@ Private Sub lstItems_Click()
     txtItemNo.Text = At(vResult, 0)
     txtItemName.Text = At(vResult, 1)
     If LenB(txtItemNo.Text) <> 0 Then
-        txtItemPrice.Text = Format(C_Lng(At(vResult, 2)) / 100#, "0.00")
+        txtItemPrice.Text = Format$(C_Lng(At(vResult, 2)) / 100#, "0.00")
         cobItemGroup.ListIndex = C_Lng(At(vResult, 5))
         txtItemGroup.Text = C_Lng(At(vResult, 4)) + 1
         txtItemDep.Text = C_Lng(At(vResult, 8)) + 1
-        txtItemAvailable.Text = Format(C_Lng(At(vResult, 3)) / 1000#, "0.000")
-        txtItemTurnover.Text = Format(C_Lng(At(vResult, 6)) / 1000#, "0.000")
-        txtItemSoldQuo.Text = Format(C_Lng(At(vResult, 10)) / 100#, "0.00")
+        txtItemAvailable.Text = Format$(C_Lng(At(vResult, 3)) / 1000#, "0.000")
+        txtItemTurnover.Text = Format$(C_Lng(At(vResult, 6)) / 1000#, "0.000")
+        txtItemSoldQuo.Text = Format$(C_Lng(At(vResult, 10)) / 100#, "0.00")
         lFlags = C_Lng(At(vResult, 9))
     Else
         txtItemPrice.Text = vbNullString
@@ -3315,11 +3318,11 @@ Private Sub lstOpers_Click()
     txtOperPass2.Text = vbNullString
     If C_Str(pvPeek(At(vResult, 3), 0, 2)) = At(vResult, 0) Then
         txtOperFiscal.Text = pvPeek(At(vResult, 3), 2, 2)
-        txtOperSells.Text = Format((pvPeek(At(vResult, 3), 28, 4) + pvPeek(At(vResult, 3), 32, 4) + pvPeek(At(vResult, 3), 36, 4) + pvPeek(At(vResult, 3), 40, 4)) / 100#, "0.00")
-        txtOperDisc.Text = Format(pvPeek(At(vResult, 3), 20, 4) / 100#, "0.00")
-        txtOperSurcharge.Text = Format(pvPeek(At(vResult, 3), 24, 4) / 100#, "0.00")
-        txtOperVoid.Text = Format(pvPeek(At(vResult, 3), 48, 4) / 100#, "0.00")
-        txtOperResto.Text = Format(pvPeek(At(vResult, 3), 44, 4) / 100#, "0.00")
+        txtOperSells.Text = Format$((pvPeek(At(vResult, 3), 28, 4) + pvPeek(At(vResult, 3), 32, 4) + pvPeek(At(vResult, 3), 36, 4) + pvPeek(At(vResult, 3), 40, 4)) / 100#, "0.00")
+        txtOperDisc.Text = Format$(pvPeek(At(vResult, 3), 20, 4) / 100#, "0.00")
+        txtOperSurcharge.Text = Format$(pvPeek(At(vResult, 3), 24, 4) / 100#, "0.00")
+        txtOperVoid.Text = Format$(pvPeek(At(vResult, 3), 48, 4) / 100#, "0.00")
+        txtOperResto.Text = Format$(pvPeek(At(vResult, 3), 44, 4) / 100#, "0.00")
     Else
         txtOperFiscal.Text = vbNullString
         txtOperSells.Text = vbNullString
@@ -3335,8 +3338,8 @@ EH:
 End Sub
 
 Private Sub tmrDate_Timer()
-    txtDateCompDate.Text = Format(Now, "dd-MM-yy")
-    txtDateCompTime.Text = Format(Now, "hh:mm:ss")
+    txtDateCompDate.Text = Format$(Now, "dd-MM-yy")
+    txtDateCompTime.Text = Format$(Now, "hh:mm:ss")
 End Sub
 
 Private Sub cmdDateTransfer_Click()

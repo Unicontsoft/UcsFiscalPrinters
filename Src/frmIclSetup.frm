@@ -2425,7 +2425,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 1     21.02.11 13:42 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 2     22.02.11 10:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2434,6 +2434,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 2     22.02.11 10:06 Wqw
+' REF: polzwa string functions
+'
 ' 1     21.02.11 13:42 Wqw
 ' Initial implementation
 '
@@ -2597,23 +2600,23 @@ End Property
 
 Private Property Get pvLogoPixel(ByVal lX As Long, ByVal lY As Long) As Boolean
     On Error GoTo EH
-    pvLogoPixel = ((CLng("&H" & Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)) And (2 ^ (7 - lX Mod 8))) <> 0)
+    pvLogoPixel = ((CLng("&H" & Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)) And (2 ^ (7 - lX Mod 8))) <> 0)
     Exit Property
 EH:
-    Debug.Print lY, lX, Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)
+    Debug.Print lY, lX, Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2)
     Resume Next
 End Property
 
 Private Property Let pvLogoPixel(ByVal lX As Long, ByVal lY As Long, ByVal bValue As Boolean)
     Dim lValue          As Long
     
-    lValue = C_Lng("&H" & Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2))
+    lValue = C_Lng("&H" & Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2))
     If bValue Then
         lValue = lValue Or (2 ^ (7 - lX Mod 8))
     Else
         lValue = lValue And (Not 2 ^ (7 - lX Mod 8))
     End If
-    Mid(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right("0" & Hex(lValue), 2)
+    Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right$("0" & Hex(lValue), 2)
 End Property
 
 Private Property Get pvLock(oCtl As Object) As Boolean
@@ -2794,9 +2797,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         chkHeadAdvanceHeader.Value = -(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IH") = "1")
         pvLock(chkHeadAdvanceHeader) = m_oFP.Status(ucsStbPrintingError)
         vResult = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IP")
-        chkHeadEmptyHeader.Value = -(Mid(vResult, 1, 1) = "1")
-        chkHeadEmptyFooter.Value = -(Mid(vResult, 3, 1) = "1")
-        chkHeadSumDivider.Value = -(Mid(vResult, 4, 1) = "1")
+        chkHeadEmptyHeader.Value = -(Mid$(vResult, 1, 1) = "1")
+        chkHeadEmptyFooter.Value = -(Mid$(vResult, 3, 1) = "1")
+        chkHeadSumDivider.Value = -(Mid$(vResult, 4, 1) = "1")
         pvLock(chkHeadEmptyHeader) = m_oFP.Status(ucsStbPrintingError)
         pvLock(chkHeadEmptyFooter) = m_oFP.Status(ucsStbPrintingError)
         pvLock(chkHeadSumDivider) = m_oFP.Status(ucsStbPrintingError)
@@ -2879,8 +2882,8 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                 lstDeps.AddItem vbNullString
             End If
             vResult = m_vDeps(lIdx)
-            If Left(At(vResult, 0), 1) = "P" Then
-                sText = At(Split(At(vResult, 4), vbLf), 0) & " (" & Mid(At(vResult, 0), 2) & ")"
+            If Left$(At(vResult, 0), 1) = "P" Then
+                sText = At(Split(At(vResult, 4), vbLf), 0) & " (" & Mid$(At(vResult, 0), 2) & ")"
             Else
                 sText = lIdx & ": " & STR_NA
             End If
@@ -2935,7 +2938,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                         vResult = Split(m_oFP.SendCommand(ucsFpcInfoDaisyConsts), ",")
                         ReDim Preserve m_vLogo(0 To C_Lng(At(vResult, 1, 64)) - 1) As Variant
                         For lIdx = 0 To UBound(m_vLogo)
-                            m_vLogo(lIdx) = String(C_Lng(At(vResult, 0, 64)) / 4, "0")
+                            m_vLogo(lIdx) = String$(C_Lng(At(vResult, 0, 64)) / 4, "0")
                         Next
                     End If
                     Exit For
@@ -2968,9 +2971,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Case ucsCmdCashOper
         m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsFpcAdminCashDebitCredit), ",")
-        txtCashTotal.Text = Format(C_Dbl(At(vResult, 1)) / 100, FORMAT_CURRENCY)
-        txtCashIn.Text = Format(C_Dbl(At(vResult, 2)) / 100, FORMAT_CURRENCY)
-        txtCashOut.Text = Format(C_Dbl(At(vResult, 3)) / 100, FORMAT_CURRENCY)
+        txtCashTotal.Text = Format$(C_Dbl(At(vResult, 1)) / 100, FORMAT_CURRENCY)
+        txtCashIn.Text = Format$(C_Dbl(At(vResult, 2)) / 100, FORMAT_CURRENCY)
+        txtCashOut.Text = Format$(C_Dbl(At(vResult, 3)) / 100, FORMAT_CURRENCY)
         pvLock(txtCashSum) = m_oFP.Status(ucsStbPrintingError)
         m_oFP.Exceptions = True
     Case ucsCmdReports
@@ -2993,7 +2996,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         txtDiagChecksum.Text = At(vResult, 1)
         txtDiagSwitches.Text = At(vResult, 2)
     Case ucsCmdLog
-        m_sLog = Right(m_sLog, 32000)
+        m_sLog = Right$(m_sLog, 32000)
         txtLog.Text = m_sLog
         txtLog.SelStart = Len(m_sLog)
         pvStatus = labConnectCurrent.Caption
@@ -3330,7 +3333,7 @@ Private Function pvIsPassCorrect(sPass As String) As Boolean
     
     If Len(sPass) >= 4 And Len(sPass) <= 6 Then
         For lIdx = 1 To Len(sPass)
-            lChar = Asc(Mid(sPass, lIdx, 1))
+            lChar = Asc(Mid$(sPass, lIdx, 1))
             If lChar < 48 Or lChar > 57 Then '--- 48 = '0', 57 = '9'
                 Exit Function
             End If
@@ -3494,7 +3497,7 @@ Private Sub lstDeps_Click()
     Else
         txtDepNo.Text = vbNullString
     End If
-    cobDepGroup.Text = Mid(At(vResult, 0), 2)
+    cobDepGroup.Text = Mid$(At(vResult, 0), 2)
     txtDepName.Text = At(Split(At(vResult, 4), vbLf), 0)
     txtDepName2.Text = At(Split(At(vResult, 4), vbLf), 1)
     txtDepSales.Text = At(vResult, 1)
@@ -3586,8 +3589,8 @@ Private Sub scbLogoHor_Scroll()
 End Sub
 
 Private Sub tmrDate_Timer()
-    txtDateCompDate.Text = Format(Now, "dd-MM-yy")
-    txtDateCompTime.Text = Format(Now, "hh:mm:ss")
+    txtDateCompDate.Text = Format$(Now, "dd-MM-yy")
+    txtDateCompTime.Text = Format$(Now, "hh:mm:ss")
 End Sub
 
 Private Sub cmdDateTransfer_Click()
@@ -3630,7 +3633,7 @@ Private Sub cmdLogoOpen_Click()
     On Error GoTo EH
     sFilter = StrConv(Replace(STR_FILTER, "|", vbNullChar), vbFromUnicode)
     sTitle = StrConv(STR_TITLE, vbFromUnicode)
-    sBuffer = String(1000, 0)
+    sBuffer = String$(1000, 0)
     If OsVersion >= 500 Then
         uOFN.lStructSize = Len(uOFN)
     Else
@@ -3645,7 +3648,7 @@ Private Sub cmdLogoOpen_Click()
     uOFN.nMaxFile = Len(sBuffer)
     If GetOpenFileName(uOFN) Then
         sFile = StrConv(sBuffer, vbUnicode)
-        sFile = Left(sFile, InStr(sFile, Chr$(0)) - 1)
+        sFile = Left$(sFile, InStr(sFile, Chr$(0)) - 1)
         picLogo.BackColor = vbWhite
         Set m_picLogo = LoadPicture(sFile)
         pvApplyLogo m_picLogo, C_Lng(txtLogoTreshold.Text), optLogoStretch.Value
@@ -3759,7 +3762,7 @@ Private Sub cmdStatusReset_Click()
     End If
     pvStatus = STR_STATUS_RESETTING
     m_oFP.Exceptions = False
-'    If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
+'    If Left$(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
 '        If m_oFP.Status(ucsStbFiscalPrinting) Then
             '--- note: when printing invoice, if no contragent info set then cancel fails!
             m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
