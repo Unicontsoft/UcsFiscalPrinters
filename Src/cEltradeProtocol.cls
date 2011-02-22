@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 5     22.02.11 15:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 6     22.02.11 17:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 6     22.02.11 17:38 Wqw
+' REF: error handling
+'
 ' 5     22.02.11 15:19 Wqw
 ' REF: impl debug logging
 '
@@ -133,6 +136,7 @@ Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As 
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+Private Declare Function FlushFileBuffers Lib "kernel32" (ByVal hFile As Long) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -184,7 +188,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Already connected|Not connected|Invalid response header|WaitCommEvent failed: |No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt"
+Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Already connected|Not connected|Invalid response header|WaitCommEvent failed: |No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt|Error in line %1: %2"
 Private Const STR_RECEIPT_TEXTS         As String = "TOTAL|SUBTOTAL|Sales %1|unit price|quantity|value*%1|CHANGE|total|VAT*%1|netto|Invoice #|Seller:|   * * * * * * * *|Received by:|Tax # |VAT # |%1 items|Resp:|Recv:|SURCHARGE|DISCOUNT"
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const LNG_DELAY                 As Long = 100
@@ -225,6 +229,7 @@ Private Enum UcsInternalErrorsEnum
     ucsErrPrintingError
     ucsErrFatalError
     ucsErrCannotCancelReceipt
+    ucsErrErrorInLine
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -1077,8 +1082,12 @@ Public Function EndReceipt() As Boolean
     EndReceipt = True
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
-    Resume Next
+    If uCtx.PluCount > 0 Then
+        m_sLastError = Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
+    End If
+    Err.Raise vbObjectError, , m_sLastError
 End Function
 
 Public Function CopyLastReceipt() As Boolean
@@ -1381,7 +1390,10 @@ Private Function pvSendCommand( _
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
+        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         Call CancelIo(hComm)
+        Call Sleep(100)
+        Call FlushFileBuffers(hComm)
         GoTo QH
     End If
     '--- async read response
@@ -1419,24 +1431,28 @@ InLoop:
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
+            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult
             If lResult = WAIT_TIMEOUT Then
                 sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
             Call CancelIo(hComm)
-            DebugLog FUNC_NAME, "CancelIo, lResult=" & lResult
+            Call Sleep(100)
+            Call FlushFileBuffers(hComm)
             GoTo QH
         End If
         '--- check if response complete
         If Len(sText) >= 5 Then
             baText = StrConv(sText, vbFromUnicode)
             If baText(0) <> &HAA Or baText(1) <> &H55 Or baText(2) <> m_lCashDesk Then
+                DebugLog FUNC_NAME, "Invalid response header, sText=" & pvDumpHex(sText)
                 sError = pvInternal(ucsErrInvalidResponseHeader)
                 Call CancelIo(hComm)
-                DebugLog FUNC_NAME, "Invalid response header, sText=" & pvDumpHex(sText)
+                Call Sleep(100)
+                Call FlushFileBuffers(hComm)
                 GoTo QH
             End If
-            '--- baText(4) = size of response, 5 = sizeof header
-            If Len(sText) >= baText(4) + 5 Then
+            '--- 5 = sizeof header, baText(4) = size of response, 1 - size of checksum
+            If Len(sText) >= 5 + baText(4) + 1 Then
                 eRetCmd = baText(3)
                 pvSendCommand = Mid$(sText, 6, baText(4))
                 DebugLog FUNC_NAME, "eRetCmd=0x" & Hex(eRetCmd) & ", RetVal=" & pvDumpHex(pvSendCommand)
