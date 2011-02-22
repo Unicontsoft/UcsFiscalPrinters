@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 5     22.02.11 10:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 6     22.02.11 10:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 6     22.02.11 10:50 Wqw
+' REF: GetHeaderFooter wryshta array s empty ako ne moje da dostypi FP
+'
 ' 5     22.02.11 10:26 Wqw
 ' ADD: EnumPorts
 '
@@ -147,14 +150,12 @@ Public Function EnumPorts() As Variant
         sModel = vbNullString
         For Each vElem In vDevices
             Set pDevice = vElem
-            If Not pDevice.Init(C_Str(vPort), 500, 0) Then
-            Else
-                sModel = pDevice.GetDeviceModel()
-                If LenB(sModel) <> 0 Then
-                    Exit For
-                End If
-            End If
+            pDevice.Init C_Str(vPort), 500, 0
+            sModel = pDevice.GetDeviceModel()
             pDevice.Disconnect
+            If LenB(sModel) <> 0 Then
+                Exit For
+            End If
         Next
         vRet(lCount) = Array(vPort, sModel)
         lCount = lCount + 1
@@ -178,9 +179,9 @@ Public Function GetHeaderFooter( _
     Dim vInput          As Variant
     
     On Error GoTo EH
-    Set oFP = pvInit(DeviceString)
     vInput = RetVal
     ReDim RetVal(0 To 18) As Variant
+    Set oFP = pvInit(DeviceString)
     If LenB(At(vInput, 0, "1")) <> 0 Then
         RetVal(0) = Trim(oFP.GetHeaderText(1))
     End If
@@ -413,9 +414,8 @@ Public Function OpenDrawer( _
     
     On Error GoTo EH
     Set oFP = pvInit(DeviceString)
-    oFP.OpenDrawer
-    '--- success
-    OpenDrawer = True
+    '--- success (or failure)
+    OpenDrawer = oFP.OpenDrawer()
 QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
