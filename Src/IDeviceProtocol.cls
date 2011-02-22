@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 3     22.02.11 10:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 4     22.02.11 13:53 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 4     22.02.11 13:53 Wqw
+' ADD: Function GetDeviceProtocol
+'
 ' 3     22.02.11 10:05 Wqw
 ' ADD: Function GetDeviceModel
 '
@@ -220,6 +223,10 @@ Public Function GetCommandLog() As String
 End Function
 
 Public Function GetDefaultPassword() As String
+
+End Function
+
+Public Function GetDeviceProtocol() As String
 
 End Function
 
