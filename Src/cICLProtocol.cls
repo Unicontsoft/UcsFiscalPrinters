@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 19    21.02.11 13:44 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 20    22.02.11 10:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 20    22.02.11 10:05 Wqw
+' ADD: Function GetDeviceModel
+'
 ' 19    21.02.11 13:44 Wqw
 ' REF: impl IDeviceProtocol
 '
@@ -501,7 +504,7 @@ Private Property Get pvRowChars() As Long
     Dim bPrevExceptions As Boolean
     
     If m_lRowChars = 0 Then
-        If Left(GetSerialNumber(), 2) = "DY" Then '--- daisy
+        If Left$(GetSerialNumber(), 2) = "DY" Then '--- daisy
             bPrevExceptions = pvSetExceptions(False)
             m_lRowChars = At(Split(SendCommand(ucsFpcInfoDaisyConsts), ","), 10)
             Exceptions = bPrevExceptions
@@ -642,7 +645,7 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As 
     '--- check result
     sText = pvReadData(m_hComm, m_lTimeout, m_sLastError)
     If LenB(m_sLastError) = 0 Then
-        If Left(sText, 1) = Chr$(1) Then
+        If Left$(sText, 1) = Chr$(1) Then
             lIdx = InStr(sText, Chr$(4))
             If lIdx > 2 Then
                 lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
@@ -915,7 +918,7 @@ Public Function EndReceipt() As Boolean
                 SendCommand ucsFpcFiscalSell, sData
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If uCtx.PluCount = 1 Then
-                    pvPrintLine AlignText(Format(m_uRow(0).InitOperatorCode, "0000") & " " & m_uRow(0).InitOperatorName, Format(m_lCashDeskNo, "00"), pvRowChars)
+                    pvPrintLine AlignText(Format$(m_uRow(0).InitOperatorCode, "0000") & " " & m_uRow(0).InitOperatorName, Format$(m_lCashDeskNo, "00"), pvRowChars)
                 End If
                 If .PrintRowType = ucsFscRetNonfiscal Then
                     vSplit = WrapText(.PluName, pvRowChars - 7)
@@ -1038,7 +1041,7 @@ Public Function EndReceipt() As Boolean
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
-                        pvPrintLine String(pvRowChars, "-")
+                        pvPrintLine String$(pvRowChars, "-")
                         pvPrintLine AlignText(pvText(ucsTxtFooterTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
                         If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
                             '--- print invoice totals by VAT group
@@ -1052,7 +1055,7 @@ Public Function EndReceipt() As Boolean
                                     pvPrintLine AlignText(pvText(ucsTxtGroupNetto), pvSafeFormat(dblTotal, "0.00"), pvRowChars - 2)
                                 End If
                             Next
-                            pvPrintLine String(pvRowChars, "-")
+                            pvPrintLine String$(pvRowChars, "-")
                         End If
                         uCtx.PmtPrinted = True
                     End If
@@ -1077,7 +1080,7 @@ Public Function EndReceipt() As Boolean
                         With m_uRow(0)
                             pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
-                            pvPrintLine String(pvRowChars, "-")
+                            pvPrintLine String$(pvRowChars, "-")
                             pvPrintLine AlignText(pvText(ucsTxtFooterReceiver), Chr$(1) & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)) & "/", pvRowChars)
                             pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCompany)
@@ -1137,7 +1140,7 @@ Public Function GetClock() As Date
 End Function
 
 Public Sub SetClock(ByVal NewDate As Date)
-    SendCommand ucsFpcInitDateTime, Format(NewDate, "dd-MM-yy") & " " & Format(NewDate, "hh:mm:ss")
+    SendCommand ucsFpcInitDateTime, Format$(NewDate, "dd-MM-yy") & " " & Format$(NewDate, "hh:mm:ss")
 End Sub
 
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
@@ -1218,7 +1221,7 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
         eCmd = ucsFpcPrintReportByDateDetailed
     End Select
     If eCmd <> 0 Then
-        SendCommand eCmd, Format(StartDate, "ddmmyy") & "," & Format(EndDate, "ddmmyy")
+        SendCommand eCmd, Format$(StartDate, "ddmmyy") & "," & Format$(EndDate, "ddmmyy")
         '--- success
         RunPeriodReport = True
     End If
@@ -1314,6 +1317,30 @@ Public Function CancelReceipt() As Boolean
     Exceptions = bPrevExceptions
     '--- success (or failure)
     CancelReceipt = (Left$(SendCommand(ucsFpcInfoTransaction), 1) <> "1")
+End Function
+
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
+    Dim sResult         As String
+    Dim sError          As String
+    Dim sSerial         As String
+    
+    On Error GoTo EH
+    If pvWriteData(m_hComm, ucsFpcInfoDiagnostics, &H20) Then
+        sResult = pvReadData(m_hComm, m_lTimeout, sError)
+        If LenB(sResult) <> 0 And LenB(sError) = 0 Then
+            sSerial = At(Split(sResult, ","), 4)
+        End If
+    End If
+    If Left$(sSerial, 2) = "DY" Then
+        GetDeviceModel = STR_MODEL_DAISY_ECR
+    ElseIf LenB(sSerial) <> 0 Then
+        GetDeviceModel = STR_MODEL_DATECS_FP
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 '= private ===============================================================
@@ -1435,7 +1462,7 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
-            sBuffer = String(1000, 0)
+            sBuffer = String$(1000, 0)
             lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), dwRead, VarPtr(uOver))
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
@@ -1448,7 +1475,7 @@ InLoop:
                 lResult = WAIT_OBJECT_0
             End If
             If lResult = WAIT_OBJECT_0 Then
-                sBuffer = Left(StrConv(sBuffer, vbUnicode), dwRead)
+                sBuffer = Left$(StrConv(sBuffer, vbUnicode), dwRead)
                 '--- check for NAK (&H15)
                 If InStr(sBuffer, Chr$(&H15)) > 0 Then
                     DebugLog FUNC_NAME, "NAK, sBuffer=" & sBuffer
@@ -1466,7 +1493,7 @@ InLoop:
             Call CancelIo(hComm)
             Exit Do
         End If
-    Loop While Right(pvReadData, 1) <> Chr$(&H3) '--- until Terminator (&H3) found
+    Loop While Right$(pvReadData, 1) <> Chr$(&H3) '--- until Terminator (&H3) found
 QH:
     Call CloseHandle(uOver.hEvent)
     Exit Function
@@ -1595,7 +1622,7 @@ Private Function pvSafeText(sText As String) As String
 End Function
 
 Private Function pvSafeFormat(Expression As Variant, Optional Fmt As Variant, Optional sDecimal As String = ".") As String
-    pvSafeFormat = Replace(Format(Expression, Fmt), g_sDecimalSeparator, sDecimal)
+    pvSafeFormat = Replace(Format$(Expression, Fmt), g_sDecimalSeparator, sDecimal)
 End Function
 
 Private Function pvPrintLine(vText As Variant)
@@ -1829,6 +1856,10 @@ End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
     IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+End Function
+
+Private Function IDeviceProtocol_GetDeviceModel() As String
+    IDeviceProtocol_GetDeviceModel = GetDeviceModel
 End Function
 
 Private Function IDeviceProtocol_OpenDrawer() As Boolean

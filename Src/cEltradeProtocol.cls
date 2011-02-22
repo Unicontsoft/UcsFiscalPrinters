@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 2     21.02.11 13:47 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 3     22.02.11 10:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 3     22.02.11 10:05 Wqw
+' ADD: Function GetDeviceModel
+'
 ' 2     21.02.11 13:47 Wqw
 ' ADD: Function CancelReceipt. REF: impl localization support, rename bon
 ' to receipt, SendInput is public
@@ -807,17 +810,17 @@ Public Function EndReceipt() As Boolean
             Select Case .PrintRowType
             Case ucsFscRetNonfiscal
                 If .PluQuantity <> 1 Then
-                    pvPrintLine AlignText("    " & Format(.PluQuantity, "0.000") & " *", Format(.PluPrice, "0.00"), pvRowChars - 4)
+                    pvPrintLine AlignText("    " & Format$(.PluQuantity, "0.000") & " *", Format$(.PluPrice, "0.00"), pvRowChars - 4)
                 End If
-                pvPrintLine AlignText(Left$(.PluName, uCtx.ItemChars), Format(dblTotal, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars - 2)
+                pvPrintLine AlignText(Left$(.PluName, uCtx.ItemChars), Format$(dblTotal, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars - 2)
                 If Len(.PluName) > uCtx.ItemChars Then
                     pvPrintLine Trim$(Mid$(.PluName, uCtx.ItemChars + 1))
                 End If
             Case ucsFscRetInvoiceNonFiscal
                 pvPrintLine .PluName
-                pvPrintLine AlignText(pvText(ucsTxtPluPrice), Format(.PluPrice, "0.00"), pvRowChars - 2)
-                pvPrintLine AlignText(pvText(ucsTxtPluQuantity), Format(.PluQuantity, "0.000"), pvRowChars - 2)
-                pvPrintLine AlignText(Printf(pvText(ucsTxtPluSum), Chr$(191 + .PluVatGroup)), Format(dblTotal, "0.00"), pvRowChars - 2)
+                pvPrintLine AlignText(pvText(ucsTxtPluPrice), Format$(.PluPrice, "0.00"), pvRowChars - 2)
+                pvPrintLine AlignText(pvText(ucsTxtPluQuantity), Format$(.PluQuantity, "0.000"), pvRowChars - 2)
+                pvPrintLine AlignText(Printf(pvText(ucsTxtPluSum), Chr$(191 + .PluVatGroup)), Format$(dblTotal, "0.00"), pvRowChars - 2)
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 If uCtx.PluNo > 0 Then
                     lPlu = uCtx.PluNo
@@ -903,14 +906,14 @@ Public Function EndReceipt() As Boolean
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If .DiscType = ucsFscDstPlu Then
                     If uCtx.LastRow.PluVatGroup > 0 Then
-                        pvPrintLine AlignText(" " & Format(.DiscValue, "0.00") & "%", Format(dblTotal, "0.00") & " " & Chr$(191 + uCtx.LastRow.PluVatGroup), pvRowChars - 2)
+                        pvPrintLine AlignText(" " & Format$(.DiscValue, "0.00") & "%", Format$(dblTotal, "0.00") & " " & Chr$(191 + uCtx.LastRow.PluVatGroup), pvRowChars - 2)
                     End If
                 ElseIf .DiscType = ucsFscDstSubtotal Then
-                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), Format(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 4)
+                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), Format$(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 4)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If uCtx.GrpTotal(lIdx) <> 0 Then
                             dblTotal = Round(.DiscValue * uCtx.GrpTotal(lIdx) / 100, 2)
-                            pvPrintLine AlignText(" " & Format(.DiscValue, "0.00") & "%", Format(dblTotal, "0.00") & " " & Chr$(191 + lIdx), pvRowChars - 2)
+                            pvPrintLine AlignText(" " & Format$(.DiscValue, "0.00") & "%", Format$(dblTotal, "0.00") & " " & Chr$(191 + lIdx), pvRowChars - 2)
                         End If
                     Next
                 End If
@@ -947,21 +950,21 @@ Public Function EndReceipt() As Boolean
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If .PmtType <> 0 Or uCtx.PluCount > 0 Then
                     If uCtx.Paid < 0 Then
-                        pvPrintLine String(pvRowChars - 2, "-")
-                        pvPrintLine AlignText(pvText(ucsTxtTotal), Format(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars \ 2 - 1), "DBWIDTH"
-                        pvPrintLine String(pvRowChars - 2, "-")
+                        pvPrintLine String$(pvRowChars - 2, "-")
+                        pvPrintLine AlignText(pvText(ucsTxtTotal), Format$(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars \ 2 - 1), "DBWIDTH"
+                        pvPrintLine String$(pvRowChars - 2, "-")
                         uCtx.Paid = 0
                         If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
                             sResult = SendCommand(ucsEltCmdInfoVatGroups)
                             '--- invoice totals by VAT groups
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
                                 If uCtx.GrpTotal(lIdx) <> 0 Then
-                                    pvPrintLine AlignText(pvText(ucsTxtPmtTotal), Format(uCtx.GrpTotal(lIdx), "0.00"), pvRowChars - 2)
+                                    pvPrintLine AlignText(pvText(ucsTxtPmtTotal), Format$(uCtx.GrpTotal(lIdx), "0.00"), pvRowChars - 2)
                                     '--- total w/o VAT
                                     dblTotal = Round(uCtx.GrpTotal(lIdx) / (1 + pvPeek(sResult, (lIdx - 1) * 2, 2) / 10000#), 2)
-                                    pvPrintLine AlignText(Printf(pvText(ucsTxtPmtVatGroup), Chr$(191 + lIdx)), Format(uCtx.GrpTotal(lIdx) - dblTotal, "0.00"), pvRowChars - 2)
-                                    pvPrintLine Chr$(191 + lIdx) & "=" & Format(pvPeek(sResult, (lIdx - 1) * 2, 2) / 100#, "0.00")
-                                    pvPrintLine AlignText(pvText(ucsTxtPmtNeto), Format(dblTotal, "0.00"), pvRowChars - 2)
+                                    pvPrintLine AlignText(Printf(pvText(ucsTxtPmtVatGroup), Chr$(191 + lIdx)), Format$(uCtx.GrpTotal(lIdx) - dblTotal, "0.00"), pvRowChars - 2)
+                                    pvPrintLine Chr$(191 + lIdx) & "=" & Format$(pvPeek(sResult, (lIdx - 1) * 2, 2) / 100#, "0.00")
+                                    pvPrintLine AlignText(pvText(ucsTxtPmtNeto), Format$(dblTotal, "0.00"), pvRowChars - 2)
                                 End If
                             Next
                         End If
@@ -974,13 +977,13 @@ Public Function EndReceipt() As Boolean
                         .PmtName = GetPaymentName(.PmtType)
                     End If
                     If .PmtAmount >= 0 Then
-                        pvPrintLine AlignText(.PmtName, Format(Round(.PmtAmount * .PmtRate, 2), "0.00"), pvRowChars - 2)
+                        pvPrintLine AlignText(.PmtName, Format$(Round(.PmtAmount * .PmtRate, 2), "0.00"), pvRowChars - 2)
                         uCtx.Paid = uCtx.Paid + Round(.PmtAmount * .PmtRate, 2)
                     End If
                     If .PmtType <> 0 Then
                         dblTotal = Round(uCtx.Paid - SumArray(uCtx.GrpTotal), 2)
                         If dblTotal > 0 Then
-                            pvPrintLine AlignText(pvText(ucsTxtPmtResto), Format(Round(dblTotal, 2), "0.00"), pvRowChars - 2)
+                            pvPrintLine AlignText(pvText(ucsTxtPmtResto), Format$(Round(dblTotal, 2), "0.00"), pvRowChars - 2)
                         End If
                         If dblTotal >= 0 Then
                             uCtx.Finished = True
@@ -1006,7 +1009,7 @@ Public Function EndReceipt() As Boolean
                                 pvPrintLine pvText(ucsTxtFooterDivider)
                             End With
                         End If
-                        pvPrintLine AlignText(vbNullString, Printf(pvText(ucsTxtFooterPluCount), Format(uCtx.PluCount, "00")), pvRowChars - 2)
+                        pvPrintLine AlignText(vbNullString, Printf(pvText(ucsTxtFooterPluCount), Format$(uCtx.PluCount, "00")), pvRowChars - 2)
                         For lIdx = 1 To 2
                             sData = GetFooterText(lIdx)
                             If LenB(Trim$(sData)) <> 0 Then
@@ -1235,6 +1238,20 @@ Public Function CancelReceipt() As Boolean
     CancelReceipt = (pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4) = 0)
 End Function
 
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
+    
+    On Error GoTo EH
+    If LenB(GetSerialNumber()) = 0 Then
+    Else
+        GetDeviceModel = STR_MODEL_ELTRADE_ECR
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 '= private ===============================================================
 
 Private Function pvOpenPort(sDevice As String, Optional sError As String) As Long
@@ -1327,7 +1344,7 @@ Private Function pvSendCommand( _
     End If
     '--- async read response
     sText = vbNullString
-    sBuffer = String(1000, 0)
+    sBuffer = String$(1000, 0)
     Call SetCommMask(hComm, EV_RXCHAR)
     GoTo InLoop
     Do
@@ -1546,7 +1563,7 @@ Private Function pvPoke(ByVal cValue As Currency, Optional ByVal lSize As Long =
     Dim sTemp           As String
     
     cValue = cValue / 10000@
-    sTemp = String(8, 0)
+    sTemp = String$(8, 0)
     Call CopyMemory(ByVal sTemp, cValue, 8)
     pvPoke = Right$(StrReverse(sTemp), lSize)
 End Function
@@ -1559,14 +1576,14 @@ Private Function pvSPoke(ByVal sText As String, ByVal lSize As Long, Optional By
     Select Case eAlign
     Case vbLeftJustify
         pvSPoke = Left$(sText, lSize)
-        pvSPoke = pvSPoke & String(lSize - Len(pvSPoke), lFillChar)
+        pvSPoke = pvSPoke & String$(lSize - Len(pvSPoke), lFillChar)
     Case vbRightJustify
         pvSPoke = Right$(sText, lSize)
-        pvSPoke = String(lSize - Len(pvSPoke), lFillChar) & pvSPoke
+        pvSPoke = String$(lSize - Len(pvSPoke), lFillChar) & pvSPoke
     Case vbCenter
         pvSPoke = Left$(sText, lSize)
-        pvSPoke = String((lSize - Len(pvSPoke) + 1) \ 2, lFillChar) & pvSPoke
-        pvSPoke = pvSPoke & String(lSize - Len(pvSPoke), lFillChar)
+        pvSPoke = String$((lSize - Len(pvSPoke) + 1) \ 2, lFillChar) & pvSPoke
+        pvSPoke = pvSPoke & String$(lSize - Len(pvSPoke), lFillChar)
     End Select
     pvSPoke = pvToMik(pvSPoke)
 End Function
@@ -1835,6 +1852,10 @@ End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
     IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+End Function
+
+Private Function IDeviceProtocol_GetDeviceModel() As String
+    IDeviceProtocol_GetDeviceModel = GetDeviceModel
 End Function
 
 Private Function IDeviceProtocol_OpenDrawer() As Boolean
