@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 4     22.02.11 10:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 5     22.02.11 13:53 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 5     22.02.11 13:53 Wqw
+' ADD: Consts
+'
 ' 4     22.02.11 10:06 Wqw
 ' REF: polzwa string functions
 '
@@ -96,10 +99,11 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
+Public Const LIB_NAME               As String = "UcsFiscalPrinters"
 Public Const STR_NONE               As String = "(Няма)"
-Public Const STR_MODEL_ELTRADE_ECR  As String = "ELTRADE ECR"
-Public Const STR_MODEL_DATECS_FP    As String = "DATECS FP550F"
-Public Const STR_MODEL_DAISY_ECR    As String = "DAISY MICRO"
+Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
+Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP550F"
+Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY MICRO"
 
 Public g_sDecimalSeparator      As String
 
