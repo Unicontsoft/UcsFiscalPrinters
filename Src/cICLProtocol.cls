@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 20    22.02.11 10:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 21    22.02.11 13:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 21    22.02.11 13:52 Wqw
+' ADD: GetDeviceProtocol
+'
 ' 20    22.02.11 10:05 Wqw
 ' ADD: Function GetDeviceModel
 '
@@ -576,7 +579,7 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optiona
     End If
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
-        IIf(UCase(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
+        IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
@@ -1319,8 +1322,8 @@ Public Function CancelReceipt() As Boolean
     CancelReceipt = (Left$(SendCommand(ucsFpcInfoTransaction), 1) <> "1")
 End Function
 
-Public Function GetDeviceModel() As String
-    Const FUNC_NAME     As String = "GetDeviceModel"
+Public Function GetDeviceProtocol() As String
+    Const FUNC_NAME     As String = "GetDeviceProtocol"
     Dim sResult         As String
     Dim sError          As String
     Dim sSerial         As String
@@ -1333,9 +1336,9 @@ Public Function GetDeviceModel() As String
         End If
     End If
     If Left$(sSerial, 2) = "DY" Then
-        GetDeviceModel = STR_MODEL_DAISY_ECR
+        GetDeviceProtocol = STR_PROTOCOL_DAISY_ECR
     ElseIf LenB(sSerial) <> 0 Then
-        GetDeviceModel = STR_MODEL_DATECS_FP
+        GetDeviceProtocol = STR_PROTOCOL_DATECS_FP
     End If
     Exit Function
 EH:
@@ -1810,6 +1813,14 @@ Private Function IDeviceProtocol_GetDefaultPassword() As String
     IDeviceProtocol_GetDefaultPassword = DEF_PASSWORD
 End Function
 
+Private Function IDeviceProtocol_GetDeviceModel() As String
+    IDeviceProtocol_GetDeviceModel = GetSerialNumber()
+End Function
+
+Private Function IDeviceProtocol_GetDeviceProtocol() As String
+    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+End Function
+
 Private Function IDeviceProtocol_GetFiscalNumber() As String
     IDeviceProtocol_GetFiscalNumber = GetFiscalNumber()
 End Function
@@ -1856,10 +1867,6 @@ End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
     IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
-End Function
-
-Private Function IDeviceProtocol_GetDeviceModel() As String
-    IDeviceProtocol_GetDeviceModel = GetDeviceModel
 End Function
 
 Private Function IDeviceProtocol_OpenDrawer() As Boolean
