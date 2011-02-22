@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 6     22.02.11 10:50 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 7     22.02.11 13:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 7     22.02.11 13:52 Wqw
+' REF: EnumPorts wryshta doplnitelno speed i protocol
+'
 ' 6     22.02.11 10:50 Wqw
 ' REF: GetHeaderFooter wryshta array s empty ako ne moje da dostypi FP
 '
@@ -141,23 +144,26 @@ Public Function EnumPorts() As Variant
     Dim vPort           As Variant
     Dim vElem           As Variant
     Dim pDevice         As IDeviceProtocol
+    Dim sProtocol       As String
     Dim sModel          As String
     
     On Error Resume Next
     vDevices = Array(New cICLProtocol, New cEltradeProtocol)
     ReDim vRet(0 To 255) As Variant
     For Each vPort In EnumSerialPorts
+        sProtocol = vbNullString
         sModel = vbNullString
         For Each vElem In vDevices
             Set pDevice = vElem
             pDevice.Init C_Str(vPort), 500, 0
-            sModel = pDevice.GetDeviceModel()
-            pDevice.Disconnect
-            If LenB(sModel) <> 0 Then
+            sProtocol = pDevice.GetDeviceProtocol()
+            If LenB(sProtocol) <> 0 Then
+                sModel = pDevice.GetDeviceModel()
                 Exit For
             End If
+            pDevice.Disconnect
         Next
-        vRet(lCount) = Array(vPort, sModel)
+        vRet(lCount) = Array(vPort, 9600, sProtocol, sModel)
         lCount = lCount + 1
     Next
     If lCount > 0 Then
@@ -466,12 +472,12 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
     
     vSplit = Split(DeviceString, ";")
     '--- figure out model
-    Select Case UCase(At(vSplit, 0))
-    Case STR_MODEL_ELTRADE_ECR
+    Select Case UCase$(At(vSplit, 0))
+    Case STR_PROTOCOL_ELTRADE_ECR
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
-    Case STR_MODEL_DATECS_FP, STR_MODEL_DAISY_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
         Set pvInit = New cICLProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_DATECS_FP_INTERNAL
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_DATECS_FP_STATUSES
@@ -512,7 +518,7 @@ End Function
 
 Private Function pvGetVatGroup(sVatGroup As String) As Long
     If LenB(sVatGroup) <> 0 Then
-        pvGetVatGroup = Asc(UCase(sVatGroup)) - 191
+        pvGetVatGroup = Asc(UCase$(sVatGroup)) - 191
     End If
     If pvGetVatGroup < 1 Or pvGetVatGroup > 8 Then
         pvGetVatGroup = 2
