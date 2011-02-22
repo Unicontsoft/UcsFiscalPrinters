@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 21    22.02.11 13:52 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 22    22.02.11 17:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 22    22.02.11 17:38 Wqw
+' REF: calls FlushFileBuffers after CancelIo
+'
 ' 21    22.02.11 13:52 Wqw
 ' ADD: GetDeviceProtocol
 '
@@ -229,6 +232,8 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare Function FlushFileBuffers Lib "kernel32" (ByVal hFile As Long) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -1124,7 +1129,6 @@ EH:
         m_sLastError = Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
     End If
     Err.Raise vbObjectError, , m_sLastError
-    Resume
 End Function
 
 Public Function CopyLastReceipt() As Boolean
@@ -1428,7 +1432,10 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
     If lResult = WAIT_OBJECT_0 Then
         pvWriteData = True
     Else
+        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         Call CancelIo(hComm)
+        Call Sleep(100)
+        Call FlushFileBuffers(hComm)
     End If
 QH:
     Call CloseHandle(uOver.hEvent)
@@ -1490,10 +1497,13 @@ InLoop:
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
+            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult
             If lResult = WAIT_TIMEOUT Then
                 sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
             Call CancelIo(hComm)
+            Call Sleep(100)
+            Call FlushFileBuffers(hComm)
             Exit Do
         End If
     Loop While Right$(pvReadData, 1) <> Chr$(&H3) '--- until Terminator (&H3) found
