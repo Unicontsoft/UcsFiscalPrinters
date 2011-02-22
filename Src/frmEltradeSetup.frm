@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 3     22.02.11 10:33 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 4     22.02.11 13:53 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 4     22.02.11 13:53 Wqw
+' REF: polzwa cFiscalAdmin za class factory na protocol-a
+'
 ' 3     22.02.11 10:33 Wqw
 ' REF: show s owner moje da fail-ne
 '
@@ -2322,7 +2325,7 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 Private Const LNG_NUM_DEPS          As Long = 10
 Private Const LNG_NUM_OPERS         As Long = 30
 Private Const LNG_NUM_ITEMS         As Long = 100
-Private Const PROGID_PROTOCOL   As String = "UcsFiscalPrinters.cEltradeProtocol"
+Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cEltradeProtocol"
 '--- strings
 Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    ДДС групи|    Дата и час|    Header и footer|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Параметри|    Клавиши|Операции|    Внос и износ|    Печат отчети|Администрация|    Последна операция|    Журнал комуникация"
 Private Const STR_SPEEDS            As String = "9600|19200"
@@ -2514,7 +2517,9 @@ End Function
 Private Function pvGetPrinter(sServer As String, sError As String) As cEltradeProtocol
     On Error Resume Next
     If LenB(sServer) = 0 Then
-        Set pvGetPrinter = CreateObject(PROGID_PROTOCOL)
+        With New cFiscalAdmin
+            Set pvGetPrinter = .CreateObject(PROGID_PROTOCOL)
+        End With
     Else
         Set pvGetPrinter = CreateObject(PROGID_PROTOCOL, sServer)
     End If

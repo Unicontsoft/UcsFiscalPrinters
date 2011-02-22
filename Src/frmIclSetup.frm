@@ -2425,7 +2425,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 3     22.02.11 10:33 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 4     22.02.11 13:53 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2434,6 +2434,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 4     22.02.11 13:53 Wqw
+' REF: polzwa cFiscalAdmin za class factory na protocol-a
+'
 ' 3     22.02.11 10:33 Wqw
 ' REF: show s owner moje da fail-ne
 '
@@ -2500,7 +2503,7 @@ Private Const LNG_NUM_DEPS          As Long = 50
 Private Const LNG_NUM_OPERS         As Long = 24
 Private Const FORMAT_CURRENCY       As String = "#0.00######"
 Private Const LNG_LOGO_FORECOLOR    As Long = &H800000
-Private Const PROGID_PROTOCOL       As String = "UcsFiscalPrinters.cICLProtocol"
+Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cICLProtocol"
 '--- strings
 Private Const STR_SPEEDS            As String = "9600|19200"
 Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Header и footer|    Номера на фактури|    Допълнителни типове|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Внос и износ|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
@@ -2728,7 +2731,9 @@ End Function
 Private Function pvGetPrinter(sServer As String, sError As String) As cICLProtocol
     On Error Resume Next
     If LenB(sServer) = 0 Then
-        Set pvGetPrinter = CreateObject(PROGID_PROTOCOL)
+        With New cFiscalAdmin
+            Set pvGetPrinter = .CreateObject(PROGID_PROTOCOL)
+        End With
     Else
         Set pvGetPrinter = CreateObject(PROGID_PROTOCOL, sServer)
     End If
