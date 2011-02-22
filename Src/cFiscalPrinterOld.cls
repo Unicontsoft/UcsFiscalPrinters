@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls 26    21.02.11 13:45 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls 27    22.02.11 10:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinterOld.cls $
 ' 
+' 27    22.02.11 10:07 Wqw
+' REF: polzwa string functions
+'
 ' 26    21.02.11 13:45 Wqw
 ' REF: prazen string, pechat periodichen report
 '
@@ -307,7 +310,7 @@ Public Function GetHeaderFooter( _
     End If
     If LenB(At(vInput, 17, "1")) <> 0 Then
         m_oFP.Exceptions = False
-        If Left(At(Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4), 2) = "DY" Then '--- daisy
+        If Left$(At(Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4), 2) = "DY" Then '--- daisy
             vElem = Split(m_oFP.SendCommand(ucsFpcInfoDaisyConsts), ",")
         End If
         RetVal(17) = At(vElem, 10, DEF_COMMENT_LEN)
@@ -315,7 +318,7 @@ Public Function GetHeaderFooter( _
     End If
     If LenB(At(vInput, 18, "1")) <> 0 Then
         RetVal(18) = STR_DEFAULT_OPER_PASS
-        If Left(At(Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4), 2) = "DY" Then '--- daisy
+        If Left$(At(Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4), 2) = "DY" Then '--- daisy
             RetVal(18) = RetVal(18) & "1"
         End If
     End If
@@ -392,7 +395,7 @@ Public Function PrintReceipt( _
     '--- gather FP info
     m_oFP.Exceptions = False
     uCtx.FpSerNum = At(Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4)
-    If Left(uCtx.FpSerNum, 2) = "DY" Then '--- daisy
+    If Left$(uCtx.FpSerNum, 2) = "DY" Then '--- daisy
         vElem = Split(m_oFP.SendCommand(ucsFpcInfoDaisyConsts), ",")
     End If
     uCtx.FpCommentLen = At(vElem, 10, DEF_COMMENT_LEN)
@@ -408,9 +411,9 @@ Public Function PrintReceipt( _
         End If
         If LenB(At(OperatorData, ucsFscPixOperatorCode)) <> 0 Then
             vElem = Split(m_oFP.SendCommand(ucsFpcInfoOperator, At(OperatorData, ucsFscPixOperatorCode)), ",")
-            sText = Format(At(OperatorData, ucsFscPixOperatorCode), "0000") & " " & At(vElem, 5)
+            sText = Format$(At(OperatorData, ucsFscPixOperatorCode), "0000") & " " & At(vElem, 5)
             If LenB(At(OperatorData, ucsFscPixCashDeskNo)) <> 0 Then
-                sText = sText & Right(pvSpace(uCtx.FpCommentLen) & Format(At(OperatorData, ucsFscPixCashDeskNo), "00"), uCtx.FpCommentLen - Len(sText))
+                sText = sText & Right$(pvSpace(uCtx.FpCommentLen) & Format$(At(OperatorData, ucsFscPixCashDeskNo), "00"), uCtx.FpCommentLen - Len(sText))
             End If
             m_oFP.SendCommand ucsFpcNonFiscalText, sText
         End If
@@ -441,9 +444,9 @@ Public Function PrintReceipt( _
         m_oFP.SendCommand ucsFpcNonFiscalText, pvSpace((uCtx.FpCommentLen - Len(sText)) \ 2) & sText      '--- center
         If LenB(At(OperatorData, ucsFscPixOperatorCode)) <> 0 Then
             vElem = Split(m_oFP.SendCommand(ucsFpcInfoOperator, At(OperatorData, ucsFscPixOperatorCode)), ",")
-            sText = Format(At(OperatorData, ucsFscPixOperatorCode), "0000") & " " & At(vElem, 5)
+            sText = Format$(At(OperatorData, ucsFscPixOperatorCode), "0000") & " " & At(vElem, 5)
             If LenB(At(OperatorData, ucsFscPixCashDeskNo)) <> 0 Then
-                sText = sText & Right(pvSpace(uCtx.FpCommentLen) & Format(At(OperatorData, ucsFscPixCashDeskNo), "00"), uCtx.FpCommentLen - Len(sText))
+                sText = sText & Right$(pvSpace(uCtx.FpCommentLen) & Format$(At(OperatorData, ucsFscPixCashDeskNo), "00"), uCtx.FpCommentLen - Len(sText))
             End If
             m_oFP.SendCommand ucsFpcNonFiscalText, sText
         End If
@@ -527,11 +530,11 @@ Public Function PrintReceipt( _
         Next
         If LenB(At(InvoiceData, ucsFscPixCgBulstat)) <> 0 Or LenB(At(InvoiceData, ucsFscPixCgName)) <> 0 Then
             m_oFP.SendCommand ucsFpcFiscalCgInfo, _
-                Left(At(InvoiceData, ucsFscPixCgBulstat), 13) & vbTab & _
-                Left(At(InvoiceData, ucsFscPixOwnPersonSeller), 30) & vbTab & _
-                Left(At(InvoiceData, ucsFscPixCgPersonReceiver), 25) & vbTab & _
-                Left(At(InvoiceData, ucsFscPixCgName), 27) & vbTab & _
-                Left(At(InvoiceData, ucsFscPixCgVatNo), 12) & vbTab & _
+                Left$(At(InvoiceData, ucsFscPixCgBulstat), 13) & vbTab & _
+                Left$(At(InvoiceData, ucsFscPixOwnPersonSeller), 30) & vbTab & _
+                Left$(At(InvoiceData, ucsFscPixCgPersonReceiver), 25) & vbTab & _
+                Left$(At(InvoiceData, ucsFscPixCgName), 27) & vbTab & _
+                Left$(At(InvoiceData, ucsFscPixCgVatNo), 12) & vbTab & _
                 pvSplitCgAddress(At(InvoiceData, ucsFscPixCgAddress), uCtx)
         End If
         m_oFP.SendCommand ucsFpcFiscalClose
@@ -553,26 +556,26 @@ Public Function PrintReceipt( _
             End If
             '--- print credit note info
             sText = STR_SELLER
-            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(uCtx.FpCommentLen - Len(sText), ".")  '--- pad with dots
+            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String$(uCtx.FpCommentLen - Len(sText), ".")  '--- pad with dots
             sText = "/" & At(InvoiceData, ucsFscPixOwnPersonSeller) & "/"
-            m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(uCtx.FpCommentLen) & sText, uCtx.FpCommentLen)   '--- right align
+            m_oFP.SendCommand ucsFpcNonFiscalText, Right$(pvSpace(uCtx.FpCommentLen) & sText, uCtx.FpCommentLen)   '--- right align
             sText = STR_RECEIVER
-            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String(uCtx.FpCommentLen - Len(sText), ".")  '--- pad with dots
+            m_oFP.SendCommand ucsFpcNonFiscalText, sText & String$(uCtx.FpCommentLen - Len(sText), ".")  '--- pad with dots
             sText = "/" & At(InvoiceData, ucsFscPixCgPersonReceiver) & "/"
-            m_oFP.SendCommand ucsFpcNonFiscalText, Right(pvSpace(uCtx.FpCommentLen) & sText, uCtx.FpCommentLen)   '--- right align
+            m_oFP.SendCommand ucsFpcNonFiscalText, Right$(pvSpace(uCtx.FpCommentLen) & sText, uCtx.FpCommentLen)   '--- right align
             sText = STR_BUYER
             For Each vElem In pvWrapText(At(InvoiceData, ucsFscPixCgName), uCtx.FpCommentLen - Len(sText))
-                m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, uCtx.FpCommentLen)
-                sText = Space(Len(STR_BUYER))
+                m_oFP.SendCommand ucsFpcNonFiscalText, Left$(sText & vElem, uCtx.FpCommentLen)
+                sText = Space$(Len(STR_BUYER))
             Next
             sText = STR_BULSTAT & At(InvoiceData, ucsFscPixCgBulstat)
-            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, uCtx.FpCommentLen)
+            m_oFP.SendCommand ucsFpcNonFiscalText, Left$(sText, uCtx.FpCommentLen)
             sText = STR_VATNO & At(InvoiceData, ucsFscPixCgVatNo)
-            m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText, uCtx.FpCommentLen)
+            m_oFP.SendCommand ucsFpcNonFiscalText, Left$(sText, uCtx.FpCommentLen)
             sText = STR_ADDRESS
             For Each vElem In Split(pvSplitCgAddress(At(InvoiceData, ucsFscPixCgAddress), uCtx), vbLf)
-                m_oFP.SendCommand ucsFpcNonFiscalText, Left(sText & vElem, uCtx.FpCommentLen)
-                sText = Space(Len(STR_ADDRESS))
+                m_oFP.SendCommand ucsFpcNonFiscalText, Left$(sText & vElem, uCtx.FpCommentLen)
+                sText = Space$(Len(STR_ADDRESS))
             Next
             m_oFP.SendCommand ucsFpcNonFiscalText, vbNullString
             '--- print custom footer
@@ -789,7 +792,7 @@ Public Function InitDateTime( _
     m_oFP.Exceptions = False
     pvReset
     If LenB(sDateTime) = 0 Then
-        sDateTime = Format(Now, "dd-MM-yy") & " " & Format(Now, "hh:mm:ss")
+        sDateTime = Format$(Now, "dd-MM-yy") & " " & Format$(Now, "hh:mm:ss")
     End If
     m_oFP.SendCommand ucsFpcInitDateTime, sDateTime
     sDateTime = m_oFP.SendCommand(ucsFpcInfoDateTime)
@@ -831,7 +834,7 @@ Private Sub pvReset()
     
     bExceptions = m_oFP.Exceptions
     m_oFP.Exceptions = False
-    If Left(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
+    If Left$(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
         If m_oFP.Status(ucsStbFiscalPrinting) Then
             '--- note: FP3530 moje da anulira winagi, FP550F ne moje
             m_oFP.SendCommand ucsFpcFiscalCancel
@@ -914,13 +917,13 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
             uCtx.GrpTotal(lGroup) = Round(uCtx.GrpTotal(lGroup) + dblTotal, 2)
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), uCtx.FpCommentLen)
             ReDim Preserve vRet(0 To UBound(vRet) + 3) As Variant
-            vRet(UBound(vRet) - 2) = STR_UNIT_PRICE & Right(pvSpace(uCtx.FpCommentLen) & sPrice, uCtx.FpCommentLen - 2 - Len(STR_UNIT_PRICE))
-            vRet(UBound(vRet) - 1) = STR_UNIT_QUO & Right(pvSpace(uCtx.FpCommentLen) & sQuantity, uCtx.FpCommentLen - 2 - Len(STR_UNIT_QUO))
-            vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right(pvSpace(uCtx.FpCommentLen) & sTotal, uCtx.FpCommentLen - Len(STR_UNIT_SUM))
+            vRet(UBound(vRet) - 2) = STR_UNIT_PRICE & Right$(pvSpace(uCtx.FpCommentLen) & sPrice, uCtx.FpCommentLen - 2 - Len(STR_UNIT_PRICE))
+            vRet(UBound(vRet) - 1) = STR_UNIT_QUO & Right$(pvSpace(uCtx.FpCommentLen) & sQuantity, uCtx.FpCommentLen - 2 - Len(STR_UNIT_QUO))
+            vRet(UBound(vRet) - 0) = STR_UNIT_SUM & Right$(pvSpace(uCtx.FpCommentLen) & sTotal, uCtx.FpCommentLen - Len(STR_UNIT_SUM))
             If LenB(.Discount) <> 0 Then
                 ReDim Preserve vRet(0 To UBound(vRet) + 1) As Variant
                 sItem = STR_DISCOUNT & pvSafeFormat(Round(C_Dbl(.Discount), 2), vbNullString, ",") & "%"
-                vRet(UBound(vRet)) = sItem & Right(pvSpace(uCtx.FpCommentLen) & sDiscount, uCtx.FpCommentLen - Len(sItem))
+                vRet(UBound(vRet)) = sItem & Right$(pvSpace(uCtx.FpCommentLen) & sDiscount, uCtx.FpCommentLen - Len(sItem))
             End If
             uCtx.Count = uCtx.Count + 1
         ElseIf .Type = ucsRwtPayment Then
@@ -931,8 +934,8 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
             If Not uCtx.PmtPrinted Then
                 uCtx.PmtPrinted = True
                 ReDim vRet(0 To 1) As Variant
-                vRet(0) = String(uCtx.FpCommentLen, "-")
-                vRet(1) = STR_TOTAL & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_TOTAL) - 2)
+                vRet(0) = String$(uCtx.FpCommentLen, "-")
+                vRet(1) = STR_TOTAL & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_TOTAL) - 2)
                 vPecents = Split(m_oFP.SendCommand(ucsFpcInfoTaxRates), ",")
                 For lIdx = 0 To UBound(vPecents)
                     If lIdx <= UBound(uCtx.GrpTotal) Then
@@ -940,21 +943,21 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
                         dblNeto = Round(uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vPecents, lIdx)) / 100#), 2)
                         ReDim Preserve vRet(0 To UBound(vRet) + 3) As Variant
                         sItem = STR_GROUP_TOTAL & Chr$(Asc("À") + lIdx)
-                        vRet(UBound(vRet) - 2) = sItem & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.GrpTotal(lIdx), "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
+                        vRet(UBound(vRet) - 2) = sItem & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.GrpTotal(lIdx), "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
                         sItem = STR_GROUP_VAT & Chr$(Asc("À") + lIdx) & "=" & pvSafeFormat(C_Dbl(At(vPecents, lIdx)), "0.00", ",") & "%"
-                        vRet(UBound(vRet) - 1) = sItem & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.GrpTotal(lIdx) - dblNeto, "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
+                        vRet(UBound(vRet) - 1) = sItem & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.GrpTotal(lIdx) - dblNeto, "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
                         sItem = STR_GROUP_NETO
-                        vRet(UBound(vRet) - 0) = sItem & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(dblNeto, "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
+                        vRet(UBound(vRet) - 0) = sItem & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(dblNeto, "0.00", ","), uCtx.FpCommentLen - Len(sItem) - 2)
                     End If
                     End If
                 Next
                 ReDim Preserve vRet(0 To UBound(vRet) + 2) As Variant
-                vRet(UBound(vRet) - 1) = Replace(String(uCtx.FpCommentLen / 2, "-"), "-", "- ")
+                vRet(UBound(vRet) - 1) = Replace(String$(uCtx.FpCommentLen / 2, "-"), "-", "- ")
             Else
                 ReDim vRet(0 To 0) As Variant
             End If
             sWayOfPmt = IIf(.WayOfPayment = "D", STR_CARD, STR_CASH)
-            vRet(UBound(vRet)) = sWayOfPmt & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(C_Dbl(.Amount), "0.00", ","), uCtx.FpCommentLen - Len(sWayOfPmt) - 2)
+            vRet(UBound(vRet)) = sWayOfPmt & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(C_Dbl(.Amount), "0.00", ","), uCtx.FpCommentLen - Len(sWayOfPmt) - 2)
             uCtx.Amount = Round(uCtx.Amount + Round(C_Dbl(.Amount), 2), 2)
         ElseIf .Type = ucsRwtText Then
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), uCtx.FpCommentLen)
@@ -965,7 +968,7 @@ Private Function pvGetCreditNoteRow(uRow As UcsRow, uCtx As UcsContext) As Varia
                     For lIdx = UBound(vRet) To 1 Step -1
                         vRet(lIdx) = vRet(lIdx - 1)
                     Next
-                    vRet(0) = STR_CHANGE & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Amount - uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_CHANGE) - 2)
+                    vRet(0) = STR_CHANGE & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Amount - uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_CHANGE) - 2)
                 End If
             End If
         End If
@@ -1001,7 +1004,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             sPrice = pvSafeFormat(Round(C_Dbl(.Price), 2), "0.00", ",")
             If LenB(.Quantity) <> 0 And C_Dbl(.Quantity) <> 1 Then
                 dblQuantity = Round(C_Dbl(.Quantity), 3)
-                sQuantity = Right(" " & pvSafeFormat(dblQuantity, "0.0##", ",") & " x " & pvSpace(7 - Len(sPrice)) & sPrice & "  ", uCtx.FpCommentLen)
+                sQuantity = Right$(" " & pvSafeFormat(dblQuantity, "0.0##", ",") & " x " & pvSpace(7 - Len(sPrice)) & sPrice & "  ", uCtx.FpCommentLen)
             Else
                 dblQuantity = 1
             End If
@@ -1061,13 +1064,13 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
             If Not uCtx.PmtPrinted Then
                 uCtx.PmtPrinted = True
                 ReDim vRet(0 To 2) As Variant
-                vRet(0) = String(uCtx.FpCommentLen, "-")
-                vRet(1) = STR_TOTAL & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_TOTAL) - 2)
+                vRet(0) = String$(uCtx.FpCommentLen, "-")
+                vRet(1) = STR_TOTAL & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_TOTAL) - 2)
             Else
                 ReDim vRet(0 To 0) As Variant
             End If
             sWayOfPmt = IIf(.WayOfPayment = "D", STR_CARD, STR_CASH)
-            vRet(UBound(vRet)) = sWayOfPmt & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(C_Dbl(.Amount), "0.00", ","), uCtx.FpCommentLen - Len(sWayOfPmt) - 2)
+            vRet(UBound(vRet)) = sWayOfPmt & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(C_Dbl(.Amount), "0.00", ","), uCtx.FpCommentLen - Len(sWayOfPmt) - 2)
             uCtx.Amount = Round(uCtx.Amount + Round(C_Dbl(.Amount), 2), 2)
         ElseIf .Type = ucsRwtText Then
             vRet = pvWrapText(RTrim(pvSafeText(.Item)), uCtx.FpCommentLen)
@@ -1078,7 +1081,7 @@ Private Function pvGetNonFiscalRow(uRow As UcsRow, uCtx As UcsContext) As Varian
                     For lIdx = UBound(vRet) To 1 Step -1
                         vRet(lIdx) = vRet(lIdx - 1)
                     Next
-                    vRet(0) = STR_CHANGE & Right(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Amount - uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_CHANGE) - 2)
+                    vRet(0) = STR_CHANGE & Right$(pvSpace(uCtx.FpCommentLen) & pvSafeFormat(uCtx.Amount - uCtx.Total, "0.00", ","), uCtx.FpCommentLen - Len(STR_CHANGE) - 2)
                 End If
             End If
         End If
@@ -1218,13 +1221,13 @@ Private Function pvChopOff(sItem As String, ByVal lSize As Long) As String
     Dim lIdx            As Long
     
     lIdx = Len(pvWrapText(StrReverse(sItem), lSize)(0))
-    pvChopOff = Right(sItem, lIdx)
+    pvChopOff = Right$(sItem, lIdx)
     For lIdx = Len(sItem) - lIdx To 0 Step -1
-        If Not pvIsWhitespace(Mid(sItem, lIdx, 1)) Then
+        If Not pvIsWhiteSpace(Mid$(sItem, lIdx, 1)) Then
             Exit For
         End If
     Next
-    sItem = Left(sItem, lIdx)
+    sItem = Left$(sItem, lIdx)
 End Function
 
 Private Function pvSplitCgAddress(ByVal sAddress As String, uCtx As UcsContext) As String
@@ -1258,7 +1261,7 @@ Private Function pvSplitCgAddress(ByVal sAddress As String, uCtx As UcsContext) 
             End If
         Next
     End If
-    pvSplitCgAddress = Left(sRow1, uCtx.FpCommentLen) & IIf(LenB(sRow2) <> 0, vbLf, vbNullString) & Left(sRow2, uCtx.FpCommentLen)
+    pvSplitCgAddress = Left$(sRow1, uCtx.FpCommentLen) & IIf(LenB(sRow2) <> 0, vbLf, vbNullString) & Left$(sRow2, uCtx.FpCommentLen)
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -1277,13 +1280,13 @@ Private Function pvWrapText(ByVal sText As String, ByVal lWidth As Long) As Vari
         If lRight > Len(sText) Then
             lRight = Len(sText) + 1
         Else
-            If pvIsDelimiter(Mid(sText, lRight, 1)) Then
-                Do While pvIsWhitespace(Mid(sText, lRight, 1)) And lRight <= Len(sText)
+            If pvIsDelimiter(Mid$(sText, lRight, 1)) Then
+                Do While pvIsWhiteSpace(Mid$(sText, lRight, 1)) And lRight <= Len(sText)
                     lRight = lRight + 1
                 Loop
             Else
                 Do While lRight > 1
-                    If pvIsDelimiter(Mid(sText, lRight - 1, 1)) Then
+                    If pvIsDelimiter(Mid$(sText, lRight - 1, 1)) Then
                         Exit Do
                     End If
                     lRight = lRight - 1
@@ -1294,12 +1297,12 @@ Private Function pvWrapText(ByVal sText As String, ByVal lWidth As Long) As Vari
             End If
         End If
         lLeft = lRight - 1
-        Do While pvIsWhitespace(Mid(sText, lLeft, 1)) And lLeft > 0
+        Do While pvIsWhiteSpace(Mid$(sText, lLeft, 1)) And lLeft > 0
             lLeft = lLeft - 1
         Loop
-        vRet(lCount) = Left(sText, lLeft)
+        vRet(lCount) = Left$(sText, lLeft)
         lCount = lCount + 1
-        sText = Mid(sText, lRight)
+        sText = Mid$(sText, lRight)
     Loop
     If lCount = 0 Then
         pvWrapText = Array(vbNullString)
@@ -1311,15 +1314,15 @@ End Function
 
 Private Function pvIsDelimiter(sText As String) As Boolean
     Const STR_DELIMS As String = "~#$^&*_+-=\|/ " & vbTab & vbCrLf
-    If InStr(1, STR_DELIMS, Left(sText, 1)) > 0 Then
+    If InStr(1, STR_DELIMS, Left$(sText, 1)) > 0 Then
         pvIsDelimiter = True
     End If
 End Function
 
-Private Function pvIsWhitespace(sText As String) As Boolean
+Private Function pvIsWhiteSpace(sText As String) As Boolean
     Const STR_WHITESPACE As String = " " & vbTab & vbCrLf
-    If InStr(1, STR_WHITESPACE, Left(sText, 1)) > 0 Then
-        pvIsWhitespace = True
+    If InStr(1, STR_WHITESPACE, Left$(sText, 1)) > 0 Then
+        pvIsWhiteSpace = True
     End If
 End Function
 
@@ -1333,7 +1336,7 @@ Private Function pvSafeText(sText As String) As String
 End Function
 
 Private Function pvSafeFormat(Expression As Variant, Optional Fmt As Variant, Optional sDecimal As String = ".") As String
-    pvSafeFormat = Replace(Format(Expression, Fmt), m_sDecimalSeparator, sDecimal)
+    pvSafeFormat = Replace(Format$(Expression, Fmt), m_sDecimalSeparator, sDecimal)
 End Function
 
 Private Function C_Dbl(v As Variant) As Double
