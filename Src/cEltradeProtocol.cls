@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 6     22.02.11 17:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 7     23.02.11 17:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 7     23.02.11 17:09 Wqw
+' DEL: dead const
+'
 ' 6     22.02.11 17:38 Wqw
 ' REF: error handling
 '
@@ -504,8 +507,6 @@ Public Function SendCommand( _
             ByVal eCmd As UcsEltradeCommandsEnum, _
             Optional sData As String, _
             Optional eRetCmd As UcsEltradeCommandsEnum) As String
-    Const FUNC_NAME     As String = "SendCommand"
-    
     m_sLastError = vbNullString
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, sData, eRetCmd, m_sLastError)
     '--- append internal log
@@ -541,7 +542,6 @@ Public Function SendInput(sText As String) As String
 End Function
 
 Public Function WaitDevice(Optional ByVal lWait As Long) As Boolean
-    Const FUNC_NAME     As String = "WaitDevice"
     Dim sResult         As String
     Dim eRetCmd         As UcsEltradeCommandsEnum
     
