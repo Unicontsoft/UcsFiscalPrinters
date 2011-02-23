@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin VB.Form frmEltradeSetup 
    BorderStyle     =   3  'Fixed Dialog
-   Caption         =   "Настройки Елтрейд протокол"
+   Caption         =   "Настройки ELTRADE протокол"
    ClientHeight    =   6225
    ClientLeft      =   45
    ClientTop       =   435
@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 4     22.02.11 13:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 5     23.02.11 17:10 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 5     23.02.11 17:10 Wqw
+' REF: po UI
+'
 ' 4     22.02.11 13:53 Wqw
 ' REF: polzwa cFiscalAdmin za class factory na protocol-a
 '
@@ -2322,12 +2325,13 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 ' Constants and member variables
 '=========================================================================
 
+Private Const CAP_MSG               As String = "Настройки ELTRADE протокол"
 Private Const LNG_NUM_DEPS          As Long = 10
 Private Const LNG_NUM_OPERS         As Long = 30
 Private Const LNG_NUM_ITEMS         As Long = 100
 Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cEltradeProtocol"
 '--- strings
-Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    ДДС групи|    Дата и час|    Header и footer|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Параметри|    Клавиши|Операции|    Внос и износ|    Печат отчети|Администрация|    Последна операция|    Журнал комуникация"
+Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    ДДС групи|    Дата и час|    Клишета|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Параметри|    Клавиши|Операции|    Внос и износ|    Печат отчети|Администрация|    Последна операция|    Журнал комуникация"
 Private Const STR_SPEEDS            As String = "9600|19200"
 Private Const STR_GROUPS            As String = "А|Б|В|Г"
 Private Const STR_STATUS_ENUM_PORTS As String = "Изброяване на налични принтери..."
@@ -2476,7 +2480,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In m_oFP.EnumPorts
         cobConnectPort.AddItem vElem
     Next
-    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(App.Title, "Connect", "Port", vbNullString)
+    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
     chkConnectRemember.Value = -(LenB(cobConnectPort.Text) <> 0)
     If cobConnectPort.ListCount > 0 And Len(cobConnectPort.Text) = 0 Then
         cobConnectPort.ListIndex = 0
@@ -2485,7 +2489,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In Split(STR_SPEEDS, "|")
         cobConnectSpeed.AddItem vElem
     Next
-    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(App.Title, "Connect", "Speed", vbNullString)
+    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(CAP_MSG, "Connect", "Speed", vbNullString)
     If cobConnectSpeed.ListCount > 0 And Len(cobConnectSpeed.Text) = 0 Then
         cobConnectSpeed.ListIndex = 0
     End If
@@ -2768,7 +2772,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Case ucsCmdConnect
         '--- value might be not be found
         On Error Resume Next
-        DeleteSetting App.Title, "Connect", "Port"
+        DeleteSetting CAP_MSG, "Connect", "Port"
         On Error GoTo EH
         pvStatus = STR_STATUS_CONNECTING
         If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout, m_lCashDeskNo) Then
@@ -2777,7 +2781,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             If pvShowError() Then
                 On Error GoTo EH
                 labConnectCurrent.Caption = STR_STATUS_FAILURE_CONNECT
-                Caption = App.Title
+                Caption = CAP_MSG
             Else
                 On Error GoTo EH
                 sResult = m_oFP.SendCommand(ucsEltCmdInfoEcrParams)
@@ -2787,11 +2791,11 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                     m_lRowChars = Len(sResult) / 8 - 1
                 End If
                 labConnectCurrent.Caption = Printf(STR_STATUS_SUCCESS_CONNECT, m_oFP.Device)
-                Caption = m_oFP.Device & " - " & App.Title
+                Caption = m_oFP.Device & " - " & CAP_MSG
                 '--- save conn info
 '                If chkConnectRemember.Value Then
-'                    SaveSetting App.Title, "Connect", "Port", cobConnectPort.Text
-'                    SaveSetting App.Title, "Connect", "Speed", cobConnectSpeed.Text
+'                    SaveSetting CAP_MSG, "Connect", "Port", cobConnectPort.Text
+'                    SaveSetting CAP_MSG, "Connect", "Speed", cobConnectSpeed.Text
 '                End If
                 '--- flush cache
                 m_vDeps = Empty
@@ -2806,7 +2810,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             End If
         Else
             labConnectCurrent.Caption = STR_STATUS_FAILURE_CONNECT
-            Caption = App.Title
+            Caption = CAP_MSG
         End If
     Case ucsCmdTaxInfo
         sData = pvPoke(&HFFFF&, 2)
