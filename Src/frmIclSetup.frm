@@ -24,6 +24,667 @@ Begin VB.Form frmIclSetup
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
+      Index           =   6
+      Left            =   2250
+      TabIndex        =   179
+      Top             =   90
+      Width           =   5775
+      Begin VB.TextBox txtPmtType 
+         Height          =   285
+         Index           =   4
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   252
+         Top             =   1710
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   285
+         Index           =   5
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   251
+         Top             =   2070
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   285
+         Index           =   6
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   250
+         Top             =   2430
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   285
+         Index           =   7
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   249
+         Top             =   2790
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Index           =   3
+         Left            =   2070
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   43
+         TabStop         =   0   'False
+         Top             =   1350
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Index           =   2
+         Left            =   2070
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   42
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   3525
+      End
+      Begin VB.TextBox txtPmtType 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Index           =   1
+         Left            =   2070
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   41
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   3525
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   10
+         Left            =   4320
+         TabIndex        =   44
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtPmtType 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Index           =   0
+         Left            =   2070
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   40
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   3525
+      End
+      Begin VB.Label Label78 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 5:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   256
+         Top             =   1710
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label77 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 6:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   255
+         Top             =   2070
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label76 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 7:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   254
+         Top             =   2430
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label75 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 8:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   253
+         Top             =   2790
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label60 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 4:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   183
+         Top             =   1350
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label59 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 3:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   182
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label58 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 2:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   181
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label54 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 1:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   180
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   5
+      Left            =   2250
+      TabIndex        =   157
+      Top             =   90
+      Width           =   5775
+      Begin VB.TextBox txtInvCurrent 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   160
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   1545
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   5
+         Left            =   4320
+         TabIndex        =   39
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtInvEnd 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   38
+         Top             =   630
+         Width           =   1545
+      End
+      Begin VB.TextBox txtInvStart 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   37
+         Top             =   270
+         Width           =   1545
+      End
+      Begin VB.Label Label49 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Текущ номер:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   161
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label48 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Краен номер:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   159
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label47 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Начален номер:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   158
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   4
+      Left            =   2250
+      TabIndex        =   116
+      Top             =   90
+      Width           =   5775
+      Begin VB.CheckBox chkHeadFormatInvoice 
+         Caption         =   "Форматиране като фактура на всички фискални бонове"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   33
+         Top             =   4680
+         Width           =   5415
+      End
+      Begin VB.TextBox txtHeadBulstatName 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   19
+         Top             =   990
+         Width           =   1635
+      End
+      Begin VB.TextBox txtHeadBulstatText 
+         Height          =   285
+         Left            =   3960
+         MaxLength       =   40
+         TabIndex        =   20
+         Top             =   990
+         Width           =   1635
+      End
+      Begin VB.TextBox txtHeadHeader6 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   24
+         Top             =   2430
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadRate 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   4320
+         TabIndex        =   32
+         Top             =   4320
+         Width           =   1275
+      End
+      Begin VB.CheckBox chkHeadAdvanceHeader 
+         Caption         =   "Предварителен header (пести хартия)"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   35
+         Top             =   5400
+         Width           =   4065
+      End
+      Begin VB.CheckBox chkHeadVat 
+         Caption         =   "Печат ДДС в неразширен фискален бон"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   34
+         Top             =   5040
+         Width           =   4065
+      End
+      Begin VB.CheckBox chkHeadSumDivider 
+         Caption         =   "Разделителна линия преди обща сума"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   29
+         Top             =   3960
+         Width           =   5415
+      End
+      Begin VB.CheckBox chkHeadEmptyFooter 
+         Caption         =   "Празна линия след footer"
+         Height          =   285
+         Left            =   2970
+         TabIndex        =   28
+         Top             =   3600
+         Width           =   2715
+      End
+      Begin VB.CheckBox chkHeadEmptyHeader 
+         Caption         =   "Празна линия след header"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   27
+         Top             =   3600
+         Width           =   2715
+      End
+      Begin VB.TextBox txtHeadFooter2 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   26
+         Top             =   3150
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadFooter1 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   25
+         Top             =   2790
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadHeader5 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   23
+         Top             =   2070
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadHeader4 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   22
+         Top             =   1710
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadHeader3 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   21
+         Top             =   1350
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadHeader1 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   17
+         Top             =   270
+         Width           =   3525
+      End
+      Begin VB.TextBox txtHeadHeader2 
+         Height          =   285
+         Left            =   2070
+         MaxLength       =   40
+         TabIndex        =   18
+         Top             =   630
+         Width           =   3525
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   3
+         Left            =   4320
+         TabIndex        =   36
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.CheckBox chkHeadRateEUR 
+         Caption         =   "Курс: "
+         Height          =   285
+         Left            =   2970
+         TabIndex        =   31
+         Top             =   4320
+         Width           =   1185
+      End
+      Begin VB.CheckBox chkHeadSumEUR 
+         Caption         =   "Печат обща сума в EUR"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   30
+         Top             =   4320
+         Width           =   3435
+      End
+      Begin VB.Label Label30 
+         Alignment       =   2  'Center
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   ":"
+         Height          =   195
+         Left            =   3690
+         TabIndex        =   126
+         Top             =   990
+         Width           =   285
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label29 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "БУЛСТАТ:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   125
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label28 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 6:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   124
+         Top             =   2430
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label27 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Footer 2:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   123
+         Top             =   3150
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label26 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Footer 1:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   122
+         Top             =   2790
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label25 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 5:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   121
+         Top             =   2070
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label24 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 4:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   120
+         Top             =   1710
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label23 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 3:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   119
+         Top             =   1350
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label22 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 1:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   118
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label20 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Header 2:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   117
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   3
+      Left            =   2250
+      TabIndex        =   109
+      Top             =   90
+      Width           =   5775
+      Begin VB.CommandButton cmdDateTransfer 
+         Caption         =   "От системна"
+         Height          =   375
+         Left            =   2070
+         TabIndex        =   15
+         Top             =   1980
+         Width           =   1275
+      End
+      Begin VB.Timer tmrDate 
+         Enabled         =   0   'False
+         Interval        =   100
+         Left            =   4860
+         Top             =   540
+      End
+      Begin VB.TextBox txtDateCompDate 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   115
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   1635
+      End
+      Begin VB.TextBox txtDateCompTime 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   114
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   1635
+      End
+      Begin VB.TextBox txtDateDate 
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   13
+         Top             =   1170
+         Width           =   1635
+      End
+      Begin VB.TextBox txtDateTime 
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   14
+         Top             =   1530
+         Width           =   1635
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   2
+         Left            =   4320
+         TabIndex        =   16
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.Label Label21 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Системен час:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   113
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label19 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Системна дата:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   112
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label18 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Принтер дата:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   111
+         Top             =   1170
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label17 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Принтер час:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   110
+         Top             =   1530
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
       Index           =   16
       Left            =   2250
       TabIndex        =   171
@@ -471,83 +1132,6 @@ Begin VB.Form frmIclSetup
          TabIndex        =   240
          Top             =   3330
          Width           =   5415
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   5
-      Left            =   2250
-      TabIndex        =   157
-      Top             =   90
-      Width           =   5775
-      Begin VB.TextBox txtInvCurrent 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   160
-         TabStop         =   0   'False
-         Top             =   990
-         Width           =   1545
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   5
-         Left            =   4320
-         TabIndex        =   39
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtInvEnd 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   38
-         Top             =   630
-         Width           =   1545
-      End
-      Begin VB.TextBox txtInvStart 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   37
-         Top             =   270
-         Width           =   1545
-      End
-      Begin VB.Label Label49 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Текущ номер:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   161
-         Top             =   990
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label48 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Краен номер:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   159
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label47 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Начален номер:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   158
-         Top             =   270
-         Width           =   1905
          WordWrap        =   -1  'True
       End
    End
@@ -1645,494 +2229,6 @@ Begin VB.Form frmIclSetup
    End
    Begin VB.Frame fraCommands 
       Height          =   5775
-      Index           =   6
-      Left            =   2250
-      TabIndex        =   179
-      Top             =   90
-      Width           =   5775
-      Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   3
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   43
-         Top             =   1350
-         Width           =   3525
-      End
-      Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   2
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   42
-         Top             =   990
-         Width           =   3525
-      End
-      Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   1
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   41
-         Top             =   630
-         Width           =   3525
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   10
-         Left            =   4320
-         TabIndex        =   44
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   0
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   40
-         Top             =   270
-         Width           =   3525
-      End
-      Begin VB.Label Label60 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 4:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   183
-         Top             =   1350
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label59 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 3:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   182
-         Top             =   990
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label58 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 2:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   181
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label54 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 1:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   180
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   4
-      Left            =   2250
-      TabIndex        =   116
-      Top             =   90
-      Width           =   5775
-      Begin VB.CheckBox chkHeadFormatInvoice 
-         Caption         =   "Форматиране като фактура на всички фискални бонове"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   33
-         Top             =   4680
-         Width           =   5415
-      End
-      Begin VB.TextBox txtHeadBulstatName 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   19
-         Top             =   990
-         Width           =   1635
-      End
-      Begin VB.TextBox txtHeadBulstatText 
-         Height          =   285
-         Left            =   3960
-         MaxLength       =   40
-         TabIndex        =   20
-         Top             =   990
-         Width           =   1635
-      End
-      Begin VB.TextBox txtHeadHeader6 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   24
-         Top             =   2430
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadRate 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   4320
-         TabIndex        =   32
-         Top             =   4320
-         Width           =   1275
-      End
-      Begin VB.CheckBox chkHeadAdvanceHeader 
-         Caption         =   "Предварителен header (пести хартия)"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   35
-         Top             =   5400
-         Width           =   4065
-      End
-      Begin VB.CheckBox chkHeadVat 
-         Caption         =   "Печат ДДС в неразширен фискален бон"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   34
-         Top             =   5040
-         Width           =   4065
-      End
-      Begin VB.CheckBox chkHeadSumDivider 
-         Caption         =   "Разделителна линия преди обща сума"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   29
-         Top             =   3960
-         Width           =   5415
-      End
-      Begin VB.CheckBox chkHeadEmptyFooter 
-         Caption         =   "Празна линия след footer"
-         Height          =   285
-         Left            =   2970
-         TabIndex        =   28
-         Top             =   3600
-         Width           =   2715
-      End
-      Begin VB.CheckBox chkHeadEmptyHeader 
-         Caption         =   "Празна линия след header"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   27
-         Top             =   3600
-         Width           =   2715
-      End
-      Begin VB.TextBox txtHeadFooter2 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   26
-         Top             =   3150
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadFooter1 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   25
-         Top             =   2790
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadHeader5 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   23
-         Top             =   2070
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadHeader4 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   22
-         Top             =   1710
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadHeader3 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   21
-         Top             =   1350
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadHeader1 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   17
-         Top             =   270
-         Width           =   3525
-      End
-      Begin VB.TextBox txtHeadHeader2 
-         Height          =   285
-         Left            =   2070
-         MaxLength       =   40
-         TabIndex        =   18
-         Top             =   630
-         Width           =   3525
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   3
-         Left            =   4320
-         TabIndex        =   36
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.CheckBox chkHeadRateEUR 
-         Caption         =   "Курс: "
-         Height          =   285
-         Left            =   2970
-         TabIndex        =   31
-         Top             =   4320
-         Width           =   1185
-      End
-      Begin VB.CheckBox chkHeadSumEUR 
-         Caption         =   "Печат обща сума в EUR"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   30
-         Top             =   4320
-         Width           =   3435
-      End
-      Begin VB.Label Label30 
-         Alignment       =   2  'Center
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   ":"
-         Height          =   195
-         Left            =   3690
-         TabIndex        =   126
-         Top             =   990
-         Width           =   285
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label29 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "БУЛСТАТ:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   125
-         Top             =   990
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label28 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 6:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   124
-         Top             =   2430
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label27 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Footer 2:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   123
-         Top             =   3150
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label26 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Footer 1:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   122
-         Top             =   2790
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label25 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 5:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   121
-         Top             =   2070
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label24 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 4:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   120
-         Top             =   1710
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label23 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 3:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   119
-         Top             =   1350
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label22 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 1:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   118
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label20 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Header 2:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   117
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   3
-      Left            =   2250
-      TabIndex        =   109
-      Top             =   90
-      Width           =   5775
-      Begin VB.CommandButton cmdDateTransfer 
-         Caption         =   "От системна"
-         Height          =   375
-         Left            =   2070
-         TabIndex        =   15
-         Top             =   1980
-         Width           =   1275
-      End
-      Begin VB.Timer tmrDate 
-         Enabled         =   0   'False
-         Interval        =   100
-         Left            =   4860
-         Top             =   540
-      End
-      Begin VB.TextBox txtDateCompDate 
-         Appearance      =   0  'Flat
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   115
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   1635
-      End
-      Begin VB.TextBox txtDateCompTime 
-         Appearance      =   0  'Flat
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   114
-         TabStop         =   0   'False
-         Top             =   630
-         Width           =   1635
-      End
-      Begin VB.TextBox txtDateDate 
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   13
-         Top             =   1170
-         Width           =   1635
-      End
-      Begin VB.TextBox txtDateTime 
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   14
-         Top             =   1530
-         Width           =   1635
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   2
-         Left            =   4320
-         TabIndex        =   16
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.Label Label21 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Системен час:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   113
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label19 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Системна дата:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   112
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label18 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Принтер дата:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   111
-         Top             =   1170
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label17 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Принтер час:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   110
-         Top             =   1530
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
       Index           =   2
       Left            =   2250
       TabIndex        =   88
@@ -2425,7 +2521,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 4     22.02.11 13:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 5     23.02.11 17:10 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2434,6 +2530,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 5     23.02.11 17:10 Wqw
+' REF: tipowe plashtaniq
+'
 ' 4     22.02.11 13:53 Wqw
 ' REF: polzwa cFiscalAdmin za class factory na protocol-a
 '
@@ -2499,6 +2598,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
+Private Const CAP_MSG               As String = "Настройки ICL протокол"
 Private Const LNG_NUM_DEPS          As Long = 50
 Private Const LNG_NUM_OPERS         As Long = 24
 Private Const FORMAT_CURRENCY       As String = "#0.00######"
@@ -2506,7 +2606,7 @@ Private Const LNG_LOGO_FORECOLOR    As Long = &H800000
 Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cICLProtocol"
 '--- strings
 Private Const STR_SPEEDS            As String = "9600|19200"
-Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Header и footer|    Номера на фактури|    Допълнителни типове|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Внос и износ|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
+Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Клишета|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Внос и износ|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
 Private Const STR_COUNTRIES         As String = "|Русия|Гърция|Украйна|Англия|Полша|Унгария|България|7|8|Румъния"
 Private Const STR_GROUPS            As String = "А|Б|В|Г"
 Private Const STR_NA                As String = "N/A"
@@ -2540,6 +2640,7 @@ Private Const STR_OPER_PASS_PROMPT  As String = "Парола на Оператор %1"
 Private Const STR_OPER_PASS_CAPTION As String = "Парола за достъп"
 Private Const STR_LOGO_DIMENSIONS   As String = "Размер на графика: %1x%2"
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
+Private Const STR_PAYMENT_TYPES     As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА"
 '--- messages
 Private Const MSG_INVALID_PASSWORD  As String = "Некоректна парола" & vbCrLf & vbCrLf & "Паролите се състоят от 4 до 6 цифри"
 Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
@@ -2690,7 +2791,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In m_oFP.EnumPorts
         cobConnectPort.AddItem vElem
     Next
-    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(App.Title, "Connect", "Port", vbNullString)
+    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
     chkConnectRemember.Value = -(LenB(cobConnectPort.Text) <> 0)
     If cobConnectPort.ListCount > 0 And Len(cobConnectPort.Text) = 0 Then
         cobConnectPort.ListIndex = 0
@@ -2699,7 +2800,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In Split(STR_SPEEDS, "|")
         cobConnectSpeed.AddItem vElem
     Next
-    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(App.Title, "Connect", "Speed", vbNullString)
+    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(CAP_MSG, "Connect", "Speed", vbNullString)
     If cobConnectSpeed.ListCount > 0 And Len(cobConnectSpeed.Text) = 0 Then
         cobConnectSpeed.ListIndex = 0
     End If
@@ -2831,26 +2932,17 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         m_oFP.Exceptions = True
     Case ucsCmdPaymentTypes
         m_oFP.Exceptions = False
-        txtPmtType(0).Text = m_oFP.SendCommand(ucsFpcInitPaymentType, "I")
-        If m_oFP.Status(ucsStbPrintingError) Then
-            txtPmtType(0).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R61")
-        End If
-        pvLock(txtPmtType(0)) = m_oFP.Status(ucsStbPrintingError)
-        txtPmtType(1).Text = m_oFP.SendCommand(ucsFpcInitPaymentType, "J")
-        If m_oFP.Status(ucsStbPrintingError) Then
-            txtPmtType(1).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R62")
-        End If
-        pvLock(txtPmtType(1)) = m_oFP.Status(ucsStbPrintingError)
-        txtPmtType(2).Text = m_oFP.SendCommand(ucsFpcInitPaymentType, "K")
-        If m_oFP.Status(ucsStbPrintingError) Then
-            txtPmtType(2).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R63")
-        End If
-        pvLock(txtPmtType(2)) = m_oFP.Status(ucsStbPrintingError)
-        txtPmtType(3).Text = m_oFP.SendCommand(ucsFpcInitPaymentType, "L")
-        If m_oFP.Status(ucsStbPrintingError) Then
-            txtPmtType(3).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R64")
-        End If
-        pvLock(txtPmtType(3)) = m_oFP.Status(ucsStbPrintingError)
+        vResult = Split(STR_PAYMENT_TYPES, "|")
+        For lIdx = 0 To 3
+            txtPmtType(lIdx).Text = At(vResult, lIdx)
+        Next
+        For lIdx = 4 To 7
+            txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsFpcInitPaymentType, Chr$(69 + lIdx))
+            If m_oFP.Status(ucsStbPrintingError) Then
+                txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R" & (57 + lIdx))
+            End If
+            pvLock(txtPmtType(lIdx)) = m_oFP.Status(ucsStbPrintingError)
+        Next
         m_oFP.Exceptions = True
     Case ucsCmdOperators
         m_oFP.Exceptions = False
@@ -3044,7 +3136,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Case ucsCmdConnect
         '--- value might be not be found
         On Error Resume Next
-        DeleteSetting App.Title, "Connect", "Port"
+        DeleteSetting CAP_MSG, "Connect", "Port"
         On Error GoTo EH
         pvStatus = STR_STATUS_CONNECTING
         If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout, m_lCashDeskNo) Then
@@ -3053,15 +3145,15 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             If pvShowError() Then
                 On Error GoTo EH
                 labConnectCurrent.Caption = STR_STATUS_FAILURE_CONNECT
-                Caption = App.Title
+                Caption = CAP_MSG
             Else
                 On Error GoTo EH
                 labConnectCurrent.Caption = Printf(STR_STATUS_SUCCESS_CONNECT, m_oFP.Device)
-                Caption = m_oFP.Device & " - " & App.Title
+                Caption = m_oFP.Device & " - " & CAP_MSG
                 '--- save conn info
 '                If chkConnectRemember.Value Then
-'                    SaveSetting App.Title, "Connect", "Port", cobConnectPort.Text
-'                    SaveSetting App.Title, "Connect", "Speed", cobConnectSpeed.Text
+'                    SaveSetting CAP_MSG, "Connect", "Port", cobConnectPort.Text
+'                    SaveSetting CAP_MSG, "Connect", "Speed", cobConnectSpeed.Text
 '                End If
                 '--- flush cache
                 m_vDeps = Empty
@@ -3073,7 +3165,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             End If
         Else
             labConnectCurrent.Caption = STR_STATUS_FAILURE_CONNECT
-            Caption = App.Title
+            Caption = CAP_MSG
         End If
     Case ucsCmdTaxInfo
         vResult = Split(m_oFP.SendCommand(ucsFpcInitDecimals), ",")
@@ -3245,30 +3337,14 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         pvStatus = vbNullString
     Case ucsCmdPaymentTypes
         m_oFP.Exceptions = False
-        If Not pvLock(txtPmtType(0)) Then
-            m_oFP.SendCommand ucsFpcInitPaymentType, "I," & txtPmtType(0).Text
-            If m_oFP.Status(ucsStbPrintingError) Then
-                m_oFP.SendCommand ucsFpcInitDaisyText, "P61," & txtPmtType(0).Text
+        For lIdx = 4 To 7
+            If Not pvLock(txtPmtType(lIdx)) Then
+                m_oFP.SendCommand ucsFpcInitPaymentType, Chr$(69 + lIdx) & "," & txtPmtType(lIdx).Text
+                If m_oFP.Status(ucsStbPrintingError) Then
+                    m_oFP.SendCommand ucsFpcInitDaisyText, "P" & (57 + lIdx) & "," & txtPmtType(lIdx).Text
+                End If
             End If
-        End If
-        If Not pvLock(txtPmtType(1)) Then
-            m_oFP.SendCommand ucsFpcInitPaymentType, "J," & txtPmtType(1).Text
-            If m_oFP.Status(ucsStbPrintingError) Then
-                m_oFP.SendCommand ucsFpcInitDaisyText, "P62," & txtPmtType(1).Text
-            End If
-        End If
-        If Not pvLock(txtPmtType(2)) Then
-            m_oFP.SendCommand ucsFpcInitPaymentType, "K," & txtPmtType(2).Text
-            If m_oFP.Status(ucsStbPrintingError) Then
-                m_oFP.SendCommand ucsFpcInitDaisyText, "P63," & txtPmtType(2).Text
-            End If
-        End If
-        If Not pvLock(txtPmtType(3)) Then
-            m_oFP.SendCommand ucsFpcInitPaymentType, "L," & txtPmtType(3).Text
-            If m_oFP.Status(ucsStbPrintingError) Then
-                m_oFP.SendCommand ucsFpcInitDaisyText, "P64," & txtPmtType(3).Text
-            End If
-        End If
+        Next
         m_oFP.Exceptions = False
     Case ucsCmdItems
         If LenB(cobItemGroup.Text) = 0 Then
