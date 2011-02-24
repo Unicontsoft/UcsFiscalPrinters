@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 6     24.02.11 16:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 7     24.02.11 16:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 7     24.02.11 16:13 Wqw
+' REF: fix RegReadString
+'
 ' 6     24.02.11 16:05 Wqw
 ' REF: RegReadString razbira ot expand string-owe
 '
@@ -524,7 +527,7 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
         If lType = REG_SZ Or lType = REG_EXPAND_SZ Then
             sBuffer = String$(lNeeded + 1, 0)
             If RegQueryValueEx(hKey, sValue, 0, lType, ByVal sBuffer, Len(sBuffer)) = 0 Then
-                RegReadString = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+                sBuffer = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
                 If lType = REG_EXPAND_SZ Then
                     RegReadString = String$(ExpandEnvironmentStrings(sBuffer, vbNullString, 0), 0)
                     If ExpandEnvironmentStrings(sBuffer, RegReadString, Len(RegReadString)) > 0 Then
