@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 3     22.02.11 13:51 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 4     24.02.11 16:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 4     24.02.11 16:05 Wqw
+' ADD: Property CanShare
+'
 ' 3     22.02.11 13:51 Wqw
 ' ADD: Function CreateObject
 '
@@ -94,10 +97,11 @@ Public Property Let IsShared(ByVal bValue As Boolean)
     On Error GoTo EH
     With VBA.CreateObject("COMAdmin.COMAdminCatalog")
         If bValue Then
-            sDll = RegReadString(HKEY_CLASSES_ROOT, LIB_NAME & ".cFiscalPrinter\Clsid", vbNullString)
-            If LenB(sDll) <> 0 Then
-                sDll = RegReadString(HKEY_CLASSES_ROOT, "CLSID\" & sDll & "\InProcServer32", vbNullString)
-            End If
+            For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
+                If LenB(pvGetDll(LIB_NAME & "." & vElem)) = 0 Then
+                    Exit Property
+                End If
+            Next
             If LenB(sDll) <> 0 Then
                 With .GetCollection("Applications")
                     .Populate
@@ -170,6 +174,17 @@ EH:
     Resume Next
 End Property
 
+Public Property Get CanShare() As Boolean
+    Dim vElem           As Variant
+    
+    For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
+        If LenB(pvGetDll(LIB_NAME & "." & vElem)) = 0 Then
+            Exit Property
+        End If
+    Next
+    CanShare = True
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -196,4 +211,11 @@ Public Function CreateObject(sProgID As String) As Object
     Case LCase$(LIB_NAME & ".cEltradeProtocol")
         Set CreateObject = New cEltradeProtocol
     End Select
+End Function
+
+Private Function pvGetDll(sProgID As String) As String
+    pvGetDll = RegReadString(HKEY_CLASSES_ROOT, sProgID & "\Clsid", vbNullString)
+    If LenB(pvGetDll) <> 0 Then
+        pvGetDll = Dir(RegReadString(HKEY_CLASSES_ROOT, "CLSID\" & pvGetDll & "\InProcServer32", vbNullString))
+    End If
 End Function
