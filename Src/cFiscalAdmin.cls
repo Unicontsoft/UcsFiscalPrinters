@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 4     24.02.11 16:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 5     24.02.11 16:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 5     24.02.11 16:19 Wqw
+' REF: IsShared [let]
+'
 ' 4     24.02.11 16:05 Wqw
 ' ADD: Property CanShare
 '
@@ -87,7 +90,6 @@ End Property
 
 Public Property Let IsShared(ByVal bValue As Boolean)
     Const FUNC_NAME     As String = "IsShared [let]"
-    Dim sDll            As String
     Dim sDllHostImage   As String
     Dim oApp            As Object
     Dim oRole           As Object
@@ -102,44 +104,42 @@ Public Property Let IsShared(ByVal bValue As Boolean)
                     Exit Property
                 End If
             Next
-            If LenB(sDll) <> 0 Then
-                With .GetCollection("Applications")
-                    .Populate
-                    For lIdx = .Count - 1 To 0 Step -1
-                        If LCase$(.Item(lIdx).Name) = LCase$(STR_COMPLUS_APP_NAME) Then
-                            Set oApp = .Item(lIdx)
-                            Exit For
-                        End If
-                    Next
-                    If oApp Is Nothing Then
-                        Set oApp = .Add
-                        With oApp
-                            .Value("Name") = STR_COMPLUS_APP_NAME
-        '                    If Len(sUser) <> 0 Then
-        '                        .Value("Identity") = sUser
-        '                        .Value("Password") = sPass
-        '                    End If
-                            .Value("Authentication") = 2 '--- "Connect". for win98 clients
-                        End With
-                        .SaveChanges
-                        With .GetCollection("Roles", oApp.Key)
-                            .Populate
-                            Set oRole = .Add
-                            oRole.Value("Name") = "CreatorOwner"
-                            .SaveChanges
-                            With .GetCollection("UsersInRole", oRole.Key)
-                                .Populate
-                                .Add.Value("User") = "Everyone"
-                                .SaveChanges
-                            End With
-                        End With
+            With .GetCollection("Applications")
+                .Populate
+                For lIdx = .Count - 1 To 0 Step -1
+                    If LCase$(.Item(lIdx).Name) = LCase$(STR_COMPLUS_APP_NAME) Then
+                        Set oApp = .Item(lIdx)
+                        Exit For
                     End If
-                End With
-                .ShutdownApplication oApp.Key
-                For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
-                    .ImportComponent oApp.Key, LIB_NAME & "." & vElem
                 Next
-            End If
+                If oApp Is Nothing Then
+                    Set oApp = .Add
+                    With oApp
+                        .Value("Name") = STR_COMPLUS_APP_NAME
+    '                    If Len(sUser) <> 0 Then
+    '                        .Value("Identity") = sUser
+    '                        .Value("Password") = sPass
+    '                    End If
+                        .Value("Authentication") = 2 '--- "Connect". for win98 clients
+                    End With
+                    .SaveChanges
+                    With .GetCollection("Roles", oApp.Key)
+                        .Populate
+                        Set oRole = .Add
+                        oRole.Value("Name") = "CreatorOwner"
+                        .SaveChanges
+                        With .GetCollection("UsersInRole", oRole.Key)
+                            .Populate
+                            .Add.Value("User") = "Everyone"
+                            .SaveChanges
+                        End With
+                    End With
+                End If
+            End With
+            .ShutdownApplication oApp.Key
+            For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
+                .ImportComponent oApp.Key, LIB_NAME & "." & vElem
+            Next
             '--- add dllhost.exe to allowed firewall applications
             sDllHostImage = GetSystemDirectory() & "\dllhost.exe"
             If LenB(Dir(sDllHostImage)) Then
@@ -193,7 +193,7 @@ Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As
     Dim oFrmIcl         As New frmIclSetup
     Dim oFrmEltrade     As New frmEltradeSetup
     
-    '--- figure out model
+    '--- figure out protocol
     Select Case UCase$(At(Split(DeviceString, ";"), 0))
     Case STR_PROTOCOL_ELTRADE_ECR
         ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
