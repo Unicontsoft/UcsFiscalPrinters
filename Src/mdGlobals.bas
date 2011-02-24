@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 5     22.02.11 13:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 6     24.02.11 16:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 6     24.02.11 16:05 Wqw
+' REF: RegReadString razbira ot expand string-owe
+'
 ' 5     22.02.11 13:53 Wqw
 ' ADD: Consts
 '
@@ -61,6 +64,7 @@ Private Const WM_PRINTCLIENT                As Long = &H318
 Private Const WM_MOUSELEAVE                 As Long = &H2A3
 '--- registry
 Private Const REG_SZ                        As Long = 1
+Private Const REG_EXPAND_SZ                 As Long = 2
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
@@ -77,6 +81,7 @@ Private Declare Function RegOpenKeyEx Lib "advapi32.dll" Alias "RegOpenKeyExA" (
 Private Declare Function RegQueryValueEx Lib "advapi32.dll" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32.dll" (ByVal hKey As Long) As Long
 Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize         As Long
@@ -516,10 +521,20 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
     
     If RegOpenKeyEx(hRoot, sKey, 0, &H20001, hKey) = 0 Then '--- &H20001 = READ_CONTROL Or KEY_QUERY_VALUE
         Call RegQueryValueEx(hKey, sValue, 0, lType, ByVal vbNullString, lNeeded)
-        If lType = REG_SZ Then
+        If lType = REG_SZ Or lType = REG_EXPAND_SZ Then
             sBuffer = String$(lNeeded + 1, 0)
             If RegQueryValueEx(hKey, sValue, 0, lType, ByVal sBuffer, Len(sBuffer)) = 0 Then
                 RegReadString = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+                If lType = REG_EXPAND_SZ Then
+                    RegReadString = String$(ExpandEnvironmentStrings(sBuffer, vbNullString, 0), 0)
+                    If ExpandEnvironmentStrings(sBuffer, RegReadString, Len(RegReadString)) > 0 Then
+                        RegReadString = Left$(RegReadString, InStr(RegReadString, Chr$(0)) - 1)
+                    Else
+                        RegReadString = sBuffer
+                    End If
+                Else
+                    RegReadString = sBuffer
+                End If
             End If
         End If
         Call RegCloseKey(hKey)
@@ -531,3 +546,4 @@ Public Function GetSystemDirectory() As String
     APIGetSystemDirectory GetSystemDirectory, Len(GetSystemDirectory) - 1
     GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, Chr$(0)) - 1)
 End Function
+
