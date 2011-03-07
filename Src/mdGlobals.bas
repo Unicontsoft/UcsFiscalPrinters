@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 7     24.02.11 16:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 8     7.03.11 19:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 8     7.03.11 19:21 Wqw
+' REF: impl milliseconds w OutputDebugLog
+'
 ' 7     24.02.11 16:13 Wqw
 ' REF: fix RegReadString
 '
@@ -290,7 +293,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     End If
     nFile = FreeFile
     Open sFile For Append Access Write As #nFile
-    Print #nFile, sModule & "." & sFunc & "(" & Now & "): " & sText
+    Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right(Format(Timer, "#0.00"), 2) & "): " & sText
     Close #nFile
     On Error GoTo 0
 End Sub
