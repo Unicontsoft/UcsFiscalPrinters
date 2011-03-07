@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 8     7.03.11 18:24 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 9     7.03.11 19:22 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 9     7.03.11 19:22 Wqw
+' REF: w WaitDevice ako wyrne status busy izchakwa 100 ms
+'
 ' 8     7.03.11 18:24 Wqw
 ' REF: default time-out
 '
@@ -548,10 +551,11 @@ Public Function WaitDevice(Optional ByVal lWait As Long) As Boolean
     Dim sResult         As String
     Dim eRetCmd         As UcsEltradeCommandsEnum
     
-    If lWait > 0 Then
-        Call Sleep(lWait)
-    End If
     Do
+        If lWait > 0 Then
+            Call Sleep(lWait)
+        End If
+        lWait = 100
         sResult = pvSendCommand(m_hComm, m_lTimeout, ucsEltCmdInfoDeviceStatus, vbNullString, eRetCmd, m_sLastError)
         If LenB(m_sLastError) <> 0 Then
             Err.Raise vbObjectError, , m_sLastError
