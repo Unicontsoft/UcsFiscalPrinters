@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 7     23.02.11 17:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 8     7.03.11 18:24 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 8     7.03.11 18:24 Wqw
+' REF: default time-out
+'
 ' 7     23.02.11 17:09 Wqw
 ' DEL: dead const
 '
@@ -193,7 +196,7 @@ End Type
 
 Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Already connected|Not connected|Invalid response header|WaitCommEvent failed: |No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt|Error in line %1: %2"
 Private Const STR_RECEIPT_TEXTS         As String = "TOTAL|SUBTOTAL|Sales %1|unit price|quantity|value*%1|CHANGE|total|VAT*%1|netto|Invoice #|Seller:|   * * * * * * * *|Received by:|Tax # |VAT # |%1 items|Resp:|Recv:|SURCHARGE|DISCOUNT"
-Private Const DEF_TIMEOUT               As Long = 3000
+Private Const DEF_TIMEOUT               As Long = 5000
 Private Const LNG_DELAY                 As Long = 100
 Private Const MAX_RECEIPT_ROWS          As Long = 30
 Private Const MAX_PAYMENT_LEN           As Long = 24
