@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 8     7.03.11 19:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 9     8.03.11 13:04 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 9     8.03.11 13:04 Wqw
+' ADD: Function Limit
+'
 ' 8     7.03.11 19:21 Wqw
 ' REF: impl milliseconds w OutputDebugLog
 '
@@ -403,6 +406,23 @@ Public Function LimitLong( _
         LimitLong = lMax
     Else
         LimitLong = lValue
+    End If
+End Function
+
+Public Function Limit( _
+            ByVal Value As Double, _
+            Optional Min As Variant, _
+            Optional Max As Variant) As Double
+    Limit = Value
+    If Not IsMissing(Min) Then
+        If Value < C_Dbl(Min) Then
+            Limit = C_Dbl(Min)
+        End If
+    End If
+    If Not IsMissing(Max) Then
+        If Value > C_Dbl(Max) Then
+            Limit = C_Dbl(Max)
+        End If
     End If
 End Function
 
