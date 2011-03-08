@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 9     23.02.11 17:10 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 10    8.03.11 13:04 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 10    8.03.11 13:04 Wqw
+' REF: vat group idwa numeric weche
+'
 ' 9     23.02.11 17:10 Wqw
 ' REF: text const
 '
@@ -523,9 +526,7 @@ Private Function pvGetRowData(vRow As Variant) As UcsRow
 End Function
 
 Private Function pvGetVatGroup(sVatGroup As String) As Long
-    If LenB(sVatGroup) <> 0 Then
-        pvGetVatGroup = Asc(UCase$(sVatGroup)) - 191
-    End If
+    pvGetVatGroup = C_Lng(sVatGroup)
     If pvGetVatGroup < 1 Or pvGetVatGroup > 8 Then
         pvGetVatGroup = 2
     End If
