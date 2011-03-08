@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 9     8.03.11 13:04 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 10    8.03.11 13:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 10    8.03.11 13:19 Wqw
+' REF: split cg address replaces non-printable characters
+'
 ' 9     8.03.11 13:04 Wqw
 ' ADD: Function Limit
 '
@@ -433,6 +436,7 @@ Public Function SplitCgAddress( _
             ByVal lRowChars As Long) As String
     Dim vSplit          As Variant
     
+    sAddress = Replace(sAddress, "¹", "N")
     Do While Left$(sAddress, 2) = vbCrLf
         sAddress = LTrim$(Mid$(sAddress, 3))
     Loop
