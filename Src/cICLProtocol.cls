@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 22    22.02.11 17:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 23    8.03.11 13:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 23    8.03.11 13:07 Wqw
+' REF: impl out-of-bounds discounts
+'
 ' 22    22.02.11 17:38 Wqw
 ' REF: calls FlushFileBuffers after CancelIo
 '
@@ -296,6 +299,8 @@ Private Const DEF_PASSWORD              As String = "0000"
 Private Const DEF_COMMENT_LEN           As Long = 30
 Private Const MAX_PAYMENT_LEN           As Long = 24
 Private Const MAX_RECEIPT_ROWS          As Long = 99
+Private Const MIN_DISCOUNT              As Double = -99
+Private Const MAX_DISCOUNT              As Double = 99
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
@@ -1665,8 +1670,52 @@ Private Sub pvConvertExtraRows()
     Dim lTotal          As Long
     Dim dblTotal        As Double
     Dim uSum            As UcsContext
+    Dim dblDiscount     As Double
     
+    '--- convert out-of-range discounts to PLU rows
+    For lRow = 0 To m_lRowCount - 1
+        With m_uRow(lRow)
+            If .RowType = ucsRowPlu Then
+                If (.DiscValue < MIN_DISCOUNT Or .DiscValue > MAX_DISCOUNT) Then
+                    dblTotal = Round(.PluQuantity * .PluPrice, 2)
+                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    If Round(dblTotal * .DiscValue / 100#, 2) = Round(dblTotal * dblDiscount / 100#, 2) Then
+                        .DiscValue = dblDiscount
+                    Else
+                        dblDiscount = .DiscValue
+                        .DiscValue = 0
+                        AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                            Round(dblTotal * dblDiscount / 100#, 2), 1, .PluVatGroup, lRow + 1
+                    End If
+                End If
+            ElseIf .RowType = ucsRowDiscount Then
+                If (.DiscValue < MIN_DISCOUNT Or .DiscValue > MAX_DISCOUNT) And .DiscType = ucsFscDstSubtotal Then
+                    pvGetSubtotals lRow, uSum
+                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    lCount = 0
+                    For lIdx = 1 To UBound(uSum.GrpTotal)
+                        If Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
+                            lCount = lCount + 1
+                        End If
+                    Next
+                    If lCount = 0 Then
+                        .DiscValue = dblDiscount
+                    Else
+                        dblDiscount = .DiscValue
+                        .DiscValue = 0
+                        For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
+                            If uSum.GrpTotal(lIdx) <> 0 Then
+                                AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                                    Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
+                            End If
+                        Next
+                    End If
+                End If
+            End If
+        End With
+    Next
     '--- count PLU rows and mark different VAT groups
+    lCount = 0
     For lRow = 0 To m_lRowCount - 1
         With m_uRow(lRow)
             If .RowType = ucsRowPlu Then
@@ -1727,10 +1776,12 @@ Private Sub pvConvertExtraRows()
 End Sub
 
 Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
-    Dim lIdx                As Long
-    Dim lJdx                As Long
-    Dim dblTotal            As Double
+    Dim lIdx            As Long
+    Dim lJdx            As Long
+    Dim dblTotal        As Double
+    Dim uEmpty          As UcsContext
     
+    uCtx = uEmpty
     For lIdx = 0 To lRow - 1
         With m_uRow(lIdx)
         If .RowType = ucsRowPlu Then

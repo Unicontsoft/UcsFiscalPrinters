@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 9     7.03.11 19:22 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 10    8.03.11 13:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 10    8.03.11 13:07 Wqw
+' REF: impl out-of-bounds discounts
+'
 ' 9     7.03.11 19:22 Wqw
 ' REF: w WaitDevice ako wyrne status busy izchakwa 100 ms
 '
@@ -203,6 +206,8 @@ Private Const DEF_TIMEOUT               As Long = 5000
 Private Const LNG_DELAY                 As Long = 100
 Private Const MAX_RECEIPT_ROWS          As Long = 30
 Private Const MAX_PAYMENT_LEN           As Long = 24
+Private Const MIN_DISCOUNT              As Double = -99.99
+Private Const MAX_DISCOUNT              As Double = 99.99
 
 Private m_lTimeout                  As Long
 Private m_sDevice                   As String
@@ -945,10 +950,14 @@ Public Function EndReceipt() As Boolean
                     '--- send discount/surcharge
                     lTotal = pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4)
                     sData = IIf(.DiscType = ucsFscDstSubtotal, Chr$(ucsChrSubtotal), vbNullString)
-                    sData = sData & Replace(Abs(.DiscValue), g_sDecimalSeparator, Chr$(ucsChrDot))
-                    sData = sData & IIf(.DiscValue < 0, Chr$(ucsChrMinus), Chr$(ucsChrPlus))
-                    SendInput sData
-                    pvWaitStatus lTotal, ucsLcdPlus, ucsLcdMinus
+                    If .DiscValue <> 0 Then
+                        sData = sData & Replace(Abs(.DiscValue), g_sDecimalSeparator, Chr$(ucsChrDot))
+                        sData = sData & IIf(.DiscValue < 0, Chr$(ucsChrMinus), Chr$(ucsChrPlus))
+                    End If
+                    If LenB(sData) <> 0 Then
+                        SendInput sData
+                        pvWaitStatus lTotal, ucsLcdPlus, ucsLcdMinus
+                    End If
                     '--- restore keys
                     sResult = SendCommand(ucsEltCmdInitKeyFunctions, uCtx.Keys)
                 End If
@@ -1709,8 +1718,52 @@ Private Sub pvConvertExtraRows()
     Dim lTotal          As Long
     Dim dblTotal        As Double
     Dim uSum            As UcsContext
+    Dim dblDiscount     As Double
     
+    '--- convert out-of-range discounts to PLU rows
+    For lRow = 0 To m_lRowCount - 1
+        With m_uRow(lRow)
+            If .RowType = ucsRowPlu Then
+                uCtx.LastRow = m_uRow(lRow)
+            ElseIf .RowType = ucsRowDiscount And (.DiscValue < MIN_DISCOUNT Or .DiscValue > MAX_DISCOUNT) Then
+                If .DiscType = ucsFscDstPlu And uCtx.LastRow.PluVatGroup > 0 Then
+                    dblTotal = Round(uCtx.LastRow.PluQuantity * uCtx.LastRow.PluPrice, 2)
+                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    If Round(dblTotal * .DiscValue / 100#, 2) = Round(dblTotal * dblDiscount / 100#, 2) Then
+                        .DiscValue = dblDiscount
+                    Else
+                        .RowType = ucsRowPlu
+                        .PluNo = 1
+                        .PluName = Format(.DiscValue, "0.00") & "%"
+                        .PluPrice = Round(dblTotal * .DiscValue / 100#, 2)
+                        .PluQuantity = 1
+                        .PluVatGroup = uCtx.LastRow.PluVatGroup
+                    End If
+                ElseIf .DiscType = ucsFscDstSubtotal Then
+                    pvGetSubtotals lRow, uSum
+                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    lCount = 0
+                    For lIdx = 1 To UBound(uSum.GrpTotal)
+                        If Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
+                            lCount = lCount + 1
+                        End If
+                    Next
+                    If lCount = 0 Then
+                        .DiscValue = dblDiscount
+                    Else
+                        .DiscValue = 0
+                        For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
+                            If uSum.GrpTotal(lIdx) <> 0 Then
+                                AddPLU lIdx, Format(.DiscValue, "0.00") & "%", Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 1, lIdx, lRow + 1
+                            End If
+                        Next
+                    End If
+                End If
+            End If
+        End With
+    Next
     '--- count PLU rows and mark different VAT groups
+    lCount = 0
     For lRow = 0 To m_lRowCount - 1
         With m_uRow(lRow)
             If .RowType = ucsRowPlu Then
@@ -1778,10 +1831,12 @@ Private Sub pvConvertExtraRows()
 End Sub
 
 Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
-    Dim lIdx                As Long
-    Dim lJdx                As Long
-    Dim dblTotal            As Double
+    Dim lIdx            As Long
+    Dim lJdx            As Long
+    Dim dblTotal        As Double
+    Dim uEmpty          As UcsContext
     
+    uCtx = uEmpty
     For lIdx = 0 To lRow - 1
         With m_uRow(lIdx)
         If .RowType = ucsRowPlu Then
