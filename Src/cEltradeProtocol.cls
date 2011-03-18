@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 10    8.03.11 13:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 11    18.03.11 16:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 11    18.03.11 16:51 Wqw
+' REF: impl extra checks for first PLU programming
+'
 ' 10    8.03.11 13:07 Wqw
 ' REF: impl out-of-bounds discounts
 '
@@ -253,7 +256,7 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPluPrice
     ucsTxtPluQuantity
     ucsTxtPluSum
-    ucsTxtPmtResto
+    ucsTxtPmtChange
     ucsTxtPmtTotal
     ucsTxtPmtVatGroup
     ucsTxtPmtNeto
@@ -716,7 +719,7 @@ Public Function AddPayment( _
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
         '--- note: only cash and card payments supported yet
-        .PmtType = IIf(Number = ucsFscPmtCash, ucsFscPmtCash, ucsFscPmtCard)
+        .PmtType = IIf(Number = ucsFscPmtCard, ucsFscPmtCard, ucsFscPmtCash)
         .PmtName = Left$(Name, MAX_PAYMENT_LEN)
         .PmtAmount = Round(Amount, 2)
         If Rate <= 0 Then
@@ -741,6 +744,7 @@ Public Function EndReceipt() As Boolean
     Dim lPlu            As Long
     Dim dblTotal        As Double
     Dim vSplit          As Variant
+    Dim lRetry          As Long
     
     '--- sanity check
     If m_lRowCount = 0 Then
@@ -781,9 +785,12 @@ Public Function EndReceipt() As Boolean
             End If
             '--- setup operator name
             lIdx = LimitLong(pvPeek(SendCommand(ucsEltCmdInfoStatus), 10, 2), 1, 10)
-            sData = SendCommand(ucsEltCmdInfoOperator, pvPoke(lIdx, 2))
+            sResult = SendCommand(ucsEltCmdInfoOperator, pvPoke(lIdx, 2))
+            sData = sResult
             Mid$(sData, 3, 12) = pvSPoke(.InitOperatorName, 12)
-            sResult = SendCommand(ucsEltCmdInitOperator, sData)
+            If sData <> sResult Then
+                sResult = SendCommand(ucsEltCmdInitOperator, sData)
+            End If
             '--- invoice specific init
             Select Case .InitReceiptType
             Case ucsFscRetInvoiceNonFiscal
@@ -880,6 +887,27 @@ Public Function EndReceipt() As Boolean
                         pvPoke(0, 1) & pvPoke(0, 1) & pvPoke(0, 4)
                 End If
                 sResult = SendCommand(ucsEltCmdInitItem, sData)
+                '--- extra checks on first PLU
+                If uCtx.PluCount = 1 Then
+                    For lRetry = 1 To 5
+                        If Not WaitDevice() Then
+                            On Error GoTo EH
+                            Err.Raise vbObjectError, , m_sLastError
+                        End If
+                        sResult = SendCommand(ucsEltCmdInfoItem, pvPoke(lPlu, 2))
+                        If uCtx.ItemChars = 12 Then
+                            Mid$(sResult, 13, 4) = pvPoke(0, 4) '--- turnover
+                            Mid$(sResult, 32, 4) = pvPoke(0, 4) '--- quantity sold
+                        Else
+                            Mid$(sResult, 13, 4) = pvPoke(0, 4) '--- turnover
+                            Mid$(sResult, 38, 4) = pvPoke(0, 4) '--- quantity sold
+                        End If
+                        If sData = sResult Then
+                            Exit For
+                        End If
+                        sResult = SendCommand(ucsEltCmdInitItem, sData)
+                    Next
+                End If
                 '--- on invoices print extra chars in name before PLU
                 If .PrintRowType = ucsFscRetInvoiceFiscal Then
                     For lIdx = 0 To UBound(vSplit)
@@ -1009,7 +1037,7 @@ Public Function EndReceipt() As Boolean
                     If .PmtType <> 0 Then
                         dblTotal = Round(uCtx.Paid - SumArray(uCtx.GrpTotal), 2)
                         If dblTotal > 0 Then
-                            pvPrintLine AlignText(pvText(ucsTxtPmtResto), Format$(Round(dblTotal, 2), "0.00"), pvRowChars - 2)
+                            pvPrintLine AlignText(pvText(ucsTxtPmtChange), Format$(Round(dblTotal, 2), "0.00"), pvRowChars - 2)
                         End If
                         If dblTotal >= 0 Then
                             uCtx.Finished = True
@@ -1255,7 +1283,7 @@ Public Function CancelReceipt() As Boolean
     lTotal = pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4)
     If lTotal <> 0 Then
         SendInput Chr$(ucsChrClear)
-        For lIdx = 1 To 30
+        For lIdx = 1 To MAX_RECEIPT_ROWS
             '--- void last row
             SendInput Chr$(ucsChrVoid)
             sResult = pvWaitStatus(lTotal, ucsLcdVoid, ucsLcdOutOfReceipt)
