@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 11    18.03.11 16:51 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 12    29.03.11 14:59 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 12    29.03.11 14:59 Wqw
+' REF: impl retry na get status w pvWaitStatus
+'
 ' 11    18.03.11 16:51 Wqw
 ' REF: impl extra checks for first PLU programming
 '
@@ -1517,11 +1520,14 @@ Private Function pvWaitStatus( _
             Optional ByVal lLastCommand As UcsLastCommandEnum = -1, _
             Optional ByVal lAltCommand As UcsLastCommandEnum = -1, _
             Optional ByVal bInvoice As Boolean) As String
+    Const FUNC_NAME     As String = "pvWaitStatus"
     Dim lIdx            As Long
     Dim bPulse          As Boolean
     
     For lIdx = 1 To m_lTimeout \ LNG_DELAY
+        On Error GoTo RetryInfoStatus
         pvWaitStatus = SendCommand(ucsEltCmdInfoStatus)
+        On Error GoTo 0
         If lTotal <> -1 And Not bPulse Then
             If pvPeek(pvWaitStatus, 0, 4) <> lTotal Then
                 Exit For
@@ -1562,7 +1568,11 @@ Private Function pvWaitStatus( _
         End If
         WaitDevice LNG_DELAY
     Next
-'    Debug.Print lIdx, pvDumpHex(pvWaitStatus), Timer
+    Exit Function
+RetryInfoStatus:
+    DebugLog FUNC_NAME, "RetryInfoStatus, m_sLastError=" & m_sLastError
+    pvWaitStatus = SendCommand(ucsEltCmdInfoStatus)
+    Resume Next
 End Function
 
 Private Function pvPrintLine( _
