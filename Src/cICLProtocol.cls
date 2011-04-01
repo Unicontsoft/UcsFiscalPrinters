@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 23    8.03.11 13:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 24    1.04.11 14:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 24    1.04.11 14:41 Wqw
+' REF: signal timeout in pvWriteData
+'
 ' 23    8.03.11 13:07 Wqw
 ' REF: impl out-of-bounds discounts
 '
@@ -1438,6 +1441,9 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
         pvWriteData = True
     Else
         DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
+        If lResult = WAIT_TIMEOUT Then
+            sError = pvInternal(ucsErrTimeoutWaitingForResponse)
+        End If
         Call CancelIo(hComm)
         Call Sleep(100)
         Call FlushFileBuffers(hComm)
