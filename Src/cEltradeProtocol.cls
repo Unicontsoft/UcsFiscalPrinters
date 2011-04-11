@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 12    29.03.11 14:59 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 13    11.04.11 14:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 13    11.04.11 14:51 Wqw
+' REF: default timeout, param timeout na send command, retry w wait
+' status
+'
 ' 12    29.03.11 14:59 Wqw
 ' REF: impl retry na get status w pvWaitStatus
 '
@@ -208,7 +212,7 @@ End Type
 
 Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Already connected|Not connected|Invalid response header|WaitCommEvent failed: |No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt|Error in line %1: %2"
 Private Const STR_RECEIPT_TEXTS         As String = "TOTAL|SUBTOTAL|Sales %1|unit price|quantity|value*%1|CHANGE|total|VAT*%1|netto|Invoice #|Seller:|   * * * * * * * *|Received by:|Tax # |VAT # |%1 items|Resp:|Recv:|SURCHARGE|DISCOUNT"
-Private Const DEF_TIMEOUT               As Long = 5000
+Private Const DEF_TIMEOUT               As Long = 3000
 Private Const LNG_DELAY                 As Long = 100
 Private Const MAX_RECEIPT_ROWS          As Long = 30
 Private Const MAX_PAYMENT_LEN           As Long = 24
@@ -523,9 +527,10 @@ End Function
 Public Function SendCommand( _
             ByVal eCmd As UcsEltradeCommandsEnum, _
             Optional sData As String, _
-            Optional eRetCmd As UcsEltradeCommandsEnum) As String
+            Optional eRetCmd As UcsEltradeCommandsEnum, _
+            Optional ByVal lTimeout As Long) As String
     m_sLastError = vbNullString
-    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, sData, eRetCmd, m_sLastError)
+    SendCommand = pvSendCommand(m_hComm, Znl(lTimeout, m_lTimeout), eCmd, sData, eRetCmd, m_sLastError)
     '--- append internal log
     m_sCommandLog = m_sCommandLog & pvDumpHex(Chr$(eCmd)) & IIf(LenB(sData) <> 0, "<-" & pvDumpHex(sData), vbNullString) & IIf(LenB(SendCommand) <> 0, "->" & pvDumpHex(SendCommand), vbNullString) & vbCrLf
     If LenB(m_sLastError) <> 0 Then
@@ -548,7 +553,7 @@ Public Function SendInput(sText As String) As String
             Exit For
         End If
         sData = Mid$(sText, 1 + lChunk * 30, 30)
-        For lIdx = 1 To m_lTimeout \ LNG_DELAY
+        For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
             SendInput = SendCommand(ucsEltCmdKeyboardInput, Chr$(Len(sData)) & sData)
             If pvPeek(SendInput, 0, 2) <> 0 Then
                 Exit For
@@ -892,11 +897,7 @@ Public Function EndReceipt() As Boolean
                 sResult = SendCommand(ucsEltCmdInitItem, sData)
                 '--- extra checks on first PLU
                 If uCtx.PluCount = 1 Then
-                    For lRetry = 1 To 5
-                        If Not WaitDevice() Then
-                            On Error GoTo EH
-                            Err.Raise vbObjectError, , m_sLastError
-                        End If
+                    For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
                         sResult = SendCommand(ucsEltCmdInfoItem, pvPoke(lPlu, 2))
                         If uCtx.ItemChars = 12 Then
                             Mid$(sResult, 13, 4) = pvPoke(0, 4) '--- turnover
@@ -908,7 +909,12 @@ Public Function EndReceipt() As Boolean
                         If sData = sResult Then
                             Exit For
                         End If
+                        DebugLog FUNC_NAME, "PLU diff error, lRetry=" & lRetry & ", sResult=" & pvDumpHex(sResult) & ", sData=" & pvDumpHex(sData)
                         sResult = SendCommand(ucsEltCmdInitItem, sData)
+                        If Not WaitDevice(LNG_DELAY) Then
+                            On Error GoTo EH
+                            Err.Raise vbObjectError, , m_sLastError
+                        End If
                     Next
                 End If
                 '--- on invoices print extra chars in name before PLU
@@ -1149,7 +1155,7 @@ Public Function CopyLastReceipt() As Boolean
     pvSetKeylock ucsKlcRegistration
     lReceipt = pvPeek(SendCommand(ucsEltCmdInfoStatus), 6, 2)
     SendInput Chr$(ucsChrClear) & "1 "
-    For lIdx = 1 To m_lTimeout \ LNG_DELAY
+    For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
         sResult = SendCommand(ucsEltCmdInfoStatus)
         If pvPeek(sResult, 6, 2) <> lReceipt Then
             Exit For
@@ -1523,10 +1529,17 @@ Private Function pvWaitStatus( _
     Const FUNC_NAME     As String = "pvWaitStatus"
     Dim lIdx            As Long
     Dim bPulse          As Boolean
+    Dim lRetry          As Long
     
-    For lIdx = 1 To m_lTimeout \ LNG_DELAY
-        On Error GoTo RetryInfoStatus
-        pvWaitStatus = SendCommand(ucsEltCmdInfoStatus)
+    For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
+        On Error Resume Next
+        For lRetry = 1 To LimitLong(m_lTimeout \ 1000, 2)
+            pvWaitStatus = SendCommand(ucsEltCmdInfoStatus, lTimeout:=1000)
+            If Err.Number = 0 Then
+                Exit For
+            End If
+            DebugLog FUNC_NAME, "info status, lRetry=" & lRetry & ", m_sLastError=" & m_sLastError
+        Next
         On Error GoTo 0
         If lTotal <> -1 And Not bPulse Then
             If pvPeek(pvWaitStatus, 0, 4) <> lTotal Then
@@ -1568,11 +1581,6 @@ Private Function pvWaitStatus( _
         End If
         WaitDevice LNG_DELAY
     Next
-    Exit Function
-RetryInfoStatus:
-    DebugLog FUNC_NAME, "RetryInfoStatus, m_sLastError=" & m_sLastError
-    pvWaitStatus = SendCommand(ucsEltCmdInfoStatus)
-    Resume Next
 End Function
 
 Private Function pvPrintLine( _
@@ -1614,7 +1622,7 @@ Private Function pvRunReport(ByVal lKeylock As UcsKeylockPosition, sData As Stri
     pvSetKeylock lKeylock
     lReceipt = pvPeek(SendCommand(ucsEltCmdInfoStatus), 6, 2)
     SendInput sData
-    For lIdx = 1 To m_lTimeout \ LNG_DELAY
+    For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
         If pvPeek(SendCommand(ucsEltCmdInfoStatus), 6, 2) <> lReceipt Then
             pvRunReport = True
             Exit For
