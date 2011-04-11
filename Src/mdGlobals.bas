@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 10    8.03.11 13:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 11    11.04.11 14:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 11    11.04.11 14:50 Wqw
+' ADD: Function Znl
+'
 ' 10    8.03.11 13:19 Wqw
 ' REF: split cg address replaces non-printable characters
 '
@@ -186,6 +189,10 @@ End Function
 
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
     Zn = IIf(LenB(sText) = 0, IfEmptyString, sText)
+End Function
+
+Public Function Znl(ByVal lValue As Long, Optional IfEmptyLong As Variant = Null, Optional ByVal EmptyLong As Long = 0) As Variant
+    Znl = IIf(lValue = EmptyLong, IfEmptyLong, lValue)
 End Function
 
 Public Function Zndbl(ByVal dblValue As Double, Optional IfZeroDouble As Variant = Null) As Variant
