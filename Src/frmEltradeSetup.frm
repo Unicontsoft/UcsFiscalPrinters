@@ -24,81 +24,6 @@ Begin VB.Form frmEltradeSetup
    StartUpPosition =   3  'Windows Default
    Begin VB.Frame fraCommands 
       Height          =   5775
-      Index           =   13
-      Left            =   2250
-      TabIndex        =   194
-      Top             =   90
-      Width           =   5775
-      Begin VB.TextBox txtCashTotal 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   82
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   1545
-      End
-      Begin VB.OptionButton optCashOut 
-         Caption         =   "Износ"
-         Height          =   285
-         Left            =   3150
-         TabIndex        =   84
-         Top             =   1620
-         Width           =   1455
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Внос/износ"
-         Height          =   375
-         Index           =   6
-         Left            =   4320
-         TabIndex        =   86
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtCashSum 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   85
-         Top             =   1980
-         Width           =   1545
-      End
-      Begin VB.OptionButton optCashIn 
-         Caption         =   "Внос"
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   83
-         Top             =   1620
-         Value           =   -1  'True
-         Width           =   1455
-      End
-      Begin VB.Label Label62 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Наличност каса:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   196
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label57 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Сума:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   195
-         Top             =   1980
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
       Index           =   14
       Left            =   2250
       TabIndex        =   197
@@ -282,6 +207,81 @@ Begin VB.Form frmEltradeSetup
          TabIndex        =   198
          Top             =   1350
          Width           =   915
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   13
+      Left            =   2250
+      TabIndex        =   194
+      Top             =   90
+      Width           =   5775
+      Begin VB.TextBox txtCashTotal 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   82
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   1545
+      End
+      Begin VB.OptionButton optCashOut 
+         Caption         =   "Износ"
+         Height          =   285
+         Left            =   3150
+         TabIndex        =   84
+         Top             =   1620
+         Width           =   1455
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Внос/износ"
+         Height          =   375
+         Index           =   6
+         Left            =   4320
+         TabIndex        =   86
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtCashSum 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   85
+         Top             =   1980
+         Width           =   1545
+      End
+      Begin VB.OptionButton optCashIn 
+         Caption         =   "Внос"
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   83
+         Top             =   1620
+         Value           =   -1  'True
+         Width           =   1455
+      End
+      Begin VB.Label Label62 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Наличност каса:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   196
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label57 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Сума:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   195
+         Top             =   1980
+         Width           =   1905
          WordWrap        =   -1  'True
       End
    End
@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 5     23.02.11 17:10 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 6     4.05.11 19:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 6     4.05.11 19:48 Wqw
+' REF: fiscal memory report by dates
+'
 ' 5     23.02.11 17:10 Wqw
 ' REF: po UI
 '
@@ -2355,6 +2358,7 @@ Private Const STR_ERROR_DATETIME_SEND As String = "Грешка при установяване на да
 Private Const STR_ERROR_HDRLINES_SEND As String = "Грешка при установяване на заглавни линии: 0x%1"
 Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
 Private Const MSG_CANNOT_ACCESS_PRINTER_PROXY As String = "Грешка при създаване на компонент за достъп до фискален принтер %1." & vbCrLf & vbCrLf & "%2"
+Private Const MSG_INVALID_DATE      As String = "Невалидна дата"
 
 Private m_oFP                   As cEltradeProtocol
 Attribute m_oFP.VB_VarHelpID = -1
@@ -2991,6 +2995,31 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 
                 End If
             End If
+        ElseIf optReportType(2).Value Then
+        ElseIf optReportType(3).Value Then
+            If C_Date(txtReportFD.Text) = 0 Then
+                txtReportFD.SetFocus
+                MsgBox MSG_INVALID_DATE, vbExclamation
+                GoTo QH
+            End If
+            If C_Date(txtReportTD.Text) = 0 Then
+                txtReportTD.SetFocus
+                MsgBox MSG_INVALID_DATE, vbExclamation
+                GoTo QH
+            End If
+            sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(2))
+            lReceipt = pvPeek(m_oFP.SendCommand(ucsEltCmdInfoStatus), 6, 2)
+            sData = IIf(chkReportDetailed2.Value = vbChecked, "1", "11") & Chr$(&H1F) & _
+                Format$(C_Date(txtReportFD.Text), "ddmmyy") & Chr$(&H1A) & _
+                Format$(C_Date(txtReportTD.Text), "ddmmyy") & Chr$(&H1B)
+            sResult = m_oFP.SendCommand(ucsEltCmdKeyboardInput, Chr$(Len(sData)) & sData)
+            For lIdx = 1 To 150
+                If lReceipt <> pvPeek(m_oFP.SendCommand(ucsEltCmdInfoStatus), 6, 2) Then
+                    Exit For
+                End If
+                m_oFP.WaitDevice 100
+            Next
+            sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(0))
         End If
     Case ucsCmdYesNoParams
         sData = m_oFP.SendCommand(ucsEltCmdInfoYesNoParams)
