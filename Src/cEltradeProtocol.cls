@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 14    4.05.11 15:04 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 15    4.05.11 19:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 15    4.05.11 19:48 Wqw
+' ADD: Function RunPeriodReport
+'
 ' 14    4.05.11 15:04 Wqw
 ' REF: invoice number off by one error
 '
@@ -327,6 +330,7 @@ Private Type UcsContext
 End Type
 
 Private Enum UcsCharsEnum
+    ucsChrD7 = &H7
     ucsChrPlus = &HA
     ucsChrMinus = &HB
     ucsChrRFN = &HB
@@ -1209,6 +1213,10 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Select Case ReportType
     Case ucsFscRstDaily
         RunXReport = pvRunReport(ucsKlcXReport, Chr$(ucsChrTotal) & Chr$(ucsChrClear) & Chr$(ucsChrTotal))
+    Case ucsFscRstDailyByDepartment
+        RunXReport = pvRunReport(ucsKlcXReport, "2" & Chr$(ucsChrD7) & Chr$(ucsChrTotal))
+    Case ucsFscRstDailyByItems
+        RunXReport = pvRunReport(ucsKlcXReport, "3" & Chr$(ucsChrD7) & Chr$(ucsChrTotal))
     End Select
 End Function
 
@@ -1216,9 +1224,21 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Select Case ReportType
     Case ucsFscRstDaily
 '        RunZReport = pvRunReport(ucsKlcZReport, Chr$(ucsChrTotal))
-        SendCommand ucsEltCmdPrintZReport
-        '--- success
-        RunZReport = True
+        RunZReport = SendCommand(ucsEltCmdPrintZReport)
+    Case ucsFscRstDailyByDepartment
+        RunZReport = pvRunReport(ucsKlcZReport, "2" & Chr$(ucsChrD7) & Chr$(ucsChrTotal))
+    Case ucsFscRstDailyByItems
+        RunZReport = pvRunReport(ucsKlcZReport, "3" & Chr$(ucsChrD7) & Chr$(ucsChrTotal))
+    End Select
+End Function
+
+Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    Select Case ReportType
+    Case ucsFscRstPeriodDetailed, ucsFscRstPeriodShort
+        RunPeriodReport = pvRunReport(ucsKlcXReport, _
+            IIf(ReportType = ucsFscRstPeriodDetailed, "1", "11") & Chr$(ucsChrSubtotal) & _
+            Format$(StartDate, "ddmmyy") & Chr$(ucsChrX) & _
+            Format$(EndDate, "ddmmyy") & Chr$(ucsChrVoid))
     End Select
 End Function
 
@@ -2041,7 +2061,7 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
 End Function
 
 Public Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    '--- not implemented
+    IDeviceProtocol_RunPeriodReport = RunPeriodReport(ReportType, StartDate, EndDate)
 End Function
 
 Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
