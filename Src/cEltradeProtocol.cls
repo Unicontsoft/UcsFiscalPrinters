@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 13    11.04.11 14:51 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 14    4.05.11 15:04 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 14    4.05.11 15:04 Wqw
+' REF: invoice number off by one error
+'
 ' 13    11.04.11 14:51 Wqw
 ' REF: default timeout, param timeout na send command, retry w wait
 ' status
@@ -809,9 +812,11 @@ Public Function EndReceipt() As Boolean
                 End If
             Case ucsFscRetInvoiceFiscal
                 '--- setup InvoiceNo
-                sData = pvPoke(.InitInvData(ucsInvNumber), 6)
-                sData = Mid$(sData, 3, 4) & Mid$(sData, 1, 2) & pvPoke(1, 2)
-                sResult = SendCommand(ucsEltCmdInitInvoiceNo, sData)
+                If C_Lng(.InitInvData(ucsInvNumber)) > 0 Then
+                    sData = pvPoke(C_Lng(.InitInvData(ucsInvNumber)) - 1, 6)
+                    sData = Mid$(sData, 3, 4) & Mid$(sData, 1, 2) & pvPoke(1, 2)
+                    sResult = SendCommand(ucsEltCmdInitInvoiceNo, sData)
+                End If
                 '--- setup contragent
                 sData = vbNullString
                 For lIdx = 3 To 7
