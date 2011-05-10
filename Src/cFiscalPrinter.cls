@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 10    8.03.11 13:04 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 11    10.05.11 15:15 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 11    10.05.11 15:15 Wqw
+' REF: guard GetCommandLog in err handlers
+'
 ' 10    8.03.11 13:04 Wqw
 ' REF: vat group idwa numeric weche
 '
@@ -261,8 +264,8 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
     End If
-    CommandLog = oFP.GetCommandLog()
 End Function
 
 Public Function PrintReceipt( _
@@ -352,8 +355,8 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
     End If
-    CommandLog = oFP.GetCommandLog()
 End Function
 
 Public Function PrintReport( _
@@ -416,8 +419,8 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
     End If
-    CommandLog = oFP.GetCommandLog()
 End Function
 
 Public Function OpenDrawer( _
@@ -439,8 +442,8 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
     End If
-    CommandLog = oFP.GetCommandLog()
 End Function
 
 Public Function InitDateTime( _
@@ -469,10 +472,9 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
     End If
-    CommandLog = oFP.GetCommandLog()
 End Function
-
 
 '= private ===============================================================
 
