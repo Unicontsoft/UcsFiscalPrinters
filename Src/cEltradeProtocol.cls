@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 15    4.05.11 19:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 16    10.05.11 15:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 16    10.05.11 15:14 Wqw
+' REF: type mismatch in RunZReport
+'
 ' 15    4.05.11 19:48 Wqw
 ' ADD: Function RunPeriodReport
 '
@@ -1224,7 +1227,8 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Select Case ReportType
     Case ucsFscRstDaily
 '        RunZReport = pvRunReport(ucsKlcZReport, Chr$(ucsChrTotal))
-        RunZReport = SendCommand(ucsEltCmdPrintZReport)
+        Call SendCommand(ucsEltCmdPrintZReport)
+        RunZReport = True
     Case ucsFscRstDailyByDepartment
         RunZReport = pvRunReport(ucsKlcZReport, "2" & Chr$(ucsChrD7) & Chr$(ucsChrTotal))
     Case ucsFscRstDailyByItems
