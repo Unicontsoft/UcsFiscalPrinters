@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 16    10.05.11 15:14 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 17    17.06.11 11:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 17    17.06.11 11:35 Wqw
+' REF: impl edge case -- 30th PLU w/ discount
+'
 ' 16    10.05.11 15:14 Wqw
 ' REF: type mismatch in RunZReport
 '
@@ -627,7 +630,7 @@ Public Function StartReceipt( _
         .InitPLUNumbering = PLUNumbering
         .InitOperatorName = OperatorName
         SplitCgAddress Trim$(InvCity) & vbCrLf & Trim$(InvAddress), sCity, sAddress, pvRowChars - 2
-        If .InitReceiptType = ucsFscRetInvoiceFiscal Or .InitReceiptType = ucsFscRetInvoiceNonFiscal Then
+        If .InitReceiptType = ucsFscRetInvoiceFiscal Or .InitReceiptType = ucsFscRetInvoiceNonfiscal Then
             If LenB(InvMol) <> 0 Then
                 sMol = pvText(ucsTxtInvMol) & InvMol
             End If
@@ -811,7 +814,7 @@ Public Function EndReceipt() As Boolean
             End If
             '--- invoice specific init
             Select Case .InitReceiptType
-            Case ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetInvoiceNonfiscal
                 If Len(.InitInvData(ucsInvNumber)) > 10 Then
                     pvPrintLine .InitInvData(ucsInvNumber)
                 ElseIf LenB(.InitInvData(ucsInvNumber)) <> 0 Then
@@ -852,7 +855,7 @@ Public Function EndReceipt() As Boolean
             '--- on invoices print empty line before first PLU
             If uCtx.PluCount = 1 Then
                 Select Case .PrintRowType
-                Case ucsFscRetInvoiceFiscal, ucsFscRetInvoiceNonFiscal
+                Case ucsFscRetInvoiceFiscal, ucsFscRetInvoiceNonfiscal
                     pvPrintLine vbNullString
                 End Select
             End If
@@ -865,7 +868,7 @@ Public Function EndReceipt() As Boolean
                 If Len(.PluName) > uCtx.ItemChars Then
                     pvPrintLine Trim$(Mid$(.PluName, uCtx.ItemChars + 1))
                 End If
-            Case ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetInvoiceNonfiscal
                 pvPrintLine .PluName
                 pvPrintLine AlignText(pvText(ucsTxtPluPrice), Format$(.PluPrice, "0.00"), pvRowChars - 2)
                 pvPrintLine AlignText(pvText(ucsTxtPluQuantity), Format$(.PluQuantity, "0.000"), pvRowChars - 2)
@@ -974,7 +977,7 @@ Public Function EndReceipt() As Boolean
                 End If
             End If
             Select Case .PrintRowType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If .DiscType = ucsFscDstPlu Then
                     If uCtx.LastRow.PluVatGroup > 0 Then
                         pvPrintLine AlignText(" " & Format$(.DiscValue, "0.00") & "%", Format$(dblTotal, "0.00") & " " & Chr$(191 + uCtx.LastRow.PluVatGroup), pvRowChars - 2)
@@ -1022,14 +1025,14 @@ Public Function EndReceipt() As Boolean
             End If
         Case ucsRowPayment
             Select Case .PrintRowType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If .PmtType <> 0 Or uCtx.PluCount > 0 Then
                     If uCtx.Paid < 0 Then
                         pvPrintLine String$(pvRowChars - 2, "-")
                         pvPrintLine AlignText(pvText(ucsTxtTotal), Format$(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars \ 2 - 1), "DBWIDTH"
                         pvPrintLine String$(pvRowChars - 2, "-")
                         uCtx.Paid = 0
-                        If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                             sResult = SendCommand(ucsEltCmdInfoVatGroups)
                             '--- invoice totals by VAT groups
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1065,7 +1068,7 @@ Public Function EndReceipt() As Boolean
                         End If
                     End If
                     If .PmtType = 0 Then
-                        If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                             With m_uRow(0)
                                 '--- invoice contragent info
                                 pvPrintLine vbNullString
@@ -1137,7 +1140,7 @@ Public Function EndReceipt() As Boolean
     Next
     '--- eject non-fiscal receipt
     Select Case m_uRow(0).InitReceiptType
-    Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+    Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
         pvSetKeylock ucsKlcXReport
     End Select
     '--- show clock
@@ -1493,11 +1496,12 @@ Private Function pvSendCommand( _
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
         Else
+            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult
             lResult = WAIT_OBJECT_0
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
-            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), 1000, lActual, VarPtr(uOver))
+            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
                     DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
@@ -1794,6 +1798,7 @@ Private Sub pvConvertExtraRows()
     Dim dblTotal        As Double
     Dim uSum            As UcsContext
     Dim dblDiscount     As Double
+    Dim bIsLastDiscount As Boolean
     
     '--- convert out-of-range discounts to PLU rows
     For lRow = 0 To m_lRowCount - 1
@@ -1842,12 +1847,16 @@ Private Sub pvConvertExtraRows()
     For lRow = 0 To m_lRowCount - 1
         With m_uRow(lRow)
             If .RowType = ucsRowPlu Then
+                bIsLastDiscount = False
                 lCount = lCount + 1
                 uCtx.GrpTotal(.PluVatGroup) = 1
+            ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstPlu Then
+                bIsLastDiscount = True
             End If
         End With
     Next
-    If lCount > MAX_RECEIPT_ROWS Then
+    '--- firmware bug: cannot print PLU discount on last 30th row
+    If lCount > MAX_RECEIPT_ROWS Or (lCount = MAX_RECEIPT_ROWS And bIsLastDiscount) Then
         '--- count different VAT groups in PLUs
         For lRow = 1 To UBound(uCtx.GrpTotal)
             If uCtx.GrpTotal(lRow) <> 0 Then
@@ -1862,13 +1871,13 @@ Private Sub pvConvertExtraRows()
                 If .RowType = ucsRowPlu Then
                     lCount = lCount + 1
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + Round(.PluQuantity * .PluPrice, 2), 2)
                         uCtx.LastRow = m_uRow(lRow)
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstPlu Then
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         dblTotal = Round(uCtx.LastRow.PluQuantity * uCtx.LastRow.PluPrice, 2)
                         If uCtx.LastRow.PluVatGroup > 0 Then
                             uCtx.GrpTotal(uCtx.LastRow.PluVatGroup) = Round(uCtx.GrpTotal(uCtx.LastRow.PluVatGroup) + Round(dblTotal * .DiscValue / 100#, 2), 2)
@@ -1876,7 +1885,7 @@ Private Sub pvConvertExtraRows()
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstSubtotal Then
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         pvGetSubtotals lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
