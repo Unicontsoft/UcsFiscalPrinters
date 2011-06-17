@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 24    1.04.11 14:41 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 25    17.06.11 11:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 25    17.06.11 11:34 Wqw
+' REF: auto-sense charset, merge pvRead/WriteData
+'
 ' 24    1.04.11 14:41 Wqw
 ' REF: signal timeout in pvWriteData
 '
@@ -321,6 +324,7 @@ Private m_lRowCount                 As Long
 Private m_bFiscalPaymentExecuted    As Boolean
 Private m_lRowChars                 As Long
 Private m_sCommandLog               As String
+Private m_eCharset                  As UcsCharset
 
 Private Enum UcsInternalErrors
     ucsErrNoDeviceInfoSet
@@ -420,6 +424,12 @@ Private Type UcsContext
     PmtPrinted          As Boolean
     ChangePrinted       As Boolean
 End Type
+
+Private Enum UcsCharset
+    ucsCrsAuto
+    ucsCrsWindows
+    ucsCrsMik
+End Enum
 
 '=========================================================================
 ' Error handling
@@ -549,14 +559,11 @@ Public Function EnumPorts() As Variant
         sError = vbNullString
         hComm = pvOpenPort(vPort & ",9600,8,N,1", sError)
         If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
-            If pvWriteData(hComm, ucsFpcInfoStatus, &H20) Then
-                sError = vbNullString
-                sResult = pvReadData(hComm, 500, sError)
-                If LenB(sResult) <> 0 And LenB(sError) = 0 Then
-                    If Asc(sResult) = 1 Then
-                        vRet(lCount) = vPort
-                        lCount = lCount + 1
-                    End If
+            sResult = pvSendCommand(hComm, 500, ucsFpcInfoStatus, sError:=sError)
+            If LenB(sResult) <> 0 And LenB(sError) = 0 Then
+                If Asc(sResult) = 1 Then
+                    vRet(lCount) = vPort
+                    lCount = lCount + 1
                 End If
             End If
             Call CloseHandle(hComm)
@@ -574,7 +581,7 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optiona
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
-    DebugLog FUNC_NAME, "sDevice=" & sDevice & "; lTimeout=" & lTimeout
+    DebugLog FUNC_NAME, "sDevice=" & sDevice & ", lTimeout=" & lTimeout
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
@@ -634,6 +641,8 @@ Public Function Disconnect() As Boolean
     End If
     Call CloseHandle(m_hComm)
     m_hComm = INVALID_HANDLE_VALUE
+    '--- cleanup cache
+    m_eCharset = ucsCrsAuto
     '--- success
     Disconnect = True
 QH:
@@ -643,71 +652,34 @@ QH:
 End Function
 
 Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As String) As String
-    Const FUNC_NAME     As String = "SendCommand"
-    Dim sText           As String
-    Dim lIdx            As Long
-    Dim lSize           As Long
-        
-    DebugLog FUNC_NAME, "eCmd=" & eCmd & ", sData=" & sData
-    m_sLastError = vbNullString
-    If Not pvWriteData(m_hComm, eCmd, m_lSequence, sData, m_sLastError) Then
-        GoTo QH
-    End If
-    '--- increment sequence
-    m_lSequence = m_lSequence + 1
-    If m_lSequence > &H7F Then
-        m_lSequence = &H20
-    End If
-    '--- check result
-    sText = pvReadData(m_hComm, m_lTimeout, m_sLastError)
-    If LenB(m_sLastError) = 0 Then
-        If Left$(sText, 1) = Chr$(1) Then
-            lIdx = InStr(sText, Chr$(4))
-            If lIdx > 2 Then
-                lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
-                '--- check message length
-                If lIdx - 5 = lSize Then
-                    pvSetStatus Mid$(sText, lIdx + 1, 6)
-                    SendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
-                    GoTo QH
-                Else
-                    m_sLastError = pvInternal(ucsErrInvalidResponseLength)
-                End If
-            Else
-                m_sLastError = pvInternal(ucsErrResponseMissingPostamble)
+    Dim vResult         As Variant
+    
+    '--- auto-sense encoding
+    If m_eCharset = ucsCrsAuto Then
+        m_eCharset = ucsCrsWindows
+        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, "0"), ",")
+        '--- idx 3 = country, value 6 = bg
+        If At(vResult, 3) = 6 Then
+            vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInitDecimals), ",")
+            '--- idx 2 = currency name
+            If Asc(Zn(Trim$(At(vResult, 2)), " ")) < &HC0 Then
+                m_eCharset = ucsCrsMik
             End If
-        Else
-            m_sLastError = pvInternal(ucsErrResponseMissingPreamble)
         End If
     End If
-    pvSetStatus vbNullString '--- clear
-QH:
-    DebugLog FUNC_NAME, "RetVal=" & SendCommand & IIf(LenB(m_sLastError) <> 0, ", m_sLastError=" & m_sLastError, vbNullString)
+    m_sLastError = vbNullString
+    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, sData, m_sLastError)
     RaiseEvent CommandComplete(eCmd, sData, SendCommand)
     If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
     If Exceptions Then
         If Status(ucsStbPrintingError) Then
-            DebugLog FUNC_NAME, "ErrorText=" & ErrorText
             Err.Raise vbObjectError, , ErrorText
         End If
         If Memory(ucsFmeMemoryError) Then
-            DebugLog FUNC_NAME, "MemoryText=" & ErrorText
             Err.Raise vbObjectError, , MemoryText
         End If
-    End If
-End Function
-
-Public Function ReadData(Optional ByVal lTimeout As Long) As String
-    Const FUNC_NAME     As String = "ReadData"
-    
-    m_sLastError = vbNullString
-    ReadData = pvReadData(m_hComm, IIf(lTimeout > 0, lTimeout, m_lTimeout), m_sLastError)
-    DebugLog FUNC_NAME, "RetVal=" & ReadData
-    If LenB(m_sLastError) <> 0 Then
-        DebugLog FUNC_NAME, "m_sLastError=" & m_sLastError
-        Err.Raise vbObjectError, , m_sLastError
     End If
 End Function
 
@@ -896,12 +868,12 @@ Public Function EndReceipt() As Boolean
                 SendCommand ucsFpcFiscalOpen, .InitOperatorCode & "," & .InitOperatorPassword & "," & m_lCashDeskNo & _
                     IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ",I", vbNullString)
                 bInLogin = False
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If LenB(.InitOperatorName) <> 0 Then
                     .InitOperatorName = At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5)
                 End If
                 SendCommand ucsFpcNonFiscalOpen
-                If .InitReceiptType = ucsFscRetInvoiceNonFiscal Then
+                If .InitReceiptType = ucsFscRetInvoiceNonfiscal Then
                     sData = .InitInvData(ucsInvNumber)
                     If Len(sData) <= 10 Then
                         sData = Printf(pvText(ucsTxtHeaderInvoiceNo), sData)
@@ -932,7 +904,7 @@ Public Function EndReceipt() As Boolean
                     sData = sData & "," & pvSafeFormat(.DiscValue, "0.00")
                 End If
                 SendCommand ucsFpcFiscalSell, sData
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If uCtx.PluCount = 1 Then
                     pvPrintLine AlignText(Format$(m_uRow(0).InitOperatorCode, "0000") & " " & m_uRow(0).InitOperatorName, Format$(m_lCashDeskNo, "00"), pvRowChars)
                 End If
@@ -976,7 +948,7 @@ Public Function EndReceipt() As Boolean
                 If .DiscType = ucsFscDstSubtotal Then
                     SendCommand ucsFpcFiscalSubtotal, "10," & pvSafeFormat(.DiscValue, "0.00")
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If .DiscType = ucsFscDstSubtotal Then
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1054,12 +1026,12 @@ Public Function EndReceipt() As Boolean
                     End If
                     SendCommand ucsFpcFiscalClose
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
                         pvPrintLine String$(pvRowChars, "-")
                         pvPrintLine AlignText(pvText(ucsTxtFooterTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
-                        If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                             '--- print invoice totals by VAT group
                             vSplit = Split(SendCommand(ucsFpcInfoTaxRates), ",")
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1092,7 +1064,7 @@ Public Function EndReceipt() As Boolean
                         End If
                         uCtx.ChangePrinted = True
                     End If
-                    If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                    If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                         With m_uRow(0)
                             pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
@@ -1341,11 +1313,10 @@ Public Function GetDeviceProtocol() As String
     Dim sSerial         As String
     
     On Error GoTo EH
-    If pvWriteData(m_hComm, ucsFpcInfoDiagnostics, &H20) Then
-        sResult = pvReadData(m_hComm, m_lTimeout, sError)
-        If LenB(sResult) <> 0 And LenB(sError) = 0 Then
-            sSerial = At(Split(sResult, ","), 4)
-        End If
+    sResult = pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, sError:=sError)
+    If LenB(sResult) <> 0 And LenB(sError) = 0 Then
+        sSerial = At(Split(sResult, ","), 4)
+'        sResult = pvSendCommand(m_hComm, 500, ucsFpcInfoStatus, sError:=sError)
     End If
     If Left$(sSerial, 2) = "DY" Then
         GetDeviceProtocol = STR_PROTOCOL_DAISY_ECR
@@ -1404,8 +1375,13 @@ EH:
     Resume Next
 End Function
 
-Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEnum, ByVal lSequence As Long, Optional sData As String, Optional sError As String) As Boolean
-    Const FUNC_NAME     As String = "pvWriteData"
+Private Function pvSendCommand( _
+            ByVal hComm As Long, _
+            ByVal lTimeout As Long, _
+            ByVal eCmd As UcsIclCommandsEnum, _
+            Optional sData As String, _
+            Optional sError As String) As String
+    Const FUNC_NAME     As String = "pvSendCommand"
     Dim sText           As String
     Dim baText()        As Byte
     Dim lIdx            As Long
@@ -1414,12 +1390,18 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
     Dim uOver           As OVERLAPPED
     Dim lSize           As Long
     Dim lResult         As Long
+    Dim sBuffer         As String
+    Dim lMask           As Long
+    Dim lActual         As Long
     
     On Error GoTo EH
+    DebugLog FUNC_NAME, "eCmd=" & eCmd & ", sData=" & sData
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
     sText = pvTranscode(sData, True)
-    sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(lSequence) & Chr$(eCmd) & sText & Chr$(5)
+    sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(m_lSequence) & Chr$(eCmd) & sText & Chr$(5)
+    '--- increment sequence
+    m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
     baText = StrConv(sText, vbFromUnicode)
     For lIdx = 1 To UBound(baText)
@@ -1429,6 +1411,7 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
     sText = sText & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
     lSize = Len(sText)
     baText = StrConv(sText, vbFromUnicode)
+    '--- async send
     lResult = WriteFile(hComm, baText(0), lSize, lWritten, VarPtr(uOver))
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
@@ -1437,9 +1420,7 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
         End If
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, m_lTimeout)
-    If lResult = WAIT_OBJECT_0 Then
-        pvWriteData = True
-    Else
+    If lResult <> WAIT_OBJECT_0 Then
         DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         If lResult = WAIT_TIMEOUT Then
             sError = pvInternal(ucsErrTimeoutWaitingForResponse)
@@ -1447,26 +1428,11 @@ Private Function pvWriteData(ByVal hComm As Long, ByVal eCmd As UcsIclCommandsEn
         Call CancelIo(hComm)
         Call Sleep(100)
         Call FlushFileBuffers(hComm)
+        GoTo QH
     End If
-QH:
-    Call CloseHandle(uOver.hEvent)
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optional sError As String) As String
-    Const FUNC_NAME     As String = "pvReadData"
-    Dim sBuffer         As String
-    Dim dwRead          As Long
-    Dim lResult         As Long
-    Dim lMask           As Long
-    Dim uOver           As OVERLAPPED
-    
-    On Error GoTo EH
+    '--- async read response
+    sText = vbNullString
     Call SetCommMask(hComm, EV_RXCHAR)
-    uOver.hEvent = CreateEvent(0, 1, 0, 0)
     GoTo InLoop
     Do
         lResult = WaitCommEvent(hComm, lMask, uOver)
@@ -1484,7 +1450,7 @@ Private Function pvReadData(ByVal hComm As Long, ByVal lTimeout As Long, Optiona
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
             sBuffer = String$(1000, 0)
-            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), dwRead, VarPtr(uOver))
+            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
                     DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
@@ -1496,7 +1462,7 @@ InLoop:
                 lResult = WAIT_OBJECT_0
             End If
             If lResult = WAIT_OBJECT_0 Then
-                sBuffer = Left$(StrConv(sBuffer, vbUnicode), dwRead)
+                sBuffer = Left$(StrConv(sBuffer, vbUnicode), lActual)
                 '--- check for NAK (&H15)
                 If InStr(sBuffer, Chr$(&H15)) > 0 Then
                     DebugLog FUNC_NAME, "NAK, sBuffer=" & sBuffer
@@ -1504,7 +1470,7 @@ InLoop:
                     GoTo QH
                 End If
                 '--- remove SYN (&H16)
-                pvReadData = pvReadData & Replace(sBuffer, Chr$(&H16), vbNullString)
+                sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
@@ -1517,7 +1483,31 @@ InLoop:
             Call FlushFileBuffers(hComm)
             Exit Do
         End If
-    Loop While Right$(pvReadData, 1) <> Chr$(&H3) '--- until Terminator (&H3) found
+        '--- check if response complete (3 = Terminator)
+        If Right$(sText, 1) = Chr$(3) Then
+            If Left$(sText, 1) = Chr$(1) Then
+                lIdx = InStr(sText, Chr$(4))
+                If lIdx > 2 Then
+                    lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
+                    '--- check message length
+                    If lIdx - 5 = lSize Then
+                        pvSetStatus Mid$(sText, lIdx + 1, 6)
+                        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
+                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & IIf(Status(ucsStbPrintingError), ", ErrorText=" & ErrorText, vbNullString) & IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & ErrorText, vbNullString)
+                        GoTo QH
+                    Else
+                        sError = pvInternal(ucsErrInvalidResponseLength)
+                    End If
+                Else
+                    sError = pvInternal(ucsErrResponseMissingPostamble)
+                End If
+            Else
+                sError = pvInternal(ucsErrResponseMissingPreamble)
+            End If
+            pvSetStatus vbNullString '--- clear
+            Exit Do
+        End If
+    Loop
 QH:
     Call CloseHandle(uOver.hEvent)
     Exit Function
@@ -1528,23 +1518,29 @@ End Function
 
 Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As String
     Const FUNC_NAME     As String = "pvTranscode"
+    Const MIK_OFFSET    As Long = &H80
+    Const WIN_OFFSET    As Long = &HC0
     Dim lIdx            As Long
     Dim lChar           As Long
     
     On Error GoTo EH
     pvTranscode = sText
-    For lIdx = 1 To Len(pvTranscode)
-        lChar = Asc(Mid$(pvTranscode, lIdx, 1))
-        If lChar < &H7F Then
-            '--- do nothing
-        ElseIf lChar >= &HC0 And lChar <= &HFF And bToPrinter Then
-            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar - &H40)
-        ElseIf lChar >= &H80 And lChar < &HC0 And Not bToPrinter Then
-            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + &H40)
-        Else
-            Mid$(pvTranscode, lIdx, 1) = "?"
-        End If
-    Next
+    If m_eCharset = ucsCrsMik Then
+        For lIdx = 1 To Len(pvTranscode)
+            lChar = Asc(Mid$(pvTranscode, lIdx, 1))
+            If lChar < &H7F Then
+                '--- do nothing
+            ElseIf bToPrinter Then
+                If lChar >= WIN_OFFSET And lChar <= WIN_OFFSET + &H3F Then
+                    Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
+                End If
+            ElseIf Not bToPrinter Then
+                If lChar >= MIK_OFFSET And lChar <= MIK_OFFSET + &H3F Then
+                    Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
+                End If
+            End If
+        Next
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -1745,7 +1741,7 @@ Private Sub pvConvertExtraRows()
                 If .RowType = ucsRowPlu Then
                     lCount = lCount + 1
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         dblTotal = Round(.PluQuantity * .PluPrice, 2)
                         If .DiscType = ucsFscDstPlu Then
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
@@ -1756,7 +1752,7 @@ Private Sub pvConvertExtraRows()
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstSubtotal Then
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         pvGetSubtotals lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
