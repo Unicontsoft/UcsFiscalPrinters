@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 11    10.05.11 15:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 12    17.06.11 13:23 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 12    17.06.11 13:23 Wqw
+' REF: enum casing
+'
 ' 11    10.05.11 15:15 Wqw
 ' REF: guard GetCommandLog in err handlers
 '
@@ -288,7 +291,7 @@ Public Function PrintReceipt( _
         oFP.StartReceipt ReceiptType, At(OperatorData, ucsFscPixOperatorCode), _
             At(OperatorData, ucsFscPixOperatorName, STR_CASHIER), _
             At(OperatorData, ucsFscPixOperatorPass), _
-            IIf(ReceiptType = ucsFscRetInvoiceNonFiscal, At(InvoiceData, ucsFscPixInvoiceNoPrefix), vbNullString) & At(InvoiceData, ucsFscPixInvoiceNo), _
+            IIf(ReceiptType = ucsFscRetInvoiceNonfiscal, At(InvoiceData, ucsFscPixInvoiceNoPrefix), vbNullString) & At(InvoiceData, ucsFscPixInvoiceNo), _
             At(InvoiceData, ucsFscPixCgBulstat), _
             At(InvoiceData, ucsFscPixCgVatNo), _
             At(InvoiceData, ucsFscPixCgName), _
@@ -301,7 +304,7 @@ Public Function PrintReceipt( _
         End If
         If PrintDuplicate Then
             oFP.AddLine STR_DUPLICATE
-        ElseIf ReceiptType = ucsFscRetInvoiceNonFiscal Then
+        ElseIf ReceiptType = ucsFscRetInvoiceNonfiscal Then
             oFP.AddLine STR_ORIGINAL
         End If
         For Each vElem In Rows
@@ -327,7 +330,7 @@ Public Function PrintReceipt( _
     End If
     If PrintDuplicate Then
         Select Case ReceiptType
-        Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+        Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
             If IsEmpty(Rows) Then
                 LastError = ERR_MISSING_ROWS
                 GoTo QH
