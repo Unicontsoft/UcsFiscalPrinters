@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 4     22.02.11 13:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 5     17.06.11 11:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 5     17.06.11 11:35 Wqw
+' REF: enums
+'
 ' 4     22.02.11 13:53 Wqw
 ' ADD: Function GetDeviceProtocol
 '
@@ -40,7 +43,7 @@ Public Enum UcsFiscalReceiptTypeEnum
     ucsFscRetNonfiscal = 1
     ucsFscRetFiscal
     ucsFscRetInvoiceFiscal
-    ucsFscRetInvoiceNonFiscal
+    ucsFscRetInvoiceNonfiscal
     [_ucsFscRetMax]
 End Enum
 
