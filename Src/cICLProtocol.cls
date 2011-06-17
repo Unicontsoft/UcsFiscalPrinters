@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 25    17.06.11 11:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 26    17.06.11 13:23 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 26    17.06.11 13:23 Wqw
+' REF: in SendCommand sets last error on printer/memory error
+'
 ' 25    17.06.11 11:34 Wqw
 ' REF: auto-sense charset, merge pvRead/WriteData
 '
@@ -675,9 +678,11 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As 
     End If
     If Exceptions Then
         If Status(ucsStbPrintingError) Then
+            m_sLastError = ErrorText
             Err.Raise vbObjectError, , ErrorText
         End If
         If Memory(ucsFmeMemoryError) Then
+            m_sLastError = MemoryText
             Err.Raise vbObjectError, , MemoryText
         End If
     End If
