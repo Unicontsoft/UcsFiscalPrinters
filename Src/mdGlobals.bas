@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 11    11.04.11 14:50 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 12    4.07.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 12    4.07.11 15:48 Wqw
+' REF: err handling
+'
 ' 11    11.04.11 14:50 Wqw
 ' ADD: Function Znl
 '
@@ -132,8 +135,8 @@ Public g_sDecimalSeparator      As String
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-    OutputDebugLog MODULE_NAME, sFunc, "Run-time error: " & Error
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 '=========================================================================
@@ -295,20 +298,30 @@ End Function
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Dim sFile           As String
     Dim nFile           As Integer
+    Dim lErrNum         As Long
+    Dim sErrSrc         As String
+    Dim sErrDesc        As String
     
+    lErrNum = Err.Number
+    sErrSrc = Err.Source
+    sErrDesc = Err.Description
     On Error Resume Next
     sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
     If LenB(sFile) = 0 Then
         sFile = Environ$("TEMP") & "\UcsFP.log"
         If GetAttr(sFile) = -1 Then
-            Exit Sub
+            GoTo QH
         End If
     End If
     nFile = FreeFile
     Open sFile For Append Access Write As #nFile
     Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right(Format(Timer, "#0.00"), 2) & "): " & sText
     Close #nFile
+QH:
     On Error GoTo 0
+    Err.Number = lErrNum
+    Err.Source = sErrSrc
+    Err.Description = sErrDesc
 End Sub
 
 Public Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double

@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 5     24.02.11 16:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 6     4.07.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 6     4.07.11 15:48 Wqw
+' REF: err handling
+'
 ' 5     24.02.11 16:19 Wqw
 ' REF: IsShared [let]
 '
@@ -53,13 +56,13 @@ Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-    DebugLog sFunc, "Run-time error: " & Error
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
-Private Sub DebugLog(sFunc As String, sText As String)
-    OutputDebugLog MODULE_NAME, sFunc, sText
-End Sub
+'Private Sub DebugLog(sFunc As String, sText As String)
+'    OutputDebugLog MODULE_NAME, sFunc, sText
+'End Sub
 
 '=========================================================================
 ' Properties

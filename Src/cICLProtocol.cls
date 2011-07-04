@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 26    17.06.11 13:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 27    4.07.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 27    4.07.11 15:48 Wqw
+' REF: err handling
+'
 ' 26    17.06.11 13:23 Wqw
 ' REF: in SendCommand sets last error on printer/memory error
 '
@@ -439,8 +442,14 @@ End Enum
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-    OutputDebugLog MODULE_NAME, sFunc, "Run-time error: " & Error
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+End Sub
+
+Private Sub RaiseError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Private Sub DebugLog(sFunc As String, sText As String)
@@ -550,6 +559,7 @@ End Property
 '=========================================================================
 
 Public Function EnumPorts() As Variant
+    Const FUNC_NAME     As String = "EnumPorts"
     Dim hComm           As Long
     Dim sError          As String
     Dim sResult         As String
@@ -557,6 +567,7 @@ Public Function EnumPorts() As Variant
     Dim vRet            As Variant
     Dim lCount          As Long
     
+    On Error GoTo EH
     ReDim vRet(0 To 255) As Variant
     For Each vPort In EnumSerialPorts
         sError = vbNullString
@@ -578,12 +589,16 @@ Public Function EnumPorts() As Variant
         ReDim Preserve vRet(0 To lCount - 1) As Variant
         EnumPorts = vRet
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optional lCashDeskNo As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
+    On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", lTimeout=" & lTimeout
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
@@ -613,11 +628,15 @@ QH:
     If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
     
+    On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
@@ -631,11 +650,15 @@ QH:
     If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function Disconnect() As Boolean
     Const FUNC_NAME     As String = "Disconnect"
     
+    On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
     m_sLastError = vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
@@ -652,11 +675,16 @@ QH:
     If LenB(m_sLastError) <> 0 Then
         Err.Raise vbObjectError, , m_sLastError
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As String) As String
+    Const FUNC_NAME     As String = "SendCommand"
     Dim vResult         As Variant
     
+    On Error GoTo EH
     '--- auto-sense encoding
     If m_eCharset = ucsCrsAuto Then
         m_eCharset = ucsCrsWindows
@@ -686,6 +714,9 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As 
             Err.Raise vbObjectError, , MemoryText
         End If
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function StartReceipt( _
@@ -701,9 +732,11 @@ Public Function StartReceipt( _
             Optional InvAddress As String, _
             Optional InvMol As String, _
             Optional InvReceiver As String) As Boolean
+    Const FUNC_NAME     As String = "StartReceipt"
     Dim sCity           As String
     Dim sAddress        As String
     
+    On Error GoTo EH
     ReDim m_uRow(0 To 10) As UcsRowData
     m_lRowCount = 0
     m_bFiscalPaymentExecuted = False
@@ -718,6 +751,9 @@ Public Function StartReceipt( _
     End With
     '--- success
     StartReceipt = True
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function AddPLU( _
@@ -726,9 +762,11 @@ Public Function AddPLU( _
             Optional Quantity As Double = 1, _
             Optional VatGroup As Long = 2, _
             Optional ByVal BeforeIndex As Long) As Boolean
+    Const FUNC_NAME     As String = "AddPLU"
     Dim uRow            As UcsRowData
     Dim bNegative       As Boolean
     
+    On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
@@ -745,14 +783,19 @@ Public Function AddPLU( _
     pvInsertRow BeforeIndex, uRow
     '--- success
     AddPLU = True
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function AddLine( _
             Line As String, _
             Optional ByVal WordWrap As Boolean, _
             Optional ByVal BeforeIndex As Long) As Boolean
+    Const FUNC_NAME     As String = "AddLine"
     Dim uRow            As UcsRowData
     
+    On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
@@ -766,13 +809,18 @@ Public Function AddLine( _
     pvInsertRow BeforeIndex, uRow
     '--- success
     AddLine = True
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function AddDiscount( _
             ByVal DiscType As UcsFiscalDiscountTypeEnum, _
             Value As Double) As Boolean
+    Const FUNC_NAME     As String = "AddDiscount"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
@@ -800,12 +848,18 @@ Public Function AddDiscount( _
     End Select
     '--- success
     AddDiscount = True
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function AddPayment( _
             ByVal Number As UcsFiscalPaymentTypeEnum, _
             Name As String, _
             Amount As Double) As Boolean
+    Const FUNC_NAME     As String = "AddPayment"
+    
+    On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
         Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
@@ -819,6 +873,9 @@ Public Function AddPayment( _
     End With
     '--- success
     AddPayment = True
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function EndReceipt() As Boolean
@@ -1114,6 +1171,7 @@ EH:
         m_sLastError = Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
     End If
     Err.Raise vbObjectError, , m_sLastError
+    Resume
 End Function
 
 Public Function CopyLastReceipt() As Boolean
@@ -1125,20 +1183,33 @@ EH_Cancel:
 End Function
 
 Public Function GetClock() As Date
+    Const FUNC_NAME     As String = "GetClock"
     Dim vSplit          As Variant
     
+    On Error GoTo EH
     vSplit = Split(SendCommand(ucsFpcInfoDateTime), " ")
     GetClock = C_Date(At(vSplit, 0)) + C_Date(At(vSplit, 1))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Sub SetClock(ByVal NewDate As Date)
+    Const FUNC_NAME     As String = "SetClock"
+    
+    On Error GoTo EH
     SendCommand ucsFpcInitDateTime, Format$(NewDate, "dd-MM-yy") & " " & Format$(NewDate, "hh:mm:ss")
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "RunXReport"
     Dim bPrevExceptions As Boolean
     Dim eCmd            As UcsIclCommandsEnum
     
+    On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
         eCmd = ucsFpcPrintDailyReport
@@ -1164,13 +1235,18 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         '--- success
         RunXReport = True
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "RunZReport"
     Dim bPrevExceptions As Boolean
     Dim lIdx            As Long
     Dim eCmd            As UcsIclCommandsEnum
     
+    On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
         eCmd = ucsFpcPrintDailyReport
@@ -1201,11 +1277,16 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         '--- success
         RunZReport = True
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    Const FUNC_NAME     As String = "RunPeriodReport"
     Dim eCmd            As UcsIclCommandsEnum
     
+    On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstPeriodShort
         eCmd = ucsFpcPrintReportByDateShort
@@ -1217,55 +1298,106 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
         '--- success
         RunPeriodReport = True
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetLastReceiptNumber() As Long
+    Const FUNC_NAME     As String = "GetLastReceiptNumber"
+    
+    On Error GoTo EH
     GetLastReceiptNumber = SendCommand(ucsFpcInfoLastReceipt)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetLastInvoiceNumber() As String
+    Const FUNC_NAME     As String = "GetLastInvoiceNumber"
+    
+    On Error GoTo EH
     GetLastInvoiceNumber = At(Split(SendCommand(ucsFpcInitInvoiceNo), ","), 0)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetSerialNumber() As String
+    Const FUNC_NAME     As String = "GetSerialNumber"
+    
+    On Error GoTo EH
     GetSerialNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetFiscalNumber() As String
+    Const FUNC_NAME     As String = "GetFiscalNumber"
+    
+    On Error GoTo EH
     GetFiscalNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 5)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetTaxNumber() As String
+    Const FUNC_NAME     As String = "GetTaxNumber"
+    
+    On Error GoTo EH
     GetTaxNumber = At(Split(SendCommand(ucsFpcInfoBulstat), ","), 0)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetTaxCaption() As String
+    Const FUNC_NAME     As String = "GetTaxCaption"
+    
+    On Error GoTo EH
     GetTaxCaption = At(Split(SendCommand(ucsFpcInfoBulstat), ","), 1)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetHeaderText(ByVal Index As Long) As String
+    Const FUNC_NAME     As String = "GetHeaderText"
     Dim bPrevExceptions As Boolean
     
+    On Error GoTo EH
     If Index >= 1 And Index <= 6 Then
         bPrevExceptions = pvSetExceptions(False)
         GetHeaderText = SendCommand(ucsFpcInitHeaderFooter, "I" & (Index - 1))
         Exceptions = bPrevExceptions
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetFooterText(ByVal Index As Long) As String
+    Const FUNC_NAME     As String = "GetFooterText"
     Dim bPrevExceptions As Boolean
-
+    
+    On Error GoTo EH
     If Index >= 1 And Index <= 2 Then
         bPrevExceptions = pvSetExceptions(False)
         GetFooterText = SendCommand(ucsFpcInitHeaderFooter, "I" & (Index + 5))
         Exceptions = bPrevExceptions
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetPaymentName(ByVal Index As Long) As String
+    Const FUNC_NAME     As String = "GetPaymentName"
     Dim bPrevExceptions As Boolean
     
+    On Error GoTo EH
     If Index > 4 Then
         bPrevExceptions = pvSetExceptions(False)
         GetPaymentName = SendCommand(ucsFpcInitPaymentType, Chr$(68 + Index))
@@ -1276,6 +1408,9 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function OpenDrawer() As Boolean
@@ -1287,8 +1422,10 @@ EH_Cancel:
 End Function
 
 Public Function CancelReceipt() As Boolean
+    Const FUNC_NAME     As String = "CancelReceipt"
     Dim bPrevExceptions As Boolean
     
+    On Error GoTo EH
     bPrevExceptions = pvSetExceptions(False)
     If Left$(SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
         If Status(ucsStbFiscalPrinting) Then
@@ -1309,6 +1446,9 @@ Public Function CancelReceipt() As Boolean
     Exceptions = bPrevExceptions
     '--- success (or failure)
     CancelReceipt = (Left$(SendCommand(ucsFpcInfoTransaction), 1) <> "1")
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function GetDeviceProtocol() As String
@@ -1330,8 +1470,7 @@ Public Function GetDeviceProtocol() As String
     End If
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Function
 
 '= private ===============================================================
@@ -1376,8 +1515,7 @@ QH:
     pvSetStatus vbNullString '--- clear
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvSendCommand( _
@@ -1548,8 +1686,7 @@ Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As St
     End If
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvSetStatus(sStatus As String)
@@ -1575,8 +1712,7 @@ Private Sub pvSetStatus(sStatus As String)
     End If
     Exit Sub
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Sub
 
 Friend Function frGetFlagsText(ByVal lFlags As Long, sTexts As String) As String
@@ -1598,29 +1734,48 @@ Friend Function frGetFlagsText(ByVal lFlags As Long, sTexts As String) As String
     Next
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
+    Const FUNC_NAME     As String = "pvInternal"
+    
+    On Error GoTo EH
     pvInternal = At(Split(LocalizedText(ucsFscLciInternalErrors), "|"), lIdx, At(Split(STR_INTERNAL, "|"), lIdx))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvText(ByVal lIdx As UcsReceiptTextsEnum) As String
+    Const FUNC_NAME     As String = "pvText"
+    
+    On Error GoTo EH
     pvText = At(Split(m_sLocalizedText(ucsFscLciReceiptTexts), "|"), lIdx, At(Split(STR_RECEIPT_TEXTS, "|"), lIdx))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvAddRow() As Long
+    Const FUNC_NAME     As String = "pvAddRow"
+    
+    On Error GoTo EH
     If m_lRowCount > UBound(m_uRow) Then
         ReDim Preserve m_uRow(0 To 2 * UBound(m_uRow)) As UcsRowData
     End If
     pvAddRow = m_lRowCount
     m_lRowCount = m_lRowCount + 1
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvInsertRow(ByVal lRow As Long, uRow As UcsRowData)
+    Const FUNC_NAME     As String = "pvInsertRow"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     If lRow = 0 Or lRow >= m_lRowCount Then
         m_uRow(pvAddRow()) = uRow
     Else
@@ -1630,6 +1785,9 @@ Private Sub pvInsertRow(ByVal lRow As Long, uRow As UcsRowData)
         Next
         m_uRow(lRow) = uRow
     End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Function pvSetExceptions(ByVal bValue As Boolean) As Boolean
@@ -1638,22 +1796,35 @@ Private Function pvSetExceptions(ByVal bValue As Boolean) As Boolean
 End Function
 
 Private Function pvSafeText(sText As String) As String
+    Const FUNC_NAME     As String = "pvSafeText"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     pvSafeText = sText
     For lIdx = 0 To 31
         pvSafeText = Replace(pvSafeText, Chr$(lIdx), vbNullString)
     Next
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvSafeFormat(Expression As Variant, Optional Fmt As Variant, Optional sDecimal As String = ".") As String
+    Const FUNC_NAME     As String = "pvSafeFormat"
+    
+    On Error GoTo EH
     pvSafeFormat = Replace(Format$(Expression, Fmt), g_sDecimalSeparator, sDecimal)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvPrintLine(vText As Variant)
+    Const FUNC_NAME     As String = "pvPrintLine"
     Dim vElem               As Variant
     Dim eCmd                As UcsIclCommandsEnum
     
+    On Error GoTo EH
     Select Case m_uRow(0).InitReceiptType
     Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
         eCmd = ucsFpcFiscalText
@@ -1667,9 +1838,13 @@ Private Function pvPrintLine(vText As Variant)
     Else
         SendCommand eCmd, C_Str(vText)
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvConvertExtraRows()
+    Const FUNC_NAME     As String = "pvConvertExtraRows"
     Dim uCtx            As UcsContext
     Dim lIdx            As Long
     Dim lRow            As Long
@@ -1679,37 +1854,39 @@ Private Sub pvConvertExtraRows()
     Dim uSum            As UcsContext
     Dim dblDiscount     As Double
     
+    On Error GoTo EH
     '--- convert out-of-range discounts to PLU rows
     For lRow = 0 To m_lRowCount - 1
-        With m_uRow(lRow)
-            If .RowType = ucsRowPlu Then
-                If (.DiscValue < MIN_DISCOUNT Or .DiscValue > MAX_DISCOUNT) Then
-                    dblTotal = Round(.PluQuantity * .PluPrice, 2)
-                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
-                    If Round(dblTotal * .DiscValue / 100#, 2) = Round(dblTotal * dblDiscount / 100#, 2) Then
-                        .DiscValue = dblDiscount
+        '--- note: 'With' locks m_uRow array and fails if auto-grow needed in AddPLU
+'        With m_uRow(lRow)
+            If m_uRow(lRow).RowType = ucsRowPlu Then
+                If (m_uRow(lRow).DiscValue < MIN_DISCOUNT Or m_uRow(lRow).DiscValue > MAX_DISCOUNT) Then
+                    dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
+                    dblDiscount = Limit(m_uRow(lRow).DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    If Round(dblTotal * m_uRow(lRow).DiscValue / 100#, 2) = Round(dblTotal * dblDiscount / 100#, 2) Then
+                        m_uRow(lRow).DiscValue = dblDiscount
                     Else
-                        dblDiscount = .DiscValue
-                        .DiscValue = 0
+                        dblDiscount = m_uRow(lRow).DiscValue
+                        m_uRow(lRow).DiscValue = 0
                         AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                            Round(dblTotal * dblDiscount / 100#, 2), 1, .PluVatGroup, lRow + 1
+                            Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                     End If
                 End If
-            ElseIf .RowType = ucsRowDiscount Then
-                If (.DiscValue < MIN_DISCOUNT Or .DiscValue > MAX_DISCOUNT) And .DiscType = ucsFscDstSubtotal Then
+            ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
+                If (m_uRow(lRow).DiscValue < MIN_DISCOUNT Or m_uRow(lRow).DiscValue > MAX_DISCOUNT) And m_uRow(lRow).DiscType = ucsFscDstSubtotal Then
                     pvGetSubtotals lRow, uSum
-                    dblDiscount = Limit(.DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
+                    dblDiscount = Limit(m_uRow(lRow).DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
                     lCount = 0
                     For lIdx = 1 To UBound(uSum.GrpTotal)
-                        If Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
+                        If Round(uSum.GrpTotal(lIdx) * m_uRow(lRow).DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
                             lCount = lCount + 1
                         End If
                     Next
                     If lCount = 0 Then
-                        .DiscValue = dblDiscount
+                        m_uRow(lRow).DiscValue = dblDiscount
                     Else
-                        dblDiscount = .DiscValue
-                        .DiscValue = 0
+                        dblDiscount = m_uRow(lRow).DiscValue
+                        m_uRow(lRow).DiscValue = 0
                         For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
                             If uSum.GrpTotal(lIdx) <> 0 Then
                                 AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
@@ -1719,7 +1896,7 @@ Private Sub pvConvertExtraRows()
                     End If
                 End If
             End If
-        End With
+'        End With
     Next
     '--- count PLU rows and mark different VAT groups
     lCount = 0
@@ -1780,14 +1957,19 @@ Private Sub pvConvertExtraRows()
             End If
         Next
     End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
+    Const FUNC_NAME     As String = "pvGetSubtotals"
     Dim lIdx            As Long
     Dim lJdx            As Long
     Dim dblTotal        As Double
     Dim uEmpty          As UcsContext
     
+    On Error GoTo EH
     uCtx = uEmpty
     For lIdx = 0 To lRow - 1
         With m_uRow(lIdx)
@@ -1809,6 +1991,9 @@ Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
         End If
         End With
     Next
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 '=========================================================================

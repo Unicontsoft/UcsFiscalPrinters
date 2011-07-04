@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 6     4.05.11 19:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 7     4.07.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 7     4.07.11 15:48 Wqw
+' REF: err handling
+'
 ' 6     4.05.11 19:48 Wqw
 ' REF: fiscal memory report by dates
 '
@@ -2399,8 +2402,8 @@ End Enum
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
-    MsgBox MODULE_NAME & "." & sFunc & ": " & Error, vbCritical
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    MsgBox MODULE_NAME & "." & sFunc & "(" & Erl & ")" & ": " & Err.Description, vbCritical
 End Sub
 
 '=========================================================================
