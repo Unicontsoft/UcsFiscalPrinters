@@ -12,15 +12,19 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 27    4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 28    13.07.11 18:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
 '
-'   Protocol za fiscalni printer na Datecs i Daisy po ICL protocol
+'   Protocol for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 28    13.07.11 18:14 Wqw
+' REF: final payment if anything outstanding, while loop in convert extra
+' rows
+'
 ' 27    4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -1071,9 +1075,13 @@ Public Function EndReceipt() As Boolean
                     End If
                     SendCommand ucsFpcFiscalPayment, vbTab & sType & pvSafeFormat(.PmtAmount, "0.00")
                 Else
-                    bPrevExceptions = pvSetExceptions(False)
-                    SendCommand ucsFpcFiscalPayment, vbTab
-                    Exceptions = bPrevExceptions
+                    '--- check if anything left for payment
+                    vSplit = Split(SendCommand(ucsFpcInfoTransaction, "T"), ",")
+                    If C_Dbl(At(vSplit, 2)) > C_Dbl(At(vSplit, 3)) Or LenB(At(vSplit, 2)) = 0 Then
+                        bPrevExceptions = pvSetExceptions(False)
+                        SendCommand ucsFpcFiscalPayment, vbTab
+                        Exceptions = bPrevExceptions
+                    End If
                     If .PrintRowType = ucsFscRetInvoiceFiscal Then
                         With m_uRow(0)
                             SendCommand ucsFpcFiscalCgInfo, _
@@ -1856,7 +1864,8 @@ Private Sub pvConvertExtraRows()
     
     On Error GoTo EH
     '--- convert out-of-range discounts to PLU rows
-    For lRow = 0 To m_lRowCount - 1
+    '--- note: m_lRowCount may change in loop on AddPLU
+    Do While lRow < m_lRowCount
         '--- note: 'With' locks m_uRow array and fails if auto-grow needed in AddPLU
 '        With m_uRow(lRow)
             If m_uRow(lRow).RowType = ucsRowPlu Then
@@ -1897,7 +1906,8 @@ Private Sub pvConvertExtraRows()
                 End If
             End If
 '        End With
-    Next
+        lRow = lRow + 1
+    Loop
     '--- count PLU rows and mark different VAT groups
     lCount = 0
     For lRow = 0 To m_lRowCount - 1
