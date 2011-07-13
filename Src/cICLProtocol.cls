@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 28    13.07.11 18:14 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 29    13.07.11 19:45 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 29    13.07.11 19:45 Wqw
+' REF: encoding auto-sensing error tollerance in send message
+'
 ' 28    13.07.11 18:14 Wqw
 ' REF: final payment if anything outstanding, while loop in convert extra
 ' rows
@@ -691,14 +694,16 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As 
     On Error GoTo EH
     '--- auto-sense encoding
     If m_eCharset = ucsCrsAuto Then
-        m_eCharset = ucsCrsWindows
         vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, "0"), ",")
-        '--- idx 3 = country, value 6 = bg
-        If At(vResult, 3) = 6 Then
-            vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInitDecimals), ",")
-            '--- idx 2 = currency name
-            If Asc(Zn(Trim$(At(vResult, 2)), " ")) < &HC0 Then
-                m_eCharset = ucsCrsMik
+        If LenB(At(vResult, 3)) <> 0 Then
+            m_eCharset = ucsCrsWindows
+            '--- idx 3 = country, value 6 = bg
+            If C_Lng(At(vResult, 3)) = 6 Then
+                vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInitDecimals), ",")
+                '--- idx 2 = currency name
+                If Asc(Zn(Trim$(At(vResult, 2)), " ")) < &HC0 Then
+                    m_eCharset = ucsCrsMik
+                End If
             End If
         End If
     End If
