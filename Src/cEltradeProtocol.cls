@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 18    4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 19    13.07.11 18:14 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
 '
-'   Protocol za kasowi aparati na Eltrade
+'   Protocol for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 19    13.07.11 18:14 Wqw
+' REF: while loop in convert extra rows
+'
 ' 18    4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -2006,7 +2009,8 @@ Private Sub pvConvertExtraRows()
     
     On Error GoTo EH
     '--- convert out-of-range discounts to PLU rows
-    For lRow = 0 To m_lRowCount - 1
+    '--- note: m_lRowCount may change in loop on AddPLU
+    Do While lRow < m_lRowCount
         '--- note: 'With' locks m_uRow array and fails if auto-grow needed in AddPLU
 '        With m_uRow(lRow)
             If m_uRow(lRow).RowType = ucsRowPlu Then
@@ -2049,7 +2053,8 @@ Private Sub pvConvertExtraRows()
                 End If
             End If
 '        End With
-    Next
+        lRow = lRow + 1
+    Loop
     '--- count PLU rows and mark different VAT groups
     lCount = 0
     For lRow = 0 To m_lRowCount - 1
