@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 29    13.07.11 19:45 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 30    15.07.11 16:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 30    15.07.11 16:48 Wqw
+' REF: final payment ot zero sum receipt
+'
 ' 29    13.07.11 19:45 Wqw
 ' REF: encoding auto-sensing error tollerance in send message
 '
@@ -1079,10 +1082,11 @@ Public Function EndReceipt() As Boolean
                         Exceptions = bPrevExceptions
                     End If
                     SendCommand ucsFpcFiscalPayment, vbTab & sType & pvSafeFormat(.PmtAmount, "0.00")
+                    uCtx.PmtPrinted = True
                 Else
                     '--- check if anything left for payment
                     vSplit = Split(SendCommand(ucsFpcInfoTransaction, "T"), ",")
-                    If C_Dbl(At(vSplit, 2)) > C_Dbl(At(vSplit, 3)) Or LenB(At(vSplit, 2)) = 0 Then
+                    If C_Dbl(At(vSplit, 2)) > C_Dbl(At(vSplit, 3)) Or LenB(At(vSplit, 2)) = 0 Or Not uCtx.PmtPrinted Then
                         bPrevExceptions = pvSetExceptions(False)
                         SendCommand ucsFpcFiscalPayment, vbTab
                         Exceptions = bPrevExceptions
