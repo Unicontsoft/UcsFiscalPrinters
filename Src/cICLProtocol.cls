@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 30    15.07.11 16:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 31    18.07.11 13:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 31    18.07.11 13:43 Wqw
+' REF: operator name size syntax error
+'
 ' 30    15.07.11 16:48 Wqw
 ' REF: final payment ot zero sum receipt
 '
@@ -929,10 +932,16 @@ Public Function EndReceipt() As Boolean
             Select Case .InitReceiptType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 bPrevExceptions = pvSetExceptions(False)
+                sData = RTrim$(At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5))
                 If LenB(.InitOperatorName) <> 0 Then
-                    SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & .InitOperatorName
+                    If RTrim$(Left$(.InitOperatorName, LimitLong(Len(sData), 23))) <> sData Then
+                        SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & RTrim$(Left$(.InitOperatorName, 30))
+                        If Status(ucsStbPrintingError) Then
+                            SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & RTrim$(Left$(.InitOperatorName, 24))
+                        End If
+                    End If
                 Else
-                    .InitOperatorName = At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5)
+                    .InitOperatorName = sData
                 End If
                 If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
                     SendCommand ucsFpcInitInvoiceNo, .InitInvData(ucsInvNumber) & "," & .InitInvData(ucsInvNumber)
@@ -1261,6 +1270,7 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunZReport"
     Dim bPrevExceptions As Boolean
     Dim lIdx            As Long
+    Dim lCount          As Long
     Dim eCmd            As UcsIclCommandsEnum
     
     On Error GoTo EH
@@ -1275,12 +1285,15 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         eCmd = ucsFpcPrintDailyReportItemsDepartments
     End Select
     If eCmd <> 0 Then
-        '--- zachistwane na elektronna kontrolna lenta
         bPrevExceptions = pvSetExceptions(False)
-        For lIdx = 1 To C_Lng(At(Split(SendCommand(ucsFpcInitEcTape, "I"), ","), 1))
-            SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
-        Next
-        SendCommand ucsFpcInitEcTape, "E"
+        '--- clear electronic control tape (if present)
+        lCount = C_Lng(At(Split(SendCommand(ucsFpcInitEcTape, "I"), ","), 1))
+        If Not Status(ucsStbPrintingError) Then
+            For lIdx = 1 To lCount
+                SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
+            Next
+            SendCommand ucsFpcInitEcTape, "E"
+        End If
         SendCommand eCmd, "0N"
         If Status(ucsStbPrintingError) Then
             '--- daisy: pechat po depatamenti
