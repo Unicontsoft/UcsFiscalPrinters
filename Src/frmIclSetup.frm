@@ -24,6 +24,274 @@ Begin VB.Form frmIclSetup
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
+      Index           =   15
+      Left            =   2250
+      TabIndex        =   172
+      Top             =   90
+      Width           =   5775
+      Begin VB.TextBox txtDiagFirmware 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   175
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   3525
+      End
+      Begin VB.TextBox txtDiagChecksum 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   174
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   3525
+      End
+      Begin VB.TextBox txtDiagSwitches 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   173
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   3525
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Печат"
+         Height          =   375
+         Index           =   9
+         Left            =   4320
+         TabIndex        =   84
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.Label Label57 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Firmware:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   178
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label56 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Контролна сума:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   177
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label55 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Ключета Sw1..Sw4:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   176
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   13
+      Left            =   2250
+      TabIndex        =   170
+      Top             =   90
+      Width           =   5775
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Отчет оператори"
+         Height          =   285
+         Index           =   5
+         Left            =   180
+         TabIndex        =   80
+         Top             =   3420
+         Width           =   5145
+      End
+      Begin VB.CheckBox chkReportDetailed1 
+         Caption         =   "Детайлен"
+         Height          =   285
+         Left            =   900
+         TabIndex        =   75
+         Top             =   1710
+         Width           =   1725
+      End
+      Begin VB.TextBox txtReportStart 
+         Height          =   285
+         Left            =   1800
+         TabIndex        =   73
+         Top             =   1350
+         Width           =   1095
+      End
+      Begin VB.TextBox txtReportEnd 
+         Height          =   285
+         Left            =   3420
+         TabIndex        =   74
+         Top             =   1350
+         Width           =   1095
+      End
+      Begin VB.CheckBox chkReportDetailed2 
+         Caption         =   "Детайлен"
+         Height          =   285
+         Left            =   900
+         TabIndex        =   79
+         Top             =   2970
+         Width           =   1725
+      End
+      Begin VB.TextBox txtReportTD 
+         Height          =   285
+         Left            =   3420
+         TabIndex        =   78
+         Top             =   2520
+         Width           =   1095
+      End
+      Begin VB.TextBox txtReportFD 
+         Height          =   285
+         Left            =   1800
+         TabIndex        =   77
+         Top             =   2520
+         Width           =   1095
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Печат"
+         Height          =   375
+         Index           =   7
+         Left            =   4320
+         TabIndex        =   83
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Натрупани суми за период"
+         Enabled         =   0   'False
+         Height          =   285
+         Index           =   4
+         Left            =   180
+         TabIndex        =   81
+         Top             =   3780
+         Width           =   5145
+      End
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Периодичен отчет по дата на запис"
+         Height          =   285
+         Index           =   3
+         Left            =   180
+         TabIndex        =   76
+         Top             =   2160
+         Width           =   5145
+      End
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Периодичен отчет по номер на запис"
+         Height          =   285
+         Index           =   2
+         Left            =   180
+         TabIndex        =   72
+         Top             =   990
+         Width           =   5145
+      End
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Данъчни ставки"
+         Enabled         =   0   'False
+         Height          =   285
+         Index           =   1
+         Left            =   180
+         TabIndex        =   82
+         Top             =   4140
+         Width           =   5145
+      End
+      Begin VB.CheckBox chkReportDepartments 
+         Caption         =   "Департаменти"
+         Height          =   285
+         Left            =   3960
+         TabIndex        =   71
+         Top             =   630
+         Width           =   1725
+      End
+      Begin VB.CheckBox chkReportItems 
+         Caption         =   "Артикули"
+         Height          =   285
+         Left            =   2430
+         TabIndex        =   70
+         Top             =   630
+         Width           =   1725
+      End
+      Begin VB.CheckBox chkReportClosure 
+         Caption         =   "Нулиране"
+         Height          =   285
+         Left            =   900
+         TabIndex        =   69
+         Top             =   630
+         Width           =   1725
+      End
+      Begin VB.OptionButton optReportType 
+         Caption         =   "Дневен финансов отчет"
+         Height          =   285
+         Index           =   0
+         Left            =   180
+         TabIndex        =   68
+         Top             =   270
+         Value           =   -1  'True
+         Width           =   5145
+      End
+      Begin VB.Label Label64 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "От номер:"
+         Height          =   195
+         Left            =   900
+         TabIndex        =   187
+         Top             =   1350
+         Width           =   915
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label63 
+         Alignment       =   1  'Right Justify
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "до: "
+         Height          =   195
+         Left            =   2520
+         TabIndex        =   186
+         Top             =   1350
+         Width           =   915
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label62 
+         Alignment       =   1  'Right Justify
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "до: "
+         Height          =   195
+         Left            =   2520
+         TabIndex        =   185
+         Top             =   2520
+         Width           =   915
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label61 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "От дата:"
+         Height          =   300
+         Left            =   900
+         TabIndex        =   184
+         Top             =   2520
+         Width           =   915
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
       Index           =   6
       Left            =   2250
       TabIndex        =   179
@@ -1137,194 +1405,6 @@ Begin VB.Form frmIclSetup
    End
    Begin VB.Frame fraCommands 
       Height          =   5775
-      Index           =   13
-      Left            =   2250
-      TabIndex        =   170
-      Top             =   90
-      Width           =   5775
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Отчет оператори"
-         Height          =   285
-         Index           =   5
-         Left            =   180
-         TabIndex        =   80
-         Top             =   3420
-         Width           =   5145
-      End
-      Begin VB.CheckBox chkReportDetailed1 
-         Caption         =   "Детайлен"
-         Height          =   285
-         Left            =   900
-         TabIndex        =   75
-         Top             =   1710
-         Width           =   1725
-      End
-      Begin VB.TextBox txtReportStart 
-         Height          =   285
-         Left            =   1800
-         TabIndex        =   73
-         Top             =   1350
-         Width           =   1095
-      End
-      Begin VB.TextBox txtReportEnd 
-         Height          =   285
-         Left            =   3420
-         TabIndex        =   74
-         Top             =   1350
-         Width           =   1095
-      End
-      Begin VB.CheckBox chkReportDetailed2 
-         Caption         =   "Детайлен"
-         Height          =   285
-         Left            =   900
-         TabIndex        =   79
-         Top             =   2970
-         Width           =   1725
-      End
-      Begin VB.TextBox txtReportTD 
-         Height          =   285
-         Left            =   3420
-         TabIndex        =   78
-         Top             =   2520
-         Width           =   1095
-      End
-      Begin VB.TextBox txtReportFD 
-         Height          =   285
-         Left            =   1800
-         TabIndex        =   77
-         Top             =   2520
-         Width           =   1095
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Печат"
-         Height          =   375
-         Index           =   7
-         Left            =   4320
-         TabIndex        =   83
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Натрупани суми за период"
-         Enabled         =   0   'False
-         Height          =   285
-         Index           =   4
-         Left            =   180
-         TabIndex        =   81
-         Top             =   3780
-         Width           =   5145
-      End
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Периодичен отчет по дата на запис"
-         Height          =   285
-         Index           =   3
-         Left            =   180
-         TabIndex        =   76
-         Top             =   2160
-         Width           =   5145
-      End
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Периодичен отчет по номер на запис"
-         Height          =   285
-         Index           =   2
-         Left            =   180
-         TabIndex        =   72
-         Top             =   990
-         Width           =   5145
-      End
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Данъчни ставки"
-         Enabled         =   0   'False
-         Height          =   285
-         Index           =   1
-         Left            =   180
-         TabIndex        =   82
-         Top             =   4140
-         Width           =   5145
-      End
-      Begin VB.CheckBox chkReportDepartments 
-         Caption         =   "Департаменти"
-         Height          =   285
-         Left            =   3960
-         TabIndex        =   71
-         Top             =   630
-         Width           =   1725
-      End
-      Begin VB.CheckBox chkReportItems 
-         Caption         =   "Артикули"
-         Height          =   285
-         Left            =   2430
-         TabIndex        =   70
-         Top             =   630
-         Width           =   1725
-      End
-      Begin VB.CheckBox chkReportClosure 
-         Caption         =   "Нулиране"
-         Height          =   285
-         Left            =   900
-         TabIndex        =   69
-         Top             =   630
-         Width           =   1725
-      End
-      Begin VB.OptionButton optReportType 
-         Caption         =   "Дневен финансов отчет"
-         Height          =   285
-         Index           =   0
-         Left            =   180
-         TabIndex        =   68
-         Top             =   270
-         Value           =   -1  'True
-         Width           =   5145
-      End
-      Begin VB.Label Label64 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "От номер:"
-         Height          =   195
-         Left            =   900
-         TabIndex        =   187
-         Top             =   1350
-         Width           =   915
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label63 
-         Alignment       =   1  'Right Justify
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "до: "
-         Height          =   195
-         Left            =   2520
-         TabIndex        =   186
-         Top             =   1350
-         Width           =   915
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label62 
-         Alignment       =   1  'Right Justify
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "до: "
-         Height          =   195
-         Left            =   2520
-         TabIndex        =   185
-         Top             =   2520
-         Width           =   915
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label61 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "От дата:"
-         Height          =   300
-         Left            =   900
-         TabIndex        =   184
-         Top             =   2520
-         Width           =   915
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
       Index           =   17
       Left            =   2250
       TabIndex        =   188
@@ -1418,86 +1498,6 @@ Begin VB.Form frmIclSetup
          TabIndex        =   89
          Top             =   1530
          Width           =   1785
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   15
-      Left            =   2250
-      TabIndex        =   172
-      Top             =   90
-      Width           =   5775
-      Begin VB.TextBox txtDiagFirmware 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   175
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   3525
-      End
-      Begin VB.TextBox txtDiagChecksum 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   174
-         TabStop         =   0   'False
-         Top             =   630
-         Width           =   3525
-      End
-      Begin VB.TextBox txtDiagSwitches 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   173
-         TabStop         =   0   'False
-         Top             =   990
-         Width           =   3525
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Печат"
-         Height          =   375
-         Index           =   9
-         Left            =   4320
-         TabIndex        =   84
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.Label Label57 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Firmware:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   178
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label56 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Контролна сума:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   177
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label55 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Ключета Sw1..Sw4:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   176
-         Top             =   990
-         Width           =   1905
          WordWrap        =   -1  'True
       End
    End
@@ -2521,7 +2521,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 6     4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 7     9.08.11 23:24 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2530,6 +2530,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 7     9.08.11 23:24 Wqw
+' REF: uses OpenSaveDialog
+'
 ' 6     4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -2558,44 +2561,11 @@ Private Const MODULE_NAME As String = "frmIclSetup"
 '=========================================================================
 
 Private Const EM_SCROLLCARET                    As Long = &HB7
-Private Const OFN_HIDEREADONLY          As Long = &H4&
-Private Const OFN_EXTENSIONDIFFERENT    As Long = &H400
-Private Const OFN_CREATEPROMPT          As Long = &H2000&
-Private Const OFN_EXPLORER              As Long = &H80000
-Private Const OFN_LONGNAMES             As Long = &H200000
-Private Const OFN_ENABLESIZING          As Long = &H800000
 
 Private Declare Function UpdateWindow Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
 Private Declare Function GetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long) As Long
 Private Declare Function SetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal crColor As Long) As Long
-Private Declare Function GetOpenFileName Lib "comdlg32.dll" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
-
-Private Type OPENFILENAME
-    lStructSize         As Long     ' size of type/structure
-    hWndOwner           As Long     ' Handle of owner window
-    hInstance           As Long
-    lpstrFilter         As Long     ' Filters used to select files
-    lpstrCustomFilter   As Long
-    nMaxCustomFilter    As Long
-    nFilterIndex        As Long     ' index of Filter to start with
-    lpstrFile           As Long     ' Holds filepath and name
-    nMaxFile            As Long     ' Maximum Filepath and name length
-    lpstrFileTitle      As Long     ' Filename
-    nMaxFileTitle       As Long     ' Max Length of filename
-    lpstrInitialDir     As Long     ' Starting Directory
-    lpstrTitle          As Long     ' Title of window
-    flags               As Long
-    nFileOffset         As Integer
-    nFileExtension      As Integer
-    lpstrDefExt         As Long
-    lCustData           As Long
-    lpfnHook            As Long
-    lpTemplateName      As Long
-    pvReserved          As Long
-    dwReserved          As Long
-    FlagsEx             As Long
-End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -3716,31 +3686,10 @@ Private Sub cmdLogoOpen_Click()
     Const FUNC_NAME     As String = "cmdLogoOpen_Click"
     Const STR_TITLE     As String = "Logo"
     Const STR_FILTER    As String = "Graphical files (*.bmp;*.gif;*.jpg)|*.bmp;*.gif;*.jpg|All files (*.*)|*.*"
-    Dim uOFN            As OPENFILENAME
-    Dim sFilter         As String
-    Dim sTitle          As String
-    Dim sBuffer         As String
     Dim sFile           As String
     
     On Error GoTo EH
-    sFilter = StrConv(Replace(STR_FILTER, "|", vbNullChar), vbFromUnicode)
-    sTitle = StrConv(STR_TITLE, vbFromUnicode)
-    sBuffer = String$(1000, 0)
-    If OsVersion >= 500 Then
-        uOFN.lStructSize = Len(uOFN)
-    Else
-        uOFN.lStructSize = Len(uOFN) - 12
-    End If
-    uOFN.flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
-    uOFN.hWndOwner = Me.hWnd
-    uOFN.lpstrFilter = StrPtr(sFilter)
-    uOFN.nFilterIndex = 1
-    uOFN.lpstrTitle = StrPtr(sTitle)
-    uOFN.lpstrFile = StrPtr(sBuffer)
-    uOFN.nMaxFile = Len(sBuffer)
-    If GetOpenFileName(uOFN) Then
-        sFile = StrConv(sBuffer, vbUnicode)
-        sFile = Left$(sFile, InStr(sFile, Chr$(0)) - 1)
+    If OpenSaveDialog(Me.hWnd, STR_FILTER, STR_TITLE, sFile) Then
         picLogo.BackColor = vbWhite
         Set m_picLogo = LoadPicture(sFile)
         pvApplyLogo m_picLogo, C_Lng(txtLogoTreshold.Text), optLogoStretch.Value
