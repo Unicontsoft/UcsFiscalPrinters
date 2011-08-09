@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 12    17.06.11 13:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 13    9.08.11 23:25 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 13    9.08.11 23:25 Wqw
+' REF: supports zeka protocol
+'
 ' 12    17.06.11 13:23 Wqw
 ' REF: enum casing
 '
@@ -111,6 +114,10 @@ Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидн
 Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
 Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: "
+Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция"
+Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
+Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
+Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|Карта|Чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
 Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
 Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
 Private Const STR_DUPLICATE             As String = "ДУБЛИКАТ"
@@ -163,7 +170,7 @@ Public Function EnumPorts() As Variant
     Dim sModel          As String
     
     On Error Resume Next
-    vDevices = Array(New cICLProtocol, New cEltradeProtocol)
+    vDevices = Array(New cZekaProtocol, New cICLProtocol, New cEltradeProtocol)
     ReDim vRet(0 To 255) As Variant
     For Each vPort In EnumSerialPorts
         sProtocol = vbNullString
@@ -323,7 +330,11 @@ Public Function PrintReceipt( _
                 End Select
             End With
         Next
-        oFP.EndReceipt
+        If Not oFP.EndReceipt() Then
+            If LenB(oFP.GetLastError()) <> 0 Then
+                Err.Raise vbObjectError, , oFP.GetLastError()
+            End If
+        End If
         oFP.OpenDrawer
         '--- success
         PrintReceipt = True
@@ -499,10 +510,16 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, STR_DATECS_FP_DIP_SWITCHES
         pvInit.SetLocalizedText ucsFscLciMemoryTexts, STR_DATECS_FP_MEMORY
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_DATECS_FP_TEXTS
+    Case STR_PROTOCOL_ZEKA_FP
+        Set pvInit = New cZekaProtocol
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ZEKA_FP_INTERNAL
+        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_ZEKA_FP_STATUSES
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_ZEKA_FP_ERRORS
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ZEKA_FP_TEXTS
     Case Else
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_DATECS_FP_ERRORS
     End Select
     If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
         Err.Raise vbObjectError, , Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE))

@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 6     4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 7     9.08.11 23:25 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 7     9.08.11 23:25 Wqw
+' REF: supports zeka protocol
+'
 ' 6     4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -49,7 +52,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 '=========================================================================
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol"
+Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol|cZekaProtocol"
 
 '=========================================================================
 ' Error handling
@@ -195,6 +198,7 @@ End Property
 Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
     Dim oFrmIcl         As New frmIclSetup
     Dim oFrmEltrade     As New frmEltradeSetup
+    Dim oFrmZeka        As New frmZekaSetup
     
     '--- figure out protocol
     Select Case UCase$(At(Split(DeviceString, ";"), 0))
@@ -202,6 +206,8 @@ Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As
         ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
         ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
+    Case STR_PROTOCOL_ZEKA_FP
+        ShowSetup = oFrmZeka.frInit(DeviceString, Server, OwnerForm)
     End Select
 End Function
 
@@ -213,6 +219,8 @@ Public Function CreateObject(sProgID As String) As Object
         Set CreateObject = New cICLProtocol
     Case LCase$(LIB_NAME & ".cEltradeProtocol")
         Set CreateObject = New cEltradeProtocol
+    Case LCase$(LIB_NAME & ".cZekaProtocol")
+        Set CreateObject = New cZekaProtocol
     End Select
 End Function
 
