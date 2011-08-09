@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 31    18.07.11 13:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 32    9.08.11 23:22 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 32    9.08.11 23:22 Wqw
+' REF: discount on negative price handled in pvConvertExtraRows
+'
 ' 31    18.07.11 13:43 Wqw
 ' REF: operator name size syntax error
 '
@@ -248,8 +251,8 @@ Private Const WAIT_TIMEOUT                  As Long = 258
 Private Const ERROR_IO_PENDING              As Long = 997
 
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
-Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
-Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, ByVal lpOverlapped As Long) As Long
+Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
+Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lpCommTimeouts As COMMTIMEOUTS) As Long
 Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
@@ -1020,7 +1023,7 @@ Public Function EndReceipt() As Boolean
                     pvPrintLine AlignText(pvText(ucsTxtPluTotal), pvSafeFormat(dblTotal, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars)
                 End If
                 If .DiscType = ucsFscDstPlu Then
-                    sData = AlignText(Printf(IIf(.DiscValue > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(.DiscValue), "0.00") & " %"), _
+                    sData = AlignText(Printf(IIf(dblDisc > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(.DiscValue), "0.00") & " %"), _
                         pvSafeFormat(dblDisc, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars)
                     pvPrintLine sData
                 End If
@@ -1037,7 +1040,7 @@ Public Function EndReceipt() As Boolean
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If uCtx.GrpTotal(lIdx) <> 0 Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                            pvPrintLine AlignText(Printf(IIf(.DiscValue > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(.DiscValue), "0.00") & " %"), _
+                            pvPrintLine AlignText(Printf(IIf(dblTotal > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(.DiscValue), "0.00") & " %"), _
                                 pvSafeFormat(dblTotal, "0.00") & " " & Chr$(191 + lIdx), pvRowChars)
                         End If
                     Next
@@ -1161,8 +1164,8 @@ Public Function EndReceipt() As Boolean
                             pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)) & "/", pvRowChars)
                             pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCompany)
                             pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvTaxNumber)
-                            If LenB(.InitInvData(ucsInvTaxNumber)) <> 0 Then
-                                pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvTaxNumber)
+                            If LenB(.InitInvData(ucsInvVatNumber)) <> 0 Then
+                                pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvVatNumber)
                             End If
                             pvPrintLine .InitInvData(ucsInvCity)
                             pvPrintLine .InitInvData(ucsInvAddress)
@@ -1186,6 +1189,8 @@ Public Function EndReceipt() As Boolean
         End Select
         End With
     Next
+    '--- success
+    EndReceipt = True
     Exit Function
 EH:
     m_sLastError = Err.Description
@@ -1582,17 +1587,15 @@ Private Function pvSendCommand( _
     Next
     '--- append checksum and terminator
     sText = sText & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
-    lSize = Len(sText)
-    baText = StrConv(sText, vbFromUnicode)
     '--- async send
-    lResult = WriteFile(hComm, baText(0), lSize, lWritten, VarPtr(uOver))
+    lResult = WriteFile(hComm, ByVal sText, Len(sText), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
             sError = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
             GoTo QH
         End If
     End If
-    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, m_lTimeout)
+    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
         DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         If lResult = WAIT_TIMEOUT Then
@@ -1623,7 +1626,7 @@ Private Function pvSendCommand( _
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
             sBuffer = String$(1000, 0)
-            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
+            lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
                     DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
@@ -1635,7 +1638,7 @@ InLoop:
                 lResult = WAIT_OBJECT_0
             End If
             If lResult = WAIT_OBJECT_0 Then
-                sBuffer = Left$(StrConv(sBuffer, vbUnicode), lActual)
+                sBuffer = Left$(sBuffer, lActual)
                 '--- check for NAK (&H15)
                 If InStr(sBuffer, Chr$(&H15)) > 0 Then
                     DebugLog FUNC_NAME, "NAK, sBuffer=" & sBuffer
@@ -1898,10 +1901,19 @@ Private Sub pvConvertExtraRows()
                         m_uRow(lRow).DiscValue = dblDiscount
                     Else
                         dblDiscount = m_uRow(lRow).DiscValue
+                        m_uRow(lRow).DiscType = 0
                         m_uRow(lRow).DiscValue = 0
-                        AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                        AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
                             Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                     End If
+                ElseIf m_uRow(lRow).DiscType = ucsFscDstPlu And m_uRow(lRow).PluPrice < 0 Then
+                    '--- convert PLU discount on void rows
+                    dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
+                    dblDiscount = m_uRow(lRow).DiscValue
+                    m_uRow(lRow).DiscType = 0
+                    m_uRow(lRow).DiscValue = 0
+                    AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                            Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                 End If
             ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
                 If (m_uRow(lRow).DiscValue < MIN_DISCOUNT Or m_uRow(lRow).DiscValue > MAX_DISCOUNT) And m_uRow(lRow).DiscType = ucsFscDstSubtotal Then
@@ -1920,7 +1932,7 @@ Private Sub pvConvertExtraRows()
                         m_uRow(lRow).DiscValue = 0
                         For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
                             If uSum.GrpTotal(lIdx) <> 0 Then
-                                AddPLU Printf(IIf(dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                                AddPLU Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
                                     Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
                             End If
                         Next
