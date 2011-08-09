@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 12    4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 13    9.08.11 23:25 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,10 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 13    9.08.11 23:25 Wqw
+' ADD: Sub RegWriteValue, OpenSaveDialog, ConvertToBW, GdipLoadImage,
+' GdipReleaseImage, Pad
+'
 ' 12    4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -83,6 +87,16 @@ Private Const WM_MOUSELEAVE                 As Long = &H2A3
 '--- registry
 Private Const REG_SZ                        As Long = 1
 Private Const REG_EXPAND_SZ                 As Long = 2
+Private Const REG_DWORD                     As Long = 4
+'--- for GetOpenFileNameA
+Private Const OFN_HIDEREADONLY              As Long = &H4&
+Private Const OFN_EXTENSIONDIFFERENT        As Long = &H400
+Private Const OFN_CREATEPROMPT              As Long = &H2000&
+Private Const OFN_EXPLORER                  As Long = &H80000
+Private Const OFN_LONGNAMES                 As Long = &H200000
+Private Const OFN_ENABLESIZING              As Long = &H800000
+'--- for CreateDIBSection
+Private Const DIB_RGB_COLORS                As Long = 0
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
@@ -97,17 +111,61 @@ Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByV
 Private Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function RegOpenKeyEx Lib "advapi32.dll" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
 Private Declare Function RegQueryValueEx Lib "advapi32.dll" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
+Private Declare Function RegSetValueEx Lib "advapi32.dll" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32.dll" (ByVal hKey As Long) As Long
 Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
+Private Declare Function GetOpenFileName Lib "comdlg32.dll" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
+Private Declare Function CreateDIBSection Lib "gdi32" (ByVal hDC As Long, lpBitsInfo As BITMAPINFOHEADER, ByVal wUsage As Long, lpBits As Long, ByVal handle As Long, ByVal dw As Long) As Long
+Private Declare Function CreateCompatibleDC Lib "gdi32" (ByVal hDC As Long) As Long
+Private Declare Function SelectObject Lib "gdi32" (ByVal hDC As Long, ByVal hObject As Long) As Long
+Private Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
+Private Declare Function ArrPtr Lib "msvbvm60" Alias "VarPtr" (Ptr() As Any) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (lpDst As Any, lpSrc As Any, ByVal ByteLength As Long)
+Private Declare Function GdipLoadImageFromFile Lib "gdiplus" (ByVal mFilename As Long, ByRef mImage As Long) As Long
+Private Declare Function GdipDeleteGraphics Lib "gdiplus" (ByVal mGraphics As Long) As Long
+Private Declare Function GdipCreateFromHDC Lib "gdiplus" (ByVal hDC As Long, hGraphics As Long) As Long
+Private Declare Function GdipDrawImageRectI Lib "gdiplus" (ByVal Graphics As Long, ByVal img As Long, ByVal X As Long, ByVal Y As Long, ByVal Width As Long, ByVal Height As Long) As Long
+Private Declare Function GdipDisposeImage Lib "gdiplus" (ByVal Image As Long) As Long
+Private Declare Function GdiplusStartup Lib "gdiplus" (Token As Long, inputbuf As GDIPLUS_STARTUP_INPUT, Optional ByVal outputbuf As Long = 0) As Long
+Private Declare Function GdipGetImageDimension Lib "gdiplus" (ByVal Image As Long, ByRef Width As Single, ByRef Height As Single) As Long
+Private Declare Function GdipCreateSolidFill Lib "gdiplus" (ByVal Color As Long, ByRef Brush As Long) As Long
+Private Declare Function GdipFillRectangleI Lib "gdiplus" (ByVal Graphics As Long, ByVal Brush As Long, ByVal X As Long, ByVal Y As Long, ByVal Width As Long, ByVal Height As Long) As Long
+Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal Brush As Long) As Long
+
+Private Type OPENFILENAME
+    lStructSize         As Long     ' size of type/structure
+    hWndOwner           As Long     ' Handle of owner window
+    hInstance           As Long
+    lpstrFilter         As Long     ' Filters used to select files
+    lpstrCustomFilter   As Long
+    nMaxCustomFilter    As Long
+    nFilterIndex        As Long     ' index of Filter to start with
+    lpstrFile           As Long     ' Holds filepath and name
+    nMaxFile            As Long     ' Maximum Filepath and name length
+    lpstrFileTitle      As Long     ' Filename
+    nMaxFileTitle       As Long     ' Max Length of filename
+    lpstrInitialDir     As Long     ' Starting Directory
+    lpstrTitle          As Long     ' Title of window
+    flags               As Long
+    nFileOffset         As Integer
+    nFileExtension      As Integer
+    lpstrDefExt         As Long
+    lCustData           As Long
+    lpfnHook            As Long
+    lpTemplateName      As Long
+    pvReserved          As Long
+    dwReserved          As Long
+    FlagsEx             As Long
+End Type
 
 Private Type OSVERSIONINFO
-    dwOSVersionInfoSize         As Long
-    dwMajorVersion              As Long
-    dwMinorVersion              As Long
-    dwBuildNumber               As Long
-    dwPlatformID                As Long
-    szCSDVersion                As String * 128      '  Maintenance string for PSS usage
+    dwOSVersionInfoSize As Long
+    dwMajorVersion      As Long
+    dwMinorVersion      As Long
+    dwBuildNumber       As Long
+    dwPlatformID        As Long
+    szCSDVersion        As String * 128      '  Maintenance string for PSS usage
 End Type
 
 Private Type DLLVERSIONINFO
@@ -116,6 +174,55 @@ Private Type DLLVERSIONINFO
     dwMinor             As Long
     dwBuildNumber       As Long
     dwPlatformID        As Long
+End Type
+
+Private Type BITMAPINFOHEADER
+    biSize              As Long
+    biWidth             As Long
+    biHeight            As Long
+    biPlanes            As Integer
+    biBitCount          As Integer
+    biCompression       As Long
+    biSizeImage         As Long
+    biXPelsPerMeter     As Long
+    biYPelsPerMeter     As Long
+    biClrUsed           As Long
+    biClrImportant      As Long
+End Type
+
+Private Type RGBQUAD
+    B                   As Byte
+    G                   As Byte
+    R                   As Byte
+    A                   As Byte
+End Type
+
+Private Type SAFEARRAYBOUND
+    cElements           As Long
+    lLbound             As Long
+End Type
+
+Private Type SAFEARRAY2D
+    cDims               As Integer
+    fFeatures           As Integer
+    cbElements          As Long
+    cLocks              As Long
+    pvData              As Long
+    Bounds(0 To 1)      As SAFEARRAYBOUND
+End Type
+
+Private Type GDIPLUS_STARTUP_INPUT
+    GdiplusVersion           As Long
+    DebugEventCallback       As Long
+    SuppressBackgroundThread As Long
+    SuppressExternalCodecs   As Long
+End Type
+
+Private Type BMPFILE_HEADER
+    filesz              As Long
+    creator1            As Integer
+    creator2            As Integer
+    bmp_offset          As Long
 End Type
 
 '=========================================================================
@@ -127,8 +234,10 @@ Public Const STR_NONE               As String = "(Няма)"
 Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP550F"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY MICRO"
+Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
 
 Public g_sDecimalSeparator      As String
+Public g_hGdip                  As Long
 
 '=========================================================================
 ' Error handling
@@ -568,6 +677,7 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
     Dim lType           As Long
     Dim lNeeded         As Long
     Dim sBuffer         As String
+    Dim dwBuffer        As Long
     
     If RegOpenKeyEx(hRoot, sKey, 0, &H20001, hKey) = 0 Then '--- &H20001 = READ_CONTROL Or KEY_QUERY_VALUE
         Call RegQueryValueEx(hKey, sValue, 0, lType, ByVal vbNullString, lNeeded)
@@ -586,10 +696,36 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
                     RegReadString = sBuffer
                 End If
             End If
+        ElseIf lType = REG_DWORD Then
+            If RegQueryValueEx(hKey, sValue, 0, lType, dwBuffer, 4) = 0 Then
+                RegReadString = dwBuffer
+            End If
         End If
         Call RegCloseKey(hKey)
     End If
 End Function
+
+Public Sub RegWriteValue(ByVal hRoot As UcsRegistryRootsEnum, sKey As String, sValue As String, vValue As Variant)
+    Dim hKey            As Long
+    Dim lType           As Long
+    Dim lTemp           As Long
+    Dim sTemp           As String
+    
+    If RegOpenKeyEx(hRoot, sKey, 0, &H20002, hKey) = 0 Then '--- &H20002 = READ_CONTROL Or KEY_SET_VALUE
+        Select Case VarType(vValue)
+        Case vbLong, vbInteger, vbByte
+            lTemp = C_Lng(vValue)
+            Call RegSetValueEx(hKey, sValue, 0, REG_DWORD, lTemp, 4)
+        Case vbBoolean
+            lTemp = -C_Lng(vValue)
+            Call RegSetValueEx(hKey, sValue, 0, REG_DWORD, lTemp, 4)
+        Case Else
+            sTemp = C_Str(vValue)
+            Call RegSetValueEx(hKey, sValue, 0, REG_SZ, ByVal sTemp, Len(sTemp))
+        End Select
+        Call RegCloseKey(hKey)
+    End If
+End Sub
 
 Public Function GetSystemDirectory() As String
     GetSystemDirectory = String$(1000, 0)
@@ -597,3 +733,171 @@ Public Function GetSystemDirectory() As String
     GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, Chr$(0)) - 1)
 End Function
 
+Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String, ByVal sTitle As String, sFile As String) As Boolean
+    Const FUNC_NAME     As String = "OpenSaveDialog"
+    Dim uOFN            As OPENFILENAME
+    Dim sBuffer         As String
+    
+    On Error GoTo EH
+    sFilter = StrConv(Replace(sFilter, "|", vbNullChar), vbFromUnicode)
+    sTitle = StrConv(sTitle, vbFromUnicode)
+    sBuffer = String$(1000, 0)
+    If OsVersion >= 500 Then
+        uOFN.lStructSize = Len(uOFN)
+    Else
+        uOFN.lStructSize = Len(uOFN) - 12
+    End If
+    uOFN.flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
+    uOFN.hWndOwner = hWndOwner
+    uOFN.lpstrFilter = StrPtr(sFilter)
+    uOFN.nFilterIndex = 1
+    uOFN.lpstrTitle = StrPtr(sTitle)
+    uOFN.lpstrFile = StrPtr(sBuffer)
+    uOFN.nMaxFile = Len(sBuffer)
+    If GetOpenFileName(uOFN) <> 0 Then
+        sFile = StrConv(sBuffer, vbUnicode)
+        sFile = Left$(sFile, InStr(sFile, Chr$(0)) - 1)
+        '--- success
+        OpenSaveDialog = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function ConvertToBW( _
+            ByVal hBitmap As Long, _
+            ByVal lWidth As Long, _
+            ByVal lHeight As Long, _
+            ByVal lThreshold As Long, _
+            ByVal bCenter As Boolean) As Byte()
+    Dim uBIH            As BITMAPINFOHEADER
+    Dim hDC             As Long
+    Dim hDIB            As Long
+    Dim lpBits          As Long
+    Dim hOldDIB         As Long
+    Dim uSA             As SAFEARRAY2D
+    Dim aBitsRGB()      As RGBQUAD
+    Dim hGraphics       As Long
+    Dim uHdr            As BMPFILE_HEADER
+    Dim baRetVal()      As Byte
+    Dim lX              As Long
+    Dim lY              As Long
+    Dim lOffset         As Long
+    Dim lLum            As Long
+    Dim lScanline       As Long
+    Dim sngWidth        As Single
+    Dim sngHeight       As Single
+    Dim hBrush          As Long
+
+    On Error GoTo EH
+    hDC = CreateCompatibleDC(0)
+    If hDC <> 0 Then
+        With uBIH
+            .biSize = Len(uBIH)
+            .biPlanes = 1
+            .biBitCount = 32
+            .biWidth = lWidth
+            .biHeight = -lHeight
+            .biSizeImage = (4 * lWidth) * lHeight
+        End With
+        hDIB = CreateDIBSection(hDC, uBIH, DIB_RGB_COLORS, lpBits, 0, 0)
+        If hDIB <> 0 Then
+            hOldDIB = SelectObject(hDC, hDIB)
+            With uSA
+                .cbElements = 4
+                .cDims = 2
+                .Bounds(0).lLbound = 0
+                .Bounds(0).cElements = lHeight
+                .Bounds(1).lLbound = 0
+                .Bounds(1).cElements = lWidth
+                .pvData = lpBits
+            End With
+            Call CopyMemory(ByVal ArrPtr(aBitsRGB()), VarPtr(uSA), 4)
+            '--- stretch bitmap to DIB
+            If GdipCreateFromHDC(hDC, hGraphics) = 0 Then
+                If bCenter Then
+                    If GdipCreateSolidFill(&HFFFFFFFF, hBrush) = 0 Then
+                        Call GdipFillRectangleI(hGraphics, hBrush, 0, 0, lWidth, lHeight)
+                        Call GdipDeleteBrush(hBrush)
+                    End If
+                    Call GdipGetImageDimension(hBitmap, sngWidth, sngHeight)
+                    Call GdipDrawImageRectI(hGraphics, hBitmap, (lWidth - sngWidth) \ 2, (lHeight - sngHeight) \ 2, sngWidth, sngHeight)
+                Else
+                    Call GdipDrawImageRectI(hGraphics, hBitmap, 0, 0, lWidth, lHeight)
+                End If
+                Call GdipDeleteGraphics(hGraphics)
+                '--- prepare headers
+                lScanline = ((lWidth + 31) \ 32) * 4
+                With uHdr
+                    .bmp_offset = 2 + Len(uHdr) + Len(uBIH) + 2 * 4
+                    .filesz = .bmp_offset + lScanline * lHeight
+                End With
+                With uBIH
+                    .biSize = Len(uBIH)
+                    .biPlanes = 1
+                    .biBitCount = 1
+                    .biWidth = lWidth
+                    .biHeight = lHeight
+                    .biSizeImage = lScanline * lHeight
+                    .biClrUsed = 2
+                End With
+                ReDim baRetVal(0 To uHdr.filesz - 1)
+                Call CopyMemory(baRetVal(0), &H4D42, 2) '--- BM
+                Call CopyMemory(baRetVal(2), uHdr, Len(uHdr))
+                Call CopyMemory(baRetVal(2 + Len(uHdr)), uBIH, Len(uBIH))
+                '--- color palette
+                lX = &HFFFFFF
+                Call CopyMemory(baRetVal(2 + Len(uHdr) + Len(uBIH) + 4), lX, 4)
+                '--- calc luminance and set bits
+                For lY = 0 To lHeight - 1
+                    lOffset = uHdr.bmp_offset + lScanline * (lHeight - lY - 1)
+                    For lX = 0 To lWidth - 1
+                        With aBitsRGB(lX, lY)
+                            lLum = .R * 0.299 + .G * 0.587 + .B * 0.114
+                        End With
+                        If lLum >= lThreshold Then
+                            baRetVal(lOffset + lX \ 8) = baRetVal(lOffset + lX \ 8) Or 2 ^ (7 - (lX Mod 8))
+                        End If
+                    Next
+                Next
+            End If
+            '--- cleanup
+            Call CopyMemory(ByVal ArrPtr(aBitsRGB()), 0&, 4)
+            Call SelectObject(hDC, hOldDIB)
+            Call DeleteObject(hDIB)
+        End If
+        Call DeleteObject(hDC)
+    End If
+    ConvertToBW = baRetVal
+    Exit Function
+EH:
+    MsgBox Error, vbCritical
+    Resume Next
+End Function
+
+Public Function GdipLoadImage(sFile As String) As Long
+    Dim uStartup        As GDIPLUS_STARTUP_INPUT
+    
+    If g_hGdip = 0 Then
+        uStartup.GdiplusVersion = 1&
+        Call GdiplusStartup(g_hGdip, uStartup)
+    End If
+    Call GdipLoadImageFromFile(StrPtr(sFile), GdipLoadImage)
+End Function
+
+Public Sub GdipReleaseImage(hBitmap As Long)
+    Call GdipDisposeImage(hBitmap)
+End Sub
+
+Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal sFill As String) As String
+    If LenB(sFill) = 0 Then
+        sFill = IIf(lSize > 0, " ", "0")
+    End If
+    If lSize > 0 Then
+        Pad = Left$(sText & String(lSize, sFill), lSize)
+    Else
+        Pad = Right$(String(-lSize, sFill) & sText, -lSize)
+    End If
+End Function
