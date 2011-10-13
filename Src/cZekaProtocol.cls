@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 1     9.08.11 23:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 2     13.10.11 10:54 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 2     13.10.11 10:54 Wqw
+' REF: Init params
+'
 ' 1     9.08.11 23:26 Wqw
 ' Initial implementation
 '=========================================================================
@@ -442,7 +445,10 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optional lCashDeskNo As Long) As Boolean
+Public Function Init( _
+            sDevice As String, _
+            Optional ByVal lTimeout As Long, _
+            Optional ByVal lCashDeskNo As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     

@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 32    9.08.11 23:22 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 33    13.10.11 10:54 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 33    13.10.11 10:54 Wqw
+' REF: Init params
+'
 ' 32    9.08.11 23:22 Wqw
 ' REF: discount on negative price handled in pvConvertExtraRows
 '
@@ -610,7 +613,10 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optional lCashDeskNo As Long) As Boolean
+Public Function Init( _
+            sDevice As String, _
+            Optional ByVal lTimeout As Long, _
+            Optional ByVal lCashDeskNo As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
@@ -632,7 +638,7 @@ Public Function Init(sDevice As String, Optional ByVal lTimeout As Long, Optiona
         m_lCashDeskNo = lCashDeskNo
     End If
     vSplit = Split(sDevice, ",")
-    m_sDevice = Trim(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
+    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
         IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
