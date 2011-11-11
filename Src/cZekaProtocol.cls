@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 2     13.10.11 10:54 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 3     11.11.11 20:27 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 3     11.11.11 20:27 Wqw
+' REF: zero quantity is handled separately in PLU print
+'
 ' 2     13.10.11 10:54 Wqw
 ' REF: Init params
 '
@@ -554,9 +557,11 @@ Public Function WaitDevice() As Boolean
     
     On Error GoTo EH
     Do
-        If pvSendCommand(m_hComm, m_lTimeout, ucsZekCmdIsOnline, sError:=sError) <> Chr$(ucsZekCmdIsOnline) Then
-            m_sLastError = sError
-            Exit Function
+        If pvSendCommand(m_hComm, pvPingTimeout, ucsZekCmdIsOnline, sError:=sError) <> Chr$(ucsZekCmdIsOnline) Then
+            If pvSendCommand(m_hComm, m_lTimeout, ucsZekCmdIsOnline, sError:=sError) <> Chr$(ucsZekCmdIsOnline) Then
+                m_sLastError = sError
+                Exit Function
+            End If
         End If
         If pvSendCommand(m_hComm, pvPingTimeout, ucsZekCmdIsReady) = Chr$(ucsZekCmdIsReady) Then
             WaitDevice = True
@@ -839,12 +844,17 @@ Public Function EndReceipt() As Boolean
                     End If
                 Next
                 sData = Pad(At(vSplit, UBound(vSplit)), 36)
-                sData = sData & ";" & Chr$(191 + .PluVatGroup) & ";" & pvSafeFormat(.PluPrice, "0.00")
-                If .PluQuantity <> 1 Then
-                    sData = sData & "*" & pvSafeFormat(.PluQuantity, "0.000")
-                End If
-                If .DiscType = ucsFscDstPlu And .PluPrice >= 0 Then
-                    sData = sData & "," & pvSafeFormat(.DiscValue, "0.00")
+                sData = sData & ";" & Chr$(191 + .PluVatGroup) & ";"
+                If .PluQuantity <> 0 Then
+                    sData = sData & pvSafeFormat(.PluPrice, "0.00")
+                    If .PluQuantity <> 1 Then
+                        sData = sData & "*" & pvSafeFormat(.PluQuantity, "0.000")
+                    End If
+                    If .DiscType = ucsFscDstPlu And .PluPrice >= 0 Then
+                        sData = sData & "," & pvSafeFormat(.DiscValue, "0.00")
+                    End If
+                Else
+                    sData = sData & "0.00"
                 End If
                 SendCommand ucsZekCmdFiscalSell, sData
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
@@ -1353,7 +1363,7 @@ Private Function pvSendCommand( _
     Dim lActual         As Long
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "eCmd=" & eCmd & ", sData=" & sData
+    DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", sData=" & sData
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
     '--- prepare command
@@ -1384,7 +1394,7 @@ RetrySend:
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
-        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
+        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
         If lResult = WAIT_TIMEOUT Then
             sError = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
@@ -1429,7 +1439,7 @@ InLoop:
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
-            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult
+            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lTimeout=" & lTimeout
             If lResult = WAIT_TIMEOUT Then
                 sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
