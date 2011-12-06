@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 33    13.10.11 10:54 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 34    6.12.11 17:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 34    6.12.11 17:48 Wqw
+' REF: always try to transcode from printer
+'
 ' 33    13.10.11 10:54 Wqw
 ' REF: Init params
 '
@@ -1707,22 +1710,14 @@ Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As St
     
     On Error GoTo EH
     pvTranscode = sText
-    If m_eCharset = ucsCrsMik Then
-        For lIdx = 1 To Len(pvTranscode)
-            lChar = Asc(Mid$(pvTranscode, lIdx, 1))
-            If lChar < &H7F Then
-                '--- do nothing
-            ElseIf bToPrinter Then
-                If lChar >= WIN_OFFSET And lChar <= WIN_OFFSET + &H3F Then
-                    Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
-                End If
-            ElseIf Not bToPrinter Then
-                If lChar >= MIK_OFFSET And lChar <= MIK_OFFSET + &H3F Then
-                    Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
-                End If
-            End If
-        Next
-    End If
+    For lIdx = 1 To Len(pvTranscode)
+        lChar = Asc(Mid$(pvTranscode, lIdx, 1))
+        If bToPrinter And m_eCharset = ucsCrsMik And lChar >= WIN_OFFSET And lChar <= WIN_OFFSET + &H3F Then
+            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
+        ElseIf lChar >= MIK_OFFSET And lChar <= MIK_OFFSET + &H3F Then
+            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
+        End If
+    Next
     Exit Function
 EH:
     RaiseError FUNC_NAME
