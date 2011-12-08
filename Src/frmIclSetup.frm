@@ -24,6 +24,265 @@ Begin VB.Form frmIclSetup
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
+      Index           =   2
+      Left            =   2250
+      TabIndex        =   88
+      Top             =   90
+      Width           =   5775
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   1
+         Left            =   4320
+         TabIndex        =   12
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtTaxGroup4 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   11
+         Top             =   3510
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxGroup3 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   10
+         Top             =   3150
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxGroup2 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   9
+         Top             =   2790
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxGroup1 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   8
+         Top             =   2430
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxRates 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   7
+         Top             =   2070
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxCurrency 
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   6
+         Top             =   1710
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxDecimals 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   5
+         Top             =   1350
+         Width           =   1095
+      End
+      Begin VB.TextBox txtTaxCountry 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   97
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   3525
+      End
+      Begin VB.TextBox txtTaxSerNo 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   95
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   3525
+      End
+      Begin VB.TextBox txtTaxMemModule 
+         Appearance      =   0  'Flat
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   93
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   3525
+      End
+      Begin VB.Label Label16 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "%"
+         Height          =   195
+         Left            =   3240
+         TabIndex        =   108
+         Top             =   3510
+         Width           =   375
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label15 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "%"
+         Height          =   195
+         Left            =   3240
+         TabIndex        =   107
+         Top             =   3150
+         Width           =   375
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label14 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "%"
+         Height          =   195
+         Left            =   3240
+         TabIndex        =   106
+         Top             =   2790
+         Width           =   375
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label13 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "%"
+         Height          =   195
+         Left            =   3240
+         TabIndex        =   105
+         Top             =   2430
+         Width           =   375
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label12 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Група Г:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   104
+         Top             =   3510
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label11 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Група В:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   103
+         Top             =   3150
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label10 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Група Б:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   102
+         Top             =   2790
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label9 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Група А:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   101
+         Top             =   2430
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label8 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Разрешени ставки:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   100
+         Top             =   2070
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label7 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Парична единица:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   99
+         Top             =   1710
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label6 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Десетични знаци:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   98
+         Top             =   1350
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labTaxCountry 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Държава:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   96
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label4 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Сериен номер:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   94
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label3 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Номер на модула:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   92
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
       Index           =   15
       Left            =   2250
       TabIndex        =   172
@@ -2227,265 +2486,6 @@ Begin VB.Form frmIclSetup
          WordWrap        =   -1  'True
       End
    End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   2
-      Left            =   2250
-      TabIndex        =   88
-      Top             =   90
-      Width           =   5775
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   1
-         Left            =   4320
-         TabIndex        =   12
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtTaxGroup4 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   11
-         Top             =   3510
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxGroup3 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   10
-         Top             =   3150
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxGroup2 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   9
-         Top             =   2790
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxGroup1 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   8
-         Top             =   2430
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxRates 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   7
-         Top             =   2070
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxCurrency 
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   6
-         Top             =   1710
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxDecimals 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   5
-         Top             =   1350
-         Width           =   1095
-      End
-      Begin VB.TextBox txtTaxCountry 
-         Appearance      =   0  'Flat
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   97
-         TabStop         =   0   'False
-         Top             =   990
-         Width           =   3525
-      End
-      Begin VB.TextBox txtTaxSerNo 
-         Appearance      =   0  'Flat
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   95
-         TabStop         =   0   'False
-         Top             =   630
-         Width           =   3525
-      End
-      Begin VB.TextBox txtTaxMemModule 
-         Appearance      =   0  'Flat
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   93
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   3525
-      End
-      Begin VB.Label Label16 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "%"
-         Height          =   195
-         Left            =   3240
-         TabIndex        =   108
-         Top             =   3510
-         Width           =   375
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label15 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "%"
-         Height          =   195
-         Left            =   3240
-         TabIndex        =   107
-         Top             =   3150
-         Width           =   375
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label14 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "%"
-         Height          =   195
-         Left            =   3240
-         TabIndex        =   106
-         Top             =   2790
-         Width           =   375
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label13 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "%"
-         Height          =   195
-         Left            =   3240
-         TabIndex        =   105
-         Top             =   2430
-         Width           =   375
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label12 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Група Г:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   104
-         Top             =   3510
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label11 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Група В:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   103
-         Top             =   3150
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label10 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Група Б:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   102
-         Top             =   2790
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label9 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Група А:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   101
-         Top             =   2430
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label8 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Разрешени ставки:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   100
-         Top             =   2070
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label7 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Парична единица:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   99
-         Top             =   1710
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label6 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Десетични знаци:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   98
-         Top             =   1350
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label5 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Държава:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   96
-         Top             =   990
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label4 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Сериен номер:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   94
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label3 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Номер на модула:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   92
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
    Begin VB.CommandButton cmdExit 
       Cancel          =   -1  'True
       Caption         =   "Cancel"
@@ -2521,7 +2521,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 7     9.08.11 23:24 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 8     8.12.11 15:51 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2530,6 +2530,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 8     8.12.11 15:51 Wqw
+' REF: impl (partial) ECRs support
+'
 ' 7     9.08.11 23:24 Wqw
 ' REF: uses OpenSaveDialog
 '
@@ -2572,13 +2575,13 @@ Private Declare Function SetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Lon
 '=========================================================================
 
 Private Const CAP_MSG               As String = "Настройки ICL протокол"
-Private Const LNG_NUM_DEPS          As Long = 50
-Private Const LNG_NUM_OPERS         As Long = 24
+Private Const LNG_NUM_DEPS          As Long = 100
+Private Const LNG_NUM_OPERS         As Long = 100
 Private Const FORMAT_CURRENCY       As String = "#0.00######"
 Private Const LNG_LOGO_FORECOLOR    As Long = &H800000
 Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cICLProtocol"
 '--- strings
-Private Const STR_SPEEDS            As String = "9600|19200"
+Private Const STR_SPEEDS            As String = "9600|19200|38400|57600|115200"
 Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Клишета|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Внос и износ|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
 Private Const STR_COUNTRIES         As String = "|Русия|Гърция|Украйна|Англия|Полша|Унгария|България|7|8|Румъния"
 Private Const STR_GROUPS            As String = "А|Б|В|Г"
@@ -2614,6 +2617,7 @@ Private Const STR_OPER_PASS_CAPTION As String = "Парола за достъп"
 Private Const STR_LOGO_DIMENSIONS   As String = "Размер на графика: %1x%2"
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
 Private Const STR_PAYMENT_TYPES     As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА"
+Private Const STR_TAXCOUNTRY        As String = "Държава:|Sw1..Sw8:"
 '--- messages
 Private Const MSG_INVALID_PASSWORD  As String = "Некоректна парола" & vbCrLf & vbCrLf & "Паролите се състоят от 4 до 6 цифри"
 Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
@@ -2831,10 +2835,16 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Case ucsCmdConnect
         pvStatus = labConnectCurrent.Caption
     Case ucsCmdTaxInfo
-        vResult = Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ",")
+        vResult = Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics), ",")
         txtTaxMemModule.Text = At(vResult, 5)
         txtTaxSerNo.Text = At(vResult, 4)
-        txtTaxCountry.Text = At(Split(STR_COUNTRIES, "|"), C_Lng(At(vResult, 3)) + 1)
+        If Len(At(vResult, 3)) = 1 Then
+            txtTaxCountry.Text = At(Split(STR_COUNTRIES, "|"), C_Lng(At(vResult, 3)) + 1)
+            labTaxCountry.Caption = Split(STR_TAXCOUNTRY, "|")(0)
+        Else
+            txtTaxCountry.Text = At(vResult, 3)
+            labTaxCountry.Caption = Split(STR_TAXCOUNTRY, "|")(1)
+        End If
         vResult = Split(m_oFP.SendCommand(ucsFpcInitDecimals), ",")
         txtTaxDecimals.Text = C_Lng(At(vResult, 1))
         txtTaxCurrency.Text = Trim(At(vResult, 2))
@@ -3001,7 +3011,8 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         lstItems_Click
     Case ucsCmdGraphicalLogo
         m_oFP.Exceptions = False
-        chkLogoPrint.Value = IIf(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IL") = "1", vbChecked, vbUnchecked)
+        vResult = Split(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IL"), ",")
+        chkLogoPrint.Value = IIf(At(vResult, UBound(vResult)) = "1", vbChecked, vbUnchecked)
         pvLock(chkLogoPrint) = m_oFP.Status(ucsStbPrintingError)
         If Not IsArray(m_vLogo) Then
             ReDim m_vLogo(0 To 1000) As Variant
@@ -3219,19 +3230,28 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 Exit Function
             End If
         End If
-        sPass = InputBox(Printf(STR_OPER_PASS_PROMPT, txtOperNo.Text), STR_OPER_PASS_CAPTION)
-        If StrPtr(sPass) = 0 Then
-            Exit Function
-        ElseIf Not pvIsPassCorrect(sPass) Then
-            MsgBox MSG_INVALID_PASSWORD, vbExclamation
-            Exit Function
+        If m_oFP.IsEcr Then
+            vResult = Split(m_oFP.SendCommand(ucsFpcEcrReadRow, "2;" & txtOperNo.Text & ";"), ";")
+            ValueAt(vResult, 2) = txtOperName.Text
+            If LenB(txtOperPass.Text) <> 0 Then
+                ValueAt(vResult, 3) = txtOperPass.Text
+            End If
+            vResult = m_oFP.SendCommand(ucsFpcEcrWriteRow, Join(vResult, ";"))
+        Else
+            sPass = InputBox(Printf(STR_OPER_PASS_PROMPT, txtOperNo.Text), STR_OPER_PASS_CAPTION, "0000")
+            If StrPtr(sPass) = 0 Then
+                Exit Function
+            ElseIf Not pvIsPassCorrect(sPass) Then
+                MsgBox MSG_INVALID_PASSWORD, vbExclamation
+                Exit Function
+            End If
+            bCheckPass = True
+            m_oFP.SendCommand ucsFpcInitOperatorName, txtOperNo.Text & "," & sPass & "," & txtOperName.Text
+            If LenB(txtOperPass.Text) <> 0 Then
+                m_oFP.SendCommand ucsFpcInitOperatorPassword, txtOperNo.Text & "," & sPass & "," & txtOperPass.Text
+            End If
+            bCheckPass = False
         End If
-        bCheckPass = True
-        m_oFP.SendCommand ucsFpcInitOperatorName, txtOperNo.Text & "," & sPass & "," & txtOperName.Text
-        If LenB(txtOperPass.Text) <> 0 Then
-            m_oFP.SendCommand ucsFpcInitOperatorPassword, txtOperNo.Text & "," & sPass & "," & txtOperPass.Text
-        End If
-        bCheckPass = False
         '--- force refetch of oper info
         m_vOpers(C_Lng(txtOperNo.Text)) = Empty
     Case ucsCmdInvoiceNo
@@ -3350,7 +3370,19 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         m_vItems(lIdx) = txtItemPLU.Text
     Case ucsCmdGraphicalLogo
         If Not pvLock(chkLogoPrint) Then
+            m_oFP.Exceptions = False
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "L" & chkLogoPrint.Value
+            If m_oFP.Status(ucsStbPrintingError) Then
+                m_oFP.SendCommand ucsFpcInitHeaderFooter, "L" & (UBound(m_vLogo) + 1) & "," & chkLogoPrint.Value
+                If m_oFP.Status(ucsStbPrintingError) Then
+                    If m_oFP.IsEcr Then
+                        vResult = Split(m_oFP.SendCommand(ucsFpcEcrReadRow, "5;1;"), ";")
+                        ValueAt(vResult, 6) = chkLogoPrint.Value
+                        vResult = m_oFP.SendCommand(ucsFpcEcrWriteRow, Join(vResult, ";"))
+                    End If
+                End If
+            End If
+            m_oFP.Exceptions = False
         End If
         If Not m_picLogo Is Nothing Then
             For lIdx = 0 To UBound(m_vLogo)
@@ -3393,7 +3425,7 @@ Private Function pvIsPassCorrect(sPass As String) As Boolean
     Dim lIdx            As Long
     Dim lChar           As Long
     
-    If Len(sPass) >= 4 And Len(sPass) <= 6 Then
+    If Len(sPass) >= 1 And Len(sPass) <= 6 Then
         For lIdx = 1 To Len(sPass)
             lChar = Asc(Mid$(sPass, lIdx, 1))
             If lChar < 48 Or lChar > 57 Then '--- 48 = '0', 57 = '9'
