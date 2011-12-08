@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 34    6.12.11 17:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 35    8.12.11 15:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 35    8.12.11 15:50 Wqw
+' ADD: Property IsEcr, Function GetDeviceModel. REF: better support for
+' ECRs
+'
 ' 34    6.12.11 17:48 Wqw
 ' REF: always try to transcode from printer
 '
@@ -236,6 +240,9 @@ Public Enum UcsIclCommandsEnum
     ucsFpcPrintDailyReportDepartments = 117
     ucsFpcPrintDailyReportItemsDepartments = 118
     ucsFpcPrintReportTaxRates = 50
+    '--- ECR
+    ucsFpcEcrReadRow = &HFF84&
+    ucsFpcEcrWriteRow = &HFF86&
 End Enum
 
 '=========================================================================
@@ -335,6 +342,8 @@ Private Const MAX_PAYMENT_LEN           As Long = 24
 Private Const MAX_RECEIPT_ROWS          As Long = 99
 Private Const MIN_DISCOUNT              As Double = -99
 Private Const MAX_DISCOUNT              As Double = 99
+Private Const MIK_OFFSET                As Long = &H80
+Private Const WIN_OFFSET                As Long = &HC0
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
@@ -353,6 +362,7 @@ Private m_bFiscalPaymentExecuted    As Boolean
 Private m_lRowChars                 As Long
 Private m_sCommandLog               As String
 Private m_eCharset                  As UcsCharset
+Private m_eIsEcr                    As UcsTriState
 
 Private Enum UcsInternalErrors
     ucsErrNoDeviceInfoSet
@@ -459,6 +469,12 @@ Private Enum UcsCharset
     ucsCrsMik
 End Enum
 
+Private Enum UcsTriState
+    ucsTri_Undefined = -2       ' Undefined value. Usually value is inherited from parent definition.
+    ucsTriFalse = 0             ' (Default) Represents False.
+    ucsTriTrue = -1             ' Represents True.
+End Enum
+
 '=========================================================================
 ' Error handling
 '=========================================================================
@@ -558,6 +574,13 @@ End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
     m_sLocalizedText(eIdx) = sValue
+End Property
+
+Property Get IsEcr() As Boolean
+    If m_eIsEcr = ucsTri_Undefined Then
+        m_eIsEcr = IIf(LenB(pvSendCommand(m_hComm, 100, ucsFpcEcrReadRow, "2;1;")) <> 0, ucsTriTrue, ucsTriFalse)
+    End If
+    IsEcr = (m_eIsEcr = ucsTriTrue)
 End Property
 
 Private Property Get pvRowChars() As Long
@@ -694,6 +717,7 @@ Public Function Disconnect() As Boolean
     m_hComm = INVALID_HANDLE_VALUE
     '--- cleanup cache
     m_eCharset = ucsCrsAuto
+    m_eIsEcr = ucsTri_Undefined
     '--- success
     Disconnect = True
 QH:
@@ -708,24 +732,20 @@ End Function
 Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As String) As String
     Const FUNC_NAME     As String = "SendCommand"
     Dim vResult         As Variant
+    Dim lChar           As Long
     
     On Error GoTo EH
+    m_sLastError = vbNullString
     '--- auto-sense encoding
     If m_eCharset = ucsCrsAuto Then
-        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, "0"), ",")
-        If LenB(At(vResult, 3)) <> 0 Then
-            m_eCharset = ucsCrsWindows
-            '--- idx 3 = country, value 6 = bg
-            If C_Lng(At(vResult, 3)) = 6 Then
-                vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInitDecimals), ",")
-                '--- idx 2 = currency name
-                If Asc(Zn(Trim$(At(vResult, 2)), " ")) < &HC0 Then
-                    m_eCharset = ucsCrsMik
-                End If
-            End If
+        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInitDecimals, sError:=m_sLastError), ",")
+        If LenB(m_sLastError) <> 0 Then
+            Err.Raise vbObjectError, , m_sLastError
         End If
+        '--- first char of currency name
+        lChar = Asc(Zn(Trim$(At(vResult, 2)), " "))
+        m_eCharset = IIf(lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40, ucsCrsMik, ucsCrsWindows)
     End If
-    m_sLastError = vbNullString
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, sData, m_sLastError)
     RaiseEvent CommandComplete(eCmd, sData, SendCommand)
     If LenB(m_sLastError) <> 0 Then
@@ -944,16 +964,16 @@ Public Function EndReceipt() As Boolean
             Select Case .InitReceiptType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 bPrevExceptions = pvSetExceptions(False)
-                sData = RTrim$(At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5))
+                sData = At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5)
                 If LenB(.InitOperatorName) <> 0 Then
-                    If RTrim$(Left$(.InitOperatorName, LimitLong(Len(sData), 23))) <> sData Then
-                        SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & RTrim$(Left$(.InitOperatorName, 30))
+                    If .InitOperatorName <> sData Then
+                        SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & Left$(.InitOperatorName, 24)
                         If Status(ucsStbPrintingError) Then
-                            SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & RTrim$(Left$(.InitOperatorName, 24))
+                            SendCommand ucsFpcInitOperatorName, .InitOperatorCode & "," & .InitOperatorPassword & "," & Left$(.InitOperatorName, LimitLong(Len(sData), 10))
                         End If
                     End If
                 Else
-                    .InitOperatorName = sData
+                    .InitOperatorName = RTrim$(sData)
                 End If
                 If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
                     SendCommand ucsFpcInitInvoiceNo, .InitInvData(ucsInvNumber) & "," & .InitInvData(ucsInvNumber)
@@ -1301,13 +1321,13 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     If eCmd <> 0 Then
         bPrevExceptions = pvSetExceptions(False)
         '--- clear electronic control tape (if present)
-        lCount = C_Lng(At(Split(SendCommand(ucsFpcInitEcTape, "I"), ","), 1))
-        If Not Status(ucsStbPrintingError) Then
-            For lIdx = 1 To lCount
-                SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
-            Next
-            SendCommand ucsFpcInitEcTape, "E"
-        End If
+'        lCount = C_Lng(At(Split(SendCommand(ucsFpcInitEcTape, "I"), ","), 1))
+'        If Not Status(ucsStbPrintingError) Then
+'            For lIdx = 1 To lCount
+'                SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
+'            Next
+'            SendCommand ucsFpcInitEcTape, "E"
+'        End If
         SendCommand eCmd, "0N"
         If Status(ucsStbPrintingError) Then
             '--- daisy: pechat po depatamenti
@@ -1371,7 +1391,7 @@ Public Function GetSerialNumber() As String
     Const FUNC_NAME     As String = "GetSerialNumber"
     
     On Error GoTo EH
-    GetSerialNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 4)
+    GetSerialNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 4)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1381,7 +1401,7 @@ Public Function GetFiscalNumber() As String
     Const FUNC_NAME     As String = "GetFiscalNumber"
     
     On Error GoTo EH
-    GetFiscalNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics, "0"), ","), 5)
+    GetFiscalNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 5)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1495,6 +1515,16 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
+    
+    On Error GoTo EH
+    GetDeviceModel = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 0)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     Dim sResult         As String
@@ -1586,6 +1616,10 @@ Private Function pvSendCommand( _
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
     sText = pvTranscode(sData, True)
+    Do While eCmd >= &H100
+        sText = Chr$(eCmd Mod &H100) & sText
+        eCmd = eCmd \ &H100
+    Loop
     sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(m_lSequence) & Chr$(eCmd) & sText & Chr$(5)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
@@ -1703,8 +1737,6 @@ End Function
 
 Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As String
     Const FUNC_NAME     As String = "pvTranscode"
-    Const MIK_OFFSET    As Long = &H80
-    Const WIN_OFFSET    As Long = &HC0
     Dim lIdx            As Long
     Dim lChar           As Long
     
@@ -1712,9 +1744,9 @@ Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As St
     pvTranscode = sText
     For lIdx = 1 To Len(pvTranscode)
         lChar = Asc(Mid$(pvTranscode, lIdx, 1))
-        If bToPrinter And m_eCharset = ucsCrsMik And lChar >= WIN_OFFSET And lChar <= WIN_OFFSET + &H3F Then
+        If bToPrinter And m_eCharset = ucsCrsMik And lChar >= WIN_OFFSET And lChar < WIN_OFFSET + &H40 Then
             Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
-        ElseIf lChar >= MIK_OFFSET And lChar <= MIK_OFFSET + &H3F Then
+        ElseIf m_eCharset <> ucsCrsAuto And lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40 Then
             Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
         End If
     Next
@@ -2050,6 +2082,7 @@ Private Sub Class_Initialize()
     m_lTimeout = DEF_TIMEOUT
     m_lSequence = &H20
     m_bExceptions = True
+    m_eIsEcr = ucsTri_Undefined
 End Sub
 
 Private Sub Class_Terminate()
@@ -2107,12 +2140,16 @@ Private Function IDeviceProtocol_GetCommandLog() As String
     IDeviceProtocol_GetCommandLog = m_sCommandLog
 End Function
 
-Private Function IDeviceProtocol_GetDefaultPassword() As String
-    IDeviceProtocol_GetDefaultPassword = DEF_PASSWORD
+Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
+    If IsEcr Then
+        IDeviceProtocol_GetDefaultPassword = OperatorCode
+    Else
+        IDeviceProtocol_GetDefaultPassword = DEF_PASSWORD
+    End If
 End Function
 
 Private Function IDeviceProtocol_GetDeviceModel() As String
-    IDeviceProtocol_GetDeviceModel = GetSerialNumber()
+    IDeviceProtocol_GetDeviceModel = GetDeviceModel()
 End Function
 
 Private Function IDeviceProtocol_GetDeviceProtocol() As String
