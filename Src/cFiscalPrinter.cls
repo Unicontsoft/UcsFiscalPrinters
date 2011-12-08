@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 13    9.08.11 23:25 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 14    8.12.11 15:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 14    8.12.11 15:49 Wqw
+' REF: multi-speed check in EnumPorts
+'
 ' 13    9.08.11 23:25 Wqw
 ' REF: supports zeka protocol
 '
@@ -164,28 +167,39 @@ Public Function EnumPorts() As Variant
     Dim vRet            As Variant
     Dim lCount          As Long
     Dim vPort           As Variant
+    Dim vSpeed          As Variant
     Dim vElem           As Variant
     Dim pDevice         As IDeviceProtocol
     Dim sProtocol       As String
     Dim sModel          As String
     
     On Error Resume Next
-    vDevices = Array(New cZekaProtocol, New cICLProtocol, New cEltradeProtocol)
+    vDevices = Array( _
+        Array(New cZekaProtocol, 9600), _
+        Array(New cICLProtocol, 9600, 38400), _
+        Array(New cEltradeProtocol, 9600))
     ReDim vRet(0 To 255) As Variant
     For Each vPort In EnumSerialPorts
         sProtocol = vbNullString
         sModel = vbNullString
         For Each vElem In vDevices
-            Set pDevice = vElem
-            pDevice.Init C_Str(vPort), 500, 0
-            sProtocol = pDevice.GetDeviceProtocol()
+            Set pDevice = vElem(0)
+            For Each vSpeed In vElem
+                If Not IsObject(vSpeed) Then
+                    pDevice.Init vPort & "," & vSpeed, 250, 0
+                    sProtocol = pDevice.GetDeviceProtocol()
+                    If LenB(sProtocol) <> 0 Then
+                        sModel = pDevice.GetDeviceModel()
+                        Exit For
+                    End If
+                    pDevice.Disconnect
+                End If
+            Next
             If LenB(sProtocol) <> 0 Then
-                sModel = pDevice.GetDeviceModel()
                 Exit For
             End If
-            pDevice.Disconnect
         Next
-        vRet(lCount) = Array(vPort, 9600, sProtocol, sModel)
+        vRet(lCount) = Array(vPort, vSpeed, sProtocol, sModel)
         lCount = lCount + 1
     Next
     If lCount > 0 Then
@@ -262,7 +276,7 @@ Public Function GetHeaderFooter( _
         RetVal(17) = oFP.GetCharsPerLine()
     End If
     If LenB(At(vInput, 18, "1")) <> 0 Then
-        RetVal(18) = oFP.GetDefaultPassword()
+        RetVal(18) = oFP.GetDefaultPassword(At(OperatorData, 0))
     End If
     '--- success
     GetHeaderFooter = True
@@ -370,6 +384,9 @@ EH:
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
         CommandLog = oFP.GetCommandLog()
+        If InStr(LastError, Split(STR_DATECS_FP_INTERNAL, "|")(16)) Then ' 16 = ucsErrInvalidOperatorPassword
+            ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+        End If
     End If
 End Function
 
@@ -553,3 +570,4 @@ Private Function pvGetVatGroup(sVatGroup As String) As Long
         pvGetVatGroup = 2
     End If
 End Function
+
