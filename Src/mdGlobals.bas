@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 13    9.08.11 23:25 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 14    8.12.11 15:47 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 14    8.12.11 15:47 Wqw
+' ADD: Property Let ValueAt
+'
 ' 13    9.08.11 23:25 Wqw
 ' ADD: Sub RegWriteValue, OpenSaveDialog, ConvertToBW, GdipLoadImage,
 ' GdipReleaseImage, Pad
@@ -262,6 +265,12 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
     At = C_Str(vData(lIdx))
     On Error GoTo 0
 End Function
+
+Public Property Let ValueAt(vData As Variant, ByVal lIdx As Long, vValue As Variant)
+    On Error Resume Next
+    vData(lIdx) = vValue
+    On Error GoTo 0
+End Property
 
 Public Function C_Lng(v As Variant) As Long
     On Error Resume Next
@@ -901,3 +910,4 @@ Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal s
         Pad = Right$(String(-lSize, sFill) & sText, -lSize)
     End If
 End Function
+
