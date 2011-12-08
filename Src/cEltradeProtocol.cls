@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 19    13.07.11 18:14 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 20    8.12.11 15:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 20    8.12.11 15:49 Wqw
+' REF: params of GetDefaultPassword
+'
 ' 19    13.07.11 18:14 Wqw
 ' REF: while loop in convert extra rows
 '
@@ -2230,7 +2233,7 @@ Private Function IDeviceProtocol_GetCommandLog() As String
     IDeviceProtocol_GetCommandLog = m_sCommandLog
 End Function
 
-Private Function IDeviceProtocol_GetDefaultPassword() As String
+Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
     '--- not implemented
 End Function
 
