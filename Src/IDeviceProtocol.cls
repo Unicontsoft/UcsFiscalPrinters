@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 5     17.06.11 11:35 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 6     8.12.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 6     8.12.11 15:48 Wqw
+' REF: params na GetDefaultPassword
+'
 ' 5     17.06.11 11:35 Wqw
 ' REF: enums
 '
@@ -225,7 +228,7 @@ Public Function GetCommandLog() As String
 
 End Function
 
-Public Function GetDefaultPassword() As String
+Public Function GetDefaultPassword(OperatorCode As String) As String
 
 End Function
 

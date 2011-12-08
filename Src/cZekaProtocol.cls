@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 3     11.11.11 20:27 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 4     8.12.11 15:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 4     8.12.11 15:48 Wqw
+' REF: params na GetDefaultPassword
+'
 ' 3     11.11.11 20:27 Wqw
 ' REF: zero quantity is handled separately in PLU print
 '
@@ -919,7 +922,7 @@ Public Function EndReceipt() As Boolean
             Select Case .PrintRowType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 pvPrintLine vSplit
-            Case Else ' ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case Else ' ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
                     dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
                     If dblTotal > 0 Then
@@ -1873,7 +1876,7 @@ Private Function IDeviceProtocol_GetCommandLog() As String
     IDeviceProtocol_GetCommandLog = m_sCommandLog
 End Function
 
-Private Function IDeviceProtocol_GetDefaultPassword() As String
+Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
     IDeviceProtocol_GetDefaultPassword = DEF_PASSWORD
 End Function
 
