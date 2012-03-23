@@ -12,15 +12,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 6     8.12.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 7     23.03.12 15:26 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2012 Unicontsoft
 '
 '   Protocol za uprawlenie na fiscalno ustrojstwo
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 7     23.03.12 15:26 Wqw
+' ADD: GetTotalsByVatGroups, CancelReceipt
+'
 ' 6     8.12.11 15:48 Wqw
 ' REF: params na GetDefaultPassword
 '
@@ -237,5 +240,13 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
+
+End Function
+
+Public Function GetTotalsByVatGroups() As Variant
+
+End Function
+
+Public Function CancelReceipt() As Boolean
 
 End Function
