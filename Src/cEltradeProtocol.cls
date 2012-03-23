@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 20    8.12.11 15:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 21    23.03.12 15:28 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2012 Unicontsoft
 '
 '   Protocol for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 21    23.03.12 15:28 Wqw
+' ADD: GetTotalsByVatGroups. REF: cancel receipt before printing reports
+'
 ' 20    8.12.11 15:49 Wqw
 ' REF: params of GetDefaultPassword
 '
@@ -1290,6 +1293,9 @@ End Sub
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunXReport"
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1307,6 +1313,9 @@ End Function
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunZReport"
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1326,6 +1335,9 @@ End Function
 Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     Const FUNC_NAME     As String = "RunPeriodReport"
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstPeriodDetailed, ucsFscRstPeriodShort
@@ -1540,6 +1552,28 @@ Public Function GetDeviceModel() As String
         sResult = "Unknown 0x" & Hex(pvPeek(sResult, 1))
     End Select
     GetDeviceModel = sModel & " (" & sResult & ")"
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function GetTotalsByVatGroups() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+    Dim sResult         As String
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    sResult = SendCommand(ucsEltCmdInfoTurnoverVatGroups)
+    If Len(sResult) \ 4 > 0 Then
+        ReDim vRetVal(0 To Len(sResult) \ 4 - 1) As Double
+        For lIdx = 0 To UBound(vRetVal)
+            vRetVal(lIdx) = C_Dbl(pvPeek(sResult, lIdx * 4, 4)) / 100
+        Next
+        GetTotalsByVatGroups = vRetVal
+    Else
+        GetTotalsByVatGroups = EmptyDoubleArray
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2205,6 +2239,10 @@ Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantit
     IDeviceProtocol_AddPLU = AddPLU(0, Name, Price, Quantity, VatGroup)
 End Function
 
+Private Function IDeviceProtocol_CancelReceipt() As Boolean
+    IDeviceProtocol_CancelReceipt = CancelReceipt()
+End Function
+
 Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
@@ -2287,6 +2325,10 @@ End Function
 
 Private Function IDeviceProtocol_GetTaxNumber() As String
     IDeviceProtocol_GetTaxNumber = GetTaxNumber()
+End Function
+
+Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
+    IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
 End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
