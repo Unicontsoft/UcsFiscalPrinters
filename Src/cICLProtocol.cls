@@ -12,15 +12,19 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 35    8.12.11 15:50 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 36    23.03.12 15:28 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2012 Unicontsoft
 '
 '   Protocol for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 36    23.03.12 15:28 Wqw
+' ADD: GetTotalsByVatGroups. REF: cancel outstanding receipt before
+' printing reports, no exceptions on info functions
+'
 ' 35    8.12.11 15:50 Wqw
 ' ADD: Property IsEcr, Function GetDeviceModel. REF: better support for
 ' ECRs
@@ -217,7 +221,8 @@ Public Enum UcsIclCommandsEnum
     ucsFpcPrintDuplicate = 109
     '--- info
     ucsFpcInfoDateTime = 62
-    ucsFpcInfoLastFiscalReceipt = 64
+    ucsFpcInfoLastFiscalBlock = 64
+    ucsFpcInfoTotalsByVatGroups = 65
     ucsFpcInfoStatus = 74
     ucsFpcInfoTransaction = 76
     ucsFpcInfoDepartment = 88
@@ -1244,10 +1249,13 @@ End Function
 
 Public Function GetClock() As Date
     Const FUNC_NAME     As String = "GetClock"
+    Dim bPrevExceptions As Boolean
     Dim vSplit          As Variant
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(ucsFpcInfoDateTime), " ")
+    Exceptions = bPrevExceptions
     GetClock = C_Date(At(vSplit, 0)) + C_Date(At(vSplit, 1))
     Exit Function
 EH:
@@ -1269,6 +1277,9 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Dim bPrevExceptions As Boolean
     Dim eCmd            As UcsIclCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1303,10 +1314,13 @@ End Function
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunZReport"
     Dim bPrevExceptions As Boolean
-    Dim lIdx            As Long
-    Dim lCount          As Long
+'    Dim lIdx            As Long
+'    Dim lCount          As Long
     Dim eCmd            As UcsIclCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1350,6 +1364,9 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Const FUNC_NAME     As String = "RunPeriodReport"
     Dim eCmd            As UcsIclCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstPeriodShort
@@ -1369,9 +1386,12 @@ End Function
 
 Public Function GetLastReceiptNumber() As Long
     Const FUNC_NAME     As String = "GetLastReceiptNumber"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetLastReceiptNumber = SendCommand(ucsFpcInfoLastReceipt)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1379,9 +1399,12 @@ End Function
 
 Public Function GetLastInvoiceNumber() As String
     Const FUNC_NAME     As String = "GetLastInvoiceNumber"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetLastInvoiceNumber = At(Split(SendCommand(ucsFpcInitInvoiceNo), ","), 0)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1389,9 +1412,12 @@ End Function
 
 Public Function GetSerialNumber() As String
     Const FUNC_NAME     As String = "GetSerialNumber"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetSerialNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 4)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1399,9 +1425,12 @@ End Function
 
 Public Function GetFiscalNumber() As String
     Const FUNC_NAME     As String = "GetFiscalNumber"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetFiscalNumber = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 5)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1409,9 +1438,12 @@ End Function
 
 Public Function GetTaxNumber() As String
     Const FUNC_NAME     As String = "GetTaxNumber"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetTaxNumber = At(Split(SendCommand(ucsFpcInfoBulstat), ","), 0)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1419,9 +1451,12 @@ End Function
 
 Public Function GetTaxCaption() As String
     Const FUNC_NAME     As String = "GetTaxCaption"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetTaxCaption = At(Split(SendCommand(ucsFpcInfoBulstat), ","), 1)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1517,9 +1552,12 @@ End Function
 
 Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
     GetDeviceModel = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 0)
+    Exceptions = bPrevExceptions
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1541,6 +1579,35 @@ Public Function GetDeviceProtocol() As String
         GetDeviceProtocol = STR_PROTOCOL_DAISY_ECR
     ElseIf LenB(sSerial) <> 0 Then
         GetDeviceProtocol = STR_PROTOCOL_DATECS_FP
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function GetTotalsByVatGroups() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+    Dim bPrevExceptions As Boolean
+    Dim vSplit          As Variant
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    bPrevExceptions = pvSetExceptions(False)
+    vSplit = Split(SendCommand(ucsFpcInfoTotalsByVatGroups), ",")
+    Exceptions = bPrevExceptions
+    If UBound(vSplit) > 0 Then
+        ReDim vRetVal(0 To UBound(vSplit) - 1) As Double
+        For lIdx = 0 To UBound(vRetVal)
+            If InStr(vSplit(lIdx + 1), ".") > 0 Then
+                vRetVal(lIdx) = C_Dbl(Replace(vSplit(lIdx + 1), ".", g_sDecimalSeparator))
+            Else
+                vRetVal(lIdx) = C_Dbl(vSplit(lIdx + 1)) / 100#
+            End If
+        Next
+        GetTotalsByVatGroups = vRetVal
+    Else
+        GetTotalsByVatGroups = EmptyDoubleArray
     End If
     Exit Function
 EH:
@@ -2112,6 +2179,10 @@ Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantit
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
 End Function
 
+Private Function IDeviceProtocol_CancelReceipt() As Boolean
+    IDeviceProtocol_CancelReceipt = CancelReceipt()
+End Function
+
 Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
@@ -2198,6 +2269,10 @@ End Function
 
 Private Function IDeviceProtocol_GetTaxNumber() As String
     IDeviceProtocol_GetTaxNumber = GetTaxNumber()
+End Function
+
+Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
+    IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
 End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
