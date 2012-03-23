@@ -12,15 +12,19 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 14    8.12.11 15:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 15    23.03.12 15:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2012 Unicontsoft
 '
 '   Uprawlenie na fiscalni ustrojstwa prez IDeviceProtocol protocoli
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 15    23.03.12 15:30 Wqw
+' ADD: GetTotalsByVatGroups. REF: PrintReceipt checks if receipt already
+' printed
+'
 ' 14    8.12.11 15:49 Wqw
 ' REF: multi-speed check in EnumPorts
 '
@@ -102,6 +106,8 @@ Public Enum UcsFiscalParamIndexesEnum
     ucsFscPixCashDeskNo
     ucsFscPixLastReceipt
     ucsFscPixFiscalPayment
+    ucsFscPixPrevReceipt
+    ucsFscPixPrevTurnover
 End Enum
 
 '=========================================================================
@@ -169,7 +175,7 @@ Public Function EnumPorts() As Variant
     Dim vPort           As Variant
     Dim vSpeed          As Variant
     Dim vElem           As Variant
-    Dim pDevice         As IDeviceProtocol
+    Dim oFP             As IDeviceProtocol
     Dim sProtocol       As String
     Dim sModel          As String
     
@@ -183,16 +189,16 @@ Public Function EnumPorts() As Variant
         sProtocol = vbNullString
         sModel = vbNullString
         For Each vElem In vDevices
-            Set pDevice = vElem(0)
+            Set oFP = vElem(0)
             For Each vSpeed In vElem
                 If Not IsObject(vSpeed) Then
-                    pDevice.Init vPort & "," & vSpeed, 250, 0
-                    sProtocol = pDevice.GetDeviceProtocol()
+                    oFP.Init vPort & "," & vSpeed, 250, 0
+                    sProtocol = oFP.GetDeviceProtocol()
                     If LenB(sProtocol) <> 0 Then
-                        sModel = pDevice.GetDeviceModel()
+                        sModel = oFP.GetDeviceModel()
                         Exit For
                     End If
-                    pDevice.Disconnect
+                    oFP.Disconnect
                 End If
             Next
             If LenB(sProtocol) <> 0 Then
@@ -305,9 +311,31 @@ Public Function PrintReceipt( _
     Dim oFP             As IDeviceProtocol
     Dim vElem           As Variant
     Dim lIdx            As Long
-            
+    Dim sPrevReceipt    As String
+    Dim dblTurnover     As Double
+    
     On Error GoTo EH
     Set oFP = pvInit(DeviceString)
+    If Not oFP.CancelReceipt() Then
+        If LenB(oFP.GetLastError()) <> 0 Then
+            Err.Raise vbObjectError, , oFP.GetLastError()
+        End If
+    End If
+    sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt, vbNullString)
+    If LenB(sPrevReceipt) <> 0 Then
+        ValueAt(OperatorData, ucsFscPixPrevReceipt) = oFP.GetLastReceiptNumber()
+        '--- check if receipt already printed
+        If LenB(Trim$(sPrevReceipt)) <> 0 And sPrevReceipt <> At(OperatorData, ucsFscPixPrevReceipt) Then
+            For Each vElem In oFP.GetTotalsByVatGroups()
+                dblTurnover = dblTurnover + C_Dbl(vElem)
+            Next
+            If dblTurnover <> C_Dbl(At(OperatorData, ucsFscPixPrevTurnover, 0)) Or dblTurnover = 0 Then
+                ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
+                ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
+                GoTo QH
+            End If
+        End If
+    End If
     If IsArray(Rows) Then
         oFP.StartReceipt ReceiptType, At(OperatorData, ucsFscPixOperatorCode), _
             At(OperatorData, ucsFscPixOperatorName, STR_CASHIER), _
@@ -495,6 +523,31 @@ Public Function InitDateTime( _
     sDateTime = oFP.GetClock()
     '--- success
     InitDateTime = True
+QH:
+    CommandLog = oFP.GetCommandLog()
+    Exit Function
+EH:
+    LastError = Err.Description
+    DebugLog FUNC_NAME, "LastError=" & LastError
+    If Not oFP Is Nothing Then
+        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
+    End If
+End Function
+
+Public Function GetTotalsByVatGroups( _
+            DeviceString As String, _
+            vTotals As Variant, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+    Dim oFP             As IDeviceProtocol
+    
+    On Error GoTo EH
+    Set oFP = pvInit(DeviceString)
+    vTotals = oFP.GetTotalsByVatGroups()
+    '--- success (or failure)
+    GetTotalsByVatGroups = True
 QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
