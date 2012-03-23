@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 4     8.12.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 5     23.03.12 15:26 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2012 Unicontsoft
 '
 '   Protocol for Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 5     23.03.12 15:26 Wqw
+' ADD: GetTotalsByVatGroups. REF: cancel receipt before printing reports
+'
 ' 4     8.12.11 15:48 Wqw
 ' REF: params na GetDefaultPassword
 '
@@ -95,6 +98,7 @@ Public Enum UcsZekaCommandsEnum
     ucsZekCmdInfoHeaderFooter = &H69
     ucsZekCmdInfoOperator = &H6A
     ucsZekCmdInfoItem = &H6B
+    ucsZekCmdInfoTotalsByVatGroups = &H6D
     ucsZekCmdInfoRegisters = &H6E
     ucsZekCmdInfoInvoiceNo = &H70
     ucsZekCmdInfoLastReceipt = &H71
@@ -1074,6 +1078,9 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunXReport"
     Dim eCmd            As UcsZekaCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1099,6 +1106,9 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunZReport"
     Dim eCmd            As UcsZekaCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstDaily
@@ -1124,6 +1134,9 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Const FUNC_NAME     As String = "RunPeriodReport"
     Dim eCmd            As UcsZekaCommandsEnum
     
+    If Not CancelReceipt() Then
+        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+    End If
     On Error GoTo EH
     Select Case ReportType
     Case ucsFscRstPeriodShort
@@ -1297,6 +1310,32 @@ Public Function GetDeviceModel() As String
     
     On Error GoTo EH
     GetDeviceModel = At(Split(SendCommand(ucsZekCmdInfoVersion), ";"), 0)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function GetTotalsByVatGroups() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+    Dim vSplit          As Variant
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    vSplit = Split(SendCommand(ucsZekCmdInfoTotalsByVatGroups), ";")
+    If UBound(vSplit) > 0 Then
+        ReDim vRetVal(0 To UBound(vSplit) - 1) As Double
+        For lIdx = 0 To UBound(vRetVal)
+            If InStr(vSplit(lIdx), ".") > 0 Then
+                vRetVal(lIdx) = C_Dbl(Replace(vSplit(lIdx), ".", g_sDecimalSeparator))
+            Else
+                vRetVal(lIdx) = C_Dbl(vSplit(lIdx)) / 100#
+            End If
+        Next
+        GetTotalsByVatGroups = vRetVal
+    Else
+        GetTotalsByVatGroups = EmptyDoubleArray
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1848,6 +1887,10 @@ Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantit
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
 End Function
 
+Private Function IDeviceProtocol_CancelReceipt() As Boolean
+    IDeviceProtocol_CancelReceipt = CancelReceipt()
+End Function
+
 Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
@@ -1930,6 +1973,10 @@ End Function
 
 Private Function IDeviceProtocol_GetTaxNumber() As String
     IDeviceProtocol_GetTaxNumber = GetTaxNumber()
+End Function
+
+Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
+    IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
 End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
