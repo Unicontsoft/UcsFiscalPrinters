@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 36    23.03.12 15:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 37    5.05.12 18:44 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 37    5.05.12 18:44 Wqw
+' REF: remove caret in hdr/ftr, simpler transcode
+'
 ' 36    23.03.12 15:28 Wqw
 ' ADD: GetTotalsByVatGroups. REF: cancel outstanding receipt before
 ' printing reports, no exceptions on info functions
@@ -1469,7 +1472,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     On Error GoTo EH
     If Index >= 1 And Index <= 6 Then
         bPrevExceptions = pvSetExceptions(False)
-        GetHeaderText = SendCommand(ucsFpcInitHeaderFooter, "I" & (Index - 1))
+        GetHeaderText = Replace(SendCommand(ucsFpcInitHeaderFooter, "I" & (Index - 1)), "^", vbNullString)
         Exceptions = bPrevExceptions
     End If
     Exit Function
@@ -1484,7 +1487,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     On Error GoTo EH
     If Index >= 1 And Index <= 2 Then
         bPrevExceptions = pvSetExceptions(False)
-        GetFooterText = SendCommand(ucsFpcInitHeaderFooter, "I" & (Index + 5))
+        GetFooterText = Replace(SendCommand(ucsFpcInitHeaderFooter, "I" & (Index + 5)), "^", vbNullString)
         Exceptions = bPrevExceptions
     End If
     Exit Function
@@ -1811,10 +1814,13 @@ Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As St
     pvTranscode = sText
     For lIdx = 1 To Len(pvTranscode)
         lChar = Asc(Mid$(pvTranscode, lIdx, 1))
-        If bToPrinter And m_eCharset = ucsCrsMik And lChar >= WIN_OFFSET And lChar < WIN_OFFSET + &H40 Then
-            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
-        ElseIf m_eCharset <> ucsCrsAuto And lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40 Then
-            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
+'        If bToPrinter And m_eCharset = ucsCrsMik And lChar >= WIN_OFFSET And lChar < WIN_OFFSET + &H40 Then
+'            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + MIK_OFFSET - WIN_OFFSET)
+'        ElseIf m_eCharset <> ucsCrsAuto And lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40 Then
+'            Mid$(pvTranscode, lIdx, 1) = Chr$(lChar + WIN_OFFSET - MIK_OFFSET)
+'        End If
+        If m_eCharset = ucsCrsMik Then
+            Mid$(pvTranscode, lIdx, 1) = Chr$(IIf(lChar >= &H80, lChar Xor &H40, lChar))
         End If
     Next
     Exit Function
