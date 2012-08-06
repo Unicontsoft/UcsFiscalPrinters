@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 15    23.03.12 15:25 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 16    6.08.12 18:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 16    6.08.12 18:36 Wqw
+' ADD: Function EmptyVariantArray
+'
 ' 15    23.03.12 15:25 Wqw
 ' ADD: EmptyDoubleArray. REF: err handling
 '
@@ -138,7 +141,8 @@ Private Declare Function GdipGetImageDimension Lib "gdiplus" (ByVal Image As Lon
 Private Declare Function GdipCreateSolidFill Lib "gdiplus" (ByVal Color As Long, ByRef Brush As Long) As Long
 Private Declare Function GdipFillRectangleI Lib "gdiplus" (ByVal Graphics As Long, ByVal Brush As Long, ByVal X As Long, ByVal Y As Long, ByVal Width As Long, ByVal Height As Long) As Long
 Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal Brush As Long) As Long
-Private Declare Function CreateEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
+Private Declare Function ApiEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
+Private Declare Function ApiEmptyVariantArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbVariant, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Variant()
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -609,7 +613,9 @@ Public Function AlignText( _
         sRight = Right$(sRight, lWidth)
     End If
     AlignText = sLeft & Space$(lWidth - Len(sLeft))
-    Mid$(AlignText, lWidth - Len(sRight) + 1, Len(sRight)) = sRight
+    If LenB(sRight) <> 0 Then
+        Mid$(AlignText, lWidth - Len(sRight) + 1, Len(sRight)) = sRight
+    End If
 End Function
 
 Public Function CenterText(ByVal sText As String, ByVal lWidth As Long) As String
@@ -908,5 +914,9 @@ Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal s
 End Function
 
 Public Function EmptyDoubleArray() As Double()
-    EmptyDoubleArray = CreateEmptyDoubleArray()
+    EmptyDoubleArray = ApiEmptyDoubleArray()
+End Function
+
+Public Function EmptyVariantArray() As Variant()
+    EmptyVariantArray = ApiEmptyVariantArray()
 End Function
