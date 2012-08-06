@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 15    23.03.12 15:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 16    6.08.12 18:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 16    6.08.12 18:41 Wqw
+' REF: impl EnumPorts with AutodetectDevices
+'
 ' 15    23.03.12 15:30 Wqw
 ' ADD: GetTotalsByVatGroups. REF: PrintReceipt checks if receipt already
 ' printed
@@ -169,51 +172,23 @@ End Sub
 '=========================================================================
 
 Public Function EnumPorts() As Variant
-    Dim vDevices        As Variant
-    Dim vRet            As Variant
-    Dim lCount          As Long
-    Dim vPort           As Variant
-    Dim vSpeed          As Variant
+    Dim vPorts          As Variant
     Dim vElem           As Variant
     Dim oFP             As IDeviceProtocol
-    Dim sProtocol       As String
-    Dim sModel          As String
+    Dim lIdx            As Long
     
     On Error Resume Next
-    vDevices = Array( _
-        Array(New cZekaProtocol, 9600), _
-        Array(New cICLProtocol, 9600, 38400), _
-        Array(New cEltradeProtocol, 9600))
-    ReDim vRet(0 To 255) As Variant
-    For Each vPort In EnumSerialPorts
-        sProtocol = vbNullString
-        sModel = vbNullString
-        For Each vElem In vDevices
-            Set oFP = vElem(0)
-            For Each vSpeed In vElem
-                If Not IsObject(vSpeed) Then
-                    oFP.Init vPort & "," & vSpeed, 250, 0
-                    sProtocol = oFP.GetDeviceProtocol()
-                    If LenB(sProtocol) <> 0 Then
-                        sModel = oFP.GetDeviceModel()
-                        Exit For
-                    End If
-                    oFP.Disconnect
-                End If
-            Next
-            If LenB(sProtocol) <> 0 Then
-                Exit For
-            End If
-        Next
-        vRet(lCount) = Array(vPort, vSpeed, sProtocol, sModel)
-        lCount = lCount + 1
+    vPorts = EnumSerialPorts
+    For Each vElem In Array(New cZekaProtocol, New cICLProtocol, New cEltradeProtocol)
+        Set oFP = vElem
+        vPorts = oFP.AutodetectDevices(vPorts)
     Next
-    If lCount > 0 Then
-        ReDim Preserve vRet(0 To lCount - 1) As Variant
-    Else
-        vRet = Split(vbNullString)
-    End If
-    EnumPorts = vRet
+    For lIdx = 0 To UBound(vPorts)
+        If Not IsArray(vPorts(lIdx)) Then
+            vPorts(lIdx) = Array(vPorts(lIdx), vbNullString, vbNullString, vbNullString)
+        End If
+    Next
+    EnumPorts = vPorts
 End Function
 
 Public Function GetHeaderFooter( _
