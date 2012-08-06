@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 5     23.03.12 15:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 6     6.08.12 18:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 6     6.08.12 18:39 Wqw
+' REF: impl AutodetectDevices
+'
 ' 5     23.03.12 15:26 Wqw
 ' ADD: GetTotalsByVatGroups. REF: cancel receipt before printing reports
 '
@@ -337,6 +340,13 @@ Private Type UcsContext
     ChangePrinted       As Boolean
 End Type
 
+Private Type UcsAutodetect
+    hComm               As Long
+    WriteOver           As OVERLAPPED
+    ReadOver            As OVERLAPPED
+    Buffer              As String
+End Type
+
 '=========================================================================
 ' Error handling
 '=========================================================================
@@ -421,35 +431,104 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function EnumPorts() As Variant
-    Const FUNC_NAME     As String = "EnumPorts"
-    Dim hComm           As Long
+Public Function AutodetectDevices(vPorts As Variant) As Variant
+    Const FUNC_NAME     As String = "AutodetectDevices"
+    Const STR_SPEEDS    As String = "115200|38400|9600|19200|57600"
+    Dim lIdx            As Long
+    Dim sText           As String
+    Dim vRetVal()       As Variant
+    Dim vSpeed          As Variant
+    Dim aPorts()        As UcsAutodetect
+    Dim hEvents()       As Long
+    Dim lEventsCount    As Long
+    Dim lResult         As Long
+    Dim lActual         As Long
+    Dim sProtocol       As String
+    Dim sModel          As String
     Dim sError          As String
-    Dim sResult         As String
-    Dim vPort           As Variant
-    Dim vRet            As Variant
-    Dim lCount          As Long
     
     On Error GoTo EH
-    ReDim vRet(0 To 255) As Variant
-    For Each vPort In EnumSerialPorts
-        sError = vbNullString
-        hComm = pvOpenPort(vPort & ",9600,8,N,1", sError:=sError)
-        If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
-            sResult = pvSendCommand(hComm, 500, ucsZekCmdIsOnline, sError:=sError)
-            If sResult = Chr$(ucsZekCmdIsOnline) And LenB(sError) = 0 Then
-                vRet(lCount) = vPort
-                lCount = lCount + 1
-            End If
-            Call CloseHandle(hComm)
+    sText = Chr$(ucsZekCmdIsOnline)
+    vRetVal = vPorts
+    For Each vSpeed In Split(STR_SPEEDS, "|")
+        ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
+        ReDim hEvents(0 To UBound(vPorts)) As Long
+        lEventsCount = 0
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
+                    sError = vbNullString
+                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, sError:=sError)
+                    If .hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
+                        .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
+                        .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
+                    Else
+                        Call CloseHandle(.hComm)
+                        .hComm = 0
+                    End If
+                End If
+            End With
+        Next
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    lResult = WriteFile(.hComm, ByVal sText, Len(sText), lActual, .WriteOver)
+                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                        hEvents(lEventsCount) = .WriteOver.hEvent
+                        lEventsCount = lEventsCount + 1
+                    End If
+                End If
+            End With
+        Next
+        If lEventsCount > 0 Then
+'            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, 100)
+            Call Sleep(30)
+            lEventsCount = 0
         End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    .Buffer = String$(1000, 0)
+                    lResult = ReadFile(.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
+                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                        hEvents(lEventsCount) = .ReadOver.hEvent
+                        lEventsCount = lEventsCount + 1
+                    Else
+                        .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
+                    End If
+                End If
+            End With
+        Next
+        If lEventsCount > 0 Then
+            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, 100)
+            lEventsCount = 0
+        End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    If InStr(.Buffer, Chr$(0)) > 0 Then
+                        .Buffer = StrConv(.Buffer, vbUnicode)
+                        .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
+                    End If
+                    If .Buffer = Chr$(ucsZekCmdIsOnline) Then
+                        If pvGetDeviceInfo(.hComm, 1000, sProtocol, sModel) Then
+                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                        End If
+                    End If
+                End If
+            End With
+        Next
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    Call CloseHandle(.hComm)
+                    Call CloseHandle(.WriteOver.hEvent)
+                    Call CloseHandle(.ReadOver.hEvent)
+                End If
+            End With
+        Next
     Next
-    If lCount = 0 Then
-        EnumPorts = Split(vbNullString)
-    Else
-        ReDim Preserve vRet(0 To lCount - 1) As Variant
-        EnumPorts = vRet
-    End If
+    AutodetectDevices = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1296,10 +1375,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    If LenB(GetSerialNumber()) = 0 Then
-    Else
-        GetDeviceProtocol = STR_PROTOCOL_ZEKA_FP
-    End If
+    pvGetDeviceInfo m_hComm, m_lTimeout, GetDeviceProtocol, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1309,7 +1385,7 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    GetDeviceModel = At(Split(SendCommand(ucsZekCmdInfoVersion), ";"), 0)
+    pvGetDeviceInfo m_hComm, m_lTimeout, vbNullString, GetDeviceModel
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1846,6 +1922,28 @@ Private Function pvZfplibValue(lValue As Long, sRegValue As String, ByVal lDefVa
     pvZfplibValue = lValue
 End Function
 
+Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, sProtocol As String, sModel As String, Optional sError As String) As Boolean
+    Const FUNC_NAME     As String = "pvGetDeviceInfo"
+    Dim vSplit          As Variant
+    
+    On Error GoTo EH
+    If LenB(At(Split(pvSendCommand(hComm, lTimeout, ucsZekCmdInfoDiagnostics, sError:=sError), ";"), 0)) = 0 Then
+    Else
+        sProtocol = STR_PROTOCOL_ZEKA_FP
+        vSplit = Split(pvSendCommand(hComm, lTimeout, ucsZekCmdInfoVersion), ";")
+        sModel = Trim$(At(vSplit, 3) & " " & At(vSplit, 4))
+        If InStr(sModel, "Ê.Ñ.") > 0 Then
+            sModel = Trim$(Left$(sModel, InStr(sModel, "Ê.Ñ.") - 1))
+        End If
+        '--- success
+        pvGetDeviceInfo = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -1885,6 +1983,10 @@ End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantity As Double, VatGroup As Long) As Boolean
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
+End Function
+
+Private Function IDeviceProtocol_AutodetectDevices(vPorts As Variant) As Variant
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(vPorts)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean

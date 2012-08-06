@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 37    5.05.12 18:44 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 38    6.08.12 18:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 38    6.08.12 18:39 Wqw
+' REF: impl AutodetectDevices
+'
 ' 37    5.05.12 18:44 Wqw
 ' REF: remove caret in hdr/ftr, simpler transcode
 '
@@ -351,7 +354,7 @@ Private Const MAX_RECEIPT_ROWS          As Long = 99
 Private Const MIN_DISCOUNT              As Double = -99
 Private Const MAX_DISCOUNT              As Double = 99
 Private Const MIK_OFFSET                As Long = &H80
-Private Const WIN_OFFSET                As Long = &HC0
+'Private Const WIN_OFFSET                As Long = &HC0
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
@@ -483,6 +486,13 @@ Private Enum UcsTriState
     ucsTriTrue = -1             ' Represents True.
 End Enum
 
+Private Type UcsAutodetect
+    hComm               As Long
+    WriteOver           As OVERLAPPED
+    ReadOver            As OVERLAPPED
+    Buffer              As String
+End Type
+
 '=========================================================================
 ' Error handling
 '=========================================================================
@@ -611,37 +621,104 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function EnumPorts() As Variant
-    Const FUNC_NAME     As String = "EnumPorts"
-    Dim hComm           As Long
+Public Function AutodetectDevices(vPorts As Variant) As Variant
+    Const FUNC_NAME     As String = "AutodetectDevices"
+    Const STR_SPEEDS    As String = "115200|38400|9600|19200|57600"
+    Dim lIdx            As Long
+    Dim sText           As String
+    Dim vRetVal()       As Variant
+    Dim vSpeed          As Variant
+    Dim aPorts()        As UcsAutodetect
+    Dim hEvents()       As Long
+    Dim lEventsCount    As Long
+    Dim lResult         As Long
+    Dim lActual         As Long
+    Dim sProtocol       As String
+    Dim sModel          As String
     Dim sError          As String
-    Dim sResult         As String
-    Dim vPort           As Variant
-    Dim vRet            As Variant
-    Dim lCount          As Long
     
     On Error GoTo EH
-    ReDim vRet(0 To 255) As Variant
-    For Each vPort In EnumSerialPorts
-        sError = vbNullString
-        hComm = pvOpenPort(vPort & ",9600,8,N,1", sError)
-        If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
-            sResult = pvSendCommand(hComm, 500, ucsFpcInfoStatus, sError:=sError)
-            If LenB(sResult) <> 0 And LenB(sError) = 0 Then
-                If Asc(sResult) = 1 Then
-                    vRet(lCount) = vPort
-                    lCount = lCount + 1
+    sText = Chr$(1) & Chr$(&H24) & Chr$(&H20) & Chr(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3)
+    vRetVal = vPorts
+    For Each vSpeed In Split(STR_SPEEDS, "|")
+        ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
+        ReDim hEvents(0 To UBound(vPorts)) As Long
+        lEventsCount = 0
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
+                    sError = vbNullString
+                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, sError:=sError)
+                    If .hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
+                        .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
+                        .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
+                    Else
+                        Call CloseHandle(.hComm)
+                        .hComm = 0
+                    End If
                 End If
-            End If
-            Call CloseHandle(hComm)
+            End With
+        Next
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    lResult = WriteFile(.hComm, ByVal sText, Len(sText), lActual, .WriteOver)
+                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                        hEvents(lEventsCount) = .WriteOver.hEvent
+                        lEventsCount = lEventsCount + 1
+                    End If
+                End If
+            End With
+        Next
+        If lEventsCount > 0 Then
+'            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, 100)
+            Call Sleep(30)
+            lEventsCount = 0
         End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    .Buffer = String$(1000, 0)
+                    lResult = ReadFile(.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
+                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                        hEvents(lEventsCount) = .ReadOver.hEvent
+                        lEventsCount = lEventsCount + 1
+                    Else
+                        .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
+                    End If
+                End If
+            End With
+        Next
+        If lEventsCount > 0 Then
+            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, 100)
+            lEventsCount = 0
+        End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    If InStr(.Buffer, Chr$(0)) > 0 Then
+                        .Buffer = StrConv(.Buffer, vbUnicode)
+                        .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
+                    End If
+                    If .Buffer = Chr$(&H15) Then '--- NAK (&H15)
+                        If pvGetDeviceInfo(.hComm, 1000, sProtocol, sModel) Then
+                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                        End If
+                    End If
+                End If
+            End With
+        Next
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If .hComm <> 0 Then
+                    Call CloseHandle(.hComm)
+                    Call CloseHandle(.WriteOver.hEvent)
+                    Call CloseHandle(.ReadOver.hEvent)
+                End If
+            End With
+        Next
     Next
-    If lCount = 0 Then
-        EnumPorts = Split(vbNullString)
-    Else
-        ReDim Preserve vRet(0 To lCount - 1) As Variant
-        EnumPorts = vRet
-    End If
+    AutodetectDevices = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -991,12 +1068,12 @@ Public Function EndReceipt() As Boolean
                 SendCommand ucsFpcFiscalOpen, .InitOperatorCode & "," & .InitOperatorPassword & "," & m_lCashDeskNo & _
                     IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ",I", vbNullString)
                 bInLogin = False
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If LenB(.InitOperatorName) <> 0 Then
                     .InitOperatorName = At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5)
                 End If
                 SendCommand ucsFpcNonFiscalOpen
-                If .InitReceiptType = ucsFscRetInvoiceNonfiscal Then
+                If .InitReceiptType = ucsFscRetInvoiceNonFiscal Then
                     sData = .InitInvData(ucsInvNumber)
                     If Len(sData) <= 10 Then
                         sData = Printf(pvText(ucsTxtHeaderInvoiceNo), sData)
@@ -1027,7 +1104,7 @@ Public Function EndReceipt() As Boolean
                     sData = sData & "," & pvSafeFormat(.DiscValue, "0.00")
                 End If
                 SendCommand ucsFpcFiscalSell, sData
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If uCtx.PluCount = 1 Then
                     pvPrintLine AlignText(Format$(m_uRow(0).InitOperatorCode, "0000") & " " & m_uRow(0).InitOperatorName, Format$(m_lCashDeskNo, "00"), pvRowChars)
                 End If
@@ -1071,7 +1148,7 @@ Public Function EndReceipt() As Boolean
                 If .DiscType = ucsFscDstSubtotal Then
                     SendCommand ucsFpcFiscalSubtotal, "10," & pvSafeFormat(.DiscValue, "0.00")
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If .DiscType = ucsFscDstSubtotal Then
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1154,12 +1231,12 @@ Public Function EndReceipt() As Boolean
                     End If
                     SendCommand ucsFpcFiscalClose
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
                         pvPrintLine String$(pvRowChars, "-")
                         pvPrintLine AlignText(pvText(ucsTxtFooterTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
-                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
+                        If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
                             '--- print invoice totals by VAT group
                             vSplit = Split(SendCommand(ucsFpcInfoTaxRates), ",")
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1192,7 +1269,7 @@ Public Function EndReceipt() As Boolean
                         End If
                         uCtx.ChangePrinted = True
                     End If
-                    If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
+                    If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
                         With m_uRow(0)
                             pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
@@ -1555,12 +1632,9 @@ End Function
 
 Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
-    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
-    bPrevExceptions = pvSetExceptions(False)
-    GetDeviceModel = At(Split(SendCommand(ucsFpcInfoDiagnostics), ","), 0)
-    Exceptions = bPrevExceptions
+    pvGetDeviceInfo m_hComm, m_lTimeout, vbNullString, GetDeviceModel
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1568,21 +1642,9 @@ End Function
 
 Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
-    Dim sResult         As String
-    Dim sError          As String
-    Dim sSerial         As String
     
     On Error GoTo EH
-    sResult = pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, sError:=sError)
-    If LenB(sResult) <> 0 And LenB(sError) = 0 Then
-        sSerial = At(Split(sResult, ","), 4)
-'        sResult = pvSendCommand(m_hComm, 500, ucsFpcInfoStatus, sError:=sError)
-    End If
-    If Left$(sSerial, 2) = "DY" Then
-        GetDeviceProtocol = STR_PROTOCOL_DAISY_ECR
-    ElseIf LenB(sSerial) <> 0 Then
-        GetDeviceProtocol = STR_PROTOCOL_DATECS_FP
-    End If
+    pvGetDeviceInfo m_hComm, m_lTimeout, GetDeviceProtocol, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2073,7 +2135,7 @@ Private Sub pvConvertExtraRows()
                 If .RowType = ucsRowPlu Then
                     lCount = lCount + 1
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
                         dblTotal = Round(.PluQuantity * .PluPrice, 2)
                         If .DiscType = ucsFscDstPlu Then
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
@@ -2084,7 +2146,7 @@ Private Sub pvConvertExtraRows()
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstSubtotal Then
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
                         pvGetSubtotals lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
@@ -2146,6 +2208,29 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
+Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, sProtocol As String, sModel As String, Optional sError As String) As Boolean
+    Const FUNC_NAME     As String = "pvGetDeviceInfo"
+    Dim vResult         As Variant
+    
+    On Error GoTo EH
+    vResult = Split(pvSendCommand(hComm, lTimeout, ucsFpcInfoDiagnostics, sError:=sError), ",")
+    If UBound(vResult) >= 4 And LenB(sError) = 0 Then
+        '--- check serial
+        If Left$(At(vResult, 4), 2) = "DY" Then
+            sProtocol = STR_PROTOCOL_DAISY_ECR
+        ElseIf LenB(At(vResult, 4)) <> 0 Then
+            sProtocol = STR_PROTOCOL_DATECS_FP
+        End If
+        sModel = At(vResult, 0)
+        '--- success
+        pvGetDeviceInfo = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -2183,6 +2268,10 @@ End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantity As Double, VatGroup As Long) As Boolean
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
+End Function
+
+Private Function IDeviceProtocol_AutodetectDevices(vPorts As Variant) As Variant
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(vPorts)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
