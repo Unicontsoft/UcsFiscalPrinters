@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmEltradeSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ELTRADE протокол"
-   ClientHeight    =   6225
-   ClientLeft      =   45
-   ClientTop       =   435
+   ClientHeight    =   6228
+   ClientLeft      =   48
+   ClientTop       =   432
    ClientWidth     =   8100
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.25
+      Size            =   8.4
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,7 +19,7 @@ Begin VB.Form frmEltradeSetup
    LinkTopic       =   "Form2"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6225
+   ScaleHeight     =   6228
    ScaleWidth      =   8100
    StartUpPosition =   3  'Windows Default
    Begin VB.Frame fraCommands 
@@ -499,7 +499,7 @@ Begin VB.Form frmEltradeSetup
       Top             =   90
       Width           =   5775
       Begin VB.ListBox lstYesNoParams 
-         Height          =   4335
+         Height          =   4152
          ItemData        =   "frmEltradeSetup.frx":000C
          Left            =   180
          List            =   "frmEltradeSetup.frx":0040
@@ -2210,7 +2210,7 @@ Begin VB.Form frmEltradeSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.25
+            Size            =   8.4
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 7     4.07.11 15:48 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 8     6.08.12 18:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 8     6.08.12 18:41 Wqw
+' REF: uses EnumSerialPorts
+'
 ' 7     4.07.11 15:48 Wqw
 ' REF: err handling
 '
@@ -2484,7 +2487,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     '--- login
     pvStatus = STR_STATUS_ENUM_PORTS
     cobConnectPort.Clear
-    For Each vElem In m_oFP.EnumPorts
+    For Each vElem In EnumSerialPorts
         cobConnectPort.AddItem vElem
     Next
     cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)

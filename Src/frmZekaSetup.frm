@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmZekaSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки Zeka протокол"
-   ClientHeight    =   6255
-   ClientLeft      =   45
-   ClientTop       =   330
-   ClientWidth     =   8175
+   ClientHeight    =   6252
+   ClientLeft      =   48
+   ClientTop       =   336
+   ClientWidth     =   8172
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.25
+      Size            =   8.4
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,8 +19,8 @@ Begin VB.Form frmZekaSetup
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6255
-   ScaleWidth      =   8175
+   ScaleHeight     =   6252
+   ScaleWidth      =   8172
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
@@ -1106,8 +1106,8 @@ Begin VB.Form frmZekaSetup
          BorderStyle     =   0  'None
          Height          =   2445
          Left            =   180
-         ScaleHeight     =   2445
-         ScaleWidth      =   5415
+         ScaleHeight     =   2448
+         ScaleWidth      =   5412
          TabIndex        =   205
          TabStop         =   0   'False
          Top             =   2700
@@ -1127,8 +1127,8 @@ Begin VB.Form frmZekaSetup
             BorderStyle     =   0  'None
             Height          =   1635
             Left            =   0
-            ScaleHeight     =   1635
-            ScaleWidth      =   5235
+            ScaleHeight     =   1632
+            ScaleWidth      =   5232
             TabIndex        =   206
             TabStop         =   0   'False
             Top             =   0
@@ -2259,7 +2259,7 @@ Begin VB.Form frmZekaSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.25
+            Size            =   8.4
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2331,7 +2331,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 1     9.08.11 23:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 2     6.08.12 18:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2340,6 +2340,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 2     6.08.12 18:41 Wqw
+' REF: uses EnumSerialPorts
+'
 ' 1     9.08.11 23:26 Wqw
 ' Initial implementation
 '
@@ -2512,7 +2515,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         cobHeadBulstatName.AddItem vElem
     Next
     On Error Resume Next
-    For lIdx = fraCommands.LBound To fraCommands.ubound
+    For lIdx = fraCommands.LBound To fraCommands.UBound
         fraCommands(lIdx).Visible = False
     Next
     On Error GoTo EH
@@ -2520,7 +2523,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     '--- login
     pvStatus = STR_STATUS_ENUM_PORTS
     cobConnectPort.Clear
-    For Each vElem In m_oFP.EnumPorts
+    For Each vElem In EnumSerialPorts
         cobConnectPort.AddItem vElem
     Next
     cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
@@ -3125,7 +3128,7 @@ Private Sub lstCmds_Click()
 QH:
     '--- might have missing entries in control array
     On Error Resume Next
-    For lIdx = fraCommands.LBound To fraCommands.ubound
+    For lIdx = fraCommands.LBound To fraCommands.UBound
         fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
     Next
     On Error GoTo EH
@@ -3133,7 +3136,7 @@ QH:
     Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
     '--- might have missing entries in control array
     On Error Resume Next
-    For lIdx = cmdSave.LBound To cmdSave.ubound
+    For lIdx = cmdSave.LBound To cmdSave.UBound
         If Not cmdSave(lIdx).Visible Then
         Else
             cmdSave(lIdx).Default = True

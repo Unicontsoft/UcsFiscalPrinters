@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmIclSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ICL протокол"
-   ClientHeight    =   6255
-   ClientLeft      =   45
-   ClientTop       =   330
-   ClientWidth     =   8175
+   ClientHeight    =   6252
+   ClientLeft      =   48
+   ClientTop       =   336
+   ClientWidth     =   8172
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.25
+      Size            =   8.4
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,8 +19,8 @@ Begin VB.Form frmIclSetup
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6255
-   ScaleWidth      =   8175
+   ScaleHeight     =   6252
+   ScaleWidth      =   8172
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
@@ -1230,8 +1230,8 @@ Begin VB.Form frmIclSetup
          Enabled         =   0   'False
          Height          =   2625
          Left            =   90
-         ScaleHeight     =   2625
-         ScaleWidth      =   5595
+         ScaleHeight     =   2628
+         ScaleWidth      =   5592
          TabIndex        =   214
          TabStop         =   0   'False
          Top             =   2430
@@ -1395,8 +1395,8 @@ Begin VB.Form frmIclSetup
          Enabled         =   0   'False
          Height          =   2175
          Left            =   90
-         ScaleHeight     =   2175
-         ScaleWidth      =   5595
+         ScaleHeight     =   2172
+         ScaleWidth      =   5592
          TabIndex        =   200
          TabStop         =   0   'False
          Top             =   180
@@ -1612,8 +1612,8 @@ Begin VB.Form frmIclSetup
          BorderStyle     =   0  'None
          Height          =   2445
          Left            =   180
-         ScaleHeight     =   2445
-         ScaleWidth      =   5415
+         ScaleHeight     =   2448
+         ScaleWidth      =   5412
          TabIndex        =   236
          TabStop         =   0   'False
          Top             =   720
@@ -1633,8 +1633,8 @@ Begin VB.Form frmIclSetup
             BorderStyle     =   0  'None
             Height          =   1635
             Left            =   0
-            ScaleHeight     =   1635
-            ScaleWidth      =   5235
+            ScaleHeight     =   1632
+            ScaleWidth      =   5232
             TabIndex        =   237
             TabStop         =   0   'False
             Top             =   0
@@ -1723,7 +1723,7 @@ Begin VB.Form frmIclSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.25
+            Size            =   8.4
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2521,7 +2521,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 8     8.12.11 15:51 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 9     6.08.12 18:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2011 Unicontsoft
@@ -2530,6 +2530,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 9     6.08.12 18:41 Wqw
+' REF: uses EnumSerialPorts
+'
 ' 8     8.12.11 15:51 Wqw
 ' REF: impl (partial) ECRs support
 '
@@ -2765,7 +2768,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     '--- login
     pvStatus = STR_STATUS_ENUM_PORTS
     cobConnectPort.Clear
-    For Each vElem In m_oFP.EnumPorts
+    For Each vElem In EnumSerialPorts
         cobConnectPort.AddItem vElem
     Next
     cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
