@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 7     23.03.12 15:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 8     6.08.12 18:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 8     6.08.12 18:36 Wqw
+' ADD: Function AutodetectDevices
+'
 ' 7     23.03.12 15:26 Wqw
 ' ADD: GetTotalsByVatGroups, CancelReceipt
 '
@@ -248,5 +251,9 @@ Public Function GetTotalsByVatGroups() As Variant
 End Function
 
 Public Function CancelReceipt() As Boolean
+
+End Function
+
+Public Function AutodetectDevices(vPorts As Variant) As Variant
 
 End Function
