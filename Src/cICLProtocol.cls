@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 38    6.08.12 18:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 39    10.08.12 18:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 39    10.08.12 18:06 Wqw
+' REF: workaround for KLEN devices that don't support custom PLUs in
+' voids and zero price in fiscal rows
+'
 ' 38    6.08.12 18:39 Wqw
 ' REF: impl AutodetectDevices
 '
@@ -355,6 +359,7 @@ Private Const MIN_DISCOUNT              As Double = -99
 Private Const MAX_DISCOUNT              As Double = 99
 Private Const MIK_OFFSET                As Long = &H80
 'Private Const WIN_OFFSET                As Long = &HC0
+Private Const ucsFscDstAbs              As Long = ucsFscDstPlu + 100
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
@@ -374,6 +379,7 @@ Private m_lRowChars                 As Long
 Private m_sCommandLog               As String
 Private m_eCharset                  As UcsCharset
 Private m_eIsEcr                    As UcsTriState
+Private m_bKlenDevice               As Boolean
 
 Private Enum UcsInternalErrors
     ucsErrNoDeviceInfoSet
@@ -755,6 +761,11 @@ Public Function Init( _
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
     End If
+    vSplit = Split(pvSendCommand(m_hComm, m_lTimeout, ucsFpcInfoDiagnostics, sError:=m_sLastError), ",")
+    If LenB(m_sLastError) <> 0 Then
+        GoTo QH
+    End If
+    m_bKlenDevice = (Len(At(vSplit, 3)) > 2) Or True
     '--- success
     Init = True
 QH:
@@ -1084,7 +1095,13 @@ Public Function EndReceipt() As Boolean
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, 2)
-            dblDisc = Round(dblTotal * IIf(.DiscType = ucsFscDstPlu, .DiscValue, 0) / 100#, 2)
+            If .DiscType = ucsFscDstPlu Then
+                dblDisc = Round(dblTotal * .DiscValue / 100#, 2)
+            ElseIf .DiscType = ucsFscDstAbs Then
+                dblDisc = Round(.DiscValue, 2)
+            Else
+                dblDisc = 0
+            End If
             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
             Select Case .PrintRowType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
@@ -1100,9 +1117,10 @@ Public Function EndReceipt() As Boolean
                 If .PluQuantity <> 1 Then
                     sData = sData & "*" & pvSafeFormat(.PluQuantity, "0.000")
                 End If
-                If .DiscType = ucsFscDstPlu Then
-                    sData = sData & "," & pvSafeFormat(.DiscValue, "0.00")
-                End If
+                Select Case .DiscType
+                Case ucsFscDstPlu, ucsFscDstAbs
+                    sData = sData & IIf(.DiscType = ucsFscDstPlu, ",", ";") & pvSafeFormat(.DiscValue, "0.00")
+                End Select
                 SendCommand ucsFpcFiscalSell, sData
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
                 If uCtx.PluCount = 1 Then
@@ -1136,11 +1154,12 @@ Public Function EndReceipt() As Boolean
                     pvPrintLine AlignText(pvText(ucsTxtPluQuantity), pvSafeFormat(.PluQuantity, "0.000"), pvRowChars - 2)
                     pvPrintLine AlignText(pvText(ucsTxtPluTotal), pvSafeFormat(dblTotal, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars)
                 End If
-                If .DiscType = ucsFscDstPlu Then
-                    sData = AlignText(Printf(IIf(dblDisc > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(.DiscValue), "0.00") & " %"), _
+                Select Case .DiscType
+                Case ucsFscDstPlu, ucsFscDstAbs
+                    sData = AlignText(Printf(IIf(dblDisc > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), IIf(.DiscType = ucsFscDstPlu, pvSafeFormat(Abs(.DiscValue), "0.00") & " %", vbNullString)), _
                         pvSafeFormat(dblDisc, "0.00") & " " & Chr$(191 + .PluVatGroup), pvRowChars)
                     pvPrintLine sData
-                End If
+                End Select
             End Select
         Case ucsRowDiscount
             Select Case .PrintRowType
@@ -2054,6 +2073,7 @@ Private Sub pvConvertExtraRows()
     Dim dblTotal        As Double
     Dim uSum            As UcsContext
     Dim dblDiscount     As Double
+    Dim dblTotalWithDisc As Double
     
     On Error GoTo EH
     '--- convert out-of-range discounts to PLU rows
@@ -2065,8 +2085,12 @@ Private Sub pvConvertExtraRows()
                 If (m_uRow(lRow).DiscValue < MIN_DISCOUNT Or m_uRow(lRow).DiscValue > MAX_DISCOUNT) Then
                     dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
                     dblDiscount = Limit(m_uRow(lRow).DiscValue, MIN_DISCOUNT, MAX_DISCOUNT)
-                    If Round(dblTotal * m_uRow(lRow).DiscValue / 100#, 2) = Round(dblTotal * dblDiscount / 100#, 2) Then
+                    dblTotalWithDisc = Round(dblTotal * m_uRow(lRow).DiscValue / 100#, 2)
+                    If dblTotalWithDisc = Round(dblTotal * dblDiscount / 100#, 2) Then
                         m_uRow(lRow).DiscValue = dblDiscount
+                    ElseIf m_bKlenDevice Then
+                        m_uRow(lRow).DiscType = ucsFscDstAbs
+                        m_uRow(lRow).DiscValue = dblTotalWithDisc
                     Else
                         dblDiscount = m_uRow(lRow).DiscValue
                         m_uRow(lRow).DiscType = 0
@@ -2078,10 +2102,19 @@ Private Sub pvConvertExtraRows()
                     '--- convert PLU discount on void rows
                     dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
                     dblDiscount = m_uRow(lRow).DiscValue
-                    m_uRow(lRow).DiscType = 0
-                    m_uRow(lRow).DiscValue = 0
-                    AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                            Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
+                    dblTotalWithDisc = Round(dblTotal * dblDiscount / 100#, 2)
+                    If m_bKlenDevice Then
+                        m_uRow(lRow).DiscType = ucsFscDstAbs
+                        m_uRow(lRow).DiscValue = dblTotalWithDisc
+                    Else
+                        m_uRow(lRow).DiscType = 0
+                        m_uRow(lRow).DiscValue = 0
+                        AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), pvSafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                                dblTotalWithDisc, 1, m_uRow(lRow).PluVatGroup, lRow + 1
+                    End If
+                ElseIf m_bKlenDevice And m_uRow(lRow).PluPrice = 0 Then
+                    m_uRow(lRow).RowType = ucsRowLine
+                    m_uRow(lRow).LineText = m_uRow(lRow).PluName
                 End If
             ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
                 If (m_uRow(lRow).DiscValue < MIN_DISCOUNT Or m_uRow(lRow).DiscValue > MAX_DISCOUNT) And m_uRow(lRow).DiscType = ucsFscDstSubtotal Then
@@ -2139,6 +2172,8 @@ Private Sub pvConvertExtraRows()
                         dblTotal = Round(.PluQuantity * .PluPrice, 2)
                         If .DiscType = ucsFscDstPlu Then
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
+                        ElseIf .DiscType = ucsFscDstAbs Then
+                            dblTotal = Round(dblTotal + .DiscValue, 2)
                         End If
                         If .PluVatGroup > 0 Then
                             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
@@ -2189,6 +2224,8 @@ Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
             dblTotal = Round(.PluQuantity * .PluPrice, 2)
             If .DiscType = ucsFscDstPlu Then
                 dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
+            ElseIf .DiscType = ucsFscDstAbs Then
+                dblTotal = Round(dblTotal + .DiscValue, 2)
             End If
             If .PluVatGroup > 0 Then
                 uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
@@ -2222,6 +2259,9 @@ Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, sP
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
         sModel = At(vResult, 0)
+        If Len(At(vResult, 3)) > 2 Then
+            sModel = sModel & " " & At(vResult, 1)
+        End If
         '--- success
         pvGetDeviceInfo = True
     End If
