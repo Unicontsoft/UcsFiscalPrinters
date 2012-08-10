@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 39    10.08.12 18:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 40    10.08.12 18:12 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 40    10.08.12 18:12 Wqw
+' REF: KLEN device check
+'
 ' 39    10.08.12 18:06 Wqw
 ' REF: workaround for KLEN devices that don't support custom PLUs in
 ' voids and zero price in fiscal rows
@@ -765,7 +768,7 @@ Public Function Init( _
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
     End If
-    m_bKlenDevice = (Len(At(vSplit, 3)) > 2) Or True
+    m_bKlenDevice = (Len(At(vSplit, 3)) > 2)
     '--- success
     Init = True
 QH:
@@ -1079,12 +1082,12 @@ Public Function EndReceipt() As Boolean
                 SendCommand ucsFpcFiscalOpen, .InitOperatorCode & "," & .InitOperatorPassword & "," & m_lCashDeskNo & _
                     IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ",I", vbNullString)
                 bInLogin = False
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If LenB(.InitOperatorName) <> 0 Then
                     .InitOperatorName = At(Split(SendCommand(ucsFpcInfoOperator, .InitOperatorCode), ","), 5)
                 End If
                 SendCommand ucsFpcNonFiscalOpen
-                If .InitReceiptType = ucsFscRetInvoiceNonFiscal Then
+                If .InitReceiptType = ucsFscRetInvoiceNonfiscal Then
                     sData = .InitInvData(ucsInvNumber)
                     If Len(sData) <= 10 Then
                         sData = Printf(pvText(ucsTxtHeaderInvoiceNo), sData)
@@ -1122,7 +1125,7 @@ Public Function EndReceipt() As Boolean
                     sData = sData & IIf(.DiscType = ucsFscDstPlu, ",", ";") & pvSafeFormat(.DiscValue, "0.00")
                 End Select
                 SendCommand ucsFpcFiscalSell, sData
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If uCtx.PluCount = 1 Then
                     pvPrintLine AlignText(Format$(m_uRow(0).InitOperatorCode, "0000") & " " & m_uRow(0).InitOperatorName, Format$(m_lCashDeskNo, "00"), pvRowChars)
                 End If
@@ -1167,7 +1170,7 @@ Public Function EndReceipt() As Boolean
                 If .DiscType = ucsFscDstSubtotal Then
                     SendCommand ucsFpcFiscalSubtotal, "10," & pvSafeFormat(.DiscValue, "0.00")
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If .DiscType = ucsFscDstSubtotal Then
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1250,12 +1253,12 @@ Public Function EndReceipt() As Boolean
                     End If
                     SendCommand ucsFpcFiscalClose
                 End If
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal
+            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
                         pvPrintLine String$(pvRowChars, "-")
                         pvPrintLine AlignText(pvText(ucsTxtFooterTotal), pvSafeFormat(SumArray(uCtx.GrpTotal), "0.00"), pvRowChars - 2)
-                        If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                             '--- print invoice totals by VAT group
                             vSplit = Split(SendCommand(ucsFpcInfoTaxRates), ",")
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1288,7 +1291,7 @@ Public Function EndReceipt() As Boolean
                         End If
                         uCtx.ChangePrinted = True
                     End If
-                    If .PrintRowType = ucsFscRetInvoiceNonFiscal Then
+                    If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                         With m_uRow(0)
                             pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
@@ -2168,7 +2171,7 @@ Private Sub pvConvertExtraRows()
                 If .RowType = ucsRowPlu Then
                     lCount = lCount + 1
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         dblTotal = Round(.PluQuantity * .PluPrice, 2)
                         If .DiscType = ucsFscDstPlu Then
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
@@ -2181,7 +2184,7 @@ Private Sub pvConvertExtraRows()
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstSubtotal Then
                     If lCount > MAX_RECEIPT_ROWS - lTotal Then
-                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonFiscal)
+                        .PrintRowType = IIf(.PrintRowType = ucsFscRetFiscal, ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal)
                         pvGetSubtotals lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
