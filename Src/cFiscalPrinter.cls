@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 16    6.08.12 18:41 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 17    29.08.12 15:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 17    29.08.12 15:06 Wqw
+' REF: localized texts can by customized in config
+'
 ' 16    6.08.12 18:41 Wqw
 ' REF: impl EnumPorts with AutodetectDevices
 '
@@ -117,7 +120,7 @@ End Enum
 ' Constants and member variables
 '=========================================================================
 
-'Private Const STR_PAYMENT               As String = "В БРОЙ|КАРТА|С ЧЕК|КРЕДИТ"
+'--- strings
 Private Const STR_ELTRADE_ECR_INTERNAL  As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Вече има отворена връзка|Няма отворена връзка|Невалидно заглавие на отговор от устройството|Грешка при WaitCommEvent: |Няма започната бележка|Липсва хартия|Невалиден параметър 'Command'|Непозволена команда за печат на повече от един дубликат|Грешка при печат|Фатална грешка на фискалното устройство|Невъзможно отказване на предишна транзакция|Грешка на ред %1: %2"
 Private Const STR_ELTRADE_ECR_TEXTS     As String = "СУМА|МЕЖДИННА СУМА|Продажби %1|ед. цена|количество|сума*%1|РЕСТО|всичко|ДДС*%1|нето ст-ст|Фактура #|Продавач:|   * * * * * * * *|Получател:|ИДЕНТ # |ЗДДС # |%1 артикули|МОЛ:|Получил:|НАДБАВКА|ОТСТЪПКА"
 Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за край на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция"
@@ -130,12 +133,20 @@ Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Гре
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
 Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|Карта|Чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
-Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
-Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
 Private Const STR_DUPLICATE             As String = "ДУБЛИКАТ"
 Private Const STR_ORIGINAL              As String = "ОРИГИНАЛ"
 Private Const STR_HEAD_CREDIT_NOTE2     As String = "към ф-ра "
 Private Const STR_CASHIER               As String = "Касиер"
+'--- errors
+Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
+Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
+'--- config entries
+Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
+Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
+Private Const CFG_PRINTER_ERRORS        As String = "PrinterErrors"
+Private Const CFG_DIP_SWITCHES_TEXTS    As String = "DipSwitchesTexts"
+Private Const CFG_MEMORY_TEXTS          As String = "MemoryTexts"
+Private Const CFG_RECEIPT_TEXTS         As String = "ReceiptTexts"
 
 Private Enum UcsRowTypeEnum
     ucsRwtSell = 1
@@ -539,32 +550,34 @@ End Function
 
 Private Function pvInit(DeviceString As String) As IDeviceProtocol
     Dim vSplit          As Variant
+    Dim sProtocol       As String
     
     vSplit = Split(DeviceString, ";")
+    sProtocol = UCase$(At(vSplit, 0))
     '--- figure out model
-    Select Case UCase$(At(vSplit, 0))
+    Select Case sProtocol
     Case STR_PROTOCOL_ELTRADE_ECR
         Set pvInit = New cEltradeProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ELTRADE_ECR_TEXTS
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ELTRADE_ECR_INTERNAL)
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ELTRADE_ECR_TEXTS)
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
         Set pvInit = New cICLProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_DATECS_FP_INTERNAL
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_DATECS_FP_STATUSES
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_DATECS_FP_ERRORS
-        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, STR_DATECS_FP_DIP_SWITCHES
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, STR_DATECS_FP_MEMORY
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_DATECS_FP_TEXTS
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
+        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
+        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_DATECS_FP_DIP_SWITCHES)
+        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_FP_MEMORY)
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
     Case STR_PROTOCOL_ZEKA_FP
         Set pvInit = New cZekaProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ZEKA_FP_INTERNAL
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, STR_ZEKA_FP_STATUSES
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_ZEKA_FP_ERRORS
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, STR_ZEKA_FP_TEXTS
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ZEKA_FP_INTERNAL)
+        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_ZEKA_FP_STATUSES)
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_ZEKA_FP_ERRORS)
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ZEKA_FP_TEXTS)
     Case Else
         Set pvInit = New cEltradeProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, STR_ELTRADE_ECR_INTERNAL
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, STR_DATECS_FP_ERRORS
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ELTRADE_ECR_INTERNAL)
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
     End Select
     If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
         Err.Raise vbObjectError, , Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE))
