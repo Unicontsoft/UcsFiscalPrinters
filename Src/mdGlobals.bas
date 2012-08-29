@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 16    6.08.12 18:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 17    29.08.12 15:04 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 17    29.08.12 15:04 Wqw
+' ADD: Function FileExists, ReadTextFile, GetConfigValue
+'
 ' 16    6.08.12 18:36 Wqw
 ' ADD: Function EmptyVariantArray
 '
@@ -143,6 +146,7 @@ Private Declare Function GdipFillRectangleI Lib "gdiplus" (ByVal Graphics As Lon
 Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal Brush As Long) As Long
 Private Declare Function ApiEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
 Private Declare Function ApiEmptyVariantArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbVariant, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Variant()
+Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -249,6 +253,7 @@ Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
 
 Public g_sDecimalSeparator      As String
 Public g_hGdip                  As Long
+Public g_oConfig                As Object
 
 '=========================================================================
 ' Error handling
@@ -268,7 +273,27 @@ End Sub
 '=========================================================================
 
 Public Sub Main()
+    Const FUNC_NAME     As String = "Main"
+    Dim sFile           As String
+    Dim vJson           As Variant
+    
+    On Error GoTo EH
     g_sDecimalSeparator = GetDecimalSeparator()
+    sFile = App.Path & "\" & App.EXEName & ".conf"
+    If Not FileExists(sFile) Then
+        sFile = App.Path & "\..\" & App.EXEName & ".conf"
+    End If
+    If FileExists(sFile) Then
+        JsonParse ReadTextFile(sFile), vJson
+    End If
+    If Not IsObject(vJson) Then
+        JsonParse "{}", vJson
+    End If
+    Set g_oConfig = vJson
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Sub
 
 Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
@@ -919,4 +944,76 @@ End Function
 
 Public Function EmptyVariantArray() As Variant()
     EmptyVariantArray = ApiEmptyVariantArray()
+End Function
+
+Public Function FileExists(sFile As String) As Boolean
+    On Error Resume Next
+    GetAttr sFile
+    FileExists = (Err.Number = 0)
+    On Error GoTo 0
+End Function
+
+Public Function ReadTextFile(sFile As String) As String
+    Const BOM_UTF       As String = "ï»¿" '--- "\xEF\xBB\xBF"
+    Const BOM_UNICODE   As String = "ÿþ"  '--- "\xFF\xFE"
+    Const ForReading    As Long = 1
+    Dim lSize           As Long
+    Dim sPrefix         As String
+    
+    With CreateObject("Scripting.FileSystemObject")
+        lSize = .GetFile(sFile).Size
+        If lSize = 0 Then
+            Exit Function
+        End If
+        sPrefix = .OpenTextFile(sFile, ForReading).Read(IIf(lSize < 50, lSize, 50))
+        If Left$(sPrefix, Len(BOM_UTF)) <> BOM_UTF And Left$(sPrefix, Len(BOM_UNICODE)) <> BOM_UNICODE Then
+            '--- special xml encoding test
+            If InStr(1, sPrefix, "<?xml", vbTextCompare) > 0 And InStr(1, sPrefix, "utf-8", vbTextCompare) > 0 Then
+                sPrefix = BOM_UTF
+            End If
+        End If
+        If Left$(sPrefix, Len(BOM_UTF)) <> BOM_UTF Then
+            On Error Resume Next
+            ReadTextFile = .OpenTextFile(sFile, ForReading, False, Left$(sPrefix, Len(BOM_UNICODE)) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0).ReadAll()
+            On Error GoTo 0
+        Else
+            With CreateObject("ADODB.Stream")
+                .Open
+                If Left$(sPrefix, Len(BOM_UNICODE)) = BOM_UNICODE Then
+                    .Charset = "Unicode"
+                ElseIf Left$(sPrefix, Len(BOM_UTF)) = BOM_UTF Then
+                    .Charset = "UTF-8"
+                Else
+                    .Charset = "_autodetect_all"
+                End If
+                .LoadFromFile sFile
+                ReadTextFile = .ReadText
+            End With
+        End If
+    End With
+End Function
+
+Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
+    If LenB(sSerial) <> 0 Then
+        If g_oConfig.Exists(sSerial) Then
+            If IsObject(g_oConfig(sSerial)) Then
+                If g_oConfig(sSerial).Exists(sKey) Then
+                    If IsObject(g_oConfig(sSerial).Item(sKey)) Then
+                        Set GetConfigValue = g_oConfig(sSerial).Item(sKey)
+                    Else
+                        GetConfigValue = g_oConfig(sSerial).Item(sKey)
+                    End If
+                    Exit Function
+                End If
+            End If
+        End If
+    End If
+    If IsMissing(vDefault) Then
+        Err.Raise vbObjectError, , "Missing default value for " & sKey
+    End If
+    If IsObject(vDefault) Then
+        Set GetConfigValue = vDefault
+    Else
+        GetConfigValue = vDefault
+    End If
 End Function
