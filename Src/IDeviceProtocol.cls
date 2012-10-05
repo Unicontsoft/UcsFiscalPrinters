@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 8     6.08.12 18:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 9     5.10.12 14:15 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 9     5.10.12 14:15 Wqw
+' ADD: Function CashDebitCredit
+'
 ' 8     6.08.12 18:36 Wqw
 ' ADD: Function AutodetectDevices
 '
@@ -52,7 +55,7 @@ Public Enum UcsFiscalReceiptTypeEnum
     ucsFscRetNonfiscal = 1
     ucsFscRetFiscal
     ucsFscRetInvoiceFiscal
-    ucsFscRetInvoiceNonfiscal
+    ucsFscRetInvoiceNonFiscal
     [_ucsFscRetMax]
 End Enum
 
@@ -256,4 +259,12 @@ End Function
 
 Public Function AutodetectDevices(vPorts As Variant) As Variant
 
+End Function
+
+Public Function CashDebitCredit( _
+            OperatorCode As String, _
+            OperatorPassword As String, _
+            ByVal PmtNumber As UcsFiscalPaymentTypeEnum, _
+            ByVal dblValue As Double) As Variant
+    
 End Function
