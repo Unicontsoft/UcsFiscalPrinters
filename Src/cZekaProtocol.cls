@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 7     29.08.12 15:05 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 8     5.10.12 14:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 8     5.10.12 14:20 Wqw
+' ADD: Function CashDebitCredit
+'
 ' 7     29.08.12 15:05 Wqw
 ' REF: impl config values instead of constants
 '
@@ -594,7 +597,7 @@ Public Function Init( _
             .MinDiscount = DEF_MIN_DISCOUNT
         End If
         .MaxDiscount = C_Dbl(GetConfigValue(sSerial, "MaxDiscount", 0))
-        If .MaxDiscount >= 0 Then
+        If .MaxDiscount <= 0 Then
             .MaxDiscount = DEF_MAX_DISCOUNT
         End If
         .PingTimeout = C_Lng(GetConfigValue(sSerial, "PingTimeout", 0))
@@ -1428,7 +1431,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function GetTotalsByVatGroups() As Variant
+Public Function GetTotalsByVatGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByVatGroups"
     Dim vSplit          As Variant
     Dim vRetVal         As Variant
@@ -1449,6 +1452,39 @@ Private Function GetTotalsByVatGroups() As Variant
     Else
         GetTotalsByVatGroups = EmptyDoubleArray
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal PmtNumber As UcsFiscalPaymentTypeEnum, ByVal dblValue As Double, Optional Comment As String) As Variant
+    Const FUNC_NAME     As String = "CashDebitCredit"
+    Dim sData           As String
+    Dim vSplit          As Variant
+    Dim vRetVal         As Variant
+    
+    On Error GoTo EH
+    If dblValue <> 0 Then
+        sData = OperatorCode & ";" & Pad(OperatorPassword, 4) & ";" & PmtNumber & ";" & pvSafeFormat(dblValue, "0.00") & "@" & Left$(Comment, 36)
+        SendCommand ucsZekCmdAdminCashDebitCredit, sData
+        If LenB(LastError) <> 0 Then
+            vRetVal = EmptyDoubleArray
+            GoTo QH
+        End If
+    End If
+    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "0"), ";")
+    If LenB(LastError) <> 0 Then
+        vRetVal = EmptyDoubleArray
+        GoTo QH
+    End If
+    ReDim vRetVal(0 To 2) As Double
+    vRetVal(0) = C_Dbl(At(vSplit, PmtNumber))
+    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "3"), ";")
+    vRetVal(1) = C_Dbl(At(vSplit, PmtNumber))
+    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "4"), ";")
+    vRetVal(2) = C_Dbl(At(vSplit, PmtNumber))
+QH:
+    CashDebitCredit = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2030,6 +2066,10 @@ End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
+End Function
+
+Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal PmtNumber As UcsFiscalPaymentTypeEnum, ByVal dblValue As Double) As Variant
+    IDeviceProtocol_CashDebitCredit = CashDebitCredit(OperatorCode, OperatorPassword, PmtNumber, dblValue)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean

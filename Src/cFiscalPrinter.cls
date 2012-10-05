@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 17    29.08.12 15:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 18    5.10.12 14:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 18    5.10.12 14:20 Wqw
+' ADD: Function CashDebitCredit
+'
 ' 17    29.08.12 15:06 Wqw
 ' REF: localized texts can by customized in config
 '
@@ -140,6 +143,7 @@ Private Const STR_CASHIER               As String = "Касиер"
 '--- errors
 Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
 Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
+Private Const ERR_NOT_IMPLEMENTED       As String = "Командата не се поддържа от протокола"
 '--- config entries
 Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
 Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
@@ -534,6 +538,37 @@ Public Function GetTotalsByVatGroups( _
     vTotals = oFP.GetTotalsByVatGroups()
     '--- success (or failure)
     GetTotalsByVatGroups = True
+QH:
+    CommandLog = oFP.GetCommandLog()
+    Exit Function
+EH:
+    LastError = Err.Description
+    DebugLog FUNC_NAME, "LastError=" & LastError
+    If Not oFP Is Nothing Then
+        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        CommandLog = oFP.GetCommandLog()
+    End If
+End Function
+
+Public Function CashDebitCredit( _
+            DeviceString As String, _
+            dblValue As Double, _
+            vTotals As Variant, _
+            Optional OperatorData As Variant, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "CashDebitCredit"
+    Dim oFP             As IDeviceProtocol
+    
+    On Error GoTo EH
+    Set oFP = pvInit(DeviceString)
+    vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), ucsFscPmtCash, dblValue)
+    If Not IsArray(vTotals) Then
+        LastError = ERR_NOT_IMPLEMENTED
+        GoTo QH
+    End If
+    '--- success
+    CashDebitCredit = True
 QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function

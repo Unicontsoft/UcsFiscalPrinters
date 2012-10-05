@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 22    6.08.12 18:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 23    5.10.12 14:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 23    5.10.12 14:20 Wqw
+' ADD: Function CashDebitCredit
+'
 ' 22    6.08.12 18:39 Wqw
 ' REF: impl AutodetectDevices
 '
@@ -2260,6 +2263,10 @@ End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
+End Function
+
+Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Number As UcsFiscalPaymentTypeEnum, ByVal dblValue As Double) As Variant
+    '--- not implemented
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
