@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 17    29.08.12 15:04 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 18    5.10.12 14:15 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 18    5.10.12 14:15 Wqw
+' REF: datecs protocol name
+'
 ' 17    29.08.12 15:04 Wqw
 ' ADD: Function FileExists, ReadTextFile, GetConfigValue
 '
@@ -247,7 +250,7 @@ End Type
 Public Const LIB_NAME               As String = "UcsFiscalPrinters"
 Public Const STR_NONE               As String = "(Няма)"
 Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
-Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP550F"
+Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY MICRO"
 Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
 
