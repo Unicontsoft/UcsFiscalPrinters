@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 9     5.10.12 14:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 10    5.10.12 14:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -20,6 +20,9 @@ Attribute VB_Exposed = True
 '   Protocol za uprawlenie na fiscalno ustrojstwo
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
+' 
+' 10    5.10.12 14:19 Wqw
+' REF: enum casing
 ' 
 ' 9     5.10.12 14:15 Wqw
 ' ADD: Function CashDebitCredit
@@ -55,7 +58,7 @@ Public Enum UcsFiscalReceiptTypeEnum
     ucsFscRetNonfiscal = 1
     ucsFscRetFiscal
     ucsFscRetInvoiceFiscal
-    ucsFscRetInvoiceNonFiscal
+    ucsFscRetInvoiceNonfiscal
     [_ucsFscRetMax]
 End Enum
 
