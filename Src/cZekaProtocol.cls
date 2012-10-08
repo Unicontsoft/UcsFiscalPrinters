@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 8     5.10.12 14:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 9     8.10.12 11:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 9     8.10.12 11:16 Wqw
+' REF: correct registers in CashDebitCredit
+'
 ' 8     5.10.12 14:20 Wqw
 ' ADD: Function CashDebitCredit
 '
@@ -1465,7 +1468,7 @@ Public Function CashDebitCredit(OperatorCode As String, OperatorPassword As Stri
     
     On Error GoTo EH
     If dblValue <> 0 Then
-        sData = OperatorCode & ";" & Pad(OperatorPassword, 4) & ";" & PmtNumber & ";" & pvSafeFormat(dblValue, "0.00") & "@" & Left$(Comment, 36)
+        sData = OperatorCode & ";" & Pad(OperatorPassword, 4) & ";" & (PmtNumber - 1) & ";" & pvSafeFormat(dblValue, "0.00") & "@" & Left$(Comment, 34)
         SendCommand ucsZekCmdAdminCashDebitCredit, sData
         If LenB(LastError) <> 0 Then
             vRetVal = EmptyDoubleArray
@@ -1479,9 +1482,9 @@ Public Function CashDebitCredit(OperatorCode As String, OperatorPassword As Stri
     End If
     ReDim vRetVal(0 To 2) As Double
     vRetVal(0) = C_Dbl(At(vSplit, PmtNumber))
-    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "3"), ";")
+    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "2"), ";")
     vRetVal(1) = C_Dbl(At(vSplit, PmtNumber))
-    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "4"), ";")
+    vSplit = Split(SendCommand(ucsZekCmdInfoRegisters, "3"), ";")
     vRetVal(2) = C_Dbl(At(vSplit, PmtNumber))
 QH:
     CashDebitCredit = vRetVal
