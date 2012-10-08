@@ -2331,7 +2331,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 3     5.10.12 14:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 4     8.10.12 11:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -2340,6 +2340,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 4     8.10.12 11:17 Wqw
+' REF: correct registers for ucsCmdCashOper
+'
 ' 3     5.10.12 14:15 Wqw
 ' REF: cash debit/credit captions
 '
@@ -2744,8 +2747,8 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         If LenB(m_oFP.LastError) <> 0 Then
             GoTo QH
         End If
-        m_vAdminCash(1) = Split(m_oFP.SendCommand(ucsZekCmdInfoRegisters, "3"), ";")
-        m_vAdminCash(2) = Split(m_oFP.SendCommand(ucsZekCmdInfoRegisters, "4"), ";")
+        m_vAdminCash(1) = Split(m_oFP.SendCommand(ucsZekCmdInfoRegisters, "2"), ";")
+        m_vAdminCash(2) = Split(m_oFP.SendCommand(ucsZekCmdInfoRegisters, "3"), ";")
         vResult = Split(m_oFP.SendCommand(ucsZekCmdInfoPaymentTypes), ";")
         cobCashPayment.Clear
         For Each vElem In vResult
@@ -2941,7 +2944,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             End If
         End If
     Case ucsCmdCashOper
-        sData = txtCashOperNo.Text & ";" & Pad(txtCashOperPass.Text, 4) & ";" & cobCashPayment.ListIndex & ";" & IIf(optCashOut.Value, "-", vbNullString) & txtCashSum.Text & "@" & Left$(txtCashComment.Text, 36)
+        sData = txtCashOperNo.Text & ";" & Pad(txtCashOperPass.Text, 4) & ";" & cobCashPayment.ListIndex & ";" & IIf(optCashOut.Value, "-", vbNullString) & txtCashSum.Text & "@" & Left$(txtCashComment.Text, 34)
         m_oFP.SendCommand ucsZekCmdAdminCashDebitCredit, sData
         If LenB(m_oFP.LastError) Then
             GoTo QH
