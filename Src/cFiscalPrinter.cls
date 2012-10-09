@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 18    5.10.12 14:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 19    9.10.12 15:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 19    9.10.12 15:21 Wqw
+' REF: params of CashDebitCredit
+'
 ' 18    5.10.12 14:20 Wqw
 ' ADD: Function CashDebitCredit
 '
@@ -562,7 +565,7 @@ Public Function CashDebitCredit( _
     
     On Error GoTo EH
     Set oFP = pvInit(DeviceString)
-    vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), ucsFscPmtCash, dblValue)
+    vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), dblValue)
     If Not IsArray(vTotals) Then
         LastError = ERR_NOT_IMPLEMENTED
         GoTo QH
