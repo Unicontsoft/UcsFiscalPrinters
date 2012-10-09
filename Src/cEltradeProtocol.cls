@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 23    5.10.12 14:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 24    9.10.12 15:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 24    9.10.12 15:20 Wqw
+' REF: parms of IDeviceProtocol_CashDebitCredit
+'
 ' 23    5.10.12 14:20 Wqw
 ' ADD: Function CashDebitCredit
 '
@@ -2257,15 +2260,15 @@ Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantit
     IDeviceProtocol_AddPLU = AddPLU(0, Name, Price, Quantity, VatGroup)
 End Function
 
-Private Function IDeviceProtocol_AutodetectDevices(vPorts As Variant) As Variant
-    IDeviceProtocol_AutodetectDevices = AutodetectDevices(vPorts)
+Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(Ports)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Number As UcsFiscalPaymentTypeEnum, ByVal dblValue As Double) As Variant
+Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Value As Double) As Variant
     '--- not implemented
 End Function
 
