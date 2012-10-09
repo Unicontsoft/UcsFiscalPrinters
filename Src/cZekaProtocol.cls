@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 9     8.10.12 11:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 10    9.10.12 15:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 10    9.10.12 15:20 Wqw
+' ADD: config values DetailedReceipt & DelayPrint
+'
 ' 9     8.10.12 11:16 Wqw
 ' REF: correct registers in CashDebitCredit
 '
@@ -361,6 +364,8 @@ Private Type UcsConfigValues
     MinDiscount         As Double
     MaxDiscount         As Double
     PingTimeout         As Long
+    DetailedReceipt     As Boolean
+    DelayPrint          As Boolean
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -604,6 +609,8 @@ Public Function Init( _
             .MaxDiscount = DEF_MAX_DISCOUNT
         End If
         .PingTimeout = C_Lng(GetConfigValue(sSerial, "PingTimeout", 0))
+        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", False))
+        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", False))
     End With
     '--- success
     Init = True
@@ -910,9 +917,10 @@ Public Function EndReceipt() As Boolean
                     .InitOperatorName = Trim$(At(vSplit, 1))
                 End If
                 '--- setup fiscal receipt
-                sData = Pad(.InitOperatorCode, -2) & ";" & Pad(.InitOperatorPassword, 4) & ";0;0"
+                sData = Pad(.InitOperatorCode, -2) & ";" & Pad(.InitOperatorPassword, 4)
                 If .InitReceiptType = ucsFscRetInvoiceFiscal Then
-                    sData = sData & ";1;" & Pad(.InitInvData(ucsInvCompany), 26) & ";" & _
+                    sData = sData & ";" & IIf(m_uConfig.DetailedReceipt, "1", "0") & ";0" & ";" & IIf(m_uConfig.DelayPrint, "3", "1") & ";" & _
+                        Pad(.InitInvData(ucsInvCompany), 26) & ";" & _
                         Pad(.InitInvData(ucsInvMol), 16) & ";" & _
                         Pad(.InitInvData(ucsInvVatNumber), 13) & ";" & _
                         Pad(.InitInvData(ucsInvTaxNumber), 13) & ";" & _
@@ -923,6 +931,8 @@ Public Function EndReceipt() As Boolean
                             GoTo QH
                         End If
                     End If
+                ElseIf m_uConfig.DelayPrint Or m_uConfig.DetailedReceipt Then
+                    sData = sData & ";" & IIf(m_uConfig.DetailedReceipt, "1", "0") & ";0" & ";" & IIf(m_uConfig.DelayPrint, "2", "0")
                 End If
                 SendCommand ucsZekCmdFiscalOpen, sData
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
@@ -2063,16 +2073,16 @@ Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantit
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
 End Function
 
-Private Function IDeviceProtocol_AutodetectDevices(vPorts As Variant) As Variant
-    IDeviceProtocol_AutodetectDevices = AutodetectDevices(vPorts)
+Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(Ports)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal PmtNumber As UcsFiscalPaymentTypeEnum, ByVal dblValue As Double) As Variant
-    IDeviceProtocol_CashDebitCredit = CashDebitCredit(OperatorCode, OperatorPassword, PmtNumber, dblValue)
+Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Value As Double) As Variant
+    IDeviceProtocol_CashDebitCredit = CashDebitCredit(OperatorCode, OperatorPassword, ucsFscPmtCash, Value)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
