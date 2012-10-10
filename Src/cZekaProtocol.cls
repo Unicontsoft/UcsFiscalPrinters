@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 10    9.10.12 15:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 11    10.10.12 14:59 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 11    10.10.12 14:59 Wqw
+' REF: GetTotalsByVatGroups retval array size fixed
+'
 ' 10    9.10.12 15:20 Wqw
 ' ADD: config values DetailedReceipt & DelayPrint
 '
@@ -55,6 +58,11 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cZekaProtocol"
 Implements IDeviceProtocol
+
+#If False Then
+    Private Type ucsFscRetInvoiceNonfiscal
+    End Type
+#End If
 
 '=========================================================================
 ' Public events
@@ -1453,12 +1461,12 @@ Public Function GetTotalsByVatGroups() As Variant
     On Error GoTo EH
     vSplit = Split(SendCommand(ucsZekCmdInfoTotalsByVatGroups), ";")
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To UBound(vSplit) - 1) As Double
+        ReDim vRetVal(0 To 7) As Double
         For lIdx = 0 To UBound(vRetVal)
-            If InStr(vSplit(lIdx), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(Replace(vSplit(lIdx), ".", g_sDecimalSeparator))
+            If InStr(At(vSplit, lIdx), ".") > 0 Then
+                vRetVal(lIdx) = C_Dbl(Replace(At(vSplit, lIdx), ".", g_sDecimalSeparator))
             Else
-                vRetVal(lIdx) = C_Dbl(vSplit(lIdx)) / 100#
+                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx)) / 100#
             End If
         Next
         GetTotalsByVatGroups = vRetVal
