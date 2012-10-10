@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 43    9.10.12 15:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 44    10.10.12 14:58 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 44    10.10.12 14:58 Wqw
+' REF: GetTotalsByVatGroups/CashDebitCredit retval array size fixed
+'
 ' 43    9.10.12 15:20 Wqw
 ' REF: parms of IDeviceProtocol_CashDebitCredit
 '
@@ -1722,12 +1725,12 @@ Public Function GetTotalsByVatGroups() As Variant
     vSplit = Split(SendCommand(ucsFpcInfoTotalsByVatGroups), ",")
     Exceptions = bPrevExceptions
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To UBound(vSplit) - 1) As Double
+        ReDim vRetVal(0 To 7) As Double
         For lIdx = 0 To UBound(vRetVal)
-            If InStr(vSplit(lIdx + 1), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(Replace(vSplit(lIdx + 1), ".", g_sDecimalSeparator))
+            If InStr(At(vSplit, lIdx + 1), ".") > 0 Then
+                vRetVal(lIdx) = C_Dbl(Replace(At(vSplit, lIdx + 1), ".", g_sDecimalSeparator))
             Else
-                vRetVal(lIdx) = C_Dbl(vSplit(lIdx + 1)) / 100#
+                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1)) / 100#
             End If
         Next
         GetTotalsByVatGroups = vRetVal
@@ -1748,12 +1751,12 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     On Error GoTo EH
     vSplit = Split(SendCommand(ucsFpcAdminCashDebitCredit, IIf(dblValue <> 0, pvSafeFormat(dblValue, "0.00"), vbNullString)), ",")
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To UBound(vSplit) - 1) As Double
+        ReDim vRetVal(0 To 2) As Double
         For lIdx = 0 To UBound(vRetVal)
-            If InStr(vSplit(lIdx + 1), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(Replace(vSplit(lIdx + 1), ".", g_sDecimalSeparator))
+            If InStr(At(vSplit, lIdx + 1), ".") > 0 Then
+                vRetVal(lIdx) = C_Dbl(Replace(At(vSplit, lIdx + 1), ".", g_sDecimalSeparator))
             Else
-                vRetVal(lIdx) = C_Dbl(vSplit(lIdx + 1)) / 100#
+                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1)) / 100#
             End If
         Next
         CashDebitCredit = vRetVal
