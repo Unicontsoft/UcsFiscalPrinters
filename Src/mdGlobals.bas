@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 18    5.10.12 14:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 19    10.10.12 15:11 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 19    10.10.12 15:11 Wqw
+' REF: config loading error handling
+'
 ' 18    5.10.12 14:15 Wqw
 ' REF: datecs protocol name
 '
@@ -279,15 +282,16 @@ Public Sub Main()
     Const FUNC_NAME     As String = "Main"
     Dim sFile           As String
     Dim vJson           As Variant
+    Dim sError          As String
     
     On Error GoTo EH
     g_sDecimalSeparator = GetDecimalSeparator()
-    sFile = App.Path & "\" & App.EXEName & ".conf"
-    If Not FileExists(sFile) Then
-        sFile = App.Path & "\..\" & App.EXEName & ".conf"
-    End If
-    If FileExists(sFile) Then
-        JsonParse ReadTextFile(sFile), vJson
+    sFile = LocateFile(App.Path & "\" & App.EXEName & ".conf")
+    If LenB(sFile) <> 0 Then
+        OutputDebugLog MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
+        If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
+            OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
+        End If
     End If
     If Not IsObject(vJson) Then
         JsonParse "{}", vJson
@@ -1018,5 +1022,31 @@ Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefa
         Set GetConfigValue = vDefault
     Else
         GetConfigValue = vDefault
+    End If
+End Function
+
+Public Function LocateFile(sFile As String) As String
+    Dim sDir            As String
+    Dim sName           As String
+    Dim lPos            As Long
+    
+    If InStrRev(sFile, "\") > 0 Then
+        sDir = Left(sFile, InStrRev(sFile, "\"))
+        sName = Mid(sFile, InStrRev(sFile, "\") + 1)
+        Do While Not FileExists(sDir & sName)
+            If Len(sDir) > 1 Then
+                lPos = InStrRev(sDir, "\", Len(sDir) - 1)
+                If lPos > 0 Then
+                    sDir = Left(sDir, lPos)
+                Else
+                    Exit Function
+                End If
+            Else
+                Exit Function
+            End If
+        Loop
+        LocateFile = sDir & sName
+    ElseIf FileExists(sFile) Then
+        LocateFile = sFile
     End If
 End Function
