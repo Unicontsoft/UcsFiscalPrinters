@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 44    10.10.12 14:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 45    19.10.12 0:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 45    19.10.12 0:36 Wqw
+' REF: config defaults
+'
 ' 44    10.10.12 14:58 Wqw
 ' REF: GetTotalsByVatGroups/CashDebitCredit retval array size fixed
 '
@@ -786,15 +789,15 @@ Public Function Init( _
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", bHasSwitchesInfo))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", Not bHasSwitchesInfo))
         .RowChars = C_Lng(GetConfigValue(sSerial, "RowChars", 0))
-        .MaxReceiptRows = C_Lng(GetConfigValue(sSerial, "MaxReceiptRows", 0))
+        .MaxReceiptRows = C_Lng(GetConfigValue(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS))
         If .MaxReceiptRows <= 0 Then
             .MaxReceiptRows = DEF_MAX_RECEIPT_ROWS
         End If
-        .MinDiscount = C_Dbl(GetConfigValue(sSerial, "MinDiscount", 0))
+        .MinDiscount = C_Dbl(GetConfigValue(sSerial, "MinDiscount", DEF_MIN_DISCOUNT))
         If .MinDiscount >= 0 Then
             .MinDiscount = DEF_MIN_DISCOUNT
         End If
-        .MaxDiscount = C_Dbl(GetConfigValue(sSerial, "MaxDiscount", 0))
+        .MaxDiscount = C_Dbl(GetConfigValue(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT))
         If .MaxDiscount <= 0 Then
             .MaxDiscount = DEF_MAX_DISCOUNT
         End If
@@ -2523,7 +2526,7 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = OpenDrawer()
 End Function
 
-Public Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     IDeviceProtocol_RunPeriodReport = RunPeriodReport(ReportType, StartDate, EndDate)
 End Function
 
