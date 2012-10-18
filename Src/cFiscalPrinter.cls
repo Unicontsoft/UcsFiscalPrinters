@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 19    9.10.12 15:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 20    19.10.12 0:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 20    19.10.12 0:36 Wqw
+' REF: rename report type enum
+'
 ' 19    9.10.12 15:21 Wqw
 ' REF: params of CashDebitCredit
 '
@@ -88,7 +91,7 @@ Private Const MODULE_NAME As String = "cFiscalPrinter"
 ' Public enums
 '=========================================================================
 
-Public Enum UcsFiscalReportTypeEnum
+Public Enum UcsFiscalPrintReportTypeEnum
     ucsFscRptDaily = 1
     ucsFscRptNumber
     ucsFscRptDate
@@ -413,7 +416,7 @@ End Function
 
 Public Function PrintReport( _
             DeviceString As String, _
-            ByVal ReportType As UcsFiscalReportTypeEnum, _
+            ByVal ReportType As UcsFiscalPrintReportTypeEnum, _
             Optional ReportData As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
