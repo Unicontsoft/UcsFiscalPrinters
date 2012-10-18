@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 24    9.10.12 15:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 25    19.10.12 0:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 25    19.10.12 0:36 Wqw
+' REF: wrong public scope of private functions
+'
 ' 24    9.10.12 15:20 Wqw
 ' REF: parms of IDeviceProtocol_CashDebitCredit
 '
@@ -2185,7 +2188,7 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Public Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, sProtocol As String, sModel As String) As Boolean
+Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, sProtocol As String, sModel As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceModel"
     Dim sResult         As String
     
@@ -2368,7 +2371,7 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     '--- not implemented
 End Function
 
-Public Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     IDeviceProtocol_RunPeriodReport = RunPeriodReport(ReportType, StartDate, EndDate)
 End Function
 
