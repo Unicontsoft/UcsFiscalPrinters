@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 45    19.10.12 0:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 46    31.10.12 17:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 46    31.10.12 17:30 Wqw
+' REF: x and z reports clear sums by operators
+'
 ' 45    19.10.12 0:36 Wqw
 ' REF: config defaults
 '
@@ -892,11 +895,11 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional sData As 
     If Exceptions Then
         If Status(ucsStbPrintingError) Then
             m_sLastError = ErrorText
-            Err.Raise vbObjectError, , ErrorText
+            Err.Raise vbObjectError, , m_sLastError
         End If
         If Memory(ucsFmeMemoryError) Then
             m_sLastError = MemoryText
-            Err.Raise vbObjectError, , MemoryText
+            Err.Raise vbObjectError, , m_sLastError
         End If
     End If
     Exit Function
@@ -1445,13 +1448,17 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     End Select
     If eCmd <> 0 Then
         bPrevExceptions = pvSetExceptions(False)
-        SendCommand eCmd, "2N"
+        SendCommand eCmd, "2"
         If Status(ucsStbPrintingError) Then
-            '--- daisy: pechat po depatamenti
+            '--- daisy: print by departaments
             If eCmd = ucsFpcPrintDailyReportDepartments Then
-                SendCommand ucsFpcPrintDailyReport, "9N"
+                SendCommand ucsFpcPrintDailyReport, "9"
             ElseIf eCmd = ucsFpcPrintDailyReportItemsDepartments Then
-                SendCommand ucsFpcPrintDailyReportItems, "9N"
+                SendCommand ucsFpcPrintDailyReportItems, "9"
+            Else
+                Exceptions = bPrevExceptions
+                m_sLastError = ErrorText
+                Err.Raise vbObjectError, , m_sLastError
             End If
         End If
         Exceptions = bPrevExceptions
@@ -1494,13 +1501,17 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
 '            Next
 '            SendCommand ucsFpcInitEcTape, "E"
 '        End If
-        SendCommand eCmd, "0N"
+        SendCommand eCmd, "0"
         If Status(ucsStbPrintingError) Then
-            '--- daisy: pechat po depatamenti
+            '--- daisy: print by departments
             If eCmd = ucsFpcPrintDailyReportDepartments Then
-                SendCommand ucsFpcPrintDailyReport, "8N"
+                SendCommand ucsFpcPrintDailyReport, "8"
             ElseIf eCmd = ucsFpcPrintDailyReportItemsDepartments Then
-                SendCommand ucsFpcPrintDailyReportItems, "8N"
+                SendCommand ucsFpcPrintDailyReportItems, "8"
+            Else
+                Exceptions = bPrevExceptions
+                m_sLastError = ErrorText
+                Err.Raise vbObjectError, , m_sLastError
             End If
         End If
         Exceptions = bPrevExceptions
@@ -1674,14 +1685,14 @@ Public Function CancelReceipt() As Boolean
     bPrevExceptions = pvSetExceptions(False)
     If Left$(SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
         If Status(ucsStbFiscalPrinting) Then
-            '--- note: FP3530 moje da anulira winagi, FP550F ne moje
+            '--- note: FP-3530 can cancel always, FP-550 sometimes can not
             SendCommand ucsFpcFiscalCancel
             If Status(ucsStbFiscalPrinting) Then
-                '--- note: ako platenata suma e po-malka ot sumata na bona, towa pomaga
+                '--- note: this helps if sum payed is less than total receipt sum
                 SendCommand ucsFpcFiscalPayment, vbTab
                 '--- note: when printing invoice, if no contragent info set then cancel fails!
                 SendCommand ucsFpcFiscalCgInfo, "0000000000"
-                '--- zaradi FP550F
+                '--- for FP-550
                 SendCommand ucsFpcFiscalClose
             End If
         Else
