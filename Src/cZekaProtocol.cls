@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 13    8.11.12 17:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 14    8.11.12 17:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 14    8.11.12 17:07 Wqw
+' REF: pad function params
+'
 ' 13    8.11.12 17:06 Wqw
 ' REF: default oper code/pass in CashDebitCredit
 '
@@ -915,7 +918,7 @@ Public Function EndReceipt() As Boolean
             Select Case .InitReceiptType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 '--- init operator name (if needed)
-                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, Pad(.InitOperatorCode - 2)), ";")
+                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, Pad(.InitOperatorCode, -2)), ";")
                 If LenB(m_sLastError) <> 0 Then
                     GoTo QH
                 End If
