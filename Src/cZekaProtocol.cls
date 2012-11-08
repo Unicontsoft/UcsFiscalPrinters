@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 12    19.10.12 0:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 13    8.11.12 17:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 13    8.11.12 17:06 Wqw
+' REF: default oper code/pass in CashDebitCredit
+'
 ' 12    19.10.12 0:36 Wqw
 ' REF: config defaults
 '
@@ -230,6 +233,7 @@ Private Const STR_STATUSES              As String = "Unknown error|Invalid comma
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
 Private Const DEF_TIMEOUT               As Long = 2000
+Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0"
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -100
@@ -741,7 +745,7 @@ Public Function StartReceipt( _
     With m_uRow(pvAddRow())
         .RowType = ucsRowInit
         .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
-        .InitOperatorCode = Zn(OperatorCode, "1")
+        .InitOperatorCode = Zn(OperatorCode, DEF_OPERNO)
         .InitOperatorName = OperatorName
         .InitOperatorPassword = Zn(OperatorPassword, DEF_PASSWORD)
         SplitCgAddress Trim$(InvCity) & vbCrLf & Trim$(InvAddress), sCity, sAddress, 30
@@ -911,13 +915,13 @@ Public Function EndReceipt() As Boolean
             Select Case .InitReceiptType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 '--- init operator name (if needed)
-                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, .InitOperatorCode), ";")
+                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, Pad(.InitOperatorCode - 2)), ";")
                 If LenB(m_sLastError) <> 0 Then
                     GoTo QH
                 End If
                 If LenB(.InitOperatorName) <> 0 Then
-                    If Trim$(At(vSplit, 1)) <> .InitOperatorName Or Trim$(At(vSplit, 2)) <> .InitOperatorPassword Then
-                        sData = Pad(.InitOperatorCode, 1) & ";" & Pad(.InitOperatorName, 20) & ";" & Pad(.InitOperatorPassword, 4)
+                    If Trim$(At(vSplit, 1)) <> Trim$(.InitOperatorName) Or Trim$(At(vSplit, 2)) <> Trim$(.InitOperatorPassword) Then
+                        sData = Pad(.InitOperatorCode, -2) & ";" & Pad(.InitOperatorName, 20) & ";" & Pad(.InitOperatorPassword, 4)
                         SendCommand ucsZekCmdInitOperator, sData
                         '--- can return "Command denied because of uncommited report"
 '                        If LenB(m_sLastError) <> 0 Then
@@ -947,7 +951,7 @@ Public Function EndReceipt() As Boolean
                 End If
                 SendCommand ucsZekCmdFiscalOpen, sData
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
-                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, .InitOperatorCode), ";")
+                vSplit = Split(SendCommand(ucsZekCmdInfoOperator, Pad(.InitOperatorCode, -2)), ";")
                 If LenB(m_sLastError) <> 0 Then
                     GoTo QH
                 End If
@@ -1489,7 +1493,7 @@ Public Function CashDebitCredit(OperatorCode As String, OperatorPassword As Stri
     
     On Error GoTo EH
     If dblValue <> 0 Then
-        sData = OperatorCode & ";" & Pad(OperatorPassword, 4) & ";" & (PmtNumber - 1) & ";" & pvSafeFormat(dblValue, "0.00") & "@" & Left$(Comment, 34)
+        sData = Pad(Zn(OperatorCode, DEF_OPERNO), -2) & ";" & Pad(Zn(OperatorPassword, DEF_PASSWORD), 4) & ";" & LimitLong(PmtNumber - 1, 0, 7) & ";" & pvSafeFormat(dblValue, "0.00") & "@" & Left$(Comment, 34)
         SendCommand ucsZekCmdAdminCashDebitCredit, sData
         If LenB(LastError) <> 0 Then
             vRetVal = EmptyDoubleArray
