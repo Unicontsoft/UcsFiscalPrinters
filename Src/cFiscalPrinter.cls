@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 20    19.10.12 0:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 21    16.11.12 18:53 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 21    16.11.12 18:53 Wqw
+' REF: PrintReceipt err handler returns warning i fiscal payment has been
+' executed
+'
 ' 20    19.10.12 0:36 Wqw
 ' REF: rename report type enum
 '
@@ -406,10 +410,19 @@ EH:
     LastError = Err.Description
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If LenB(At(OperatorData, ucsFscPixLastReceipt, vbNullString)) <> 0 Then
+            OperatorData(ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
+        End If
+        If LenB(At(OperatorData, ucsFscPixFiscalPayment, vbNullString)) <> 0 Then
+            OperatorData(ucsFscPixFiscalPayment) = oFP.GetPaymentExecuted()
+        End If
         CommandLog = oFP.GetCommandLog()
         If InStr(LastError, Split(STR_DATECS_FP_INTERNAL, "|")(16)) Then ' 16 = ucsErrInvalidOperatorPassword
             ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+        End If
+        If oFP.GetPaymentExecuted() Then
+            '--- success
+            PrintReceipt = True
         End If
     End If
 End Function
