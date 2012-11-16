@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 14    8.11.12 17:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 15    16.11.12 18:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 15    16.11.12 18:52 Wqw
+' REF: maintains fiscal payment executed
+'
 ' 14    8.11.12 17:07 Wqw
 ' REF: pad function params
 '
@@ -1098,6 +1101,8 @@ Public Function EndReceipt() As Boolean
                 Else
                     SendCommand ucsZekCmdFiscalPayAndClose
                 End If
+                uCtx.PmtPrinted = True
+                m_bFiscalPaymentExecuted = True
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then

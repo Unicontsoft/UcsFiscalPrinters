@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 46    31.10.12 17:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 47    16.11.12 18:52 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 47    16.11.12 18:52 Wqw
+' REF: maintains fiscal payment executed
+'
 ' 46    31.10.12 17:30 Wqw
 ' REF: x and z reports clear sums by operators
 '
@@ -1284,6 +1287,7 @@ Public Function EndReceipt() As Boolean
                     End If
                     SendCommand ucsFpcFiscalPayment, vbTab & sType & pvSafeFormat(.PmtAmount, "0.00")
                     uCtx.PmtPrinted = True
+                    m_bFiscalPaymentExecuted = True
                 Else
                     '--- check if anything left for payment
                     vSplit = Split(SendCommand(ucsFpcInfoTransaction, "T"), ",")
@@ -1291,6 +1295,10 @@ Public Function EndReceipt() As Boolean
                         bPrevExceptions = pvSetExceptions(False)
                         SendCommand ucsFpcFiscalPayment, vbTab
                         Exceptions = bPrevExceptions
+                        If Status(ucsStbPrintingError) = 0 Then
+                            uCtx.PmtPrinted = True
+                            m_bFiscalPaymentExecuted = True
+                        End If
                     End If
                     If .PrintRowType = ucsFscRetInvoiceFiscal Then
                         With m_uRow(0)
