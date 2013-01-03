@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 21    16.11.12 18:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 22    3.01.13 16:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 22    3.01.13 16:41 Wqw
+' ADD: Function GetStatus. REF: handles resume tickets on print receipt
+'
 ' 21    16.11.12 18:53 Wqw
 ' REF: PrintReceipt err handler returns warning i fiscal payment has been
 ' executed
@@ -124,9 +127,9 @@ Public Enum UcsFiscalParamIndexesEnum
     ucsFscPixOperatorPass
     ucsFscPixCashDeskNo
     ucsFscPixLastReceipt
-    ucsFscPixFiscalPayment
     ucsFscPixPrevReceipt
     ucsFscPixPrevTurnover
+    ucsFscPixResumeTicket
 End Enum
 
 '=========================================================================
@@ -313,15 +316,19 @@ Public Function PrintReceipt( _
     Dim lIdx            As Long
     Dim sPrevReceipt    As String
     Dim dblTurnover     As Double
+    Dim sResumeTicket   As String
     
     On Error GoTo EH
+    sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt)
+    sResumeTicket = At(OperatorData, ucsFscPixResumeTicket)
     Set oFP = pvInit(DeviceString)
-    If Not oFP.CancelReceipt() Then
-        If LenB(oFP.GetLastError()) <> 0 Then
-            Err.Raise vbObjectError, , oFP.GetLastError()
+    If LenB(sResumeTicket) = 0 Then
+        If Not oFP.CancelReceipt() Then
+            If LenB(oFP.GetLastError()) <> 0 Then
+                Err.Raise vbObjectError, , oFP.GetLastError()
+            End If
         End If
     End If
-    sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt, vbNullString)
     If LenB(sPrevReceipt) <> 0 Then
         ValueAt(OperatorData, ucsFscPixPrevReceipt) = oFP.GetLastReceiptNumber()
         '--- check if receipt already printed
@@ -329,7 +336,7 @@ Public Function PrintReceipt( _
             For Each vElem In oFP.GetTotalsByVatGroups()
                 dblTurnover = dblTurnover + C_Dbl(vElem)
             Next
-            If dblTurnover <> C_Dbl(At(OperatorData, ucsFscPixPrevTurnover, 0)) Or dblTurnover = 0 Then
+            If dblTurnover <> C_Dbl(At(OperatorData, ucsFscPixPrevTurnover)) Or dblTurnover = 0 Then
                 ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
                 ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
                 GoTo QH
@@ -372,7 +379,7 @@ Public Function PrintReceipt( _
                 End Select
             End With
         Next
-        If Not oFP.EndReceipt() Then
+        If Not oFP.EndReceipt(sResumeTicket) Then
             If LenB(oFP.GetLastError()) <> 0 Then
                 Err.Raise vbObjectError, , oFP.GetLastError()
             End If
@@ -397,33 +404,26 @@ Public Function PrintReceipt( _
             PrintReceipt = True
         End Select
     End If
-    If LenB(At(OperatorData, ucsFscPixLastReceipt, vbNullString)) <> 0 Then
-        OperatorData(ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
-    End If
-    If LenB(At(OperatorData, ucsFscPixFiscalPayment, vbNullString)) <> 0 Then
-        OperatorData(ucsFscPixFiscalPayment) = oFP.GetPaymentExecuted()
-    End If
+    ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
     LastError = Err.Description
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
-        If LenB(At(OperatorData, ucsFscPixLastReceipt, vbNullString)) <> 0 Then
-            OperatorData(ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
-        End If
-        If LenB(At(OperatorData, ucsFscPixFiscalPayment, vbNullString)) <> 0 Then
-            OperatorData(ucsFscPixFiscalPayment) = oFP.GetPaymentExecuted()
-        End If
-        CommandLog = oFP.GetCommandLog()
         If InStr(LastError, Split(STR_DATECS_FP_INTERNAL, "|")(16)) Then ' 16 = ucsErrInvalidOperatorPassword
             ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
         End If
-        If oFP.GetPaymentExecuted() Then
-            '--- success
-            PrintReceipt = True
+        If oFP.IsConnected Then
+            ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
+            ValueAt(OperatorData, ucsFscPixResumeTicket) = oFP.GetResumeTicket()
+            oFP.Disconnect
         End If
+        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -477,9 +477,13 @@ Public Function PrintReport( _
         '-- ReportData = Empty
         
     End Select
-    '--- success
-    PrintReport = True
+    LastError = oFP.GetLastError()
+    '--- success (or failure)
+    PrintReport = (LenB(LastError) = 0)
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
@@ -487,6 +491,9 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
         CommandLog = oFP.GetCommandLog()
     End If
 End Function
@@ -503,6 +510,9 @@ Public Function OpenDrawer( _
     '--- success (or failure)
     OpenDrawer = oFP.OpenDrawer()
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
@@ -510,6 +520,9 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
         CommandLog = oFP.GetCommandLog()
     End If
 End Function
@@ -533,6 +546,9 @@ Public Function InitDateTime( _
     '--- success
     InitDateTime = True
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
@@ -540,6 +556,9 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
         CommandLog = oFP.GetCommandLog()
     End If
 End Function
@@ -555,9 +574,13 @@ Public Function GetTotalsByVatGroups( _
     On Error GoTo EH
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.GetTotalsByVatGroups()
+    LastError = oFP.GetLastError()
     '--- success (or failure)
-    GetTotalsByVatGroups = True
+    GetTotalsByVatGroups = (LenB(LastError) = 0)
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
@@ -565,6 +588,9 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
         CommandLog = oFP.GetCommandLog()
     End If
 End Function
@@ -585,10 +611,15 @@ Public Function CashDebitCredit( _
     If Not IsArray(vTotals) Then
         LastError = ERR_NOT_IMPLEMENTED
         GoTo QH
+    Else
+        LastError = oFP.GetLastError()
     End If
     '--- success
-    CashDebitCredit = True
+    CashDebitCredit = (LenB(LastError) = 0)
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
@@ -596,6 +627,40 @@ EH:
     DebugLog FUNC_NAME, "LastError=" & LastError
     If Not oFP Is Nothing Then
         DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
+        CommandLog = oFP.GetCommandLog()
+    End If
+End Function
+
+Public Function GetStatus( _
+            DeviceString As String, _
+            sStatus As String, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "GetStatus"
+    Dim oFP             As IDeviceProtocol
+    
+    On Error GoTo EH
+    Set oFP = pvInit(DeviceString)
+    oFP.GetDeviceStatus sStatus
+    '--- success
+    GetStatus = True
+QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
+    CommandLog = oFP.GetCommandLog()
+    Exit Function
+EH:
+    LastError = Err.Description
+    DebugLog FUNC_NAME, "LastError=" & LastError
+    If Not oFP Is Nothing Then
+        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
         CommandLog = oFP.GetCommandLog()
     End If
 End Function
