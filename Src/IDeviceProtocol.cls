@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 11    9.10.12 15:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 12    3.01.13 16:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 12    3.01.13 16:39 Wqw
+' ADD: Function GetResumeTicket, GetDeviceStatus, Property IsConnected
+'
 ' 11    9.10.12 15:19 Wqw
 ' REF: params of CashDebitCredit
 '
@@ -110,6 +113,10 @@ Public Function Disconnect() As Boolean
 
 End Function
 
+Property Get IsConnected() As Boolean
+
+End Property
+
 Public Function GetLastError() As String
 
 End Function
@@ -159,7 +166,7 @@ Public Function AddPayment( _
             
 End Function
 
-Public Function EndReceipt() As Boolean
+Public Function EndReceipt(sResumeTicket As String) As Boolean
 
 End Function
 
@@ -235,10 +242,6 @@ Public Function GetCharsPerLine() As Long
 
 End Function
 
-Public Function GetPaymentExecuted() As Boolean
-
-End Function
-
 Public Function GetCommandLog() As String
 
 End Function
@@ -273,3 +276,12 @@ Public Function CashDebitCredit( _
             ByVal Value As Double) As Variant
     
 End Function
+
+Public Function GetResumeTicket() As String
+
+End Function
+
+Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+
+End Function
+
