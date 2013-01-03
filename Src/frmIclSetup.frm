@@ -24,9 +24,550 @@ Begin VB.Form frmIclSetup
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
+      Index           =   16
+      Left            =   2250
+      TabIndex        =   173
+      Top             =   90
+      Width           =   5775
+      Begin VB.CommandButton cmdStatusReset 
+         Caption         =   "Ресет"
+         Height          =   375
+         Left            =   180
+         TabIndex        =   86
+         Top             =   5220
+         Width           =   1185
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Опресняване"
+         Height          =   375
+         Index           =   8
+         Left            =   4320
+         TabIndex        =   87
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.ListBox lstStatus 
+         Height          =   4920
+         IntegralHeight  =   0   'False
+         ItemData        =   "frmIclSetup.frx":000C
+         Left            =   84
+         List            =   "frmIclSetup.frx":000E
+         Style           =   1  'Checkbox
+         TabIndex        =   85
+         Top             =   168
+         Width           =   5595
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   15
+      Left            =   2250
+      TabIndex        =   174
+      Top             =   90
+      Width           =   5775
+      Begin VB.TextBox txtDiagFirmware 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   177
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   3525
+      End
+      Begin VB.TextBox txtDiagChecksum 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   176
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   3525
+      End
+      Begin VB.TextBox txtDiagSwitches 
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   175
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   3525
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Печат"
+         Height          =   375
+         Index           =   9
+         Left            =   4320
+         TabIndex        =   84
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.Label Label57 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Firmware:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   180
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label56 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Контролна сума:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   179
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label55 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Ключета Sw1..Sw4:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   178
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   12
+      Left            =   2250
+      TabIndex        =   164
+      Top             =   90
+      Width           =   5775
+      Begin VB.OptionButton optCashOut 
+         Caption         =   "Извеждане"
+         Height          =   285
+         Left            =   3528
+         TabIndex        =   65
+         Top             =   1620
+         Width           =   1455
+      End
+      Begin VB.OptionButton optCashIn 
+         Caption         =   "Въвеждане"
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   64
+         Top             =   1620
+         Value           =   -1  'True
+         Width           =   1455
+      End
+      Begin VB.TextBox txtCashSum 
+         Alignment       =   1  'Right Justify
+         Height          =   285
+         Left            =   2070
+         TabIndex        =   66
+         Top             =   1980
+         Width           =   1545
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Внос/износ"
+         Height          =   375
+         Index           =   6
+         Left            =   4320
+         TabIndex        =   67
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtCashOut 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   169
+         TabStop         =   0   'False
+         Top             =   990
+         Width           =   1545
+      End
+      Begin VB.TextBox txtCashIn 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   167
+         TabStop         =   0   'False
+         Top             =   630
+         Width           =   1545
+      End
+      Begin VB.TextBox txtCashTotal 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   2070
+         Locked          =   -1  'True
+         TabIndex        =   165
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   1545
+      End
+      Begin VB.Label Label53 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Сума:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   171
+         Top             =   1980
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label52 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Служебен износ:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   170
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label51 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Служебен внос:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   168
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label50 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Наличност каса:"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   166
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   10
+      Left            =   2250
+      TabIndex        =   142
+      Top             =   90
+      Width           =   5775
+      Begin VB.Frame Frame1 
+         Caption         =   "Зареждане"
+         Height          =   1185
+         Left            =   180
+         TabIndex        =   211
+         Top             =   3780
+         Width           =   5415
+         Begin VB.OptionButton optLogoStretch 
+            Caption         =   "Разпънато"
+            Height          =   285
+            Left            =   1800
+            TabIndex        =   217
+            Top             =   720
+            Width           =   1455
+         End
+         Begin VB.OptionButton optLogoCenter 
+            Caption         =   "Центрирано"
+            Height          =   285
+            Left            =   180
+            TabIndex        =   216
+            Top             =   720
+            Value           =   -1  'True
+            Width           =   1545
+         End
+         Begin VB.CommandButton cmdLogoOpen 
+            Caption         =   "Избор"
+            Height          =   375
+            Left            =   3960
+            TabIndex        =   213
+            Top             =   270
+            Width           =   1275
+         End
+         Begin VB.TextBox txtLogoTreshold 
+            Alignment       =   1  'Right Justify
+            Height          =   285
+            Left            =   1800
+            TabIndex        =   212
+            Text            =   "50"
+            Top             =   270
+            Width           =   465
+         End
+         Begin VB.Label Label73 
+            AutoSize        =   -1  'True
+            BackStyle       =   0  'Transparent
+            Caption         =   "Ниво на черно:"
+            Height          =   390
+            Left            =   180
+            TabIndex        =   215
+            Top             =   270
+            Width           =   1635
+            WordWrap        =   -1  'True
+         End
+         Begin VB.Label Label74 
+            AutoSize        =   -1  'True
+            BackStyle       =   0  'Transparent
+            Caption         =   "%"
+            Height          =   195
+            Left            =   2340
+            TabIndex        =   214
+            Top             =   270
+            Width           =   555
+            WordWrap        =   -1  'True
+         End
+      End
+      Begin VB.CheckBox chkLogoPrint 
+         Caption         =   "Печат графично лого преди header"
+         Height          =   285
+         Left            =   180
+         TabIndex        =   209
+         Top             =   270
+         Width           =   4245
+      End
+      Begin VB.PictureBox picLogoScroll 
+         BorderStyle     =   0  'None
+         Height          =   2445
+         Left            =   180
+         ScaleHeight     =   2448
+         ScaleWidth      =   5412
+         TabIndex        =   206
+         TabStop         =   0   'False
+         Top             =   720
+         Width           =   5415
+         Begin VB.HScrollBar scbLogoHor 
+            CausesValidation=   0   'False
+            Height          =   240
+            Left            =   0
+            TabIndex        =   208
+            TabStop         =   0   'False
+            Top             =   2070
+            Width           =   5415
+         End
+         Begin VB.PictureBox picLogo 
+            AutoRedraw      =   -1  'True
+            BackColor       =   &H00FFFFFF&
+            BorderStyle     =   0  'None
+            Height          =   1635
+            Left            =   0
+            ScaleHeight     =   1632
+            ScaleWidth      =   5232
+            TabIndex        =   207
+            TabStop         =   0   'False
+            Top             =   0
+            Width           =   5235
+         End
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   4
+         Left            =   4320
+         TabIndex        =   205
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.Label labLogoInfo 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Размери"
+         Height          =   195
+         Left            =   180
+         TabIndex        =   210
+         Top             =   3330
+         Width           =   5415
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
+      Index           =   8
+      Left            =   2250
+      TabIndex        =   130
+      Top             =   90
+      Width           =   5775
+      Begin VB.ComboBox cobDepGroup 
+         Height          =   315
+         Left            =   4050
+         TabIndex        =   52
+         Top             =   630
+         Width           =   825
+      End
+      Begin VB.TextBox txtDepTotalSum 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   4050
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   140
+         TabStop         =   0   'False
+         Top             =   3060
+         Width           =   1545
+      End
+      Begin VB.TextBox txtDepRecSum 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   4050
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   138
+         TabStop         =   0   'False
+         Top             =   2700
+         Width           =   1545
+      End
+      Begin VB.TextBox txtDepSales 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   4050
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   136
+         TabStop         =   0   'False
+         Top             =   2340
+         Width           =   1545
+      End
+      Begin VB.TextBox txtDepNo 
+         Alignment       =   1  'Right Justify
+         BackColor       =   &H8000000F&
+         Height          =   285
+         Left            =   4050
+         Locked          =   -1  'True
+         MaxLength       =   40
+         TabIndex        =   133
+         TabStop         =   0   'False
+         Top             =   270
+         Width           =   825
+      End
+      Begin VB.TextBox txtDepName2 
+         Height          =   285
+         Left            =   2610
+         MaxLength       =   36
+         TabIndex        =   54
+         Top             =   1890
+         Width           =   2985
+      End
+      Begin VB.ListBox lstDeps 
+         Height          =   5325
+         IntegralHeight  =   0   'False
+         Left            =   180
+         TabIndex        =   51
+         Top             =   270
+         Width           =   2265
+      End
+      Begin VB.CommandButton cmdSave 
+         Caption         =   "Запис"
+         Height          =   375
+         Index           =   12
+         Left            =   4320
+         TabIndex        =   55
+         Top             =   5220
+         Width           =   1275
+      End
+      Begin VB.TextBox txtDepName 
+         Height          =   285
+         Left            =   2610
+         MaxLength       =   31
+         TabIndex        =   53
+         Top             =   1260
+         Width           =   2985
+      End
+      Begin VB.Label Label37 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Сума за деня:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   141
+         Top             =   3060
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label36 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Последна сума:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   139
+         Top             =   2700
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label35 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Брой продажби:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   137
+         Top             =   2340
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label34 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Данъчна група:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   135
+         Top             =   630
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label33 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Номер:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   134
+         Top             =   270
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label32 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Поясняващ текст:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   132
+         Top             =   1620
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label Label31 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Наименование:"
+         Height          =   195
+         Left            =   2610
+         TabIndex        =   131
+         Top             =   990
+         Width           =   1905
+         WordWrap        =   -1  'True
+      End
+   End
+   Begin VB.Frame fraCommands 
+      Height          =   5775
       Index           =   13
       Left            =   2250
-      TabIndex        =   170
+      TabIndex        =   172
       Top             =   90
       Width           =   5775
       Begin VB.OptionButton optReportType 
@@ -169,7 +710,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "От номер:"
          Height          =   195
          Left            =   900
-         TabIndex        =   187
+         TabIndex        =   189
          Top             =   1350
          Width           =   915
          WordWrap        =   -1  'True
@@ -181,7 +722,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "до: "
          Height          =   195
          Left            =   2520
-         TabIndex        =   186
+         TabIndex        =   188
          Top             =   1350
          Width           =   915
          WordWrap        =   -1  'True
@@ -193,7 +734,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "до: "
          Height          =   195
          Left            =   2520
-         TabIndex        =   185
+         TabIndex        =   187
          Top             =   2520
          Width           =   915
          WordWrap        =   -1  'True
@@ -204,7 +745,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "От дата:"
          Height          =   300
          Left            =   900
-         TabIndex        =   184
+         TabIndex        =   186
          Top             =   2520
          Width           =   915
          WordWrap        =   -1  'True
@@ -212,128 +753,9 @@ Begin VB.Form frmIclSetup
    End
    Begin VB.Frame fraCommands 
       Height          =   5775
-      Index           =   12
-      Left            =   2250
-      TabIndex        =   162
-      Top             =   90
-      Width           =   5775
-      Begin VB.OptionButton optCashOut 
-         Caption         =   "Извеждане"
-         Height          =   285
-         Left            =   3528
-         TabIndex        =   65
-         Top             =   1620
-         Width           =   1455
-      End
-      Begin VB.OptionButton optCashIn 
-         Caption         =   "Въвеждане"
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   64
-         Top             =   1620
-         Value           =   -1  'True
-         Width           =   1455
-      End
-      Begin VB.TextBox txtCashSum 
-         Alignment       =   1  'Right Justify
-         Height          =   285
-         Left            =   2070
-         TabIndex        =   66
-         Top             =   1980
-         Width           =   1545
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Внос/износ"
-         Height          =   375
-         Index           =   6
-         Left            =   4320
-         TabIndex        =   67
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtCashOut 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   167
-         TabStop         =   0   'False
-         Top             =   990
-         Width           =   1545
-      End
-      Begin VB.TextBox txtCashIn 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   165
-         TabStop         =   0   'False
-         Top             =   630
-         Width           =   1545
-      End
-      Begin VB.TextBox txtCashTotal 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   163
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   1545
-      End
-      Begin VB.Label Label53 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Сума:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   169
-         Top             =   1980
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label52 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Служебен износ:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   168
-         Top             =   990
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label51 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Служебен внос:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   166
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label50 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Наличност каса:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   164
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
       Index           =   9
       Left            =   2250
-      TabIndex        =   189
+      TabIndex        =   191
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtItemTime 
@@ -341,7 +763,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2610
          Locked          =   -1  'True
-         TabIndex        =   232
+         TabIndex        =   202
          TabStop         =   0   'False
          Top             =   2790
          Width           =   2985
@@ -368,7 +790,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   4050
          Locked          =   -1  'True
-         TabIndex        =   198
+         TabIndex        =   200
          TabStop         =   0   'False
          Top             =   3510
          Width           =   1545
@@ -397,7 +819,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   4050
          Locked          =   -1  'True
-         TabIndex        =   193
+         TabIndex        =   195
          TabStop         =   0   'False
          Top             =   3150
          Width           =   1545
@@ -441,7 +863,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   190
+         TabIndex        =   192
          TabStop         =   0   'False
          Top             =   270
          Width           =   825
@@ -452,7 +874,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Модифициран на:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   233
+         TabIndex        =   203
          Top             =   2520
          Width           =   1905
          WordWrap        =   -1  'True
@@ -463,7 +885,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Сума:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   199
+         TabIndex        =   201
          Top             =   3510
          Width           =   1905
          WordWrap        =   -1  'True
@@ -474,7 +896,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Цена:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   197
+         TabIndex        =   199
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -485,7 +907,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "PLU:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   196
+         TabIndex        =   198
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -496,7 +918,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Данъчна група:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   195
+         TabIndex        =   197
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -507,7 +929,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Количество:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   194
+         TabIndex        =   196
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -518,7 +940,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Наименование:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   192
+         TabIndex        =   194
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -529,181 +951,8 @@ Begin VB.Form frmIclSetup
          Caption         =   "Номер:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   191
+         TabIndex        =   193
          Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   8
-      Left            =   2250
-      TabIndex        =   128
-      Top             =   90
-      Width           =   5775
-      Begin VB.ComboBox cobDepGroup 
-         Height          =   315
-         Left            =   4050
-         TabIndex        =   52
-         Top             =   630
-         Width           =   825
-      End
-      Begin VB.TextBox txtDepTotalSum 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   4050
-         Locked          =   -1  'True
-         MaxLength       =   40
-         TabIndex        =   138
-         TabStop         =   0   'False
-         Top             =   3060
-         Width           =   1545
-      End
-      Begin VB.TextBox txtDepRecSum 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   4050
-         Locked          =   -1  'True
-         MaxLength       =   40
-         TabIndex        =   136
-         TabStop         =   0   'False
-         Top             =   2700
-         Width           =   1545
-      End
-      Begin VB.TextBox txtDepSales 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   4050
-         Locked          =   -1  'True
-         MaxLength       =   40
-         TabIndex        =   134
-         TabStop         =   0   'False
-         Top             =   2340
-         Width           =   1545
-      End
-      Begin VB.TextBox txtDepNo 
-         Alignment       =   1  'Right Justify
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   4050
-         Locked          =   -1  'True
-         MaxLength       =   40
-         TabIndex        =   131
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   825
-      End
-      Begin VB.TextBox txtDepName2 
-         Height          =   285
-         Left            =   2610
-         MaxLength       =   36
-         TabIndex        =   54
-         Top             =   1890
-         Width           =   2985
-      End
-      Begin VB.ListBox lstDeps 
-         Height          =   5325
-         IntegralHeight  =   0   'False
-         Left            =   180
-         TabIndex        =   51
-         Top             =   270
-         Width           =   2265
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   12
-         Left            =   4320
-         TabIndex        =   55
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.TextBox txtDepName 
-         Height          =   285
-         Left            =   2610
-         MaxLength       =   31
-         TabIndex        =   53
-         Top             =   1260
-         Width           =   2985
-      End
-      Begin VB.Label Label37 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Сума за деня:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   139
-         Top             =   3060
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label36 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Последна сума:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   137
-         Top             =   2700
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label35 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Брой продажби:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   135
-         Top             =   2340
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label34 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Данъчна група:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   133
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label33 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Номер:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   132
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label32 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Поясняващ текст:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   130
-         Top             =   1620
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label31 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Наименование:"
-         Height          =   195
-         Left            =   2610
-         TabIndex        =   129
-         Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
       End
@@ -712,7 +961,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   7
       Left            =   2250
-      TabIndex        =   141
+      TabIndex        =   143
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdOperReset 
@@ -746,7 +995,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   152
+         TabIndex        =   154
          TabStop         =   0   'False
          Top             =   2430
          Width           =   1545
@@ -758,7 +1007,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   151
+         TabIndex        =   153
          TabStop         =   0   'False
          Top             =   2790
          Width           =   1545
@@ -770,7 +1019,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   147
+         TabIndex        =   149
          TabStop         =   0   'False
          Top             =   1350
          Width           =   1545
@@ -782,7 +1031,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   146
+         TabIndex        =   148
          TabStop         =   0   'False
          Top             =   1710
          Width           =   1545
@@ -794,7 +1043,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   145
+         TabIndex        =   147
          TabStop         =   0   'False
          Top             =   2070
          Width           =   1545
@@ -831,7 +1080,7 @@ Begin VB.Form frmIclSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   142
+         TabIndex        =   144
          TabStop         =   0   'False
          Top             =   270
          Width           =   825
@@ -842,7 +1091,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Пак парола:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   156
+         TabIndex        =   158
          Top             =   4410
          Width           =   1905
          WordWrap        =   -1  'True
@@ -853,7 +1102,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Нова парола:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   155
+         TabIndex        =   157
          Top             =   4050
          Width           =   1905
          WordWrap        =   -1  'True
@@ -864,7 +1113,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Надбавки:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   154
+         TabIndex        =   156
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -875,7 +1124,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Корекции:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   153
+         TabIndex        =   155
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -886,7 +1135,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Фискални бонове:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   150
+         TabIndex        =   152
          Top             =   1350
          Width           =   1455
          WordWrap        =   -1  'True
@@ -897,7 +1146,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Продажби:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   149
+         TabIndex        =   151
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -908,7 +1157,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Отстъпки:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   148
+         TabIndex        =   150
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -919,7 +1168,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Наименование:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   144
+         TabIndex        =   146
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -930,7 +1179,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Номер:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   143
+         TabIndex        =   145
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -940,7 +1189,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   2
       Left            =   2250
-      TabIndex        =   88
+      TabIndex        =   90
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdSave 
@@ -1013,7 +1262,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   97
+         TabIndex        =   99
          TabStop         =   0   'False
          Top             =   990
          Width           =   3525
@@ -1024,7 +1273,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   95
+         TabIndex        =   97
          TabStop         =   0   'False
          Top             =   630
          Width           =   3525
@@ -1035,7 +1284,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   93
+         TabIndex        =   95
          TabStop         =   0   'False
          Top             =   270
          Width           =   3525
@@ -1046,7 +1295,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   108
+         TabIndex        =   110
          Top             =   3510
          Width           =   375
          WordWrap        =   -1  'True
@@ -1057,7 +1306,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   107
+         TabIndex        =   109
          Top             =   3150
          Width           =   375
          WordWrap        =   -1  'True
@@ -1068,7 +1317,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   106
+         TabIndex        =   108
          Top             =   2790
          Width           =   375
          WordWrap        =   -1  'True
@@ -1079,7 +1328,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   105
+         TabIndex        =   107
          Top             =   2430
          Width           =   375
          WordWrap        =   -1  'True
@@ -1090,7 +1339,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Група Г:"
          Height          =   195
          Left            =   180
-         TabIndex        =   104
+         TabIndex        =   106
          Top             =   3510
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1101,7 +1350,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Група В:"
          Height          =   195
          Left            =   180
-         TabIndex        =   103
+         TabIndex        =   105
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1112,7 +1361,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Група Б:"
          Height          =   195
          Left            =   180
-         TabIndex        =   102
+         TabIndex        =   104
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1123,7 +1372,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Група А:"
          Height          =   195
          Left            =   180
-         TabIndex        =   101
+         TabIndex        =   103
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1134,7 +1383,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Разрешени ставки:"
          Height          =   195
          Left            =   180
-         TabIndex        =   100
+         TabIndex        =   102
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1145,7 +1394,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Парична единица:"
          Height          =   195
          Left            =   180
-         TabIndex        =   99
+         TabIndex        =   101
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1156,7 +1405,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Десетични знаци:"
          Height          =   195
          Left            =   180
-         TabIndex        =   98
+         TabIndex        =   100
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1167,7 +1416,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Държава:"
          Height          =   195
          Left            =   180
-         TabIndex        =   96
+         TabIndex        =   98
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1178,7 +1427,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Сериен номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   94
+         TabIndex        =   96
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1189,88 +1438,8 @@ Begin VB.Form frmIclSetup
          Caption         =   "Номер на модула:"
          Height          =   195
          Left            =   180
-         TabIndex        =   92
+         TabIndex        =   94
          Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   15
-      Left            =   2250
-      TabIndex        =   172
-      Top             =   90
-      Width           =   5775
-      Begin VB.TextBox txtDiagFirmware 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   175
-         TabStop         =   0   'False
-         Top             =   270
-         Width           =   3525
-      End
-      Begin VB.TextBox txtDiagChecksum 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   174
-         TabStop         =   0   'False
-         Top             =   630
-         Width           =   3525
-      End
-      Begin VB.TextBox txtDiagSwitches 
-         BackColor       =   &H8000000F&
-         Height          =   285
-         Left            =   2070
-         Locked          =   -1  'True
-         TabIndex        =   173
-         TabStop         =   0   'False
-         Top             =   990
-         Width           =   3525
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Печат"
-         Height          =   375
-         Index           =   9
-         Left            =   4320
-         TabIndex        =   84
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.Label Label57 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Firmware:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   178
-         Top             =   270
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label56 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Контролна сума:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   177
-         Top             =   630
-         Width           =   1905
-         WordWrap        =   -1  'True
-      End
-      Begin VB.Label Label55 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Ключета Sw1..Sw4:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   176
-         Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
       End
@@ -1279,7 +1448,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   6
       Left            =   2250
-      TabIndex        =   179
+      TabIndex        =   181
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtPmtType 
@@ -1287,7 +1456,7 @@ Begin VB.Form frmIclSetup
          Index           =   4
          Left            =   2070
          MaxLength       =   40
-         TabIndex        =   252
+         TabIndex        =   221
          Top             =   1710
          Width           =   3525
       End
@@ -1296,7 +1465,7 @@ Begin VB.Form frmIclSetup
          Index           =   5
          Left            =   2070
          MaxLength       =   40
-         TabIndex        =   251
+         TabIndex        =   220
          Top             =   2070
          Width           =   3525
       End
@@ -1305,7 +1474,7 @@ Begin VB.Form frmIclSetup
          Index           =   6
          Left            =   2070
          MaxLength       =   40
-         TabIndex        =   250
+         TabIndex        =   219
          Top             =   2430
          Width           =   3525
       End
@@ -1314,7 +1483,7 @@ Begin VB.Form frmIclSetup
          Index           =   7
          Left            =   2070
          MaxLength       =   40
-         TabIndex        =   249
+         TabIndex        =   218
          Top             =   2790
          Width           =   3525
       End
@@ -1385,7 +1554,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 5:"
          Height          =   195
          Left            =   180
-         TabIndex        =   256
+         TabIndex        =   225
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1396,7 +1565,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 6:"
          Height          =   195
          Left            =   180
-         TabIndex        =   255
+         TabIndex        =   224
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1407,7 +1576,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 7:"
          Height          =   195
          Left            =   180
-         TabIndex        =   254
+         TabIndex        =   223
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1418,7 +1587,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 8:"
          Height          =   195
          Left            =   180
-         TabIndex        =   253
+         TabIndex        =   222
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1429,7 +1598,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 4:"
          Height          =   195
          Left            =   180
-         TabIndex        =   183
+         TabIndex        =   185
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1440,7 +1609,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 3:"
          Height          =   195
          Left            =   180
-         TabIndex        =   182
+         TabIndex        =   184
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1451,7 +1620,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 2:"
          Height          =   195
          Left            =   180
-         TabIndex        =   181
+         TabIndex        =   183
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1462,7 +1631,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Тип плащане 1:"
          Height          =   195
          Left            =   180
-         TabIndex        =   180
+         TabIndex        =   182
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1472,7 +1641,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   5
       Left            =   2250
-      TabIndex        =   157
+      TabIndex        =   159
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtInvCurrent 
@@ -1481,7 +1650,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   160
+         TabIndex        =   162
          TabStop         =   0   'False
          Top             =   990
          Width           =   1545
@@ -1517,7 +1686,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Текущ номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   161
+         TabIndex        =   163
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1528,7 +1697,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Краен номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   159
+         TabIndex        =   161
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1539,7 +1708,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Начален номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   158
+         TabIndex        =   160
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1549,7 +1718,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   4
       Left            =   2250
-      TabIndex        =   116
+      TabIndex        =   118
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkHeadFormatInvoice 
@@ -1720,7 +1889,7 @@ Begin VB.Form frmIclSetup
          Caption         =   ":"
          Height          =   195
          Left            =   3690
-         TabIndex        =   126
+         TabIndex        =   128
          Top             =   990
          Width           =   285
          WordWrap        =   -1  'True
@@ -1731,7 +1900,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "БУЛСТАТ:"
          Height          =   195
          Left            =   180
-         TabIndex        =   125
+         TabIndex        =   127
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1742,7 +1911,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 6:"
          Height          =   195
          Left            =   180
-         TabIndex        =   124
+         TabIndex        =   126
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1753,7 +1922,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Footer 2:"
          Height          =   195
          Left            =   180
-         TabIndex        =   123
+         TabIndex        =   125
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1764,7 +1933,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Footer 1:"
          Height          =   195
          Left            =   180
-         TabIndex        =   122
+         TabIndex        =   124
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1775,7 +1944,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 5:"
          Height          =   195
          Left            =   180
-         TabIndex        =   121
+         TabIndex        =   123
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1786,7 +1955,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 4:"
          Height          =   195
          Left            =   180
-         TabIndex        =   120
+         TabIndex        =   122
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1797,7 +1966,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 3:"
          Height          =   195
          Left            =   180
-         TabIndex        =   119
+         TabIndex        =   121
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1808,7 +1977,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 1:"
          Height          =   195
          Left            =   180
-         TabIndex        =   118
+         TabIndex        =   120
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1819,7 +1988,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Header 2:"
          Height          =   195
          Left            =   180
-         TabIndex        =   117
+         TabIndex        =   119
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1829,7 +1998,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   3
       Left            =   2250
-      TabIndex        =   109
+      TabIndex        =   111
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdDateTransfer 
@@ -1852,7 +2021,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   115
+         TabIndex        =   117
          TabStop         =   0   'False
          Top             =   270
          Width           =   1635
@@ -1863,7 +2032,7 @@ Begin VB.Form frmIclSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   114
+         TabIndex        =   116
          TabStop         =   0   'False
          Top             =   630
          Width           =   1635
@@ -1897,7 +2066,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Системен час:"
          Height          =   195
          Left            =   180
-         TabIndex        =   113
+         TabIndex        =   115
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1908,7 +2077,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Системна дата:"
          Height          =   195
          Left            =   180
-         TabIndex        =   112
+         TabIndex        =   114
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1919,7 +2088,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Принтер дата:"
          Height          =   195
          Left            =   180
-         TabIndex        =   111
+         TabIndex        =   113
          Top             =   1170
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1930,7 +2099,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Принтер час:"
          Height          =   195
          Left            =   180
-         TabIndex        =   110
+         TabIndex        =   112
          Top             =   1530
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1938,461 +2107,9 @@ Begin VB.Form frmIclSetup
    End
    Begin VB.Frame fraCommands 
       Height          =   5775
-      Index           =   16
-      Left            =   2250
-      TabIndex        =   171
-      Top             =   90
-      Width           =   5775
-      Begin VB.CommandButton cmdStatusReset 
-         Caption         =   "Ресет"
-         Height          =   375
-         Left            =   180
-         TabIndex        =   248
-         Top             =   5220
-         Width           =   1185
-      End
-      Begin VB.PictureBox picTab2 
-         BorderStyle     =   0  'None
-         Enabled         =   0   'False
-         Height          =   2625
-         Left            =   90
-         ScaleHeight     =   2628
-         ScaleWidth      =   5592
-         TabIndex        =   214
-         TabStop         =   0   'False
-         Top             =   2430
-         Width           =   5595
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Забрана дисплей"
-            Height          =   285
-            Index           =   6
-            Left            =   90
-            TabIndex        =   231
-            Top             =   1710
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Прозрачен дисплей"
-            Height          =   285
-            Index           =   5
-            Left            =   90
-            TabIndex        =   230
-            Top             =   1440
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Нулиране памет"
-            Height          =   285
-            Index           =   4
-            Left            =   90
-            TabIndex        =   229
-            Top             =   1170
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Sw1.4"
-            Height          =   285
-            Index           =   3
-            Left            =   90
-            TabIndex        =   228
-            Top             =   900
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Sw1.3"
-            Height          =   285
-            Index           =   2
-            Left            =   90
-            TabIndex        =   227
-            Top             =   630
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Предварителен header"
-            Height          =   285
-            Index           =   1
-            Left            =   90
-            TabIndex        =   226
-            Top             =   360
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Центриране header/footer"
-            Height          =   285
-            Index           =   0
-            Left            =   90
-            TabIndex        =   225
-            Top             =   90
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Грешка запис ФП"
-            Height          =   285
-            Index           =   0
-            Left            =   90
-            TabIndex        =   224
-            Top             =   1980
-            Width           =   1995
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Няма ФП"
-            Height          =   285
-            Index           =   2
-            Left            =   90
-            TabIndex        =   223
-            Top             =   2250
-            Width           =   1995
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Малко свободна ФП"
-            Height          =   285
-            Index           =   3
-            Left            =   2880
-            TabIndex        =   222
-            Top             =   90
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Пълна ФП"
-            Height          =   285
-            Index           =   4
-            Left            =   2880
-            TabIndex        =   221
-            Top             =   360
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Фискална грешка"
-            Height          =   285
-            Index           =   5
-            Left            =   2880
-            TabIndex        =   220
-            Top             =   630
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "ФП само за четене"
-            Height          =   285
-            Index           =   8
-            Left            =   2880
-            TabIndex        =   219
-            Top             =   900
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Форматирана ФП"
-            Height          =   285
-            Index           =   9
-            Left            =   2880
-            TabIndex        =   218
-            Top             =   1170
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Фискален режим"
-            Height          =   285
-            Index           =   11
-            Left            =   2880
-            TabIndex        =   217
-            Top             =   1440
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Зададени данъчни ставки"
-            Height          =   285
-            Index           =   12
-            Left            =   2880
-            TabIndex        =   216
-            Top             =   1710
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Програмиран номер на ФП"
-            Height          =   285
-            Index           =   13
-            Left            =   2880
-            TabIndex        =   215
-            Top             =   1980
-            Width           =   2625
-         End
-      End
-      Begin VB.PictureBox picTab1 
-         BorderStyle     =   0  'None
-         Enabled         =   0   'False
-         Height          =   2175
-         Left            =   90
-         ScaleHeight     =   2172
-         ScaleWidth      =   5592
-         TabIndex        =   200
-         TabStop         =   0   'False
-         Top             =   180
-         Width           =   5595
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Синтактична грешка"
-            Height          =   285
-            Index           =   0
-            Left            =   90
-            TabIndex        =   213
-            Top             =   90
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Невалидна команда"
-            Height          =   285
-            Index           =   1
-            Left            =   90
-            TabIndex        =   212
-            Top             =   360
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Часовник неустовен"
-            Height          =   285
-            Index           =   2
-            Left            =   90
-            TabIndex        =   211
-            Top             =   630
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Не се използва"
-            Height          =   285
-            Index           =   3
-            Left            =   90
-            TabIndex        =   210
-            Top             =   900
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Неизправност механизъм"
-            Height          =   285
-            Index           =   4
-            Left            =   90
-            TabIndex        =   209
-            Top             =   1170
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Обща грешка"
-            Height          =   285
-            Index           =   5
-            Left            =   90
-            TabIndex        =   208
-            Top             =   1440
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Препълване"
-            Height          =   285
-            Index           =   8
-            Left            =   2880
-            TabIndex        =   207
-            Top             =   90
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Невалиден фискален режим"
-            Height          =   285
-            Index           =   9
-            Left            =   90
-            TabIndex        =   206
-            Top             =   1710
-            Width           =   2715
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Зануляване памет"
-            Height          =   285
-            Index           =   10
-            Left            =   2880
-            TabIndex        =   205
-            Top             =   360
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Разрушаване памет"
-            Height          =   285
-            Index           =   12
-            Left            =   2880
-            TabIndex        =   204
-            Top             =   630
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Няма хартия"
-            Height          =   285
-            Index           =   16
-            Left            =   2880
-            TabIndex        =   203
-            Top             =   900
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Отворен фискален бон"
-            Height          =   285
-            Index           =   19
-            Left            =   2880
-            TabIndex        =   202
-            Top             =   1170
-            Width           =   2625
-         End
-         Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Отворен служебен бон"
-            Height          =   285
-            Index           =   21
-            Left            =   2880
-            TabIndex        =   201
-            Top             =   1440
-            Width           =   2625
-         End
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Опресняване"
-         Height          =   375
-         Index           =   8
-         Left            =   4320
-         TabIndex        =   85
-         Top             =   5220
-         Width           =   1275
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
-      Index           =   10
-      Left            =   2250
-      TabIndex        =   140
-      Top             =   90
-      Width           =   5775
-      Begin VB.Frame Frame1 
-         Caption         =   "Зареждане"
-         Height          =   1185
-         Left            =   180
-         TabIndex        =   241
-         Top             =   3780
-         Width           =   5415
-         Begin VB.OptionButton optLogoStretch 
-            Caption         =   "Разпънато"
-            Height          =   285
-            Left            =   1800
-            TabIndex        =   247
-            Top             =   720
-            Width           =   1455
-         End
-         Begin VB.OptionButton optLogoCenter 
-            Caption         =   "Центрирано"
-            Height          =   285
-            Left            =   180
-            TabIndex        =   246
-            Top             =   720
-            Value           =   -1  'True
-            Width           =   1545
-         End
-         Begin VB.CommandButton cmdLogoOpen 
-            Caption         =   "Избор"
-            Height          =   375
-            Left            =   3960
-            TabIndex        =   243
-            Top             =   270
-            Width           =   1275
-         End
-         Begin VB.TextBox txtLogoTreshold 
-            Alignment       =   1  'Right Justify
-            Height          =   285
-            Left            =   1800
-            TabIndex        =   242
-            Text            =   "50"
-            Top             =   270
-            Width           =   465
-         End
-         Begin VB.Label Label73 
-            AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
-            Caption         =   "Ниво на черно:"
-            Height          =   390
-            Left            =   180
-            TabIndex        =   245
-            Top             =   270
-            Width           =   1635
-            WordWrap        =   -1  'True
-         End
-         Begin VB.Label Label74 
-            AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
-            Caption         =   "%"
-            Height          =   195
-            Left            =   2340
-            TabIndex        =   244
-            Top             =   270
-            Width           =   555
-            WordWrap        =   -1  'True
-         End
-      End
-      Begin VB.CheckBox chkLogoPrint 
-         Caption         =   "Печат графично лого преди header"
-         Height          =   285
-         Left            =   180
-         TabIndex        =   239
-         Top             =   270
-         Width           =   4245
-      End
-      Begin VB.PictureBox picLogoScroll 
-         BorderStyle     =   0  'None
-         Height          =   2445
-         Left            =   180
-         ScaleHeight     =   2448
-         ScaleWidth      =   5412
-         TabIndex        =   236
-         TabStop         =   0   'False
-         Top             =   720
-         Width           =   5415
-         Begin VB.HScrollBar scbLogoHor 
-            CausesValidation=   0   'False
-            Height          =   240
-            Left            =   0
-            TabIndex        =   238
-            TabStop         =   0   'False
-            Top             =   2070
-            Width           =   5415
-         End
-         Begin VB.PictureBox picLogo 
-            AutoRedraw      =   -1  'True
-            BackColor       =   &H00FFFFFF&
-            BorderStyle     =   0  'None
-            Height          =   1635
-            Left            =   0
-            ScaleHeight     =   1632
-            ScaleWidth      =   5232
-            TabIndex        =   237
-            TabStop         =   0   'False
-            Top             =   0
-            Width           =   5235
-         End
-      End
-      Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
-         Height          =   375
-         Index           =   4
-         Left            =   4320
-         TabIndex        =   235
-         Top             =   5220
-         Width           =   1275
-      End
-      Begin VB.Label labLogoInfo 
-         AutoSize        =   -1  'True
-         BackStyle       =   0  'Transparent
-         Caption         =   "Размери"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   240
-         Top             =   3330
-         Width           =   5415
-         WordWrap        =   -1  'True
-      End
-   End
-   Begin VB.Frame fraCommands 
-      Height          =   5775
       Index           =   17
       Left            =   2250
-      TabIndex        =   188
+      TabIndex        =   190
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtLog 
@@ -2401,7 +2118,7 @@ Begin VB.Form frmIclSetup
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   2  'Vertical
-         TabIndex        =   86
+         TabIndex        =   88
          Top             =   180
          Width           =   5595
       End
@@ -2410,7 +2127,7 @@ Begin VB.Form frmIclSetup
       Height          =   5775
       Index           =   0
       Left            =   2250
-      TabIndex        =   87
+      TabIndex        =   89
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkConnectRemember 
@@ -2458,7 +2175,7 @@ Begin VB.Form frmIclSetup
          EndProperty
          Height          =   195
          Left            =   180
-         TabIndex        =   91
+         TabIndex        =   93
          Top             =   270
          Width           =   5325
          WordWrap        =   -1  'True
@@ -2469,7 +2186,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Сериен порт:"
          Height          =   195
          Left            =   180
-         TabIndex        =   90
+         TabIndex        =   92
          Top             =   1080
          Width           =   1785
          WordWrap        =   -1  'True
@@ -2480,7 +2197,7 @@ Begin VB.Form frmIclSetup
          Caption         =   "Скорост:"
          Height          =   195
          Left            =   180
-         TabIndex        =   89
+         TabIndex        =   91
          Top             =   1530
          Width           =   1785
          WordWrap        =   -1  'True
@@ -2491,7 +2208,7 @@ Begin VB.Form frmIclSetup
       Caption         =   "Cancel"
       Height          =   375
       Left            =   90
-      TabIndex        =   234
+      TabIndex        =   204
       TabStop         =   0   'False
       Top             =   180
       Width           =   1275
@@ -2509,7 +2226,7 @@ Begin VB.Form frmIclSetup
       BackStyle       =   0  'Transparent
       Height          =   195
       Left            =   90
-      TabIndex        =   127
+      TabIndex        =   129
       Top             =   5940
       Width           =   7935
       WordWrap        =   -1  'True
@@ -2521,7 +2238,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 10    5.10.12 14:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 11    3.01.13 16:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -2530,6 +2247,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 11    3.01.13 16:39 Wqw
+' REF: impl statuses with listbox
+'
 ' 10    5.10.12 14:15 Wqw
 ' REF: cash debit/credit captions
 '
@@ -2624,6 +2344,9 @@ Private Const STR_LOGO_DIMENSIONS   As String = "Размер на графика: %1x%2"
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
 Private Const STR_PAYMENT_TYPES     As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА"
 Private Const STR_TAXCOUNTRY        As String = "Държава:|Sw1..Sw8:"
+Private Const STR_FP_STATUSES       As String = "0.7 Резервиран|0.6 Отворен е капакът на принтера|0.5 Обща грешка (OR на всички грешки, маркирани с #)|0.4 # Механизмът на печатащото устройство има неизправност|0.3 Не е свързан клиентски дисплей|0.2 Часовникът не е установен|0.1 # Кодът на получената команда е невалиден|0.0 # Получените данни имат синктактична грешка|1.7 Резервиран|1.6 Вграденият данъчен терминал не отговаря|1.5 Отворен е служебен бон за печат на завъртян на 90 градуса текст|1.4 # Установено е разрушаване на съдържанието на оперативната памет (RAM) след включване|1.3 # Слаба батерия (Часовникът за реално време е в състояние RESET)|1.2 # Извършено е зануляване на оперативната памет|1.1 # Изпълнението на командата не е позволено в текущия фискален режим|1.0 При изпълнение на командата се е полуило препълване на някои полета от сумите" & _
+                                                "|2.7 Резервиран|2.6 Не се използува|2.5 Отворен е служебен бон|2.4 Близък край на КЛЕН (по-малко от 10 MB от КЛЕН свободни)|2.3 Отворен е фискален бон|2.2 Край на КЛЕН (по-малко от 1 MB от КЛЕН свободни)|2.1 Останала е малко хартия|2.0 # Свършила е хартията|3.7 Резервиран|3.6 Състояние на Sw7|3.5 Състояние на Sw6|3.4 Състояние на Sw5|3.3 Състояние на Sw4|3.2 Състояние на Sw3|3.1 Състояние на Sw2|3.0 Състояние на Sw1" & _
+                                                "|4.7 Резервиран|4.6 Не се използува|4.5 OR на всички грешки, маркирани с * от байтове 4 и 5|4.4 * Фискалната памет е пълна|4.3 Има място за по-малко от 50 записа във ФП|4.2 Зададени са индивидуален номер на принтера и номер на фискалната памет|4.1 Зададен е ЕИК|5.7 Резервиран|5.6 Не се използува|5.5 Грешка при четене от фискалната памет|5.4 Зададени са поне веднъж данъчните ставки|5.3 Принтерът е във фискален режим|5.2 * Последният запис във фискалната памет не е успешен|5.1 Фискалната памет е форматирана|5.0 * Фискалната памет е установена в режим READONLY (заключена)"
 '--- messages
 Private Const MSG_INVALID_PASSWORD  As String = "Некоректна парола" & vbCrLf & vbCrLf & "Паролите се състоят от 4 до 6 цифри"
 Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
@@ -2831,6 +2554,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Dim vResult         As Variant
     Dim sText           As String
     Dim lRow            As Long
+    Dim vElem           As Variant
     
     On Error GoTo EH
     If Not m_oFP.IsConnected And eCmd <> ucsCmdConnect And lstCmds.ListIndex <> ucsCmdStatus Then
@@ -3074,17 +2798,24 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Case ucsCmdReports
         '--- do nothing
     Case ucsCmdStatus
-        On Error Resume Next
-        For lIdx = chkStatusStatus.LBound To chkStatusStatus.UBound
-            chkStatusStatus(lIdx).Value = -m_oFP.Status(2 ^ lIdx)
+        If lstStatus.ListCount = 0 Then
+            For Each vElem In Split(STR_FP_STATUSES, "|")
+                lstStatus.AddItem vElem
+            Next
+        End If
+        lstStatus.Tag = vbNullString
+        For lIdx = 0 To lstStatus.ListCount - 1
+            lRow = (lIdx \ 8) * 8 + (7 - (lIdx Mod 8))
+            If lRow < 24 Then
+                lstStatus.Selected(lIdx) = m_oFP.Status(2 ^ lRow)
+            ElseIf lRow < 32 Then
+                lstStatus.Selected(lIdx) = m_oFP.Dip(2 ^ (lRow - 24))
+            Else
+                lstStatus.Selected(lIdx) = m_oFP.Memory(2 ^ (lRow - 32))
+            End If
         Next
-        For lIdx = chkStatusDip.LBound To chkStatusDip.UBound
-            chkStatusDip(lIdx).Value = -m_oFP.Dip(2 ^ lIdx)
-        Next
-        For lIdx = chkStatusMemory.LBound To chkStatusMemory.UBound
-            chkStatusMemory(lIdx).Value = -m_oFP.Memory(2 ^ lIdx)
-        Next
-        On Error GoTo EH
+        lstStatus.ListIndex = 0
+        lstStatus.Tag = "Locked"
     Case ucsCmdDiagnostics
         vResult = Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "1"), ",")
         txtDiagFirmware.Text = At(vResult, 0)
@@ -3657,6 +3388,51 @@ Private Sub lstItems_Click()
     txtItemAmount.Text = At(vResult, 5)
     txtItemSum.Text = At(vResult, 6)
     txtItemTime.Text = At(vResult, 2)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
+Private Sub lstStatus_Click()
+    Const FUNC_NAME     As String = "lstStatus_Click"
+    
+    On Error GoTo EH
+    If lstStatus.ListIndex >= 0 Then
+        lstStatus.ToolTipText = lstStatus.List(lstStatus.ListIndex)
+    End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
+Private Sub lstStatus_ItemCheck(Item As Integer)
+    Const FUNC_NAME     As String = "lstStatus_ItemCheck"
+    
+    On Error GoTo EH
+    If lstStatus.Tag = "Locked" Then
+        lstStatus.Selected(Item) = Not lstStatus.Selected(Item)
+    End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
+Private Sub lstStatus_KeyDown(KeyCode As Integer, Shift As Integer)
+    Const FUNC_NAME     As String = "lstStatus_KeyDown"
+    Dim lIdx            As Long
+    Dim sText           As String
+    
+    On Error GoTo EH
+    If KeyCode = vbKeyC And Shift = vbCtrlMask Then
+        For lIdx = 0 To lstStatus.ListCount - 1
+            sText = sText & IIf(lstStatus.Selected(lIdx), "[x] ", "[ ] ") & lstStatus.List(lIdx) & vbCrLf
+        Next
+        Clipboard.Clear
+        Clipboard.SetText sText
+    End If
     Exit Sub
 EH:
     PrintError FUNC_NAME
