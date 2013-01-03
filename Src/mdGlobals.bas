@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 19    10.10.12 15:11 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 20    3.01.13 16:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,10 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 20    3.01.13 16:38 Wqw
+' ADD: Function SafeFormat, SafeText, AssignVariant, preg_replace,
+' GetConfigForCommand, Property DateTimer
+'
 ' 19    10.10.12 15:11 Wqw
 ' REF: config loading error handling
 '
@@ -256,6 +260,7 @@ Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY MICRO"
 Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
+Public Const CHR1                   As String = "" '--- Chr$(1)
 
 Public g_sDecimalSeparator      As String
 Public g_hGdip                  As Long
@@ -274,11 +279,17 @@ Private Sub PrintError(sFunc As String, Optional ByVal bUnattended As Boolean)
     End If
 End Sub
 
+Private Sub RaiseError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+End Sub
+
 '=========================================================================
 ' Functions
 '=========================================================================
 
-Public Sub Main()
+Private Sub Main()
     Const FUNC_NAME     As String = "Main"
     Dim sFile           As String
     Dim vJson           As Variant
@@ -1001,15 +1012,14 @@ Public Function ReadTextFile(sFile As String) As String
 End Function
 
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
+    Const FUNC_NAME     As String = "GetConfigValue"
+    
+    On Error GoTo EH
     If LenB(sSerial) <> 0 Then
         If g_oConfig.Exists(sSerial) Then
             If IsObject(g_oConfig(sSerial)) Then
                 If g_oConfig(sSerial).Exists(sKey) Then
-                    If IsObject(g_oConfig(sSerial).Item(sKey)) Then
-                        Set GetConfigValue = g_oConfig(sSerial).Item(sKey)
-                    Else
-                        GetConfigValue = g_oConfig(sSerial).Item(sKey)
-                    End If
+                    AssignVariant GetConfigValue, g_oConfig(sSerial).Item(sKey)
                     Exit Function
                 End If
             End If
@@ -1018,11 +1028,58 @@ Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefa
     If IsMissing(vDefault) Then
         Err.Raise vbObjectError, , "Missing default value for " & sKey
     End If
-    If IsObject(vDefault) Then
-        Set GetConfigValue = vDefault
-    Else
-        GetConfigValue = vDefault
+    AssignVariant GetConfigValue, vDefault
+    Exit Function
+EH:
+    RaiseError FUNC_NAME & "(sSerial=" & sSerial & ", sKey=" & sKey & ")"
+End Function
+
+Public Function GetConfigNumber(sSerial As String, sKey As String, ByVal dblDefault As Double) As Double
+    Const FUNC_NAME     As String = "GetConfigNumber"
+    
+    On Error GoTo EH
+    GetConfigNumber = C_Dbl(GetConfigValue(sSerial, sKey, 0))
+    If dblDefault > 0 Then
+        If GetConfigNumber <= 0 Then
+            GetConfigNumber = dblDefault
+        End If
+    ElseIf dblDefault < 0 Then
+        If GetConfigNumber >= 0 Then
+            GetConfigNumber = dblDefault
+        End If
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME & "(sSerial=" & sSerial & ", sKey=" & sKey & ")"
+End Function
+
+Public Function GetConfigCollection(sSerial As String, sKey As String) As Collection
+    Const FUNC_NAME     As String = "GetConfigCollection"
+    Dim vValue          As Variant
+    Dim oDict           As Object
+    
+    On Error GoTo EH
+    AssignVariant vValue, GetConfigValue(sSerial, sKey, Empty)
+    If IsObject(vValue) Then
+        Set oDict = vValue
+        Set GetConfigCollection = New Collection
+        pvAppendConfigCollection oDict, vbNullString, GetConfigCollection
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME & "(sSerial=" & sSerial & ", sKey=" & sKey & ")"
+End Function
+
+Private Function pvAppendConfigCollection(oDict As Object, sPrefix As String, oCol As Collection)
+    Dim vKey            As Variant
+    
+    For Each vKey In oDict
+        If IsObject(oDict(vKey)) Then
+            pvAppendConfigCollection oDict(vKey), sPrefix & "\" & vKey, oCol
+        Else
+            oCol.Add oDict(vKey), sPrefix & "\" & vKey
+        End If
+    Next
 End Function
 
 Public Function LocateFile(sFile As String) As String
@@ -1050,3 +1107,80 @@ Public Function LocateFile(sFile As String) As String
         LocateFile = sFile
     End If
 End Function
+
+Public Function SafeFormat(Expression As Variant, Optional Fmt As Variant, Optional sDecimal As String = ".") As String
+    SafeFormat = Replace(Format$(Expression, Fmt), g_sDecimalSeparator, sDecimal)
+End Function
+
+Public Function SafeText(sText As String) As String
+    Dim lIdx            As Long
+    
+    SafeText = sText
+    For lIdx = 0 To 31
+        SafeText = Replace(SafeText, Chr$(lIdx), vbNullString)
+    Next
+End Function
+
+Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
+    If IsObject(vSrc) Then
+        Set vDest = vSrc
+    Else
+        vDest = vSrc
+    End If
+End Sub
+
+Public Function preg_replace(sPattern As String, sReplace As String, sText As String) As String
+    Dim lOffset          As Long
+    Dim oMatch           As Object
+    
+    preg_replace = sText
+    For Each oMatch In pvInitRegExp(sPattern).Execute(sText)
+        With oMatch
+            preg_replace = Left$(preg_replace, lOffset + .FirstIndex) & sReplace & Mid$(preg_replace, lOffset + .FirstIndex + .Length + 1)
+            lOffset = lOffset + Len(sReplace) - .Length
+        End With
+    Next
+End Function
+
+Private Function pvInitRegExp(sPattern As String) As Object
+    Dim lIdx            As Long
+    
+    Set pvInitRegExp = CreateObject("VBScript.RegExp")
+    With pvInitRegExp
+        .Global = True
+        If Left$(sPattern, 1) = "/" Then
+            lIdx = InStrRev(sPattern, "/")
+            .Pattern = Mid$(sPattern, 2, lIdx - 2)
+            .IgnoreCase = (InStr(lIdx, sPattern, "i") > 0)
+            .MultiLine = (InStr(lIdx, sPattern, "m") > 0)
+        Else
+            .Pattern = sPattern
+        End If
+    End With
+End Function
+
+Public Function GetConfigForCommand(oCommands As Collection, sFunc As String, sKey As String, Optional Default As Variant) As Variant
+    On Error Resume Next
+    GetConfigForCommand = oCommands("\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString))
+    On Error GoTo 0
+    If IsEmpty(GetConfigForCommand) Then
+        If Not IsMissing(Default) Then
+            GetConfigForCommand = Default
+        End If
+    Else
+        Select Case VarType(Default)
+        Case vbLong, vbInteger, vbByte
+            GetConfigForCommand = C_Lng(GetConfigForCommand)
+        Case vbDouble, vbSingle
+            GetConfigForCommand = C_Dbl(GetConfigForCommand)
+        Case vbString
+            GetConfigForCommand = C_Str(GetConfigForCommand)
+        Case vbBoolean
+            GetConfigForCommand = C_Bool(GetConfigForCommand)
+        End Select
+    End If
+End Function
+
+Public Property Get DateTimer() As Double
+    DateTimer = CLng(Date) * 86400# + Timer
+End Property
