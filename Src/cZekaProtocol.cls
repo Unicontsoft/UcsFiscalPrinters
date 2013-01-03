@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 16    3.01.13 16:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 17    3.01.13 17:15 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 17    3.01.13 17:15 Wqw
+' REF: turn on delay printing by default
+'
 ' 16    3.01.13 16:40 Wqw
 ' REF: impl resume ticket and command configs
 '
@@ -663,7 +666,7 @@ Public Function Init( _
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
         .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", 0)
         .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", False))
-        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", False))
+        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", True))
         .MaxOperCode = GetConfigNumber(sSerial, "MaxOperCode", DEF_MAX_OPERCODE)
         .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", DEF_MAX_OPERNAME)
         .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", DEF_MAX_OPERPASSWORD)
