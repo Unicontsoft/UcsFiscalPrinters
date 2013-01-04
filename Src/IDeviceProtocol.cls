@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 12    3.01.13 16:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 13    4.01.13 12:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 13    4.01.13 12:21 Wqw
+' REF: set clock returns bool, get last receipt number returns string
+'
 ' 12    3.01.13 16:39 Wqw
 ' ADD: Function GetResumeTicket, GetDeviceStatus, Property IsConnected
 '
@@ -178,9 +181,9 @@ Public Function GetClock() As Date
 
 End Function
 
-Public Sub SetClock(ByVal NewDate As Date)
+Public Function SetClock(ByVal NewDate As Date) As Boolean
 
-End Sub
+End Function
 
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
 
@@ -194,7 +197,7 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
 
 End Function
 
-Public Function GetLastReceiptNumber() As Long
+Public Function GetLastReceiptNumber() As String
 
 End Function
 
