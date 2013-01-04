@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 17    3.01.13 17:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 18    4.01.13 12:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 18    4.01.13 12:21 Wqw
+' REF: err handling
+'
 ' 17    3.01.13 17:15 Wqw
 ' REF: turn on delay printing by default
 '
@@ -243,7 +246,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length|Response missing preamble|WaitCommEvent failed: |No receipt started|Error in line %1: %2|Cannot cancel previous receipt"
+Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length|Response missing preamble|WaitCommEvent failed: |No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
@@ -304,6 +307,7 @@ Private Enum UcsInternalErrors
     ucsErrNoReceiptStarted
     ucsErrErrorInLine
     ucsErrCannotCancelReceipt
+    ucsErrInvalidReportType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -683,9 +687,6 @@ Public Function Init( _
     '--- success
     Init = True
 QH:
-    If LenB(m_sLastError) <> 0 Then
-        Err.Raise vbObjectError, , m_sLastError
-    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -705,9 +706,6 @@ Public Function Connect() As Boolean
     '--- success
     Connect = True
 QH:
-    If LenB(m_sLastError) <> 0 Then
-        Err.Raise vbObjectError, , m_sLastError
-    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -728,9 +726,6 @@ Public Function Disconnect() As Boolean
     '--- success
     Disconnect = True
 QH:
-    If LenB(m_sLastError) <> 0 Then
-        Err.Raise vbObjectError, , m_sLastError
-    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -837,7 +832,8 @@ Public Function AddPLU( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     With uRow
         .RowType = ucsRowPlu
@@ -851,6 +847,7 @@ Public Function AddPLU( _
     pvInsertRow BeforeIndex, uRow
     '--- success
     AddPLU = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -866,7 +863,8 @@ Public Function AddLine( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     With uRow
         .RowType = ucsRowLine
@@ -877,6 +875,7 @@ Public Function AddLine( _
     pvInsertRow BeforeIndex, uRow
     '--- success
     AddLine = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -891,7 +890,8 @@ Public Function AddDiscount( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     Select Case DiscType
     Case ucsFscDstTotal
@@ -916,6 +916,7 @@ Public Function AddDiscount( _
     End Select
     '--- success
     AddDiscount = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -930,7 +931,8 @@ Public Function AddPayment( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
@@ -941,6 +943,7 @@ Public Function AddPayment( _
     End With
     '--- success
     AddPayment = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -955,7 +958,8 @@ Public Function EndReceipt(sResumeTicket As String) As Boolean
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     '--- restore context
     vSplit = Split(sResumeTicket, CHR1)
@@ -979,6 +983,7 @@ Public Function EndReceipt(sResumeTicket As String) As Boolean
         .PrintRowType = m_uRow(0).InitReceiptType
     End With
     EndReceipt = pvPrintReceipt(m_uCtxPrint, m_uRow, m_lRowCount)
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -991,8 +996,8 @@ Public Function GetResumeTicket() As String
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        On Error GoTo 0
-        Err.Raise vbObjectError, , pvInternal(ucsErrNoReceiptStarted)
+        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        GoTo QH
     End If
     '--- no resume if receipt printing is delayed
     If Not m_uConfig.DelayPrint Then
@@ -1009,6 +1014,7 @@ Public Function GetResumeTicket() As String
             End With
         End Select
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1044,7 +1050,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Sub SetClock(ByVal NewDate As Date)
+Public Function SetClock(ByVal NewDate As Date) As Boolean
     Const FUNC_NAME     As String = "SetClock"
     Dim eCmd            As UcsZekaCommandsEnum
     Dim sParam          As String
@@ -1055,10 +1061,14 @@ Public Sub SetClock(ByVal NewDate As Date)
         "Format", sFormat, "dd-MM-yy hh:mm:ss"
     sParam = Printf(sParam, Format$(NewDate, sFormat))
     SendCommand eCmd, sParam
-    Exit Sub
+    If LenB(m_sLastError) = 0 Then
+        '--- success
+        SetClock = True
+    End If
+    Exit Function
 EH:
     RaiseError FUNC_NAME
-End Sub
+End Function
 
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunXReport"
@@ -1066,7 +1076,7 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Dim sParam          As String
     
     If Not CancelReceipt() Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
     End If
     On Error GoTo EH
     Select Case ReportType
@@ -1076,14 +1086,16 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         pvGetCommandConfig FUNC_NAME, "PrintReportDailyItems", eCmd, ucsZekCmdPrintReportDailyItems, sParam, "X"
     Case ucsFscRstDailyByDepartment
         pvGetCommandConfig FUNC_NAME, "PrintReportDailyDepartments", eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "X"
+    Case Else
+        m_sLastError = pvInternal(ucsErrInvalidReportType)
+        GoTo QH
     End Select
-    If eCmd <> 0 Then
-        SendCommand eCmd, sParam
-        If LenB(m_sLastError) = 0 Then
-            '--- success
-            RunXReport = True
-        End If
+    SendCommand eCmd, sParam
+    If LenB(m_sLastError) = 0 Then
+        '--- success
+        RunXReport = True
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1095,7 +1107,7 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Dim sParam          As String
     
     If Not CancelReceipt() Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
     End If
     On Error GoTo EH
     Select Case ReportType
@@ -1105,14 +1117,16 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         pvGetCommandConfig FUNC_NAME, "PrintReportDailyItems", eCmd, ucsZekCmdPrintReportDailyItems, sParam, "Z"
     Case ucsFscRstDailyByDepartment
         pvGetCommandConfig FUNC_NAME, "PrintReportDailyDepartments", eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "Z"
+    Case Else
+        m_sLastError = pvInternal(ucsErrInvalidReportType)
+        GoTo QH
     End Select
-    If eCmd <> 0 Then
-        SendCommand eCmd, sParam
-        If LenB(m_sLastError) = 0 Then
-            '--- success
-            RunZReport = True
-        End If
+    SendCommand eCmd, sParam
+    If LenB(m_sLastError) = 0 Then
+        '--- success
+        RunZReport = True
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1125,7 +1139,7 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Dim sFormat         As String
     
     If Not CancelReceipt() Then
-        Err.Raise vbObjectError, , pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
     End If
     On Error GoTo EH
     Select Case ReportType
@@ -1135,30 +1149,36 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Case ucsFscRstPeriodDetailed
         pvGetCommandConfig FUNC_NAME, "PrintReportByDateDetailed", eCmd, ucsZekCmdPrintReportByDateDetailed, sParam, "%1;%2", _
             "Format", sFormat, "ddmmyy"
+    Case Else
+        m_sLastError = pvInternal(ucsErrInvalidReportType)
+        GoTo QH
     End Select
-    If eCmd <> 0 Then
-        sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
-        SendCommand eCmd, sParam
-        If LenB(m_sLastError) = 0 Then
-            '--- success
-            RunPeriodReport = True
-        End If
+    sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
+    SendCommand eCmd, sParam
+    If LenB(m_sLastError) = 0 Then
+        '--- success
+        RunPeriodReport = True
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetLastReceiptNumber() As Long
+Public Function GetLastReceiptNumber() As String
     Const FUNC_NAME     As String = "GetLastReceiptNumber"
     Dim eCmd            As UcsZekaCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig FUNC_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoLastReceipt, sParam, vbNullString, _
         "Index", lIndex, 0
-    GetLastReceiptNumber = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    If LenB(m_sLastError) = 0 Then
+        GetLastReceiptNumber = At(vSplit, lIndex)
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1169,13 +1189,14 @@ Public Function GetLastInvoiceNumber() As String
     Dim eCmd            As UcsZekaCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig FUNC_NAME, "InfoInvoiceNo", eCmd, ucsZekCmdInfoInvoiceNo, sParam, vbNullString, _
         "Index", lIndex, 0
-    GetLastInvoiceNumber = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
-    If GetLastInvoiceNumber <> 0 Then
-        GetLastInvoiceNumber = GetLastInvoiceNumber - 1
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    If LenB(m_sLastError) = 0 And IsNumeric(At(vSplit, lIndex)) Then
+        GetLastInvoiceNumber = C_Dbl(At(vSplit, lIndex)) - 1
     End If
     Exit Function
 EH:
@@ -2452,7 +2473,7 @@ Private Function IDeviceProtocol_GetHeaderText(ByVal Index As Long) As String
     IDeviceProtocol_GetHeaderText = GetHeaderText(Index)
 End Function
 
-Private Function IDeviceProtocol_GetLastReceiptNumber() As Long
+Private Function IDeviceProtocol_GetLastReceiptNumber() As String
     IDeviceProtocol_GetLastReceiptNumber = GetLastReceiptNumber()
 End Function
 
@@ -2512,9 +2533,9 @@ Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReports
     IDeviceProtocol_RunZReport = RunZReport(ReportType)
 End Function
 
-Private Sub IDeviceProtocol_SetClock(ByVal NewDate As Date)
-    SetClock NewDate
-End Sub
+Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean
+    IDeviceProtocol_SetClock = SetClock(NewDate)
+End Function
 
 Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
     LocalizedText(Index) = Text
