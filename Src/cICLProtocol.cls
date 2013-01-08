@@ -12,15 +12,19 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 49    4.01.13 12:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 50    8.01.13 15:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Protocol for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 50    8.01.13 15:36 Wqw
+' REF: after clsoing receipt close waits for device status (out of paper)
+' before confirming success
+'
 ' 49    4.01.13 12:21 Wqw
 ' REF: exception and err handling
 '
@@ -259,6 +263,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcFiscalCancel = 60
     ucsFpcAdminCashDebitCredit = 70
     ucsFpcPrintDuplicate = 109
+    ucsFpcLineFeed = 44
     '--- info
     ucsFpcInfoDateTime = 62
     ucsFpcInfoLastFiscalBlock = 64
@@ -1641,20 +1646,20 @@ End Function
 
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
-    Dim bPrevExceptions As Boolean
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig FUNC_NAME, "InfoTransaction", eCmd, ucsFpcInfoTransaction, sParam, vbNullString
-    bPrevExceptions = pvSetExceptions(False)
-    SendCommand eCmd, sParam
-    Exceptions = bPrevExceptions
+    pvGetCommandConfig FUNC_NAME, "InfoStatus", eCmd, ucsFpcInfoStatus, sParam, "X"
+    pvSendCommand m_hComm, m_lTimeout, eCmd, sParam, m_sLastError
     If LenB(m_sLastError) <> 0 Then
-        CurrentStatus = m_sLastError
-        GoTo QH
+        '--- do nothing
+    ElseIf Status(ucsStbPrintingError) Then
+        m_sLastError = ErrorText
+    ElseIf Memory(ucsFmeMemoryError) Then
+        m_sLastError = MemoryText
     End If
-    CurrentStatus = StatusText
+    CurrentStatus = m_sLastError
     '--- success
     GetDeviceStatus = True
 QH:
@@ -2082,6 +2087,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lStatus         As Long
     Dim lMinName        As Long
     Dim sFormatPrice    As String
     Dim sFormatQty      As String
@@ -2316,40 +2322,46 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 Else
                     '--- check if anything left for payment
                     pvGetCommandConfig FUNC_NAME, "InfoTransaction", eCmd, ucsFpcInfoTransaction, sParam, "T", _
+                        "Index", lIndex, 0, _
+                        "Status", lStatus, 0, _
                         "AmountIndex", lAmountIndex, 2, _
                         "PaidIndex", lPaidIndex, 3
                     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-                    If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
-                            Or LenB(At(vSplit, lAmountIndex)) = 0 _
-                            Or Not uCtx.PmtPrinted Then
-                        pvGetCommandConfig FUNC_NAME, "FiscalPayment" & .PmtType, eCmd, ucsFpcFiscalPayment, sParam, vbTab
-                        bPrevExceptions = pvSetExceptions(False)
-                        SendCommand eCmd, sParam
-                        Exceptions = bPrevExceptions
-                        If Status(ucsStbPrintingError) = 0 Then
-                            uCtx.PmtPrinted = True
-                        End If
-                    End If
-                    If .PrintRowType = ucsFscRetInvoiceFiscal Then
-                        pvGetCommandConfig FUNC_NAME, "FiscalCgInfo", eCmd, ucsFpcFiscalCgInfo, sParam, Replace("%1#%2#%3#%4#%5#%6", "#", vbTab), _
-                            "FormatAddr", sFormatAddr, "%1" & vbLf & "%2"
-                        With uRow(0)
-                            If LenB(.InitInvData(ucsInvAddress)) <> 0 Then
-                                sFormatAddr = Printf(sFormatAddr, Left$(.InitInvData(ucsInvCity), m_uConfig.MaxCgInfo(5)), _
-                                    Left$(.InitInvData(ucsInvAddress), m_uConfig.MaxCgInfo(6)))
-                            Else
-                                sFormatAddr = Left$(.InitInvData(ucsInvCity), m_uConfig.MaxCgInfo(5))
+                    If C_Lng(At(vSplit, lIndex)) <> lStatus Then
+                        If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
+                                Or LenB(At(vSplit, lAmountIndex)) = 0 _
+                                Or Not uCtx.PmtPrinted Then
+                            pvGetCommandConfig FUNC_NAME, "FiscalPayment" & .PmtType, eCmd, ucsFpcFiscalPayment, sParam, vbTab
+                            bPrevExceptions = pvSetExceptions(False)
+                            SendCommand eCmd, sParam
+                            Exceptions = bPrevExceptions
+                            If Status(ucsStbPrintingError) = 0 Then
+                                uCtx.PmtPrinted = True
                             End If
-                            sParam = Printf(sParam, Left$(.InitInvData(ucsInvTaxNumber), m_uConfig.MaxCgInfo(0)), _
-                                Left$(.InitOperatorName, m_uConfig.MaxCgInfo(1)), _
-                                Left$(Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)), m_uConfig.MaxCgInfo(2)), _
-                                Left$(.InitInvData(ucsInvCompany), m_uConfig.MaxCgInfo(3)), _
-                                Left$(.InitInvData(ucsInvVatNumber), m_uConfig.MaxCgInfo(4)), _
-                                sFormatAddr)
-                        End With
+                        End If
+                        If .PrintRowType = ucsFscRetInvoiceFiscal Then
+                            pvGetCommandConfig FUNC_NAME, "FiscalCgInfo", eCmd, ucsFpcFiscalCgInfo, sParam, Replace("%1#%2#%3#%4#%5#%6", "#", vbTab), _
+                                "FormatAddr", sFormatAddr, "%1" & vbLf & "%2"
+                            With uRow(0)
+                                If LenB(.InitInvData(ucsInvAddress)) <> 0 Then
+                                    sFormatAddr = Printf(sFormatAddr, Left$(.InitInvData(ucsInvCity), m_uConfig.MaxCgInfo(5)), _
+                                        Left$(.InitInvData(ucsInvAddress), m_uConfig.MaxCgInfo(6)))
+                                Else
+                                    sFormatAddr = Left$(.InitInvData(ucsInvCity), m_uConfig.MaxCgInfo(5))
+                                End If
+                                sParam = Printf(sParam, Left$(.InitInvData(ucsInvTaxNumber), m_uConfig.MaxCgInfo(0)), _
+                                    Left$(.InitOperatorName, m_uConfig.MaxCgInfo(1)), _
+                                    Left$(Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)), m_uConfig.MaxCgInfo(2)), _
+                                    Left$(.InitInvData(ucsInvCompany), m_uConfig.MaxCgInfo(3)), _
+                                    Left$(.InitInvData(ucsInvVatNumber), m_uConfig.MaxCgInfo(4)), _
+                                    sFormatAddr)
+                            End With
+                            SendCommand eCmd, sParam
+                        End If
+                        pvGetCommandConfig FUNC_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsFpcFiscalClose, sParam, vbNullString
                         SendCommand eCmd, sParam
                     End If
-                    pvGetCommandConfig FUNC_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsFpcFiscalClose, sParam, vbNullString
+                    pvGetCommandConfig FUNC_NAME, "InfoStatus", eCmd, ucsFpcInfoStatus, sParam, "W"
                     SendCommand eCmd, sParam
                 End If
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
@@ -2384,44 +2396,52 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvPrintLine AlignText(.PmtName, SafeFormat(.PmtAmount, sFormatAmount), pvRowChars - 2)
                     uCtx.Paid = Round(uCtx.Paid + .PmtAmount, 2)
                 Else
-                    If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
-                        dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
-                        If dblTotal > 0 Then
-                            pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvRowChars - 2)
-                        ElseIf dblTotal < 0 Then
-                            pvPrintLine AlignText(pvText(ucsTxtFooterChange), SafeFormat(-dblTotal, sFormatAmount), pvRowChars - 2)
-                        End If
-                        uCtx.ChangePrinted = True
-                    End If
-                    If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
-                        With uRow(0)
-                            pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
-                            pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
-                            pvPrintLine String$(pvRowChars, "-")
-                            pvPrintLine AlignText(pvText(ucsTxtFooterReceiver), Chr$(1) & ".", pvRowChars)
-                            pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)) & "/", pvRowChars)
-                            pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCompany)
-                            pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvTaxNumber)
-                            If LenB(.InitInvData(ucsInvVatNumber)) <> 0 Then
-                                pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvVatNumber)
+                    pvGetCommandConfig FUNC_NAME, "InfoTransaction", eCmd, ucsFpcInfoTransaction, sParam, "T", _
+                        "Index", lIndex, 0, _
+                        "Status", lStatus, 0
+                    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+                    If C_Lng(At(vSplit, lIndex)) <> lStatus Then
+                        If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
+                            dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
+                            If dblTotal > 0 Then
+                                pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvRowChars - 2)
+                            ElseIf dblTotal < 0 Then
+                                pvPrintLine AlignText(pvText(ucsTxtFooterChange), SafeFormat(-dblTotal, sFormatAmount), pvRowChars - 2)
                             End If
-                            pvPrintLine .InitInvData(ucsInvCity)
-                            pvPrintLine .InitInvData(ucsInvAddress)
-                        End With
+                            uCtx.ChangePrinted = True
+                        End If
+                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
+                            With uRow(0)
+                                pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
+                                pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
+                                pvPrintLine String$(pvRowChars, "-")
+                                pvPrintLine AlignText(pvText(ucsTxtFooterReceiver), Chr$(1) & ".", pvRowChars)
+                                pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)) & "/", pvRowChars)
+                                pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCompany)
+                                pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvTaxNumber)
+                                If LenB(.InitInvData(ucsInvVatNumber)) <> 0 Then
+                                    pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvVatNumber)
+                                End If
+                                pvPrintLine .InitInvData(ucsInvCity)
+                                pvPrintLine .InitInvData(ucsInvAddress)
+                            End With
+                        End If
+                        sData = GetFooterText(1)
+                        If LenB(sData) <> 0 Then
+                            pvPrintLine CenterText(sData, pvRowChars)
+                        End If
+                        sData = GetFooterText(2)
+                        If LenB(sData) <> 0 Then
+                            pvPrintLine CenterText(sData, pvRowChars)
+                        End If
+                        If uCtx.PluCount > 0 Then
+                            sData = IIf(uCtx.PluCount = 1, pvText(ucsTxtFooterArticleSingle), Printf(pvText(ucsTxtFooterArticles), uCtx.PluCount))
+                            pvPrintLine CenterText(sData, pvRowChars)
+                        End If
+                        pvGetCommandConfig FUNC_NAME, "NonFiscalClose" & .PrintRowType, eCmd, ucsFpcNonFiscalClose, sParam, vbNullString
+                        SendCommand eCmd, sParam
                     End If
-                    sData = GetFooterText(1)
-                    If LenB(sData) <> 0 Then
-                        pvPrintLine CenterText(sData, pvRowChars)
-                    End If
-                    sData = GetFooterText(2)
-                    If LenB(sData) <> 0 Then
-                        pvPrintLine CenterText(sData, pvRowChars)
-                    End If
-                    If uCtx.PluCount > 0 Then
-                        sData = IIf(uCtx.PluCount = 1, pvText(ucsTxtFooterArticleSingle), Printf(pvText(ucsTxtFooterArticles), uCtx.PluCount))
-                        pvPrintLine CenterText(sData, pvRowChars)
-                    End If
-                    pvGetCommandConfig FUNC_NAME, "NonFiscalClose" & .PrintRowType, eCmd, ucsFpcNonFiscalClose, sParam, vbNullString
+                    pvGetCommandConfig FUNC_NAME, "InfoStatus", eCmd, ucsFpcInfoStatus, sParam, "W"
                     SendCommand eCmd, sParam
                 End If
             End Select
