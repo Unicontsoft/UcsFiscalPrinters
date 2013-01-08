@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 18    4.01.13 12:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 19    8.01.13 15:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Protocol for Tremol/Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 19    8.01.13 15:35 Wqw
+' REF: wait device uses fast status
+'
 ' 18    4.01.13 12:21 Wqw
 ' REF: err handling
 '
@@ -96,8 +99,10 @@ Event CommandComplete(ByVal lCmd As Long, sData As String, sResult As String)
 '=========================================================================
 
 Public Enum UcsZekaCommandsEnum
-    ucsZekCmdIsOnline = &H4
-    ucsZekCmdIsReady = &H5
+    ucsZekCmdFastIsOnline = &H4
+    ucsZekCmdFastIsReady = &H5
+    ucsZekCmdFastStatus = &H9
+    [_ucsZekCmdFastMax] = &H1F
     '--- init
     ucsZekCmdInitOpenDrawer = &H2A
     ucsZekCmdInitTaxRates = &H42
@@ -246,7 +251,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length|Response missing preamble|WaitCommEvent failed: |No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type"
+Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length|Response missing preamble|WaitCommEvent failed: |No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Device not online|Device not ready"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
@@ -272,6 +277,12 @@ Private Const DEF_MAX_INVOICENO         As Long = 10
 Private Const DEF_MAX_PLUNAME           As Long = 36
 Private Const DEF_MAX_COMMENT           As Long = 34
 Private Const DEF_DELIM                 As String = ";"
+Private Const LNG_STATUS_READY          As Long = &H40
+Private Const LNG_STATUS_IS_BUSY        As Long = &H41
+Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
+Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
+Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
+Private Const LNG_STATUS_OVERHEATED     As Long = &H44
 
 Private m_sDevice                   As String
 Private m_hComm                     As Long
@@ -308,6 +319,16 @@ Private Enum UcsInternalErrors
     ucsErrErrorInLine
     ucsErrCannotCancelReceipt
     ucsErrInvalidReportType
+    ucsErrDeviceNotOnline
+    ucsErrDeviceNotReady
+End Enum
+
+Private Enum UcsDeviceErrorsAndStatuses
+    '--- device errors
+    ucsErrOutOfPaper = 1
+    ucsErrPrinterOverheated = 13
+    '--- device statuses
+    ucsErrIllegalCommand = 2
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -518,7 +539,7 @@ End Property
 Public Function AutodetectDevices(vPorts As Variant) As Variant
     Const FUNC_NAME     As String = "AutodetectDevices"
     Dim lIdx            As Long
-    Dim sText           As String
+    Dim sProbeText      As String
     Dim lTimeout        As Long
     Dim vRetVal()       As Variant
     Dim vSpeed          As Variant
@@ -533,7 +554,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim vSpeeds         As Variant
     
     On Error GoTo EH
-    sText = Chr$(ucsZekCmdIsOnline)
+    sProbeText = GetConfigValue(STR_PROTOCOL_ZEKA_FP, "ProbeText", Chr$(ucsZekCmdFastIsReady))
     lTimeout = GetConfigNumber(STR_PROTOCOL_ZEKA_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
     If IsObject(vSpeeds) Then
@@ -563,7 +584,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If .hComm <> 0 Then
                     Call PurgeComm(.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-                    lResult = WriteFile(.hComm, ByVal sText, Len(sText), lActual, .WriteOver)
+                    lResult = WriteFile(.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .WriteOver.hEvent
                         lEventsCount = lEventsCount + 1
@@ -601,7 +622,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
                     End If
-                    If .Buffer = Chr$(ucsZekCmdIsOnline) Then
+                    If Right$(.Buffer, 1) = sProbeText Then
                         If pvGetDeviceInfo(.hComm, 1000, Empty, sProtocol, sModel) Then
                             vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
                         End If
@@ -652,7 +673,7 @@ Public Function Init( _
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
     End If
-    If Not WaitDevice(pvPingTimeout) Then
+    If Not WaitDevice(-1) Then
         GoTo QH
     End If
     pvGetCommandConfig FUNC_NAME, "InfoDiagnostics", eCmd, ucsZekCmdInfoDiagnostics, sParam, vbNullString, _
@@ -754,26 +775,63 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     Dim sParam          As String
     Dim sStatus         As String
     Dim dblTimer        As Double
+    Dim sCurrent        As String
     
     On Error GoTo EH
     m_sLastError = vbNullString
-    If Timeout = 0 Then
-        Timeout = m_lTimeout
-    End If
-    dblTimer = DateTimer
-    Do
-        pvGetCommandConfig FUNC_NAME, "IsOnline", eCmd, ucsZekCmdIsOnline, sParam, vbNullString, _
-            "Status", sStatus, Chr$(ucsZekCmdIsOnline)
-        If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
-            pvGetCommandConfig FUNC_NAME, "IsReady", eCmd, ucsZekCmdIsReady, sParam, vbNullString, _
-                "Status", sStatus, Chr$(ucsZekCmdIsReady)
-            If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam) = sStatus Then
-                WaitDevice = True
-                Exit Function
+    If Timeout >= 0 Then
+        Timeout = Znl(Timeout, m_lTimeout)
+        dblTimer = DateTimer
+        Do While DateTimer - dblTimer < Timeout / 1000
+            pvGetCommandConfig FUNC_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
+                "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
+            If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
+                pvGetCommandConfig FUNC_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
+                    "ReadyStatus", sStatus, LNG_STATUS_READY
+                sCurrent = pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError)
+                If LenB(sCurrent) <> 0 Then
+                    Select Case Asc(sCurrent)
+                    Case C_Lng(sStatus) '--- LNG_STATUS_READY
+                        WaitDevice = True
+                        GoTo QH
+                    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+                        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
+                        GoTo QH
+                    Case LNG_STATUS_OVERHEATED
+                        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
+                        GoTo QH
+                    End Select
+                End If
             End If
-        End If
-    Loop While DateTimer - dblTimer < Timeout / 1000
-    m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+        Loop
+    End If
+    pvGetCommandConfig FUNC_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
+        "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
+    If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
+        m_sLastError = pvInternal(ucsErrDeviceNotOnline)
+        GoTo QH
+    End If
+    pvGetCommandConfig FUNC_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
+        "ReadyStatus", sStatus, LNG_STATUS_READY
+    sCurrent = pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError)
+    If LenB(sCurrent) = 0 Then
+        m_sLastError = pvInternal(ucsErrDeviceNotReady)
+        GoTo QH
+    End If
+    Select Case Asc(sCurrent)
+    Case C_Lng(sStatus) '--- LNG_STATUS_READY
+        WaitDevice = True
+        GoTo QH
+    Case LNG_STATUS_IS_BUSY
+        m_sLastError = pvInternal(ucsErrDeviceNotReady)
+    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), 1)
+    Case LNG_STATUS_OVERHEATED
+        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), 13)
+    Case Else
+        m_sLastError = "Unknown status: " & Hex(Asc(sCurrent))
+    End Select
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -999,21 +1057,18 @@ Public Function GetResumeTicket() As String
         m_sLastError = pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
-    '--- no resume if receipt printing is delayed
-    If Not m_uConfig.DelayPrint Then
-        '--- only fiscal receipts need resume ticket if payment processed
-        Select Case m_uRow(0).InitReceiptType
-        Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
-            With m_uCtxPrint
-                If .PmtPrinted Then
-                    For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                        GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & CHR1
-                    Next
-                    GetResumeTicket = GetResumeTicket & .Paid & CHR1 & .PluCount & CHR1 & -.PmtPrinted & CHR1 & -.ChangePrinted & CHR1 & .Row
-                End If
-            End With
-        End Select
-    End If
+    '--- only fiscal receipts need resume ticket if payment processed
+    Select Case m_uRow(0).InitReceiptType
+    Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
+        With m_uCtxPrint
+            If .PmtPrinted Then
+                For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
+                    GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & CHR1
+                Next
+                GetResumeTicket = GetResumeTicket & .Paid & CHR1 & .PluCount & CHR1 & -.PmtPrinted & CHR1 & -.ChangePrinted & CHR1 & .Row
+            End If
+        End With
+    End Select
 QH:
     Exit Function
 EH:
@@ -1024,14 +1079,27 @@ Public Function CopyLastReceipt() As Boolean
     Const FUNC_NAME     As String = "CopyLastReceipt"
     Dim eCmd            As UcsZekaCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     
     On Error GoTo EH
+    sPrevReceiptNo = GetLastReceiptNumber()
     pvGetCommandConfig FUNC_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString
     SendCommand eCmd, sParam
-    If LenB(m_sLastError) = 0 Then
-        '--- success
-        CopyLastReceipt = True
+    If Not LenB(m_sLastError) = 0 Then
+        GoTo QH
     End If
+    If Not WaitDevice(30) Then
+        GoTo QH
+    End If
+    sReceiptNo = GetLastReceiptNumber()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), ucsErrIllegalCommand)
+        GoTo QH
+    End If
+    '--- success
+    CopyLastReceipt = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1399,13 +1467,9 @@ End Function
 
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
-'    Dim eCmd            As UcsZekaCommandsEnum
-'    Dim sParam          As String
     
     On Error GoTo EH
-'    pvGetCommandConfig FUNC_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString
-'    SendCommand eCmd, sParam
-    WaitDevice pvPingTimeout
+    WaitDevice -1
     CurrentStatus = m_sLastError
     '--- success
     GetDeviceStatus = True
@@ -1556,7 +1620,7 @@ Private Function pvSendCommand( _
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
     '--- prepare command
-    If eCmd = ucsZekCmdIsOnline Or eCmd = ucsZekCmdIsReady Then
+    If eCmd <= [_ucsZekCmdFastMax] Then
         sText = Chr$(eCmd)
     ElseIf eCmd = ucsZekCmdInitLogo Or eCmd = ucsZekCmdInitLogoByNum Then
         sText = Chr$(ZFP_STX) & Chr$(&H39) & Chr$(&H37) & Chr$(eCmd) & Data
@@ -1649,13 +1713,6 @@ InLoop:
                     End If
                     Exit Do
                 End If
-            Case ZFP_PING, ZFP_BUSY ' &H4, &H5
-'                If Len(sText) = 1 Then
-                    pvSendCommand = Right$(sText, 1)
-'                Else
-'                    sError = pvInternal(ucsErrInvalidResponseLength)
-'                End If
-                Exit Do
             Case ZFP_ACK            ' &H6
                 If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
                     lSize = Len(sText) - 5
@@ -1685,7 +1742,11 @@ InLoop:
                 Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
                 Exit Do
             Case Else
-                Error = pvInternal(ucsErrResponseMissingPreamble)
+                If eCmd <= [_ucsZekCmdFastMax] Then
+                    pvSendCommand = Right$(sText, 1)
+                Else
+                    Error = pvInternal(ucsErrResponseMissingPreamble)
+                End If
                 Exit Do
             End Select
         End If
@@ -2116,7 +2177,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 End If
             End Select
             If .PmtType = 0 And m_uConfig.DelayPrint Then
-                WaitDevice lRowCount * m_lTimeout + DEF_TIMEOUT
+                If Not WaitDevice(lRowCount * m_lTimeout) Then
+                    GoTo QH
+                End If
             End If
         End Select
         End With
