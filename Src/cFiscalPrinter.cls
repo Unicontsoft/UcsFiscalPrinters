@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 23    4.01.13 12:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 24    8.01.13 15:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Uprawlenie na fiscalni ustrojstwa prez IDeviceProtocol protocoli
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 24    8.01.13 15:43 Wqw
+' REF: err handling, returns receipt no as string
+'
 ' 23    4.01.13 12:23 Wqw
 ' REF: err handling
 '
@@ -148,7 +151,7 @@ Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидн
 Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
 Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: "
-Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка"
+Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Устройството е недостъпно|Устройството е заето"
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
 Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|Карта|Чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
@@ -157,7 +160,7 @@ Private Const STR_ORIGINAL              As String = "ОРИГИНАЛ"
 Private Const STR_HEAD_CREDIT_NOTE2     As String = "към ф-ра "
 Private Const STR_CASHIER               As String = "Касиер"
 '--- errors
-Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1: %2"
+Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
 Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
 Private Const ERR_NOT_IMPLEMENTED       As String = "Командата не се поддържа от протокола"
 '--- config entries
@@ -233,6 +236,7 @@ Public Function GetHeaderFooter( _
     Dim vInput          As Variant
     
     On Error GoTo EH
+    LastError = vbNullString
     vInput = RetVal
     ReDim RetVal(0 To 18) As Variant
     Set oFP = pvInit(DeviceString)
@@ -293,14 +297,19 @@ Public Function GetHeaderFooter( _
     '--- success
     GetHeaderFooter = True
 QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        CommandLog = oFP.GetCommandLog()
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
+        End If
     End If
 End Function
 
@@ -322,6 +331,7 @@ Public Function PrintReceipt( _
     Dim sResumeTicket   As String
     
     On Error GoTo EH
+    LastError = vbNullString
     sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt)
     sResumeTicket = At(OperatorData, ucsFscPixResumeTicket)
     Set oFP = pvInit(DeviceString)
@@ -406,7 +416,7 @@ Public Function PrintReceipt( _
             PrintReceipt = True
         End Select
     End If
-    ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
+    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
 QH:
     If oFP.IsConnected Then
         oFP.Disconnect
@@ -414,18 +424,17 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
         If InStr(LastError, Split(STR_DATECS_FP_INTERNAL, "|")(16)) Then ' 16 = ucsErrInvalidOperatorPassword
             ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
         End If
-        If oFP.IsConnected Then
-            ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
             ValueAt(OperatorData, ucsFscPixResumeTicket) = oFP.GetResumeTicket()
-            oFP.Disconnect
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -440,6 +449,7 @@ Public Function PrintReport( _
     Dim bResult         As Boolean
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     Select Case ReportType
     Case ucsFscRptDaily
@@ -493,14 +503,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -512,6 +521,7 @@ Public Function OpenDrawer( _
     Dim oFP             As IDeviceProtocol
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     If Not oFP.OpenDrawer() Then
         LastError = oFP.GetLastError()
@@ -526,14 +536,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -547,6 +556,7 @@ Public Function InitDateTime( _
     Dim bResult         As Boolean
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     If C_Date(sDateTime) = 0 Then
         bResult = oFP.SetClock(Now)
@@ -567,14 +577,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -587,6 +596,7 @@ Public Function GetTotalsByVatGroups( _
     Dim oFP             As IDeviceProtocol
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.GetTotalsByVatGroups()
     If Not IsArray(vTotals) Then
@@ -605,14 +615,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -627,6 +636,7 @@ Public Function CashDebitCredit( _
     Dim oFP             As IDeviceProtocol
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), dblValue)
     If Not IsArray(vTotals) Then
@@ -636,7 +646,7 @@ Public Function CashDebitCredit( _
         LastError = oFP.GetLastError()
         GoTo QH
     End If
-    ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
+    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
     '--- success
     CashDebitCredit = True
 QH:
@@ -646,15 +656,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            ValueAt(OperatorData, ucsFscPixLastReceipt) = Znl(oFP.GetLastReceiptNumber())
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -667,6 +675,7 @@ Public Function GetStatus( _
     Dim oFP             As IDeviceProtocol
     
     On Error GoTo EH
+    LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     oFP.GetDeviceStatus sStatus
     '--- success
@@ -678,14 +687,13 @@ QH:
     CommandLog = oFP.GetCommandLog()
     Exit Function
 EH:
-    LastError = Err.Description
-    DebugLog FUNC_NAME, "LastError=" & LastError
-    If Not oFP Is Nothing Then
-        DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-        If oFP.IsConnected Then
-            oFP.Disconnect
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
         End If
-        CommandLog = oFP.GetCommandLog()
     End If
 End Function
 
@@ -723,7 +731,7 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
     End Select
     If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
-        Err.Raise vbObjectError, , Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE), Zn(pvInit.GetLastError(), STR_NONE))
+        Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE)))
     End If
 End Function
 
