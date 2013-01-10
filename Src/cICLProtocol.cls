@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 50    8.01.13 15:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 51    10.01.13 16:31 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 51    10.01.13 16:31 Wqw
+' REF: default of max cg info
+'
 ' 50    8.01.13 15:36 Wqw
 ' REF: after clsoing receipt close waits for device status (out of paper)
 ' before confirming success
@@ -399,7 +402,7 @@ Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
-Private Const DEF_MAX_CGINFO            As String = "13|30|25|27|12|36|36"
+Private Const DEF_MAX_CGINFO            As String = "14|26|26|26|14|36|36"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_DELIM                 As String = ","
 Private Const MIK_OFFSET                As Long = &H80
