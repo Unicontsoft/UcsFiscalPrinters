@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 19    8.01.13 15:35 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 20    26.02.13 19:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 20    26.02.13 19:38 Wqw
+' REF: reduce logging on wait device
+'
 ' 19    8.01.13 15:35 Wqw
 ' REF: wait device uses fast status
 '
@@ -776,6 +779,8 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     Dim sStatus         As String
     Dim dblTimer        As Double
     Dim sCurrent        As String
+    Dim lIter           As Long
+    Dim sDelay          As String
     
     On Error GoTo EH
     m_sLastError = vbNullString
@@ -783,16 +788,22 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
         Timeout = Znl(Timeout, m_lTimeout)
         dblTimer = DateTimer
         Do While DateTimer - dblTimer < Timeout / 1000
+            lIter = lIter + 1
             pvGetCommandConfig FUNC_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
                 "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
             If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
+                lIter = lIter + 1
                 pvGetCommandConfig FUNC_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-                    "ReadyStatus", sStatus, LNG_STATUS_READY
+                    "ReadyStatus", sStatus, LNG_STATUS_READY, _
+                    "Delay", sDelay, 40
                 sCurrent = pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError)
                 If LenB(sCurrent) <> 0 Then
                     Select Case Asc(sCurrent)
                     Case C_Lng(sStatus) '--- LNG_STATUS_READY
                         WaitDevice = True
+                        If lIter > 2 Then
+                            DebugLog FUNC_NAME, "Ready after " & lIter
+                        End If
                         GoTo QH
                     Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
                         m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
@@ -802,6 +813,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
                         GoTo QH
                     End Select
                 End If
+                Call Sleep(C_Lng(sDelay))
             End If
         Loop
     End If
@@ -825,9 +837,9 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     Case LNG_STATUS_IS_BUSY
         m_sLastError = pvInternal(ucsErrDeviceNotReady)
     Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
-        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), 1)
+        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
     Case LNG_STATUS_OVERHEATED
-        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), 13)
+        m_sLastError = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
     Case Else
         m_sLastError = "Unknown status: " & Hex(Asc(sCurrent))
     End Select
@@ -1614,9 +1626,13 @@ Private Function pvSendCommand( _
     Dim sBuffer         As String
     Dim lMask           As Long
     Dim lActual         As Long
+    Dim bLogging        As Boolean
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Data=" & Data
+    bLogging = (eCmd > [_ucsZekCmdFastMax])
+    If bLogging Then
+        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Data=" & Data
+    End If
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
     '--- prepare command
@@ -1648,7 +1664,7 @@ RetrySend:
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
-        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
+        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
         If lResult = WAIT_TIMEOUT Then
             Error = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
@@ -1663,13 +1679,13 @@ RetrySend:
         lResult = WaitCommEvent(hComm, lMask, uOver)
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
-                DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
+                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", WaitCommEvent, Err.LastDllError=" & Err.LastDllError
                 Error = pvInternal(ucsErrWaitCommEventFailed) & GetApiErr(Err.LastDllError)
                 GoTo QH
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
         Else
-            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult
+            DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", WaitCommEvent, lResult=" & lResult
             lResult = WAIT_OBJECT_0
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
@@ -1678,7 +1694,7 @@ InLoop:
             lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
-                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
+                    DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", ReadFile, Err.LastDllError=" & Err.LastDllError
                     Error = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
                     GoTo QH
                 End If
@@ -1691,7 +1707,9 @@ InLoop:
             End If
         End If
         If lResult <> WAIT_OBJECT_0 Then
-            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lTimeout=" & lTimeout
+            If bLogging Then
+                DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lTimeout=" & lTimeout
+            End If
             If lResult = WAIT_TIMEOUT Then
                 Error = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
@@ -1707,7 +1725,9 @@ InLoop:
                     '--- check message length
                     If Len(sText) - 7 = lSize Then
                         pvSendCommand = Mid$(sText, 5, lSize)
-                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
+                        If bLogging Then
+                            DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
+                        End If
                     Else
                         Error = pvInternal(ucsErrInvalidResponseLength)
                     End If
@@ -1735,7 +1755,7 @@ InLoop:
                     Exit Do
                 End If
             Case ZFP_RETRY          ' &HE
-                DebugLog FUNC_NAME, "Retry requested, sText=" & sText
+                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
                 Call CancelIo(hComm)
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
