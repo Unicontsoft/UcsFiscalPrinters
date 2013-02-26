@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 20    3.01.13 16:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 21    26.02.13 19:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2012 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 21    26.02.13 19:38 Wqw
+' REF: debug print error on loading config
+'
 ' 20    3.01.13 16:38 Wqw
 ' ADD: Function SafeFormat, SafeText, AssignVariant, preg_replace,
 ' GetConfigForCommand, Property DateTimer
@@ -302,6 +305,7 @@ Private Sub Main()
         OutputDebugLog MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
         If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
             OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
+            Debug.Print "Error in config: " & sError
         End If
     End If
     If Not IsObject(vJson) Then
