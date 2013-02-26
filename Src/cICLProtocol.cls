@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 51    10.01.13 16:31 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 52    26.02.13 19:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 52    26.02.13 19:39 Wqw
+' REF: unknown errors handling
+'
 ' 51    10.01.13 16:31 Wqw
 ' REF: default of max cg info
 '
@@ -385,7 +388,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length|Response missing postamble|Response missing preamble|WaitCommEvent failed: |No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type"
+Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length|Response missing postamble|Response missing preamble|WaitCommEvent failed: |No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1"
 Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
@@ -448,6 +451,8 @@ Private Enum UcsInternalErrors
     ucsErrErrorInLine
     ucsErrCannotCancelReceipt
     ucsErrInvalidReportType
+    ucsErrUnknownError
+    ucsErrUnknownMemory
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -957,11 +962,11 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As S
         GoTo QH
     End If
     If Status(ucsStbPrintingError) Then
-        pvSetLastError ErrorText
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
         GoTo QH
     End If
     If Memory(ucsFmeMemoryError) Then
-        pvSetLastError MemoryText
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
         GoTo QH
     End If
 QH:
@@ -1658,9 +1663,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsStbPrintingError) Then
-        m_sLastError = ErrorText
+        m_sLastError = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
     ElseIf Memory(ucsFmeMemoryError) Then
-        m_sLastError = MemoryText
+        m_sLastError = Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
     End If
     CurrentStatus = m_sLastError
     '--- success
@@ -1898,7 +1903,9 @@ InLoop:
                     If lIdx - 5 = lSize Then
                         pvSetStatus Mid$(sText, lIdx + 1, 6)
                         pvSendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
-                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & IIf(Status(ucsStbPrintingError), ", ErrorText=" & ErrorText, vbNullString) & IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & ErrorText, vbNullString)
+                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
+                            IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), vbNullString) & _
+                            IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), vbNullString)
                         GoTo QH
                     Else
                         Error = pvInternal(ucsErrInvalidResponseLength)
