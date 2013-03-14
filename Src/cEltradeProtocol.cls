@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 27    4.01.13 12:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 28    14.03.13 16:28 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Protocol for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 28    14.03.13 16:28 Wqw
+' REF: FP err handling uses pvSetLastError
+'
 ' 27    4.01.13 12:23 Wqw
 ' REF: err handling
 '
@@ -270,6 +273,7 @@ Private m_lTimeout                  As Long
 Private m_sDevice                   As String
 Private m_hComm                     As Long
 Private m_lCashDesk                 As Long
+Private m_eLastErrNumber            As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_sLocalizedText(0 To [_ucsFscLciMax] - 1) As String
 Private m_uRow()                    As UcsRowData
@@ -421,13 +425,13 @@ End Enum
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
-    m_sLastError = Err.Description
+    pvSetLastError Err.Description
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 Private Sub RaiseError(sFunc As String)
-    m_sLastError = Err.Description
+    pvSetLastError Err.Description
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
@@ -459,6 +463,10 @@ End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
     m_sLocalizedText(eIdx) = sValue
+End Property
+
+Property Get LastErrNumber() As UcsFiscalErrorsEnum
+    LastErrNumber = m_eLastErrNumber
 End Property
 
 Property Get LastError() As String
@@ -534,7 +542,7 @@ Public Function Init( _
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", lTimeout=" & lTimeout
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
         m_hComm = INVALID_HANDLE_VALUE
@@ -562,9 +570,9 @@ Public Function Connect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
-        m_sLastError = pvInternal(ucsErrAlreadyConnected)
+        pvSetLastError pvInternal(ucsErrAlreadyConnected)
         GoTo QH
     End If
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
@@ -581,9 +589,9 @@ Public Function Disconnect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
-        m_sLastError = pvInternal(ucsErrNotConnected)
+        pvSetLastError pvInternal(ucsErrNotConnected)
         GoTo QH
     End If
     Call CloseHandle(m_hComm)
@@ -608,7 +616,7 @@ Public Function SendCommand( _
     Const FUNC_NAME     As String = "SendCommand"
     
     On Error GoTo EH
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     SendCommand = pvSendCommand(m_hComm, Znl(lTimeout, m_lTimeout), eCmd, sData, eRetCmd, m_sLastError)
     '--- append internal log
     m_sCommandLog = m_sCommandLog & pvDumpHex(Chr$(eCmd)) & IIf(LenB(sData) <> 0, "<-" & pvDumpHex(sData), vbNullString) & IIf(LenB(SendCommand) <> 0, "->" & pvDumpHex(SendCommand), vbNullString) & vbCrLf
@@ -665,13 +673,13 @@ Public Function WaitDevice(Optional ByVal lWait As Long) As Boolean
         If eRetCmd = ucsEltCmdInfoDeviceStatus - 1 Then
             Select Case Asc(sResult & Chr$(1))
             Case 1
-                m_sLastError = pvInternal(ucsErrOutOfPaper)
+                pvSetLastError pvInternal(ucsErrOutOfPaper)
                 GoTo QH
             Case 2
-                m_sLastError = pvInternal(ucsErrPrintingError)
+                pvSetLastError pvInternal(ucsErrPrintingError)
                 GoTo QH
             Case Else
-                m_sLastError = pvInternal(ucsErrFatalError)
+                pvSetLastError pvInternal(ucsErrFatalError)
                 GoTo QH
             End Select
         End If
@@ -733,9 +741,9 @@ End Function
 Public Function AddPLU( _
             ByVal Numb As Long, _
             Name As String, _
-            Price As Double, _
-            Optional Quantity As Double = 1, _
-            Optional VatGroup As Long = 2, _
+            ByVal Price As Double, _
+            Optional ByVal Quantity As Double = 1, _
+            Optional ByVal VatGroup As Long = 2, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "AddPLU"
     Dim uRow            As UcsRowData
@@ -744,7 +752,7 @@ Public Function AddPLU( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     With uRow
@@ -777,11 +785,11 @@ Public Function AddLine( _
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     If InStr("DBWIDTH|CONDENSED", UCase$(Command)) = 0 Then
-        m_sLastError = pvInternal(ucsErrInvalidCommandParameter)
+        pvSetLastError pvInternal(ucsErrInvalidCommandParameter)
         GoTo QH
     End If
     With uRow
@@ -809,13 +817,13 @@ End Function
 
 Public Function AddDiscount( _
             ByVal DiscType As UcsFiscalDiscountTypeEnum, _
-            Value As Double) As Boolean
+            ByVal Value As Double) As Boolean
     Const FUNC_NAME     As String = "AddDiscount"
     
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     Select Case DiscType
@@ -840,14 +848,14 @@ End Function
 Public Function AddPayment( _
             ByVal Number As UcsFiscalPaymentTypeEnum, _
             Name As String, _
-            Amount As Double, _
-            Rate As Double) As Boolean
+            ByVal Amount As Double, _
+            ByVal Rate As Double) As Boolean
     Const FUNC_NAME     As String = "AddPayment"
     
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     With m_uRow(pvAddRow())
@@ -880,12 +888,12 @@ Public Function EndReceipt(sResumeTicket As String) As Boolean
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     '--- cancel previous receipt
     If Not CancelReceipt() Then
-        m_sLastError = pvInternal(ucsErrCannotCancelReceipt)
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
     '--- restore context
@@ -936,7 +944,7 @@ Public Function GetResumeTicket() As String
     On Error GoTo EH
     '--- sanity check
     If m_lRowCount = 0 Then
-        m_sLastError = pvInternal(ucsErrNoReceiptStarted)
+        pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
     '--- only fiscal receipts need resume ticket if payment processed
@@ -980,7 +988,7 @@ Public Function CopyLastReceipt() As Boolean
             Exit For
         End If
         If pvPeek(sResult, 8, 2) = 0 Then '--- oper no = 0 -> failure
-            m_sLastError = pvInternal(ucsErrInvalidCommandForDuplicateReceipt)
+            pvSetLastError pvInternal(ucsErrInvalidCommandForDuplicateReceipt)
             GoTo QH
         End If
         WaitDevice LNG_DELAY
@@ -1028,7 +1036,7 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunXReport"
     
     If Not CancelReceipt() Then
-        m_sLastError = pvInternal(ucsErrCannotCancelReceipt)
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
     On Error GoTo EH
@@ -1050,7 +1058,7 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunZReport"
     
     If Not CancelReceipt() Then
-        m_sLastError = pvInternal(ucsErrCannotCancelReceipt)
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
     On Error GoTo EH
@@ -1074,7 +1082,7 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Const FUNC_NAME     As String = "RunPeriodReport"
     
     If Not CancelReceipt() Then
-        m_sLastError = pvInternal(ucsErrCannotCancelReceipt)
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
     On Error GoTo EH
@@ -2140,7 +2148,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     pvPrintReceipt = True
 QH:
     If LenB(m_sLastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
-        m_sLastError = Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
+        pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
     End If
     Exit Function
 EH:
@@ -2357,6 +2365,15 @@ EH:
     PrintError FUNC_NAME
 End Function
 
+Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
+    If ErrNum < 0 Then
+        m_eLastErrNumber = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
+    Else
+        m_eLastErrNumber = ErrNum
+    End If
+    m_sLastError = sError
+End Sub
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -2377,7 +2394,7 @@ End Sub
 ' IDeviceProtocol interface
 '=========================================================================
 
-Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, Value As Double) As Boolean
+Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, ByVal Value As Double) As Boolean
     IDeviceProtocol_AddDiscount = AddDiscount(DiscType, Value)
 End Function
 
@@ -2385,11 +2402,11 @@ Private Function IDeviceProtocol_AddLine(Line As String, Optional Command As Str
     IDeviceProtocol_AddLine = AddLine(Line, Command, WordWrap)
 End Function
 
-Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentTypeEnum, Name As String, Amount As Double, Optional Rate As Double) As Boolean
+Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentTypeEnum, Name As String, ByVal Amount As Double, Optional ByVal Rate As Double) As Boolean
     IDeviceProtocol_AddPayment = AddPayment(Number, Name, Amount, Rate)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantity As Double, VatGroup As Long) As Boolean
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal VatGroup As Long) As Boolean
     IDeviceProtocol_AddPLU = AddPLU(0, Name, Price, Quantity, VatGroup)
 End Function
 
@@ -2465,7 +2482,8 @@ Private Function IDeviceProtocol_GetLastReceiptNumber() As String
     IDeviceProtocol_GetLastReceiptNumber = GetLastReceiptNumber()
 End Function
 
-Private Function IDeviceProtocol_GetLastError() As String
+Private Function IDeviceProtocol_GetLastError(Optional ErrNumber As UcsFiscalErrorsEnum) As String
+    ErrNumber = LastErrNumber
     IDeviceProtocol_GetLastError = LastError
 End Function
 
