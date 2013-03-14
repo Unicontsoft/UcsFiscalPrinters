@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 52    26.02.13 19:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 53    14.03.13 16:28 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 53    14.03.13 16:28 Wqw
+' ADD: Property LastErrNumber
+'
 ' 52    26.02.13 19:39 Wqw
 ' REF: unknown errors handling
 '
@@ -421,6 +424,7 @@ Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIclStatusBitsEnum
 Private m_eDip                      As UcsIclDipSwitchesEnum
 Private m_eMemory                   As UcsIclFiscalMemoryEnum
+Private m_eLastErrNumber            As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_bExceptions               As Boolean
 Private m_uRow()                    As UcsRowData
@@ -626,6 +630,10 @@ End Property
 
 Property Get MemoryText() As String
     MemoryText = pvGetFlagsText(m_eMemory, m_uConfig.LocalizedText(ucsFscLciMemoryTexts))
+End Property
+
+Property Get LastErrNumber() As UcsFiscalErrorsEnum
+    LastErrNumber = m_eLastErrNumber
 End Property
 
 Property Get LastError() As String
@@ -834,7 +842,7 @@ Public Function Init( _
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         Call CloseHandle(m_hComm)
         m_hComm = INVALID_HANDLE_VALUE
@@ -894,7 +902,7 @@ Public Function Connect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm <> INVALID_HANDLE_VALUE Then
         pvSetLastError pvInternal(ucsErrAlreadyConnected)
         GoTo QH
@@ -917,7 +925,7 @@ Public Function Disconnect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", Status=" & Right$("000000" & Hex(m_eStatus), 6) & " " & Right$("00" & Hex(m_eDip), 2) & " " & Right$("0000" & Hex(m_eMemory), 4)
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
         pvSetLastError pvInternal(ucsErrNotConnected)
         GoTo QH
@@ -941,7 +949,7 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As S
     Dim lDecimalsIndex  As Long
     
     On Error GoTo EH
-    m_sLastError = vbNullString
+    pvSetLastError vbNullString
     '--- auto-sense encoding
     If m_uConfig.Charset = ucsCrsAuto Then
         pvGetCommandConfig FUNC_NAME, "InitDecimals", eDecimalsCmd, ucsFpcInitDecimals, sDecimalsParam, vbNullString, _
@@ -1002,7 +1010,10 @@ Public Function StartReceipt( _
         .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
-        .InitOperatorPassword = Zn(SafeText(OperatorPassword), DEF_PASSWORD)
+        .InitOperatorPassword = SafeText(OperatorPassword)
+        If LenB(.InitOperatorPassword) = 0 Then
+            .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
+        End If
         .InitCashDeskNo = m_lCashDeskNo
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
@@ -1017,9 +1028,9 @@ End Function
 
 Public Function AddPLU( _
             Name As String, _
-            Price As Double, _
-            Optional Quantity As Double = 1, _
-            Optional VatGroup As Long = 2, _
+            ByVal Price As Double, _
+            Optional ByVal Quantity As Double = 1, _
+            Optional ByVal VatGroup As Long = 2, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "AddPLU"
     Dim uRow            As UcsRowData
@@ -1079,7 +1090,7 @@ End Function
 
 Public Function AddDiscount( _
             ByVal DiscType As UcsFiscalDiscountTypeEnum, _
-            Value As Double, _
+            ByVal Value As Double, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "AddDiscount"
     Dim uRow            As UcsRowData
@@ -1124,7 +1135,7 @@ End Function
 Public Function AddPayment( _
             ByVal Number As UcsFiscalPaymentTypeEnum, _
             Name As String, _
-            Amount As Double) As Boolean
+            ByVal Amount As Double) As Boolean
     Const FUNC_NAME     As String = "AddPayment"
     
     On Error GoTo EH
@@ -1663,9 +1674,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsStbPrintingError) Then
-        m_sLastError = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
     ElseIf Memory(ucsFmeMemoryError) Then
-        m_sLastError = Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
     End If
     CurrentStatus = m_sLastError
     '--- success
@@ -1694,7 +1705,7 @@ Public Function GetTotalsByVatGroups() As Variant
         ReDim vRetVal(0 To 7) As Double
         For lIdx = 0 To UBound(vRetVal)
             If InStr(At(vSplit, lIdx + 1), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(Replace(At(vSplit, lIdx + 1), ".", g_sDecimalSeparator))
+                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1))
             Else
                 vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1)) / 100#
             End If
@@ -1727,7 +1738,7 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
         ReDim vRetVal(0 To 2) As Double
         For lIdx = 0 To UBound(vRetVal)
             If InStr(At(vSplit, lIdx + 1), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(Replace(At(vSplit, lIdx + 1), ".", g_sDecimalSeparator))
+                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1))
             Else
                 vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx + 1)) / 100#
             End If
@@ -2463,13 +2474,13 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     pvPrintReceipt = True
     Exit Function
 EH:
-    m_sLastError = Err.Description
+    pvSetLastError Err.Description, DontRaise:=True
     PrintError FUNC_NAME
     If bInLogin Then
-        m_sLastError = m_sLastError & pvInternal(ucsErrInvalidOperatorPassword)
+        pvSetLastError m_sLastError & pvInternal(ucsErrInvalidOperatorPassword), ucsFerInvalidPassword, DontRaise:=True
     End If
     If uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
-        m_sLastError = Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError)
+        pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError), m_eLastErrNumber, DontRaise:=True
     End If
     Err.Raise vbObjectError, , m_sLastError
 End Function
@@ -2739,9 +2750,14 @@ Private Sub pvGetCommandConfig( _
     Next
 End Sub
 
-Private Sub pvSetLastError(sError As String)
+Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1, Optional ByVal DontRaise As Boolean)
+    If ErrNum < 0 Then
+        m_eLastErrNumber = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
+    Else
+        m_eLastErrNumber = ErrNum
+    End If
     m_sLastError = sError
-    If Exceptions Then
+    If Exceptions And LenB(sError) <> 0 And Not DontRaise Then
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Sub
@@ -2774,7 +2790,7 @@ End Sub
 ' IDeviceProtocol interface
 '=========================================================================
 
-Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, Value As Double) As Boolean
+Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, ByVal Value As Double) As Boolean
     IDeviceProtocol_AddDiscount = AddDiscount(DiscType, Value)
 End Function
 
@@ -2782,11 +2798,11 @@ Private Function IDeviceProtocol_AddLine(Line As String, Optional Command As Str
     IDeviceProtocol_AddLine = AddLine(Line, WordWrap)
 End Function
 
-Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentTypeEnum, Name As String, Amount As Double, Optional Rate As Double) As Boolean
+Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentTypeEnum, Name As String, ByVal Amount As Double, Optional ByVal Rate As Double) As Boolean
     IDeviceProtocol_AddPayment = AddPayment(Number, Name, Amount)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, Price As Double, Quantity As Double, VatGroup As Long) As Boolean
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal VatGroup As Long) As Boolean
     IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
 End Function
 
@@ -2866,7 +2882,8 @@ Private Function IDeviceProtocol_GetLastReceiptNumber() As String
     IDeviceProtocol_GetLastReceiptNumber = GetLastReceiptNumber()
 End Function
 
-Private Function IDeviceProtocol_GetLastError() As String
+Private Function IDeviceProtocol_GetLastError(Optional ErrNumber As UcsFiscalErrorsEnum) As String
+    ErrNumber = LastErrNumber
     IDeviceProtocol_GetLastError = LastError
 End Function
 
