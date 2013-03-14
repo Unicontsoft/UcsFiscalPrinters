@@ -12,15 +12,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 13    4.01.13 12:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 14    14.03.13 16:26 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Protocol za uprawlenie na fiscalno ustrojstwo
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 14    14.03.13 16:26 Wqw
+' ADD: UcsFiscalErrorsEnum for GetLastError. REF: ByVal numeric params
+'
 ' 13    4.01.13 12:21 Wqw
 ' REF: set clock returns bool, get last receipt number returns string
 '
@@ -104,6 +107,13 @@ Public Enum UcsFiscalReportsTypeEnum
     ucsFscRstPeriodDetailed
 End Enum
 
+Public Enum UcsFiscalErrorsEnum
+    ucsFerNone
+    ucsFerGeneralError
+    ucsFerInvalidPassword
+    ucsFerPasswordNotSet
+End Enum
+
 Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
 
 End Function
@@ -120,7 +130,7 @@ Property Get IsConnected() As Boolean
 
 End Property
 
-Public Function GetLastError() As String
+Public Function GetLastError(Optional ErrNumber As UcsFiscalErrorsEnum) As String
 
 End Function
 
@@ -142,9 +152,9 @@ End Function
 
 Public Function AddPLU( _
             Name As String, _
-            Price As Double, _
-            Quantity As Double, _
-            VatGroup As Long) As Boolean
+            ByVal Price As Double, _
+            ByVal Quantity As Double, _
+            ByVal VatGroup As Long) As Boolean
             
 End Function
 
@@ -157,15 +167,15 @@ End Function
 
 Public Function AddDiscount( _
             ByVal DiscType As UcsFiscalDiscountTypeEnum, _
-            Value As Double) As Boolean
+            ByVal Value As Double) As Boolean
             
 End Function
 
 Public Function AddPayment( _
             ByVal Number As UcsFiscalPaymentTypeEnum, _
             Name As String, _
-            Amount As Double, _
-            Optional Rate As Double) As Boolean
+            ByVal Amount As Double, _
+            Optional ByVal Rate As Double) As Boolean
             
 End Function
 
