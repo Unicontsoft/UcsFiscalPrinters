@@ -1,0 +1,88 @@
+[
+  uuid(fa12cf21-3752-4b98-b2da-2fdfb3f86871),
+  version(1.0),
+  helpstring("Unicontsoft VB Callable Interfaces Type Library 1.0")
+]
+library UcsDsQuery10
+{
+	importlib("stdole2.tlb");
+
+    interface IVbCollection;
+    interface IVbDispatch;
+    
+    [
+      odl,
+      uuid(A4C46780-499F-101B-BB78-00AA00383CBB),
+    ]
+    interface IVbCollection  : IUnknown {
+        HRESULT GetTypeInfoCount(
+            [out, retval] int* pctinfo);
+
+        LONG GetTypeInfo(
+            [in] int itinfo,
+            [in] long lcid,
+            [out] void *pptinfo);
+
+        LONG GetIDsOfNames(
+            [in] void *riid,
+            [in] LPWSTR *rgszNames,
+            [in] int cNames,
+            [in] long lcid,
+            [out] long *rgdispid);
+
+        LONG Invoke(
+            [in] long dispidMember,
+            [in] void *riid,
+            [in] long lcid,
+            [in] short wFlags,
+            [in] void *pdispparams,
+            [out] VARIANT *pvarResult,
+            [out] void *pexcepinfo,
+            [out] int *puArgErr);
+			
+        long Item(
+            [in] VARIANT* Index, 
+            [out, optional] VARIANT* pvarRet);
+            
+        long Add(
+            [in] VARIANT* Item, 
+            [in, optional] VARIANT* Key, 
+            [in, optional] VARIANT* Before, 
+            [in, optional] VARIANT* After);
+            
+        long Count([out] long* pcRet);
+        long Remove([in] VARIANT* Index);
+        long NewEnum([out] IUnknown** ppunk);
+    };
+    
+    [
+      odl,
+      uuid(00020400-0000-0000-C000-000000000046),
+    ]
+    interface IVbDispatch : IUnknown {
+        HRESULT GetTypeInfoCount(
+            [out, retval] int* pctinfo);
+
+        long GetTypeInfo(
+            [in] int itinfo,
+            [in] long lcid,
+            [out] void *pptinfo);
+
+        long GetIDsOfNames(
+            [in] void *riid,
+            [in] LPWSTR *rgszNames,
+            [in] int cNames,
+            [in] long lcid,
+            [out] long *rgdispid);
+
+        long Invoke(
+            [in] long dispidMember,
+            [in] void *riid,
+            [in] long lcid,
+            [in] short wFlags,
+            [in] void *pdispparams,
+            [out] void *pvarResult,
+            [out] void *pexcepinfo,
+            [out] int *puArgErr);
+    };
+}
