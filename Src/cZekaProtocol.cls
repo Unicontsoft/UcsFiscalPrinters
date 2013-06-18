@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 21    14.03.13 16:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 22    18.06.13 17:18 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 22    18.06.13 17:18 Wqw
+' ADD: Function GetTotalsByPayments, GetTotalsStats
+'
 ' 21    14.03.13 16:28 Wqw
 ' REF: default operator passwords. reads single/multiple operators FP
 ' setting
@@ -159,6 +162,7 @@ Public Enum UcsZekaCommandsEnum
     ucsZekCmdInfoInvoiceNo = &H70
     ucsZekCmdInfoLastReceipt = &H71
     ucsZekCmdInfoTransaction = &H72
+    ucsZekCmdInfoReportLastDate = &H73
     '--- print
     ucsZekCmdPrintDiagnostics = &H22
     ucsZekCmdPrintReportDailyDepartments = &H76
@@ -1537,9 +1541,38 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function GetTotalsByPayments() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByPayments"
+    Dim eCmd            As UcsZekaCommandsEnum
+    Dim sParam          As String
+    Dim vPayments       As Variant
+    Dim vChanges        As Variant
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig FUNC_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "4"
+    vPayments = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    pvGetCommandConfig FUNC_NAME, "InfoRegisters6", eCmd, ucsZekCmdInfoRegisters, sParam, "6"
+    vChanges = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    If UBound(vPayments) > 0 Then
+        ReDim vRetVal(0 To 4) As Double
+        For lIdx = 0 To UBound(vRetVal)
+            vRetVal(lIdx) = ParseSum(At(vPayments, lIdx + 1)) - ParseSum(At(vChanges, lIdx + 1))
+        Next
+        GetTotalsByPayments = vRetVal
+    Else
+        GetTotalsByPayments = EmptyVariantArray
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 Public Function GetTotalsByVatGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByVatGroups"
-    Dim vSplit          As Variant
+    Dim vVatGroups      As Variant
+    Dim vTaxRates       As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsZekaCommandsEnum
@@ -1547,20 +1580,44 @@ Public Function GetTotalsByVatGroups() As Variant
     
     On Error GoTo EH
     pvGetCommandConfig FUNC_NAME, "InfoTotalsByVatGroups", eCmd, ucsZekCmdInfoTotalsByVatGroups, sParam, vbNullString
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 7) As Double
+    vVatGroups = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    pvGetCommandConfig FUNC_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
+    vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), ";")
+    If UBound(vVatGroups) > 0 Then
+        ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            If InStr(At(vSplit, lIdx), ".") > 0 Then
-                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx))
-            Else
-                vRetVal(lIdx) = C_Dbl(At(vSplit, lIdx)) / 100#
-            End If
+            vRetVal(lIdx) = Array(ParseSum(At(vVatGroups, lIdx)), C_Dbl(At(vTaxRates, lIdx)))
         Next
         GetTotalsByVatGroups = vRetVal
     Else
-        GetTotalsByVatGroups = EmptyDoubleArray
+        GetTotalsByVatGroups = EmptyVariantArray
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTotalsStats() As Variant
+    Const FUNC_NAME     As String = "GetTotalsStats"
+    Dim eCmd            As UcsZekaCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    Dim vSplit          As Variant
+    Dim lReceipts       As Long
+    Dim dLastDate       As Date
+    
+    On Error GoTo EH
+    pvGetCommandConfig FUNC_NAME, "InfoRegisters1", eCmd, ucsZekCmdInfoRegisters, sParam, "1", _
+        "Index", lIndex, 1
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    lReceipts = C_Lng(At(vSplit, lIndex))
+'    pvGetCommandConfig FUNC_NAME, "InfoReportLastDate", eCmd, ucsZekCmdInfoReportLastDate, sParam, vbNullString, _
+'        "Index", lIndex, 0
+    pvGetCommandConfig FUNC_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
+        "Index", lIndex, 4
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    dLastDate = C_Date(At(vSplit, lIndex))
+    GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0 Or dLastDate = #1/1/2008#, Empty, dLastDate))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2677,8 +2734,16 @@ Private Function IDeviceProtocol_GetTaxNumber() As String
     IDeviceProtocol_GetTaxNumber = GetTaxNumber()
 End Function
 
+Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
+    IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
+End Function
+
 Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
     IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
+End Function
+
+Private Function IDeviceProtocol_GetTotalsStats() As Variant
+    IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
