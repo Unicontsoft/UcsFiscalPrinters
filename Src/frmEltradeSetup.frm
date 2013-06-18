@@ -2282,15 +2282,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 9     5.10.12 14:15 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 10    18.06.13 17:18 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Nastrojka na ECR po Eltrade protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 10    18.06.13 17:18 Wqw
+' REF: uses global c_lng
+'
 ' 9     5.10.12 14:15 Wqw
 ' REF: cash debit/credit captions
 '
@@ -3056,12 +3059,6 @@ Private Function Printf(ByVal sText As String, ParamArray A() As Variant) As Str
         sText = Replace(sText, "%" & (lI - LBound(A) + 1), A(lI))
     Next
     Printf = sText
-End Function
-
-Private Function C_Lng(v As Variant) As Long
-    On Error Resume Next
-    C_Lng = CLng(v)
-    On Error GoTo 0
 End Function
 
 Private Function pvPeek(sText As String, ByVal lOffset As Long, Optional ByVal lSize As Long = 1) As Currency
