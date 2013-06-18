@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 14    14.03.13 16:26 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 15    18.06.13 17:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 15    18.06.13 17:16 Wqw
+' ADD: Function GetTotalsByPayments, GetTotalsStats
+'
 ' 14    14.03.13 16:26 Wqw
 ' ADD: UcsFiscalErrorsEnum for GetLastError. REF: ByVal numeric params
 '
@@ -272,6 +275,14 @@ Public Function GetDeviceModel() As String
 End Function
 
 Public Function GetTotalsByVatGroups() As Variant
+
+End Function
+
+Public Function GetTotalsByPayments() As Variant
+
+End Function
+
+Public Function GetTotalsStats() As Variant
 
 End Function
 

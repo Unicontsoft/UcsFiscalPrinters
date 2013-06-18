@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 26    14.03.13 16:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 27    18.06.13 17:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 27    18.06.13 17:17 Wqw
+' ADD: Function GetTotalsByPayments, GetTotalsStats
+'
 ' 26    14.03.13 16:28 Wqw
 ' REF: err handling on PrintReceipt
 '
@@ -140,7 +143,7 @@ Public Enum UcsFiscalParamIndexesEnum
     ucsFscPixCashDeskNo
     ucsFscPixLastReceipt
     ucsFscPixPrevReceipt
-    ucsFscPixPrevTurnover
+    ucsFscPixPrevCount
     ucsFscPixResumeTicket
 End Enum
 
@@ -151,16 +154,16 @@ End Enum
 '--- strings
 Private Const STR_ELTRADE_ECR_INTERNAL  As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Вече има отворена връзка|Няма отворена връзка|Невалидно заглавие на отговор от устройството|Грешка при WaitCommEvent: |Няма започната бележка|Липсва хартия|Невалиден параметър 'Command'|Непозволена команда за печат на повече от един дубликат|Грешка при печат|Фатална грешка на фискалното устройство|Невъзможно отказване на предишна транзакция|Грешка на ред %1: %2"
 Private Const STR_ELTRADE_ECR_TEXTS     As String = "СУМА|МЕЖДИННА СУМА|Продажби %1|ед. цена|количество|сума*%1|РЕСТО|всичко|ДДС*%1|нето ст-ст|Фактура #|Продавач:|   * * * * * * * *|Получател:|ИДЕНТ # |ЗДДС # |%1 артикули|МОЛ:|Получил:|НАДБАВКА|ОТСТЪПКА"
-Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за край на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
+Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Грешка при WaitCommEvent: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
 Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
 Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механицва на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на опертивна памет|3|Разрушено съдържание на опертивна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
 Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
-Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: "
+Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|С ДЕБИТНА КАРТА|С ЧЕК|С КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: "
 Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Грешка при отваряне: |Грешка при SetCommTimeouts: |Грешка при BuildCommDCB: |Грешка при SetCommState: |Грешка при WriteFile: |Време за достъп изтече в очакване на отговор|Грешка при ReadFile: |Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора|Липсва символ за начало на отговора|Грешка при WaitCommEvent: |Няма започната бележка|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Устройството е недостъпно|Устройството е заето| или невъзможно установяване парола на оператор| или невалидна парола на оператор"
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
-Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|Карта|Чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
+Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|С карта|С чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
 Private Const STR_DUPLICATE             As String = "ДУБЛИКАТ"
 Private Const STR_ORIGINAL              As String = "ОРИГИНАЛ"
 Private Const STR_HEAD_CREDIT_NOTE2     As String = "към ф-ра "
@@ -198,10 +201,10 @@ End Type
 ' Error handling
 '=========================================================================
 
-'Private Sub PrintError(sFunc As String)
-'    Debug.Print MODULE_NAME & "." & sFunc & ": " & Error
-'    DebugLog sFunc, "Run-time error: " & Error
-'End Sub
+Private Sub PrintError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+End Sub
 
 Private Sub DebugLog(sFunc As String, sText As String)
     OutputDebugLog MODULE_NAME, sFunc, sText
@@ -212,12 +215,13 @@ End Sub
 '=========================================================================
 
 Public Function EnumPorts() As Variant
+    Const FUNC_NAME     As String = "EnumPorts"
     Dim vPorts          As Variant
     Dim vElem           As Variant
     Dim oFP             As IDeviceProtocol
     Dim lIdx            As Long
     
-    On Error Resume Next
+    On Error GoTo EH
     vPorts = EnumSerialPorts
     For Each vElem In Array(New cZekaProtocol, New cICLProtocol, New cEltradeProtocol)
         Set oFP = vElem
@@ -229,6 +233,10 @@ Public Function EnumPorts() As Variant
         End If
     Next
     EnumPorts = vPorts
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Public Function GetHeaderFooter( _
@@ -333,7 +341,6 @@ Public Function PrintReceipt( _
     Dim vElem           As Variant
     Dim lIdx            As Long
     Dim sPrevReceipt    As String
-    Dim dblTurnover     As Double
     Dim sResumeTicket   As String
     Dim eLastNum        As UcsFiscalErrorsEnum
     Dim sLastErr        As String
@@ -352,14 +359,13 @@ Public Function PrintReceipt( _
     If LenB(sPrevReceipt) <> 0 Then
         ValueAt(OperatorData, ucsFscPixPrevReceipt) = oFP.GetLastReceiptNumber()
         '--- check if receipt already printed
-        If LenB(Trim$(sPrevReceipt)) <> 0 And sPrevReceipt <> At(OperatorData, ucsFscPixPrevReceipt) Then
-            For Each vElem In oFP.GetTotalsByVatGroups()
-                dblTurnover = dblTurnover + C_Dbl(vElem)
-            Next
-            If dblTurnover <> C_Dbl(At(OperatorData, ucsFscPixPrevTurnover)) Or dblTurnover = 0 Then
-                ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
-                ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
-                GoTo QH
+        If LenB(Trim$(sPrevReceipt)) <> 0 Then
+            If Pad(sPrevReceipt, -Len(At(OperatorData, ucsFscPixPrevReceipt))) <> At(OperatorData, ucsFscPixPrevReceipt) Then
+                If C_Str(At(OperatorData, ucsFscPixPrevCount)) <> At(oFP.GetTotalsStats(), 0) Then
+                    ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
+                    ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
+                    GoTo QH
+                End If
             End If
         End If
     End If
@@ -451,6 +457,7 @@ Public Function PrintReport( _
             DeviceString As String, _
             ByVal ReportType As UcsFiscalPrintReportTypeEnum, _
             Optional ReportData As Variant, _
+            Optional OperatorData As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
     Const FUNC_NAME     As String = "PrintReport"
@@ -497,12 +504,12 @@ Public Function PrintReport( _
         End If
     Case ucsFscRptOperator
         '-- ReportData = Empty
-        
     End Select
     If Not bResult Then
         LastError = oFP.GetLastError()
         GoTo QH
     End If
+    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
     '--- success
     PrintReport = True
 QH:
@@ -596,6 +603,50 @@ EH:
     End If
 End Function
 
+Public Function GetTotalsByPayments( _
+            DeviceString As String, _
+            vPayments As Variant, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "GetTotalsByPayments"
+    Dim oFP             As IDeviceProtocol
+    Dim lIdx            As Long
+    Dim vTotals         As Variant
+
+    On Error GoTo EH
+    LastError = vbNullString
+    Set oFP = pvInit(DeviceString)
+    vTotals = oFP.GetTotalsByPayments()
+    If Not IsArray(vTotals) Then
+        LastError = ERR_NOT_IMPLEMENTED
+        GoTo QH
+    ElseIf UBound(vTotals) < 0 Then
+        LastError = oFP.GetLastError()
+        GoTo QH
+    End If
+    ReDim vPayments(0 To UBound(vTotals)) As Variant
+    For lIdx = 0 To UBound(vTotals)
+        vPayments(lIdx) = Array(vTotals(lIdx), oFP.GetPaymentName(lIdx + 1))
+    Next
+    '--- success
+    GetTotalsByPayments = True
+QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
+    CommandLog = oFP.GetCommandLog()
+    Exit Function
+EH:
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
+        End If
+    End If
+End Function
+
 Public Function GetTotalsByVatGroups( _
             DeviceString As String, _
             vTotals As Variant, _
@@ -617,6 +668,44 @@ Public Function GetTotalsByVatGroups( _
     End If
     '--- success
     GetTotalsByVatGroups = True
+QH:
+    If oFP.IsConnected Then
+        oFP.Disconnect
+    End If
+    CommandLog = oFP.GetCommandLog()
+    Exit Function
+EH:
+    If LenB(LastError) = 0 Then
+        LastError = Err.Description
+        DebugLog FUNC_NAME, "LastError=" & LastError
+        If Not oFP Is Nothing Then
+            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            Resume QH
+        End If
+    End If
+End Function
+
+Public Function GetTotalsStats( _
+            DeviceString As String, _
+            vStats As Variant, _
+            Optional LastError As String, _
+            Optional CommandLog As String) As Boolean
+    Const FUNC_NAME     As String = "GetTotalsStats"
+    Dim oFP             As IDeviceProtocol
+
+    On Error GoTo EH
+    LastError = vbNullString
+    Set oFP = pvInit(DeviceString)
+    vStats = oFP.GetTotalsStats()
+    If Not IsArray(vStats) Then
+        LastError = ERR_NOT_IMPLEMENTED
+        GoTo QH
+    ElseIf UBound(vStats) < 0 Then
+        LastError = oFP.GetLastError()
+        GoTo QH
+    End If
+    '--- success
+    GetTotalsStats = True
 QH:
     If oFP.IsConnected Then
         oFP.Disconnect
@@ -745,7 +834,9 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
 End Function
 
 Private Function pvGetRowData(vRow As Variant) As UcsRow
-    On Error Resume Next
+    Const FUNC_NAME     As String = "pvGetRowData"
+    
+    On Error GoTo EH
     If UBound(vRow) = ucsFscPixItem Then
         pvGetRowData.Type = ucsRwtText
         pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
@@ -762,7 +853,10 @@ Private Function pvGetRowData(vRow As Variant) As UcsRow
         pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
         pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
     End If
-    On Error GoTo 0
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvGetVatGroup(sVatGroup As String) As Long

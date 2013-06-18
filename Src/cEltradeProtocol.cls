@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 28    14.03.13 16:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 29    18.06.13 17:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 29    18.06.13 17:17 Wqw
+' ADD: Function GetTotalsByPayments, GetTotalsStats
+'
 ' 28    14.03.13 16:28 Wqw
 ' REF: FP err handling uses pvSetLastError
 '
@@ -1308,23 +1311,64 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function GetTotalsByVatGroups() As Variant
+Public Function GetTotalsByPayments() As Variant
     Const FUNC_NAME     As String = "GetTotalsByVatGroups"
     Dim sResult         As String
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     
     On Error GoTo EH
-    sResult = SendCommand(ucsEltCmdInfoTurnoverVatGroups)
-    If Len(sResult) \ 4 > 0 Then
-        ReDim vRetVal(0 To Len(sResult) \ 4 - 1) As Double
+    ReDim vRetVal(0 To 3) As Double
+    '--- operator 10 -> ECR turnover
+    sResult = SendCommand(ucsEltCmdInfoTurnoverOperator, pvPoke(10, 2))
+    '--- offset 18, len 2 -> status: 0 - nothing since Z-report; 1 - overflow; 2 - has sums
+    If pvPeek(sResult, 18, 2) <> 0 Then
         For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = C_Dbl(pvPeek(sResult, lIdx * 4, 4)) / 100
+            '--- offset 28, len 4 -> amount for payment 1, etc.
+            vRetVal(lIdx) = C_Dbl(pvPeek(sResult, 28 + lIdx * 4, 4)) / 100
+        Next
+    End If
+    GetTotalsByVatGroups = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTotalsByVatGroups() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+    Dim sTotals         As String
+    Dim sTaxRates       As String
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    sTotals = SendCommand(ucsEltCmdInfoTurnoverVatGroups)
+    sTaxRates = SendCommand(ucsEltCmdInfoVatGroups)
+    If Len(sTotals) \ 4 > 0 Then
+        ReDim vRetVal(0 To Len(sTotals) \ 4 - 1) As Variant
+        For lIdx = 0 To UBound(vRetVal)
+            vRetVal(lIdx) = Array(C_Dbl(pvPeek(sTotals, lIdx * 4, 4)) / 100, pvPeek(sTaxRates, 0 + 2 * lIdx, 2) / 100#)
         Next
         GetTotalsByVatGroups = vRetVal
     Else
-        GetTotalsByVatGroups = EmptyDoubleArray
+        GetTotalsByVatGroups = EmptyVariantArray
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTotalsStats() As Variant
+    Const FUNC_NAME     As String = "GetTotalsStats"
+    Dim sResult         As String
+    Dim lReceipts       As Long
+    
+    On Error GoTo EH
+    '--- operator 10 -> ECR turnover
+    sResult = SendCommand(ucsEltCmdInfoTurnoverOperator, pvPoke(10, 2))
+    '--- offset 2, len 2 -> number of clients
+    lReceipts = pvPeek(sResult, 2, 2)
+    GetTotalsStats = Array(lReceipts, Empty)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1504,7 +1548,7 @@ Private Function pvWaitStatus( _
     
     On Error GoTo EH
     For lIdx = 1 To LimitLong(m_lTimeout \ LNG_DELAY, 1)
-        On Error Resume Next
+        On Error Resume Next '--- checked
         For lRetry = 1 To LimitLong(m_lTimeout \ 1000, 2)
             pvWaitStatus = SendCommand(ucsEltCmdInfoStatus, lTimeout:=1000)
             If Err.Number = 0 Then
@@ -2511,8 +2555,16 @@ Private Function IDeviceProtocol_GetTaxNumber() As String
     IDeviceProtocol_GetTaxNumber = GetTaxNumber()
 End Function
 
+Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
+    IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
+End Function
+
 Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
     IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
+End Function
+
+Private Function IDeviceProtocol_GetTotalsStats() As Variant
+    IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
 Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
