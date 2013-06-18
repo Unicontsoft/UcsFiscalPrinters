@@ -1,14 +1,18 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 21    26.02.13 19:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 22    18.06.13 17:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Globalni funktsii, constanti i promenliwi
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 22    18.06.13 17:20 Wqw
+' REF: break on all errors. ADD: Function ToHexDump, SearchCollection,
+' DispInvoke, DispPropertyGet, ParseSum, Property LockControl
+'
 ' 21    26.02.13 19:38 Wqw
 ' REF: debug print error on loading config
 '
@@ -80,9 +84,20 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "mdGlobals"
 
+'=========================================================================
+' Public Enums
+'=========================================================================
+
 Public Enum UcsRegistryRootsEnum
     HKEY_CLASSES_ROOT = &H80000000
     HKEY_LOCAL_MACHINE = &H80000002
+End Enum
+
+Public Enum UcsInvokeCallEnum
+    UcsIclMethod = 1
+    UcsIclPropGet = 2
+    UcsIclPropLet = 4
+    UcsIclPropSet = 8
 End Enum
 
 '=========================================================================
@@ -122,6 +137,19 @@ Private Const OFN_LONGNAMES                 As Long = &H200000
 Private Const OFN_ENABLESIZING              As Long = &H800000
 '--- for CreateDIBSection
 Private Const DIB_RGB_COLORS                As Long = 0
+'--- for VariantChangeType
+Private Const VT_I4                         As Long = 3
+Private Const VT_R8                         As Long = 5
+'Private Const VT_CY                         As Long = 6
+Private Const VT_DATE                       As Long = 7
+Private Const VT_BSTR                       As Long = 8
+Private Const VT_BOOL                       As Long = 11
+'Private Const VT_UI1                        As Long = 17
+Private Const VARIANT_ALPHABOOL             As Long = 2
+'--- for invoke
+Private Const LOCALE_SYSTEM_DEFAULT         As Long = &H800
+'--- hresults
+Private Const S_OK                          As Long = 0
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
@@ -160,6 +188,9 @@ Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal Brush As Long) As 
 Private Declare Function ApiEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
 Private Declare Function ApiEmptyVariantArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbVariant, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Variant()
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
+Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
+Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
+Private Declare Function VariantCopy Lib "oleaut32" (dest As Variant, src As Variant) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -253,6 +284,32 @@ Private Type BMPFILE_HEADER
     bmp_offset          As Long
 End Type
 
+Private Type GUID
+    Data1               As Long
+    Data2               As Integer
+    Data3               As Integer
+    Data4(7)            As Byte
+End Type
+
+Private Type DISPPARAMS
+    rgPointerToVariantArray As Long
+    rgPointerToLongNamedArgs As Long
+    cArgs               As Long
+    cNamedArgs          As Long
+End Type
+
+Private Type EXCEPINFO
+    wCode               As Integer
+    wReserved           As Integer
+    Source              As Long
+    Description         As Long
+    HelpFile            As Long
+    dwHelpContext       As Long
+    pvReserved          As Long
+    pfnDeferredFillIn   As Long
+    sCode               As Long
+End Type
+
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -319,52 +376,74 @@ EH:
 End Sub
 
 Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
-    On Error Resume Next
+    On Error GoTo QH
     At = sDefault
-    At = C_Str(vData(lIdx))
-    On Error GoTo 0
+    If IsArray(vData) Then
+        If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
+            At = C_Str(vData(lIdx))
+        End If
+    End If
+QH:
 End Function
 
 Public Property Let ValueAt(vData As Variant, ByVal lIdx As Long, vValue As Variant)
-    On Error Resume Next
-    vData(lIdx) = vValue
-    On Error GoTo 0
+    On Error GoTo QH
+    If IsArray(vData) Then
+        If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
+            vData(lIdx) = vValue
+        End If
+    End If
+QH:
 End Property
 
-Public Function C_Lng(v As Variant) As Long
-    On Error Resume Next
-    C_Lng = CLng(v)
-    On Error GoTo 0
+Public Function C_Lng(Value As Variant) As Long
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbLong Then
+        C_Lng = Value
+    ElseIf VariantChangeType(vDest, Value, 0, VT_I4) = 0 Then
+        C_Lng = vDest
+    End If
 End Function
 
-Public Function C_Str(v As Variant) As String
-    On Error Resume Next
-    C_Str = CStr(v)
-    On Error GoTo 0
+Public Function C_Str(Value As Variant) As String
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbString Then
+        C_Str = Value
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, VT_BSTR) = 0 Then
+        C_Str = vDest
+    End If
 End Function
 
-Public Function C_Bool(v As Variant) As Boolean
-    On Error Resume Next
-    C_Bool = CBool(v)
-    On Error GoTo 0
+Public Function C_Bool(Value As Variant) As Boolean
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbBoolean Then
+        C_Bool = Value
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, VT_BOOL) = 0 Then
+        C_Bool = vDest
+    End If
 End Function
 
-'Public Function C_Dbl(v As Variant) As Double
-'    On Error Resume Next
-'    C_Dbl = CDbl(v)
-'    On Error GoTo 0
-'End Function
-
-Public Function C_Dbl(v As Variant) As Double
-    On Error Resume Next
-    C_Dbl = CDbl(Replace(C_Str(v), ".", g_sDecimalSeparator))
-    On Error GoTo 0
+Public Function C_Dbl(Value As Variant) As Double
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbDouble Then
+        C_Dbl = Value
+    ElseIf VariantChangeType(vDest, Replace(C_Str(Value), ".", g_sDecimalSeparator), 0, VT_R8) = 0 Then
+        C_Dbl = vDest
+    End If
 End Function
 
-Public Function C_Date(v As Variant) As Date
-    On Error Resume Next
-    C_Date = CDate(v)
-    On Error GoTo 0
+Public Function C_Date(Value As Variant) As Date
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbDate Then
+        C_Date = Value
+    ElseIf VariantChangeType(vDest, Value, 0, VT_DATE) = 0 Then
+        C_Date = vDest
+    End If
 End Function
 
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
@@ -476,17 +555,17 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     lErrNum = Err.Number
     sErrSrc = Err.Source
     sErrDesc = Err.Description
-    On Error Resume Next
+    On Error Resume Next '--- checked
     sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
     If LenB(sFile) = 0 Then
         sFile = Environ$("TEMP") & "\UcsFP.log"
-        If GetAttr(sFile) = -1 Then
+        If Not FileExists(sFile) Then
             GoTo QH
         End If
     End If
     nFile = FreeFile
     Open sFile For Append Access Write As #nFile
-    Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right(Format(Timer, "#0.00"), 2) & "): " & sText
+    Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right$(Format$(Timer, "#0.00"), 2) & "): " & sText
     Close #nFile
 QH:
     On Error GoTo 0
@@ -496,9 +575,9 @@ QH:
 End Sub
 
 Public Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double
-    On Error Resume Next
+    On Error GoTo QH
     Round = VBA.Round(Value + IIf(Value > 0, 10 ^ -13, -10 ^ -13), NumDigits)
-    On Error GoTo 0
+QH:
 End Function
 
 Public Function Ceil(ByVal Value As Double) As Long
@@ -969,10 +1048,10 @@ Public Function EmptyVariantArray() As Variant()
 End Function
 
 Public Function FileExists(sFile As String) As Boolean
-    On Error Resume Next
-    GetAttr sFile
-    FileExists = (Err.Number = 0)
-    On Error GoTo 0
+    If GetFileAttributes(sFile) = -1 Then ' INVALID_FILE_ATTRIBUTES
+    Else
+        FileExists = True
+    End If
 End Function
 
 Public Function ReadTextFile(sFile As String) As String
@@ -995,9 +1074,8 @@ Public Function ReadTextFile(sFile As String) As String
             End If
         End If
         If Left$(sPrefix, Len(BOM_UTF)) <> BOM_UTF Then
-            On Error Resume Next
+            On Error GoTo QH
             ReadTextFile = .OpenTextFile(sFile, ForReading, False, Left$(sPrefix, Len(BOM_UNICODE)) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0).ReadAll()
-            On Error GoTo 0
         Else
             With CreateObject("ADODB.Stream")
                 .Open
@@ -1013,6 +1091,7 @@ Public Function ReadTextFile(sFile As String) As String
             End With
         End If
     End With
+QH:
 End Function
 
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
@@ -1092,13 +1171,13 @@ Public Function LocateFile(sFile As String) As String
     Dim lPos            As Long
     
     If InStrRev(sFile, "\") > 0 Then
-        sDir = Left(sFile, InStrRev(sFile, "\"))
-        sName = Mid(sFile, InStrRev(sFile, "\") + 1)
+        sDir = Left$(sFile, InStrRev(sFile, "\"))
+        sName = Mid$(sFile, InStrRev(sFile, "\") + 1)
         Do While Not FileExists(sDir & sName)
             If Len(sDir) > 1 Then
                 lPos = InStrRev(sDir, "\", Len(sDir) - 1)
                 If lPos > 0 Then
-                    sDir = Left(sDir, lPos)
+                    sDir = Left$(sDir, lPos)
                 Else
                     Exit Function
                 End If
@@ -1164,23 +1243,22 @@ Private Function pvInitRegExp(sPattern As String) As Object
 End Function
 
 Public Function GetConfigForCommand(oCommands As Collection, sFunc As String, sKey As String, Optional Default As Variant) As Variant
-    On Error Resume Next
-    GetConfigForCommand = oCommands("\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString))
-    On Error GoTo 0
-    If IsEmpty(GetConfigForCommand) Then
+    Dim vItem           As Variant
+    
+    If Not SearchCollection(oCommands, "\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString), vItem) Then
         If Not IsMissing(Default) Then
             GetConfigForCommand = Default
         End If
     Else
         Select Case VarType(Default)
         Case vbLong, vbInteger, vbByte
-            GetConfigForCommand = C_Lng(GetConfigForCommand)
+            GetConfigForCommand = C_Lng(vItem)
         Case vbDouble, vbSingle
-            GetConfigForCommand = C_Dbl(GetConfigForCommand)
+            GetConfigForCommand = C_Dbl(vItem)
         Case vbString
-            GetConfigForCommand = C_Str(GetConfigForCommand)
+            GetConfigForCommand = C_Str(vItem)
         Case vbBoolean
-            GetConfigForCommand = C_Bool(GetConfigForCommand)
+            GetConfigForCommand = C_Bool(vItem)
         End Select
     End If
 End Function
@@ -1188,3 +1266,122 @@ End Function
 Public Property Get DateTimer() As Double
     DateTimer = CLng(Date) * 86400# + Timer
 End Property
+
+Public Function ToHexDump(sText As String) As String
+    Dim lIdx            As Long
+    
+    For lIdx = 1 To Len(sText)
+        ToHexDump = ToHexDump & Right$("0" & Hex(Asc(Mid$(sText, lIdx, 1))), 2)
+    Next
+End Function
+
+Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
+    Const DISPID_VALUE  As Long = 0
+    Dim pVbCol          As IVbCollection
+    
+    If pCol Is Nothing Then
+        '--- do nothing
+    ElseIf TypeOf pCol Is IVbCollection Then
+        Set pVbCol = pCol
+        SearchCollection = pVbCol.Item(Index, RetVal) = 0
+    Else
+        SearchCollection = DispInvoke(pCol, DISPID_VALUE, UcsIclPropGet, Result:=RetVal, Args:=Index)
+        If Not SearchCollection Then
+            '--- some weird collections have default (Item) method
+            SearchCollection = DispInvoke(pCol, DISPID_VALUE, UcsIclMethod, Result:=RetVal, Args:=Index)
+        End If
+    End If
+End Function
+
+Public Function DispInvoke( _
+            ByVal pDisp As IVbDispatch, _
+            Name As Variant, _
+            Optional ByVal CallType As UcsInvokeCallEnum = UcsIclMethod, _
+            Optional Result As Variant, _
+            Optional Args As Variant) As Boolean
+    Const DISPID_PROPERTYPUT As Long = -3
+    Dim IID_NULL        As GUID
+    Dim lDispID         As Long
+    Dim uParams         As DISPPARAMS
+    Dim uInfo           As EXCEPINFO
+    Dim aParams()       As Variant
+    Dim lNamedParam     As Long
+    Dim lIdx            As Long
+    Dim lParamCount     As Long
+    Dim lArgErr         As Long
+    Dim lPtrResult      As Long
+
+    If pDisp Is Nothing Then
+        Exit Function
+    End If
+    '--- get disp id
+    If IsNumeric(Name) Then
+        lDispID = C_Lng(Name)
+    Else
+        If pDisp.GetIDsOfNames(IID_NULL, C_Str(Name), 1, LOCALE_SYSTEM_DEFAULT, lDispID) <> S_OK Then
+            Exit Function
+        End If
+    End If
+    '--- process params
+    If Not IsMissing(Args) Then
+        If IsArray(Args) Then
+            lParamCount = UBound(Args) - LBound(Args)
+            ReDim aParams(0 To lParamCount)
+            For lIdx = 0 To lParamCount
+                Call VariantCopy(aParams(lParamCount - lIdx), Args(lIdx))
+            Next
+        Else
+            ReDim aParams(0 To 0)
+            Call VariantCopy(aParams(0), Args)
+        End If
+        With uParams
+            .cArgs = lParamCount + 1
+            .rgPointerToVariantArray = VarPtr(aParams(0))
+        End With
+        If CallType = UcsIclPropLet Or CallType = UcsIclPropSet Then
+            lNamedParam = DISPID_PROPERTYPUT
+            With uParams
+                .cNamedArgs = 1
+                .rgPointerToLongNamedArgs = VarPtr(lNamedParam)
+            End With
+        End If
+    End If
+    If CallType = UcsIclPropGet Or CallType = UcsIclMethod And Not IsMissing(Result) Then
+        Result = Empty
+        lPtrResult = VarPtr(Result)
+    End If
+    DispInvoke = (pDisp.Invoke(lDispID, IID_NULL, LOCALE_SYSTEM_DEFAULT, CallType, uParams, ByVal lPtrResult, uInfo, lArgErr) = S_OK)
+End Function
+
+Public Function DispPropertyGet(pDisp As Object, PropName As String, Optional Result As Variant) As Variant
+    If DispInvoke(pDisp, PropName, UcsIclPropGet, Result) Then
+        AssignVariant DispPropertyGet, Result
+    End If
+End Function
+
+Public Property Get LockControl(oCtl As Object) As Boolean
+    Dim vResult         As Variant
+    
+    If DispInvoke(oCtl, "Locked", UcsIclPropGet, vResult) Then
+        LockControl = vResult
+    ElseIf DispInvoke(oCtl, "Enabled", UcsIclPropGet, vResult) Then
+        LockControl = Not vResult
+    End If
+End Property
+
+Public Property Let LockControl(oCtl As Object, ByVal bValue As Boolean)
+    If DispInvoke(oCtl, "Locked", UcsIclPropLet, Args:=bValue) Then
+        DispInvoke oCtl, "BackColor", UcsIclPropLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
+    Else
+        DispInvoke oCtl, "Enabled", UcsIclPropLet, Args:=Not bValue
+    End If
+End Property
+
+Public Function ParseSum(sValue As String) As Double
+    If InStr(sValue, ".") > 0 Then
+        ParseSum = C_Dbl(sValue)
+    Else
+        ParseSum = C_Dbl(sValue) / 100#
+    End If
+End Function
+
