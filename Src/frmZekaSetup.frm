@@ -2348,7 +2348,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 6     14.03.13 16:27 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 7     18.06.13 17:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -2357,6 +2357,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 7     18.06.13 17:19 Wqw
+' REF: break on all errors
+'
 ' 6     14.03.13 16:27 Wqw
 ' REF: fetch/save parameters
 '
@@ -2488,24 +2491,6 @@ Private Property Let pvStatus(sValue As String)
     Call UpdateWindow(Me.hWnd)
 End Property
 
-Private Property Get pvLock(oCtl As Object) As Boolean
-    On Error Resume Next
-    pvLock = oCtl.Locked
-    If Err.Number Then
-        pvLock = Not oCtl.Enabled
-    End If
-End Property
-
-Private Property Let pvLock(oCtl As Object, ByVal bValue As Boolean)
-    On Error Resume Next
-    oCtl.Locked = bValue
-    If Err.Number Then
-        oCtl.Enabled = Not bValue
-    Else
-        oCtl.BackColor = IIf(bValue, vbButtonFace, vbWindowBackground)
-    End If
-End Property
-
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -2529,7 +2514,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         End If
         GoTo QH
     End If
-    On Error Resume Next
+    On Error Resume Next '--- checked
     Set m_oFPSink = m_oFP
     On Error GoTo EH
     '--- init UI
@@ -2544,11 +2529,11 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In Split(STR_BULSTAT_NAME, "|")
         cobHeadBulstatName.AddItem vElem
     Next
-    On Error Resume Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        fraCommands(lIdx).Visible = False
+        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+            fraCommands(lIdx).Visible = False
+        End If
     Next
-    On Error GoTo EH
     cmdExit.Left = -cmdExit.Width
     '--- login
     pvStatus = STR_STATUS_ENUM_PORTS
@@ -2556,7 +2541,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In EnumSerialPorts
         cobConnectPort.AddItem vElem
     Next
-    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
+    cobConnectPort.Text = At(vSplit, 0)
     chkConnectRemember.Value = -(LenB(cobConnectPort.Text) <> 0)
     If cobConnectPort.ListCount > 0 And Len(cobConnectPort.Text) = 0 Then
         cobConnectPort.ListIndex = 0
@@ -2565,7 +2550,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In Split(STR_SPEEDS, "|")
         cobConnectSpeed.AddItem vElem
     Next
-    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(CAP_MSG, "Connect", "Speed", vbNullString)
+    cobConnectSpeed.Text = At(vSplit, 1)
     If cobConnectSpeed.ListCount > 0 And Len(cobConnectSpeed.Text) = 0 Then
         cobConnectSpeed.ListIndex = 0
     End If
@@ -2577,7 +2562,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     If OwnerForm Is Nothing Then
         Show vbModal
     Else
-        On Error Resume Next
+        On Error Resume Next '--- checked
         Show vbModal, OwnerForm
         If Err.Number <> 0 Then
             Show vbModal
@@ -2595,7 +2580,7 @@ EH:
 End Function
 
 Private Function pvGetPrinter(sServer As String, sError As String) As cZekaProtocol
-    On Error Resume Next
+    On Error Resume Next '--- checked
     If LenB(sServer) = 0 Then
         With New cFiscalAdmin
             Set pvGetPrinter = .CreateObject(PROGID_PROTOCOL)
@@ -2749,9 +2734,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         For lIdx = 1 To Len(At(vResult, 1))
             cobLogoActive.AddItem (lIdx - 1) & IIf(Mid$(At(vResult, 1), lIdx, 1) = "1", STR_LOGO_ASSIGNED, vbNullString)
         Next
-        On Error Resume Next
+        On Error Resume Next '--- checked
         cobLogoActive.ListIndex = C_Lng(At(vResult, 0))
-        On Error Resume Next
+        On Error GoTo EH
         pvApplyLogo
     Case ucsCmdParameters
         vResult = Split(m_oFP.SendCommand(ucsZekCmdInfoParameters), ";")
@@ -2841,13 +2826,9 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     End If
     Select Case eCommand
     Case ucsCmdConnect
-        '--- value might be not be found
-        On Error Resume Next
-        DeleteSetting CAP_MSG, "Connect", "Port"
-        On Error GoTo EH
         pvStatus = STR_STATUS_CONNECTING
         If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout, m_lCashDeskNo) Then
-            On Error Resume Next
+            On Error Resume Next '--- checked
             m_oFP.SendCommand ucsZekCmdInfoTransaction
             If pvShowError() Then
                 On Error GoTo EH
@@ -2857,11 +2838,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 On Error GoTo EH
                 labConnectCurrent.Caption = Printf(STR_STATUS_SUCCESS_CONNECT, m_oFP.Device)
                 Caption = m_oFP.Device & " - " & CAP_MSG
-                '--- save conn info
-'                If chkConnectRemember.Value Then
-'                    SaveSetting CAP_MSG, "Connect", "Port", cobConnectPort.Text
-'                    SaveSetting CAP_MSG, "Connect", "Speed", cobConnectSpeed.Text
-'                End If
                 '--- flush cache
                 m_vDeps = Empty
                 m_vOpers = Empty
@@ -2917,7 +2893,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         If LenB(m_oFP.LastError) <> 0 Then
             GoTo QH
         End If
-        m_oFP.SendCommand ucsZekCmdInitPaymentType, "4;" & Pad(txtPmtType(4).Text, 10) & ";" & Format(C_Dbl(txtPmtType(5).Text), "0000.00000") & ";9"
+        m_oFP.SendCommand ucsZekCmdInitPaymentType, "4;" & Pad(txtPmtType(4).Text, 10) & ";" & Format$(C_Dbl(txtPmtType(5).Text), "0000.00000") & ";9"
         If LenB(m_oFP.LastError) <> 0 Then
             GoTo QH
         End If
@@ -3125,7 +3101,7 @@ Private Sub cmdStatusReset_Click()
     Screen.MousePointer = vbHourglass
     If Not m_oFP.IsConnected Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3176,7 +3152,7 @@ Private Sub lstCmds_Click()
     End If
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3197,20 +3173,18 @@ Private Sub lstCmds_Click()
         End If
     End If
 QH:
-    '--- might have missing entries in control array
-    On Error Resume Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
+        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+            fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
+        End If
     Next
-    On Error GoTo EH
     tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
     Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
-    '--- might have missing entries in control array
-    On Error Resume Next
     For lIdx = cmdSave.LBound To cmdSave.UBound
-        If Not cmdSave(lIdx).Visible Then
-        Else
-            cmdSave(lIdx).Default = True
+        If DispInvoke(cmdSave(lIdx), "Index", UcsIclPropGet) Then
+            If cmdSave(lIdx).Visible Then
+                cmdSave(lIdx).Default = True
+            End If
         End If
     Next
     On Error GoTo EH
@@ -3233,7 +3207,7 @@ Private Sub cmdSave_Click(Index As Integer)
     dblTimer = Timer
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3310,7 +3284,7 @@ Private Sub cmdItemLoad_Click()
     Screen.MousePointer = vbHourglass
     If Not m_oFP.IsConnected Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3430,7 +3404,7 @@ Private Function pvLoadBmp(baData() As Byte) As StdPicture
     Dim sFile           As String
     
     sFile = Environ$("TEMP") & "\~tmp" & Timer * 100 & ".bmp"
-    On Error Resume Next
+    On Error Resume Next '--- checked
     SetAttr sFile, vbArchive
     Kill sFile
     On Error GoTo 0
@@ -3439,7 +3413,7 @@ Private Function pvLoadBmp(baData() As Byte) As StdPicture
     Put nFile, , baData
     Close nFile
     Set pvLoadBmp = LoadPicture(sFile)
-    On Error Resume Next
+    On Error Resume Next '--- checked
     SetAttr sFile, vbArchive
     Kill sFile
     On Error GoTo 0

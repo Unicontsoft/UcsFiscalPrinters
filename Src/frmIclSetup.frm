@@ -2238,15 +2238,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 11    3.01.13 16:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 12    18.06.13 17:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   Nastrojki na FP po ICL protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 12    18.06.13 17:19 Wqw
+' REF: break on all errors
+'
 ' 11    3.01.13 16:39 Wqw
 ' REF: impl statuses with listbox
 '
@@ -2342,11 +2345,11 @@ Private Const STR_OPER_PASS_PROMPT  As String = "Парола на Оператор %1"
 Private Const STR_OPER_PASS_CAPTION As String = "Парола за достъп"
 Private Const STR_LOGO_DIMENSIONS   As String = "Размер на графика: %1x%2"
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
-Private Const STR_PAYMENT_TYPES     As String = "В БРОЙ|ДЕБИТНА КАРТА|С ЧЕК|КРЕДИТНА КАРТА"
+Private Const STR_PAYMENT_TYPES     As String = "В БРОЙ|С ДЕБИТНА КАРТА|С ЧЕК|С КРЕДИТНА КАРТА"
 Private Const STR_TAXCOUNTRY        As String = "Държава:|Sw1..Sw8:"
 Private Const STR_FP_STATUSES       As String = "0.7 Резервиран|0.6 Отворен е капакът на принтера|0.5 Обща грешка (OR на всички грешки, маркирани с #)|0.4 # Механизмът на печатащото устройство има неизправност|0.3 Не е свързан клиентски дисплей|0.2 Часовникът не е установен|0.1 # Кодът на получената команда е невалиден|0.0 # Получените данни имат синктактична грешка|1.7 Резервиран|1.6 Вграденият данъчен терминал не отговаря|1.5 Отворен е служебен бон за печат на завъртян на 90 градуса текст|1.4 # Установено е разрушаване на съдържанието на оперативната памет (RAM) след включване|1.3 # Слаба батерия (Часовникът за реално време е в състояние RESET)|1.2 # Извършено е зануляване на оперативната памет|1.1 # Изпълнението на командата не е позволено в текущия фискален режим|1.0 При изпълнение на командата се е полуило препълване на някои полета от сумите" & _
                                                 "|2.7 Резервиран|2.6 Не се използува|2.5 Отворен е служебен бон|2.4 Близък край на КЛЕН (по-малко от 10 MB от КЛЕН свободни)|2.3 Отворен е фискален бон|2.2 Край на КЛЕН (по-малко от 1 MB от КЛЕН свободни)|2.1 Останала е малко хартия|2.0 # Свършила е хартията|3.7 Резервиран|3.6 Състояние на Sw7|3.5 Състояние на Sw6|3.4 Състояние на Sw5|3.3 Състояние на Sw4|3.2 Състояние на Sw3|3.1 Състояние на Sw2|3.0 Състояние на Sw1" & _
-                                                "|4.7 Резервиран|4.6 Не се използува|4.5 OR на всички грешки, маркирани с * от байтове 4 и 5|4.4 * Фискалната памет е пълна|4.3 Има място за по-малко от 50 записа във ФП|4.2 Зададени са индивидуален номер на принтера и номер на фискалната памет|4.1 Зададен е ЕИК|5.7 Резервиран|5.6 Не се използува|5.5 Грешка при четене от фискалната памет|5.4 Зададени са поне веднъж данъчните ставки|5.3 Принтерът е във фискален режим|5.2 * Последният запис във фискалната памет не е успешен|5.1 Фискалната памет е форматирана|5.0 * Фискалната памет е установена в режим READONLY (заключена)"
+                                                "|4.7 Резервиран|4.6 Не се използува|4.5 OR на всички грешки, маркирани с * от байтове 4 и 5|4.4 * Фискалната памет е пълна|4.3 Има място за по-малко от 50 записа във ФП|4.2 Зададени са индивидуален номер на принтера и номер на фискалната памет|4.1 Зададен е ЕИК|4.0 * Има грешка при запис във фискалната памет|5.7 Резервиран|5.6 Не се използува|5.5 Грешка при четене от фискалната памет|5.4 Зададени са поне веднъж данъчните ставки|5.3 Принтерът е във фискален режим|5.2 * Последният запис във фискалната памет не е успешен|5.1 Фискалната памет е форматирана|5.0 * Фискалната памет е установена в режим READONLY (заключена)"
 '--- messages
 Private Const MSG_INVALID_PASSWORD  As String = "Некоректна парола" & vbCrLf & vbCrLf & "Паролите се състоят от 4 до 6 цифри"
 Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
@@ -2432,24 +2435,6 @@ Private Property Let pvLogoPixel(ByVal lX As Long, ByVal lY As Long, ByVal bValu
     Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right$("0" & Hex(lValue), 2)
 End Property
 
-Private Property Get pvLock(oCtl As Object) As Boolean
-    On Error Resume Next
-    pvLock = oCtl.Locked
-    If Err.Number Then
-        pvLock = Not oCtl.Enabled
-    End If
-End Property
-
-Private Property Let pvLock(oCtl As Object, ByVal bValue As Boolean)
-    On Error Resume Next
-    oCtl.Locked = bValue
-    If Err.Number Then
-        oCtl.Enabled = Not bValue
-    Else
-        oCtl.BackColor = IIf(bValue, vbButtonFace, vbWindowBackground)
-    End If
-End Property
-
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -2473,7 +2458,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         End If
         GoTo QH
     End If
-    On Error Resume Next
+    On Error Resume Next '--- checked
     Set m_oFPSink = m_oFP
     On Error GoTo EH
     '--- init UI
@@ -2485,11 +2470,11 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         cobDepGroup.AddItem vElem
         cobItemGroup.AddItem vElem
     Next
-    On Error Resume Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        fraCommands(lIdx).Visible = False
+        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+            fraCommands(lIdx).Visible = False
+        End If
     Next
-    On Error GoTo EH
     cmdExit.Left = -cmdExit.Width
     '--- login
     pvStatus = STR_STATUS_ENUM_PORTS
@@ -2497,7 +2482,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In EnumSerialPorts
         cobConnectPort.AddItem vElem
     Next
-    cobConnectPort.Text = At(vSplit, 0) ' GetSetting(CAP_MSG, "Connect", "Port", vbNullString)
+    cobConnectPort.Text = At(vSplit, 0)
     chkConnectRemember.Value = -(LenB(cobConnectPort.Text) <> 0)
     If cobConnectPort.ListCount > 0 And Len(cobConnectPort.Text) = 0 Then
         cobConnectPort.ListIndex = 0
@@ -2506,7 +2491,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     For Each vElem In Split(STR_SPEEDS, "|")
         cobConnectSpeed.AddItem vElem
     Next
-    cobConnectSpeed.Text = At(vSplit, 1) ' GetSetting(CAP_MSG, "Connect", "Speed", vbNullString)
+    cobConnectSpeed.Text = At(vSplit, 1)
     If cobConnectSpeed.ListCount > 0 And Len(cobConnectSpeed.Text) = 0 Then
         cobConnectSpeed.ListIndex = 0
     End If
@@ -2518,7 +2503,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     If OwnerForm Is Nothing Then
         Show vbModal
     Else
-        On Error Resume Next
+        On Error Resume Next '--- checked
         Show vbModal, OwnerForm
         If Err.Number <> 0 Then
             Show vbModal
@@ -2536,7 +2521,7 @@ EH:
 End Function
 
 Private Function pvGetPrinter(sServer As String, sError As String) As cICLProtocol
-    On Error Resume Next
+    On Error Resume Next '--- checked
     If LenB(sServer) = 0 Then
         With New cFiscalAdmin
             Set pvGetPrinter = .CreateObject(PROGID_PROTOCOL)
@@ -2575,7 +2560,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             txtTaxCountry.Text = At(vResult, 3)
             labTaxCountry.Caption = Split(STR_TAXCOUNTRY, "|")(1)
         End If
+        m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsFpcInitDecimals), ",")
+        m_oFP.Exceptions = True
         txtTaxDecimals.Text = C_Lng(At(vResult, 1))
         txtTaxCurrency.Text = Trim(At(vResult, 2))
         txtTaxRates.Text = C_Lng(At(vResult, 3))
@@ -2592,46 +2579,46 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Case ucsCmdHeaderFooter
         m_oFP.Exceptions = False
         txtHeadHeader1.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I0")
-        pvLock(txtHeadHeader1) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader1) = m_oFP.Status(ucsStbPrintingError)
         txtHeadHeader2.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I1")
-        pvLock(txtHeadHeader2) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader2) = m_oFP.Status(ucsStbPrintingError)
         vResult = Split(m_oFP.SendCommand(ucsFpcInfoBulstat), ",")
         txtHeadBulstatName.Text = At(vResult, 1)
         txtHeadBulstatText.Text = At(vResult, 0)
-        pvLock(txtHeadBulstatName) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(txtHeadBulstatText) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadBulstatName) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadBulstatText) = m_oFP.Status(ucsStbPrintingError)
         txtHeadHeader3.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I2")
-        pvLock(txtHeadHeader3) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader3) = m_oFP.Status(ucsStbPrintingError)
         txtHeadHeader4.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I3")
-        pvLock(txtHeadHeader4) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader4) = m_oFP.Status(ucsStbPrintingError)
         txtHeadHeader5.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I4")
-        pvLock(txtHeadHeader5) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader5) = m_oFP.Status(ucsStbPrintingError)
         txtHeadHeader6.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I5")
-        pvLock(txtHeadHeader6) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadHeader6) = m_oFP.Status(ucsStbPrintingError)
         txtHeadFooter1.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I6")
-        pvLock(txtHeadFooter1) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadFooter1) = m_oFP.Status(ucsStbPrintingError)
         txtHeadFooter2.Text = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "I7")
-        pvLock(txtHeadFooter2) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadFooter2) = m_oFP.Status(ucsStbPrintingError)
         chkHeadFormatInvoice.Value = -(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IA") = "1")
-        pvLock(chkHeadFormatInvoice) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadFormatInvoice) = m_oFP.Status(ucsStbPrintingError)
         vResult = Split(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IE"), ",")
         chkHeadSumEUR.Value = -(At(vResult, 0) = "1")
         chkHeadRateEUR.Value = chkHeadSumEUR.Value
         txtHeadRate.Text = Trim(At(vResult, 1))
-        pvLock(chkHeadSumEUR) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(chkHeadRateEUR) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(txtHeadRate) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadSumEUR) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadRateEUR) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtHeadRate) = m_oFP.Status(ucsStbPrintingError)
         chkHeadAdvanceHeader.Value = -(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IH") = "1")
-        pvLock(chkHeadAdvanceHeader) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadAdvanceHeader) = m_oFP.Status(ucsStbPrintingError)
         vResult = m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IP")
         chkHeadEmptyHeader.Value = -(Mid$(vResult, 1, 1) = "1")
         chkHeadEmptyFooter.Value = -(Mid$(vResult, 3, 1) = "1")
         chkHeadSumDivider.Value = -(Mid$(vResult, 4, 1) = "1")
-        pvLock(chkHeadEmptyHeader) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(chkHeadEmptyFooter) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(chkHeadSumDivider) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadEmptyHeader) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadEmptyFooter) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadSumDivider) = m_oFP.Status(ucsStbPrintingError)
         chkHeadVat.Value = -(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IT") = "1")
-        pvLock(chkHeadVat) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkHeadVat) = m_oFP.Status(ucsStbPrintingError)
         m_oFP.Exceptions = True
     Case ucsCmdInvoiceNo
         m_oFP.Exceptions = False
@@ -2639,9 +2626,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         txtInvStart.Text = C_Dbl(At(vResult, 0))
         txtInvEnd.Text = C_Dbl(At(vResult, 1))
         txtInvCurrent.Text = C_Dbl(At(vResult, 2))
-        pvLock(txtInvStart) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(txtInvEnd) = m_oFP.Status(ucsStbPrintingError)
-        pvLock(txtInvCurrent) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtInvStart) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtInvEnd) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtInvCurrent) = m_oFP.Status(ucsStbPrintingError)
         m_oFP.Exceptions = True
     Case ucsCmdPaymentTypes
         m_oFP.Exceptions = False
@@ -2654,7 +2641,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             If m_oFP.Status(ucsStbPrintingError) Then
                 txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R" & (57 + lIdx))
             End If
-            pvLock(txtPmtType(lIdx)) = m_oFP.Status(ucsStbPrintingError)
+            LockControl(txtPmtType(lIdx)) = m_oFP.Status(ucsStbPrintingError)
         Next
         m_oFP.Exceptions = True
     Case ucsCmdOperators
@@ -2743,7 +2730,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsFpcInitHeaderFooter, "IL"), ",")
         chkLogoPrint.Value = IIf(At(vResult, UBound(vResult)) = "1", vbChecked, vbUnchecked)
-        pvLock(chkLogoPrint) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(chkLogoPrint) = m_oFP.Status(ucsStbPrintingError)
         If Not IsArray(m_vLogo) Then
             ReDim m_vLogo(0 To 1000) As Variant
             For lRow = 0 To UBound(m_vLogo)
@@ -2793,7 +2780,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         txtCashTotal.Text = Format$(C_Dbl(At(vResult, 1)) / 100, FORMAT_CURRENCY)
         txtCashIn.Text = Format$(C_Dbl(At(vResult, 2)) / 100, FORMAT_CURRENCY)
         txtCashOut.Text = Format$(C_Dbl(At(vResult, 3)) / 100, FORMAT_CURRENCY)
-        pvLock(txtCashSum) = m_oFP.Status(ucsStbPrintingError)
+        LockControl(txtCashSum) = m_oFP.Status(ucsStbPrintingError)
         m_oFP.Exceptions = True
     Case ucsCmdReports
         '--- do nothing
@@ -2855,13 +2842,9 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     End If
     Select Case eCommand
     Case ucsCmdConnect
-        '--- value might be not be found
-        On Error Resume Next
-        DeleteSetting CAP_MSG, "Connect", "Port"
-        On Error GoTo EH
         pvStatus = STR_STATUS_CONNECTING
         If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout, m_lCashDeskNo) Then
-            On Error Resume Next
+            On Error Resume Next '--- checked
             m_oFP.SendCommand ucsFpcInfoTransaction
             If pvShowError() Then
                 On Error GoTo EH
@@ -2871,11 +2854,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 On Error GoTo EH
                 labConnectCurrent.Caption = Printf(STR_STATUS_SUCCESS_CONNECT, m_oFP.Device)
                 Caption = m_oFP.Device & " - " & CAP_MSG
-                '--- save conn info
-'                If chkConnectRemember.Value Then
-'                    SaveSetting CAP_MSG, "Connect", "Port", cobConnectPort.Text
-'                    SaveSetting CAP_MSG, "Connect", "Speed", cobConnectSpeed.Text
-'                End If
                 '--- flush cache
                 m_vDeps = Empty
                 m_vOpers = Empty
@@ -2901,46 +2879,46 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         m_oFP.SendCommand ucsFpcInitDateTime, txtDateDate.Text & " " & txtDateTime.Text
     Case ucsCmdHeaderFooter
         m_oFP.Exceptions = False
-        If Not pvLock(txtHeadHeader1) Then
+        If Not LockControl(txtHeadHeader1) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "0" & RTrim(txtHeadHeader1.Text)
         End If
-        If Not pvLock(txtHeadHeader2) Then
+        If Not LockControl(txtHeadHeader2) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "1" & RTrim(txtHeadHeader2.Text)
         End If
-        If Not pvLock(txtHeadBulstatText) Then
+        If Not LockControl(txtHeadBulstatText) Then
             m_oFP.SendCommand ucsFpcInitBulstat, RTrim(txtHeadBulstatText.Text) & "," & RTrim(txtHeadBulstatName.Text)
         End If
-        If Not pvLock(txtHeadHeader3) Then
+        If Not LockControl(txtHeadHeader3) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "2" & RTrim(txtHeadHeader3.Text)
         End If
-        If Not pvLock(txtHeadHeader4) Then
+        If Not LockControl(txtHeadHeader4) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "3" & RTrim(txtHeadHeader4.Text)
         End If
-        If Not pvLock(txtHeadHeader5) Then
+        If Not LockControl(txtHeadHeader5) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "4" & RTrim(txtHeadHeader5.Text)
         End If
-        If Not pvLock(txtHeadHeader6) Then
+        If Not LockControl(txtHeadHeader6) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "5" & RTrim(txtHeadHeader6.Text)
         End If
-        If Not pvLock(txtHeadFooter1) Then
+        If Not LockControl(txtHeadFooter1) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "6" & RTrim(txtHeadFooter1.Text)
         End If
-        If Not pvLock(txtHeadFooter2) Then
+        If Not LockControl(txtHeadFooter2) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "7" & RTrim(txtHeadFooter2.Text)
         End If
-        If Not pvLock(chkHeadFormatInvoice) Then
+        If Not LockControl(chkHeadFormatInvoice) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "A" & chkHeadFormatInvoice.Value
         End If
-        If Not pvLock(chkHeadSumEUR) Then
+        If Not LockControl(chkHeadSumEUR) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "E" & chkHeadSumEUR.Value & IIf(chkHeadRateEUR.Value, "," & txtHeadRate.Text, vbNullString)
         End If
-        If Not pvLock(chkHeadAdvanceHeader) Then
+        If Not LockControl(chkHeadAdvanceHeader) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "H" & chkHeadAdvanceHeader.Value
         End If
-        If Not pvLock(chkHeadEmptyHeader) Then
+        If Not LockControl(chkHeadEmptyHeader) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "P" & chkHeadEmptyHeader.Value & "0" & chkHeadEmptyFooter.Value & chkHeadSumDivider.Value
         End If
-        If Not pvLock(chkHeadVat) Then
+        If Not LockControl(chkHeadVat) Then
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "T" & chkHeadVat.Value
         End If
         m_oFP.Exceptions = True
@@ -2992,11 +2970,11 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         '--- force refetch of oper info
         m_vOpers(C_Lng(txtOperNo.Text)) = Empty
     Case ucsCmdInvoiceNo
-        If Not pvLock(txtInvStart) Then
+        If Not LockControl(txtInvStart) Then
             m_oFP.SendCommand ucsFpcInitInvoiceNo, txtInvStart.Text & "," & txtInvEnd.Text
         End If
     Case ucsCmdCashOper
-        If Not pvLock(txtCashSum) And C_Dbl(txtCashSum.Text) <> 0 Then
+        If Not LockControl(txtCashSum) And C_Dbl(txtCashSum.Text) <> 0 Then
             vResult = Split(m_oFP.SendCommand(ucsFpcAdminCashDebitCredit, IIf(optCashOut.Value, -1, 1) * Abs(C_Dbl(txtCashSum.Text))), ",")
             If At(vResult, 0) <> "P" Then
                 MsgBox MSG_REQUEST_CANCELLED, vbExclamation
@@ -3068,7 +3046,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Case ucsCmdPaymentTypes
         m_oFP.Exceptions = False
         For lIdx = 4 To 7
-            If Not pvLock(txtPmtType(lIdx)) Then
+            If Not LockControl(txtPmtType(lIdx)) Then
                 m_oFP.SendCommand ucsFpcInitPaymentType, Chr$(69 + lIdx) & "," & txtPmtType(lIdx).Text
                 If m_oFP.Status(ucsStbPrintingError) Then
                     m_oFP.SendCommand ucsFpcInitDaisyText, "P" & (57 + lIdx) & "," & txtPmtType(lIdx).Text
@@ -3106,7 +3084,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         End If
         m_vItems(lIdx) = txtItemPLU.Text
     Case ucsCmdGraphicalLogo
-        If Not pvLock(chkLogoPrint) Then
+        If Not LockControl(chkLogoPrint) Then
             m_oFP.Exceptions = False
             m_oFP.SendCommand ucsFpcInitHeaderFooter, "L" & chkLogoPrint.Value
             If m_oFP.Status(ucsStbPrintingError) Then
@@ -3231,7 +3209,7 @@ Private Sub lstCmds_Click()
     End If
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect And lstCmds.ListIndex <> ucsCmdStatus Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3252,23 +3230,20 @@ Private Sub lstCmds_Click()
         End If
     End If
 QH:
-    '--- might have missing entries in control array
-    On Error Resume Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
-    Next
-    On Error GoTo EH
-    tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
-    Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
-    '--- might have missing entries in control array
-    On Error Resume Next
-    For lIdx = cmdSave.LBound To cmdSave.UBound
-        If Not cmdSave(lIdx).Visible Then
-        Else
-            cmdSave(lIdx).Default = True
+        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+            fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
         End If
     Next
-    On Error GoTo EH
+    tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
+    Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
+    For lIdx = cmdSave.LBound To cmdSave.UBound
+        If DispInvoke(cmdSave(lIdx), "Index", UcsIclPropGet) Then
+            If cmdSave(lIdx).Visible Then
+                cmdSave(lIdx).Default = True
+            End If
+        End If
+    Next
     If m_oFP.IsConnected Then
         m_oFP.Disconnect
     End If
@@ -3288,7 +3263,7 @@ Private Sub cmdSave_Click(Index As Integer)
     dblTimer = Timer
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3532,7 +3507,7 @@ Private Sub cmdOperReset_Click()
     Screen.MousePointer = vbHourglass
     If Not m_oFP.IsConnected Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3574,7 +3549,7 @@ Private Sub cmdItemDelete_Click()
     Screen.MousePointer = vbHourglass
     If Not m_oFP.IsConnected Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
@@ -3608,7 +3583,7 @@ Private Sub cmdStatusReset_Click()
     Screen.MousePointer = vbHourglass
     If Not m_oFP.IsConnected Then
         pvStatus = STR_STATUS_CONNECTING
-        On Error Resume Next
+        On Error Resume Next '--- checked
         m_oFP.Connect
         On Error GoTo EH
         If pvShowError() Then
