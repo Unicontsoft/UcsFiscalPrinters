@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 15    18.06.13 17:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 16    20.06.13 12:48 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 16    20.06.13 12:48 Wqw
+' ADD: custom payment types
+'
 ' 15    18.06.13 17:16 Wqw
 ' ADD: Function GetTotalsByPayments, GetTotalsStats
 '
@@ -86,9 +89,11 @@ End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCash = 1
-    ucsFscPmtCard
-    ucsFscPmtCheque
-    ucsFscPmtCredit
+    ucsFscPmtCard = 2
+    ucsFscPmtCheque = 3
+    ucsFscPmtCustom1 = -1
+    ucsFscPmtCustom2 = -2
+    ucsFscPmtCustom3 = -3
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum
