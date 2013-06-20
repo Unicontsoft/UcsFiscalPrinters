@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 27    18.06.13 17:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 28    20.06.13 12:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 28    20.06.13 12:49 Wqw
+' REF: handle custom payment types
+'
 ' 27    18.06.13 17:17 Wqw
 ' ADD: Function GetTotalsByPayments, GetTotalsStats
 '
@@ -147,6 +150,30 @@ Public Enum UcsFiscalParamIndexesEnum
     ucsFscPixResumeTicket
 End Enum
 
+Public Enum UcsFiscalHeaderIndexesEnum
+    ucsFscHdrHeader1 = 0
+    ucsFscHdrHeader2
+    ucsFscHdrBulstat
+    ucsFscHdrHeader3
+    ucsFscHdrHeader4
+    ucsFscHdrHeader5
+    ucsFscHdrHeader6
+    ucsFscHdrFooter1
+    ucsFscHdrFooter2
+    ucsFscHdrOperatorInfo
+    ucsFscHdrDateTime
+    ucsFscHdrLastReceipt
+    ucsFscHdrWop1
+    ucsFscHdrWop2
+    ucsFscHdrWop3
+    ucsFscHdrWopCustom1
+    ucsFscHdrWopCustom2
+    ucsFscHdrWopCustom3
+    ucsFscHdrCharsPerLine
+    ucsFscHdrDefOperPassword
+    [_ucsFscHdrLast]
+End Enum
+
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -252,61 +279,67 @@ Public Function GetHeaderFooter( _
     On Error GoTo EH
     LastError = vbNullString
     vInput = RetVal
-    ReDim RetVal(0 To 18) As Variant
+    ReDim RetVal(0 To [_ucsFscHdrLast] - 1) As Variant
     Set oFP = pvInit(DeviceString)
-    If LenB(At(vInput, 0, "1")) <> 0 Then
-        RetVal(0) = Trim(oFP.GetHeaderText(1))
+    If LenB(At(vInput, ucsFscHdrHeader1, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader1) = Trim$(oFP.GetHeaderText(1))
     End If
-    If LenB(At(vInput, 1, "1")) <> 0 Then
-        RetVal(1) = Trim(oFP.GetHeaderText(2))
+    If LenB(At(vInput, ucsFscHdrHeader2, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader2) = Trim$(oFP.GetHeaderText(2))
     End If
-    If LenB(At(vInput, 2, "1")) <> 0 Then
-        RetVal(2) = oFP.GetTaxNumber() & "," & Replace(Trim(oFP.GetTaxCaption()), ":", vbNullString)
+    If LenB(At(vInput, ucsFscHdrBulstat, "1")) <> 0 Then
+        RetVal(ucsFscHdrBulstat) = oFP.GetTaxNumber() & "," & Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     End If
-    If LenB(At(vInput, 3, "1")) <> 0 Then
-        RetVal(3) = Trim(oFP.GetHeaderText(3))
+    If LenB(At(vInput, ucsFscHdrHeader3, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader3) = Trim$(oFP.GetHeaderText(3))
     End If
-    If LenB(At(vInput, 4, "1")) <> 0 Then
-        RetVal(4) = Trim(oFP.GetHeaderText(4))
+    If LenB(At(vInput, ucsFscHdrHeader4, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader4) = Trim$(oFP.GetHeaderText(4))
     End If
-    If LenB(At(vInput, 5, "1")) <> 0 Then
-        RetVal(5) = Trim(oFP.GetHeaderText(5))
+    If LenB(At(vInput, ucsFscHdrHeader5, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader5) = Trim$(oFP.GetHeaderText(5))
     End If
-    If LenB(At(vInput, 6, "1")) <> 0 Then
-        RetVal(6) = Trim(oFP.GetHeaderText(6))
+    If LenB(At(vInput, ucsFscHdrHeader6, "1")) <> 0 Then
+        RetVal(ucsFscHdrHeader6) = Trim$(oFP.GetHeaderText(6))
     End If
-    If LenB(At(vInput, 7, "1")) <> 0 Then
-        RetVal(7) = Trim(oFP.GetFooterText(1))
+    If LenB(At(vInput, ucsFscHdrFooter1, "1")) <> 0 Then
+        RetVal(ucsFscHdrFooter1) = Trim$(oFP.GetFooterText(1))
     End If
-    If LenB(At(vInput, 8, "1")) <> 0 Then
-        RetVal(8) = Trim(oFP.GetFooterText(2))
+    If LenB(At(vInput, ucsFscHdrFooter2, "1")) <> 0 Then
+        RetVal(ucsFscHdrFooter2) = Trim$(oFP.GetFooterText(2))
     End If
-    If LenB(At(vInput, 10, "1")) <> 0 Then
-        RetVal(10) = At(OperatorData, 0)
+    If LenB(At(vInput, ucsFscHdrOperatorInfo, "1")) <> 0 Then
+        RetVal(ucsFscHdrOperatorInfo) = At(OperatorData, 0)
     End If
-    If LenB(At(vInput, 11, "1")) <> 0 Then
-        RetVal(11) = oFP.GetClock()
+    If LenB(At(vInput, ucsFscHdrDateTime, "1")) <> 0 Then
+        RetVal(ucsFscHdrDateTime) = oFP.GetClock()
     End If
-    If LenB(At(vInput, 12, "1")) <> 0 Then
-        RetVal(12) = oFP.GetLastReceiptNumber()
+    If LenB(At(vInput, ucsFscHdrLastReceipt, "1")) <> 0 Then
+        RetVal(ucsFscHdrLastReceipt) = oFP.GetLastReceiptNumber()
     End If
-    If LenB(At(vInput, 13, "1")) <> 0 Then
-        RetVal(13) = oFP.GetPaymentName(1)
+    If LenB(At(vInput, ucsFscHdrWop1, "1")) <> 0 Then
+        RetVal(ucsFscHdrWop1) = oFP.GetPaymentName(1)
     End If
-    If LenB(At(vInput, 14, "1")) <> 0 Then
-        RetVal(14) = oFP.GetPaymentName(2)
+    If LenB(At(vInput, ucsFscHdrWop2, "1")) <> 0 Then
+        RetVal(ucsFscHdrWop2) = oFP.GetPaymentName(2)
     End If
-    If LenB(At(vInput, 15, "1")) <> 0 Then
-        RetVal(15) = oFP.GetPaymentName(3)
+    If LenB(At(vInput, ucsFscHdrWop3, "1")) <> 0 Then
+        RetVal(ucsFscHdrWop3) = oFP.GetPaymentName(3)
     End If
-    If LenB(At(vInput, 16, "1")) <> 0 Then
-        RetVal(16) = oFP.GetPaymentName(4)
+    If LenB(At(vInput, ucsFscHdrWopCustom1, "1")) <> 0 Then
+        RetVal(ucsFscHdrWopCustom1) = oFP.GetPaymentName(-1)
     End If
-    If LenB(At(vInput, 17, "1")) <> 0 Then
-        RetVal(17) = oFP.GetCharsPerLine()
+    If LenB(At(vInput, ucsFscHdrWopCustom2, "1")) <> 0 Then
+        RetVal(ucsFscHdrWopCustom2) = oFP.GetPaymentName(-2)
     End If
-    If LenB(At(vInput, 18, "1")) <> 0 Then
-        RetVal(18) = oFP.GetDefaultPassword(At(OperatorData, 0))
+    If LenB(At(vInput, ucsFscHdrWopCustom3, "1")) <> 0 Then
+        RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-3)
+    End If
+    If LenB(At(vInput, ucsFscHdrCharsPerLine, "1")) <> 0 Then
+        RetVal(ucsFscHdrCharsPerLine) = oFP.GetCharsPerLine()
+    End If
+    If LenB(At(vInput, ucsFscHdrDefOperPassword, "1")) <> 0 Then
+        RetVal(ucsFscHdrDefOperPassword) = oFP.GetDefaultPassword(At(OperatorData, 0))
     End If
     '--- success
     GetHeaderFooter = True
@@ -360,7 +393,7 @@ Public Function PrintReceipt( _
         ValueAt(OperatorData, ucsFscPixPrevReceipt) = oFP.GetLastReceiptNumber()
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceipt)) <> 0 Then
-            If Pad(sPrevReceipt, -Len(At(OperatorData, ucsFscPixPrevReceipt))) <> At(OperatorData, ucsFscPixPrevReceipt) Then
+            If Pad(sPrevReceipt, -Len(At(OperatorData, ucsFscPixPrevReceipt))) <> At(OperatorData, ucsFscPixPrevReceipt) And C_Lng(At(OperatorData, ucsFscPixPrevCount)) <> 0 Then
                 If C_Str(At(OperatorData, ucsFscPixPrevCount)) <> At(oFP.GetTotalsStats(), 0) Then
                     ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
                     ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
@@ -400,7 +433,12 @@ Public Function PrintReceipt( _
                 Case ucsRwtText
                     oFP.AddLine .Item
                 Case ucsRwtPayment
-                    lIdx = LimitLong(C_Lng(.WayOfPayment), 1, 8)
+                    lIdx = C_Lng(.WayOfPayment)
+                    If lIdx < 0 Then
+                        lIdx = LimitLong(lIdx, -3, -1)
+                    Else
+                        lIdx = LimitLong(lIdx, 1, 8)
+                    End If
                     oFP.AddPayment lIdx, Zn(.Item, oFP.GetPaymentName(lIdx)), C_Dbl(.Amount)
                 End Select
             End With
