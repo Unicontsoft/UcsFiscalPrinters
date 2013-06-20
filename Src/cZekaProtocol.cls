@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 22    18.06.13 17:18 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 23    20.06.13 12:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 23    20.06.13 12:49 Wqw
+' REF: handle custom payment types in AddPayment and GetPaymentName
+'
 ' 22    18.06.13 17:18 Wqw
 ' ADD: Function GetTotalsByPayments, GetTotalsStats
 '
@@ -1032,6 +1035,10 @@ Public Function AddPayment( _
         pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
+    If Number < 0 Then
+        '--- custom payment types: 4 & 5
+        Number = 3 - Number
+    End If
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
         .PmtType = LimitLong(Number, 1, 8)
@@ -1424,6 +1431,10 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Dim lIndex          As Long
     
     On Error GoTo EH
+    If Index < 0 Then
+        '--- custom payment types: 4 & 5
+        Index = 3 - Index
+    End If
     If Index >= 1 And Index <= 3 Then
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     ElseIf Index >= 4 And Index <= 5 Then

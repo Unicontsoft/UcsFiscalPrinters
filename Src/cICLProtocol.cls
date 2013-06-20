@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 54    18.06.13 17:18 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 55    20.06.13 12:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 55    20.06.13 12:49 Wqw
+' REF: handle custom payment types in AddPayment and GetPaymentName
+'
 ' 54    18.06.13 17:18 Wqw
 ' ADD: Function GetTotalsByPayments, GetTotalsStats, Property IsDaisy
 '
@@ -1173,6 +1176,10 @@ Public Function AddPayment( _
         pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
+    If Number < 0 Then
+        '--- custom payment types: 5, 6, 7 & 8
+        Number = 4 - Number
+    End If
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
         .PmtType = LimitLong(Number, 1, 8)
@@ -1596,6 +1603,10 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Dim sParam          As String
     
     On Error GoTo EH
+    If Index < 0 Then
+        '--- custom payment types: 5, 6, 7 & 8
+        Index = 4 - Index
+    End If
     If Index > 4 Then
         pvGetCommandConfig FUNC_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
         bPrevExceptions = pvSetExceptions(False)

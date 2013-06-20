@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 29    18.06.13 17:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 30    20.06.13 12:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 30    20.06.13 12:49 Wqw
+' REF: handle custom payment types in AddPayment and GetPaymentName
+'
 ' 29    18.06.13 17:17 Wqw
 ' ADD: Function GetTotalsByPayments, GetTotalsStats
 '
@@ -1215,6 +1218,10 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetPaymentName"
     
     On Error GoTo EH
+    If Index < 0 Then
+        '--- custom payment indexes: 4 only
+        Index = 3 - Index
+    End If
     If LenB(m_sPaymentTypes) = 0 Then
         m_sPaymentTypes = SendCommand(ucsEltCmdInfoPaymentTypes)
     End If
