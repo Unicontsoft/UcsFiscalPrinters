@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 23    20.06.13 12:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 24    25.06.13 12:12 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 24    25.06.13 12:12 Wqw
+' REF: impl noop command
+'
 ' 23    20.06.13 12:49 Wqw
 ' REF: handle custom payment types in AddPayment and GetPaymentName
 '
@@ -112,6 +115,8 @@ Event CommandComplete(ByVal lCmd As Long, sData As String, sResult As String)
 '=========================================================================
 
 Public Enum UcsZekaCommandsEnum
+    ucsZekCmdNoop = -1
+    '--- fast status
     ucsZekCmdFastIsOnline = &H4
     ucsZekCmdFastIsReady = &H5
     ucsZekCmdFastStatus = &H9
@@ -782,10 +787,13 @@ Public Function SendCommand(ByVal eCmd As UcsZekaCommandsEnum, Optional Data As 
     Const FUNC_NAME     As String = "SendCommand"
     
     On Error GoTo EH
+    pvSetLastError vbNullString
+    If eCmd = ucsZekCmdNoop Then
+        Exit Function
+    End If
     If Not WaitDevice() Then
         Exit Function
     End If
-    pvSetLastError vbNullString
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
     '--- raise event
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
