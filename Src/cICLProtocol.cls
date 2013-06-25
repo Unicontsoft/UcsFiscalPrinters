@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 56    25.06.13 12:12 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 57    25.06.13 17:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 57    25.06.13 17:37 Wqw
+' REF: trim bogus prefix in response from device
+'
 ' 56    25.06.13 12:12 Wqw
 ' REF: payment names & get totals stats work for ECRs
 '
@@ -1933,7 +1936,7 @@ Private Function pvSendCommand( _
     Dim lActual         As Long
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "eCmd=" & eCmd & ", Data=" & Data
+    DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
     sText = pvTranscode(Data, True)
@@ -2020,6 +2023,7 @@ InLoop:
             Call CancelIo(hComm)
             Exit Do
         End If
+RetryParse:
         '--- check if response complete (3 = Terminator)
         If Right$(sText, 1) = Chr$(3) Then
             If Left$(sText, 1) = Chr$(1) Then
@@ -2041,6 +2045,13 @@ InLoop:
                     Error = Printf(pvInternal(ucsErrResponseMissingPostamble), ToHexDump(sText))
                 End If
             Else
+                '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
+                lIdx = InStr(sText, Chr$(1))
+                If lIdx > 1 Then
+                    DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=" & ToHexDump(Left$(sText, lIdx - 1))
+                    sText = Mid$(sText, lIdx)
+                    GoTo RetryParse
+                End If
                 Error = Printf(pvInternal(ucsErrResponseMissingPreamble), ToHexDump(sText))
             End If
             pvSetStatus vbNullString '--- clear

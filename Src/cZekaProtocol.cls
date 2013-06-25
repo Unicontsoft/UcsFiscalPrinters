@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 24    25.06.13 12:12 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 25    25.06.13 17:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 25    25.06.13 17:37 Wqw
+' REF: trim bogus prefix in response from device
+'
 ' 24    25.06.13 12:12 Wqw
 ' REF: impl noop command
 '
@@ -1773,7 +1776,7 @@ Private Function pvSendCommand( _
     On Error GoTo EH
     bLogging = (eCmd > [_ucsZekCmdFastMax])
     If bLogging Then
-        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Data=" & Data
+        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     End If
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
@@ -1858,11 +1861,12 @@ InLoop:
             Call CancelIo(hComm)
             Exit Do
         End If
+RetryParse:
         If LenB(sText) <> 0 Then
-            Select Case Asc(sText)
-            Case ZFP_STX            ' &H2
-                '--- check if response complete
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+            '--- check if response complete
+            If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+                Select Case Asc(sText)
+                Case ZFP_STX            ' &H2
                     lSize = Asc(Mid$(sText, 2, 1)) - ZFP_BASEDATA - 3
                     '--- check message length
                     If Len(sText) - 7 = lSize Then
@@ -1874,9 +1878,7 @@ InLoop:
                         Error = pvInternal(ucsErrInvalidResponseLength)
                     End If
                     Exit Do
-                End If
-            Case ZFP_ACK            ' &H6
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+                Case ZFP_ACK            ' &H6
                     lSize = Len(sText) - 5
                     '--- parse respone
                     sText = Mid$(sText, 3, lSize)
@@ -1892,7 +1894,9 @@ InLoop:
                         Error = pvInternal(ucsErrInvalidResponseLength)
                     End If
                     Exit Do
-                End If
+                End Select
+            End If
+            Select Case Asc(sText)
             Case ZFP_RETRY          ' &HE
                 DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
                 Call CancelIo(hComm)
@@ -1903,6 +1907,14 @@ InLoop:
             Case Else
                 If eCmd <= [_ucsZekCmdFastMax] Then
                     pvSendCommand = Right$(sText, 1)
+                ElseIf Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+                    lIdx = Znl(InStr(sText, Chr$(ZFP_STX)), 2147483647)
+                    lIdx = LimitLong(InStr(sText, Chr$(ZFP_ACK)), , lIdx)
+                    If lIdx > 1 Then
+                        DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=" & ToHexDump(Left$(sText, lIdx - 1))
+                        sText = Mid$(sText, lIdx)
+                        GoTo RetryParse
+                    End If
                 Else
                     Error = pvInternal(ucsErrResponseMissingPreamble)
                 End If
@@ -2258,11 +2270,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvGetCommandConfig FUNC_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, (.PmtType - 1) & ";0;%1", _
                         "FormatAmount", sFormatAmount, "0.00"
                     sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
-                    SendCommand eCmd, sParam
                 ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
                     pvGetCommandConfig FUNC_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
-                    SendCommand eCmd, sParam
                 End If
+                SendCommand eCmd, sParam
                 If LenB(m_sLastError) <> 0 Then
                     GoTo QH
                 End If
