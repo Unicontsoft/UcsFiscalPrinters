@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 55    20.06.13 12:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 56    25.06.13 12:12 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 56    25.06.13 12:12 Wqw
+' REF: payment names & get totals stats work for ECRs
+'
 ' 55    20.06.13 12:49 Wqw
 ' REF: handle custom payment types in AddPayment and GetPaymentName
 '
@@ -1326,9 +1329,17 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Case ucsFscRstDailyByItems
         pvGetCommandConfig FUNC_NAME, "PrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "2"
     Case ucsFscRstDailyByDepartment
-        pvGetCommandConfig FUNC_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "2"
+        If Not IsDaisy Then
+            pvGetCommandConfig FUNC_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "2"
+        Else
+            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "9"
+        End If
     Case ucsFscRstDailyByItemsAndDepartment
-        pvGetCommandConfig FUNC_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "2"
+        If Not IsDaisy Then
+            pvGetCommandConfig FUNC_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "2"
+        Else
+            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "9"
+        End If
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
@@ -1336,19 +1347,6 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     bPrevExceptions = pvSetExceptions(False)
     SendCommand eCmd, sParam
     Exceptions = bPrevExceptions
-    If Status(ucsStbPrintingError) Then
-        '--- daisy: print by departaments
-        If ReportType = ucsFscRstDailyByDepartment Then
-            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "9"
-            SendCommand eCmd, sParam
-        ElseIf ReportType = ucsFscRstDailyByItemsAndDepartment Then
-            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "9"
-            SendCommand eCmd, sParam
-        Else
-            pvSetLastError m_sLastError
-            GoTo QH
-        End If
-    End If
     '--- success
     RunXReport = True
 QH:
@@ -1382,11 +1380,21 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         pvGetCommandConfig FUNC_NAME, "PrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "0", _
             "EcClear", bEcClear, False
     Case ucsFscRstDailyByDepartment
-        pvGetCommandConfig FUNC_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "0", _
-            "EcClear", bEcClear, False
+        If Not IsDaisy Then
+            pvGetCommandConfig FUNC_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "0", _
+                "EcClear", bEcClear, False
+        Else
+            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "8", _
+                "EcClear", bEcClear, False
+        End If
     Case ucsFscRstDailyByItemsAndDepartment
-        pvGetCommandConfig FUNC_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "0", _
-            "EcClear", bEcClear, False
+        If Not IsDaisy Then
+            pvGetCommandConfig FUNC_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "0", _
+                "EcClear", bEcClear, False
+        Else
+            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "8", _
+                "EcClear", bEcClear, False
+        End If
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
@@ -1411,19 +1419,6 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     End If
     SendCommand eCmd, sParam
     Exceptions = bPrevExceptions
-    If Status(ucsStbPrintingError) Then
-        '--- daisy: print by departments
-        If ReportType = ucsFscRstDailyByDepartment Then
-            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "8"
-            SendCommand eCmd, sParam
-        ElseIf ReportType = ucsFscRstDailyByItemsAndDepartment Then
-            pvGetCommandConfig FUNC_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "8"
-            SendCommand eCmd, sParam
-        Else
-            pvSetLastError m_sLastError
-            GoTo QH
-        End If
-    End If
     '--- success
     RunZReport = True
 QH:
@@ -1608,14 +1603,14 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         Index = 4 - Index
     End If
     If Index > 4 Then
-        pvGetCommandConfig FUNC_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
         bPrevExceptions = pvSetExceptions(False)
+        If Not IsDaisy Then
+            pvGetCommandConfig FUNC_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
+        Else
+            pvGetCommandConfig FUNC_NAME, "InitDaisyText" & Index, eCmd, ucsFpcInitDaisyText, sParam, "R" & (56 + Index)
+        End If
         GetPaymentName = pvStripBold(SendCommand(eCmd, sParam))
         Exceptions = bPrevExceptions
-        If Status(ucsStbPrintingError) Then
-            pvGetCommandConfig FUNC_NAME, "InitDaisyText" & Index, eCmd, ucsFpcInitDaisyText, sParam, "R" & (56 + Index)
-            GetPaymentName = pvStripBold(SendCommand(eCmd, sParam))
-        End If
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
@@ -1802,21 +1797,29 @@ Public Function GetTotalsStats() As Variant
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
-    Dim lReceipts       As KeyCodeConstants
+    Dim lReceipts       As Long
     Dim dLastDate       As Date
     Dim bPrevExceptions As Boolean
     Dim lIdx            As Long
     
     On Error GoTo EH
-    pvGetCommandConfig FUNC_NAME, "InfoDailyStats", eCmd, ucsFpcInfoDailyStats, sParam, vbNullString, _
-        "Index", lIndex, 3
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    If UBound(vSplit) > 0 Then
-        lReceipts = C_Lng(At(vSplit, lIndex))
-    Else
+    If Not IsEcr Then
+        pvGetCommandConfig FUNC_NAME, "InfoDailyStats", eCmd, ucsFpcInfoDailyStats, sParam, vbNullString, _
+            "Index", lIndex, 3
+        bPrevExceptions = pvSetExceptions(False)
+        vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+        Exceptions = bPrevExceptions
+        If UBound(vSplit) >= lIndex Then
+            lReceipts = C_Lng(At(vSplit, lIndex))
+        Else
+            vSplit = Empty
+        End If
+    End If
+    If Not IsArray(vSplit) Then
         pvGetCommandConfig FUNC_NAME, "InfoOperator", eCmd, ucsFpcInfoOperator, sParam, "%1", _
             "Index", lIndex, 0
         bPrevExceptions = pvSetExceptions(False)
+        lReceipts = 0
         For lIdx = 1 To 100
             vSplit = Split(SendCommand(eCmd, Printf(sParam, lIdx)), DEF_DELIM)
             If Status(ucsStbPrintingError) Then
@@ -2437,15 +2440,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 If .PmtType <> 0 Then
                     sType = Mid$("PDCNIJKL", .PmtType, 1)
                     If .PmtType > 4 Then
-                        pvGetCommandConfig FUNC_NAME, "InitPaymentType" & .PmtType, eCmd, ucsFpcInitPaymentType, sParam, sType & ",%1"
-                        sParam = Printf(sParam, Left$(.PmtName, m_uConfig.MaxPaymentLen))
                         bPrevExceptions = pvSetExceptions(False)
-                        SendCommand eCmd, sParam
-                        If Status(ucsStbPrintingError) Then
+                        If Not IsDaisy Then
+                            pvGetCommandConfig FUNC_NAME, "InitPaymentType" & .PmtType, eCmd, ucsFpcInitPaymentType, sParam, sType & ",%1"
+                        Else
                             pvGetCommandConfig FUNC_NAME, "InitDaisyText" & .PmtType, eCmd, ucsFpcInitDaisyText, sParam, "P" & (56 + .PmtType) & ",%1"
-                            sParam = Printf(sParam, Left$(.PmtName, m_uConfig.MaxPaymentLen))
-                            SendCommand eCmd, sParam
                         End If
+                        sParam = Printf(sParam, Left$(.PmtName, m_uConfig.MaxPaymentLen))
+                        SendCommand eCmd, sParam
                         Exceptions = bPrevExceptions
                     End If
                     pvGetCommandConfig FUNC_NAME, "FiscalPayment" & .PmtType, eCmd, ucsFpcFiscalPayment, sParam, vbTab & sType & "%1", _
