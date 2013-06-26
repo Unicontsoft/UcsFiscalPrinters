@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 25    25.06.13 17:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 26    26.06.13 10:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 26    26.06.13 10:13 Wqw
+' REF: err handling
+'
 ' 25    25.06.13 17:37 Wqw
 ' REF: trim bogus prefix in response from device
 '
@@ -273,7 +276,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length|Response missing preamble|WaitCommEvent failed: |No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Device not online|Device not ready| or cannot set operator password| or invalid operator password"
+Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length: %1|Response missing preamble: %1|WaitCommEvent failed: %1|No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Device not online|Device not ready| or cannot set operator password| or invalid operator password"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
@@ -1725,7 +1728,7 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     End If
     pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = INVALID_HANDLE_VALUE Then
-        Error = pvInternal(ucsErrCreateFileFailed) & GetApiErr(Err.LastDllError)
+        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     With uTimeout
@@ -1736,15 +1739,15 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
-        Error = pvInternal(ucsErrSetCommTimeoutsFailed) & GetApiErr(Err.LastDllError)
+        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, "9600") & " data=" & At(vSplit, 2, "8") & " parity=" & At(vSplit, 3, "N") & " stop=" & At(vSplit, 4, "1"), uDCB) = 0 Then
-        Error = pvInternal(ucsErrBuildCommDCBFailed) & GetApiErr(Err.LastDllError)
+        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If SetCommState(pvOpenPort, uDCB) = 0 Then
-        Error = pvInternal(ucsErrSetCommStateFailed) & GetApiErr(Err.LastDllError)
+        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
 QH:
@@ -1803,7 +1806,7 @@ RetrySend:
     lResult = WriteFile(hComm, ByVal sText, Len(sText), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
-            Error = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
+            Error = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(Err.LastDllError))
             GoTo QH
         End If
     End If
@@ -1825,7 +1828,7 @@ RetrySend:
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
                 DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", WaitCommEvent, Err.LastDllError=" & Err.LastDllError
-                Error = pvInternal(ucsErrWaitCommEventFailed) & GetApiErr(Err.LastDllError)
+                Error = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
                 GoTo QH
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
@@ -1840,7 +1843,7 @@ InLoop:
             If lResult = 0 Then
                 If Err.LastDllError <> ERROR_IO_PENDING Then
                     DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", ReadFile, Err.LastDllError=" & Err.LastDllError
-                    Error = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
+                    Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
                     GoTo QH
                 End If
                 lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
@@ -1863,10 +1866,10 @@ InLoop:
         End If
 RetryParse:
         If LenB(sText) <> 0 Then
-            '--- check if response complete
-            If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
-                Select Case Asc(sText)
-                Case ZFP_STX            ' &H2
+            Select Case Asc(sText)
+            Case ZFP_STX            ' &H2
+                '--- check if response complete
+                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
                     lSize = Asc(Mid$(sText, 2, 1)) - ZFP_BASEDATA - 3
                     '--- check message length
                     If Len(sText) - 7 = lSize Then
@@ -1878,7 +1881,9 @@ RetryParse:
                         Error = pvInternal(ucsErrInvalidResponseLength)
                     End If
                     Exit Do
-                Case ZFP_ACK            ' &H6
+                End If
+            Case ZFP_ACK            ' &H6
+                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
                     lSize = Len(sText) - 5
                     '--- parse respone
                     sText = Mid$(sText, 3, lSize)
@@ -1894,9 +1899,7 @@ RetryParse:
                         Error = pvInternal(ucsErrInvalidResponseLength)
                     End If
                     Exit Do
-                End Select
-            End If
-            Select Case Asc(sText)
+                End If
             Case ZFP_RETRY          ' &HE
                 DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
                 Call CancelIo(hComm)
@@ -1907,15 +1910,14 @@ RetryParse:
             Case Else
                 If eCmd <= [_ucsZekCmdFastMax] Then
                     pvSendCommand = Right$(sText, 1)
-                ElseIf Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
-                    lIdx = Znl(InStr(sText, Chr$(ZFP_STX)), 2147483647)
-                    lIdx = LimitLong(InStr(sText, Chr$(ZFP_ACK)), , lIdx)
+                Else
+                    lIdx = InStr(sText, Chr$(ZFP_STX))
+                    lIdx = LimitLong(InStr(sText, Chr$(ZFP_ACK)), , Znl(lIdx, 2147483647))
                     If lIdx > 1 Then
                         DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=" & ToHexDump(Left$(sText, lIdx - 1))
                         sText = Mid$(sText, lIdx)
                         GoTo RetryParse
                     End If
-                Else
                     Error = pvInternal(ucsErrResponseMissingPreamble)
                 End If
                 Exit Do
