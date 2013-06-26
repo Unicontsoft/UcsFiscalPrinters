@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 26    26.06.13 10:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 27    26.06.13 21:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 27    26.06.13 21:50 Wqw
+' REF: if invalid hex dump response in err message
+'
 ' 26    26.06.13 10:13 Wqw
 ' REF: err handling
 '
@@ -1878,7 +1881,7 @@ RetryParse:
                             DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
                         End If
                     Else
-                        Error = pvInternal(ucsErrInvalidResponseLength)
+                        Error = Printf(pvInternal(ucsErrInvalidResponseLength), ToHexDump(sText))
                     End If
                     Exit Do
                 End If
@@ -1896,7 +1899,7 @@ RetryParse:
                             Error = StatusText
                         End If
                     Else
-                        Error = pvInternal(ucsErrInvalidResponseLength)
+                        Error = Printf(pvInternal(ucsErrInvalidResponseLength), ToHexDump(sText))
                     End If
                     Exit Do
                 End If
@@ -1905,7 +1908,7 @@ RetryParse:
                 Call CancelIo(hComm)
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
-                Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
+                Error = Printf(pvInternal(ucsErrInvalidMessageFormatOrChecksum), ToHexDump(sText))
                 Exit Do
             Case Else
                 If eCmd <= [_ucsZekCmdFastMax] Then
@@ -1918,7 +1921,7 @@ RetryParse:
                         sText = Mid$(sText, lIdx)
                         GoTo RetryParse
                     End If
-                    Error = pvInternal(ucsErrResponseMissingPreamble)
+                    Error = Printf(pvInternal(ucsErrResponseMissingPreamble), ToHexDump(sText))
                 End If
                 Exit Do
             End Select
