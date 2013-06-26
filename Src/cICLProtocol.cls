@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 58    26.06.13 20:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 59    26.06.13 22:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 59    26.06.13 22:13 Wqw
+' REF: trim payment names
+'
 ' 58    26.06.13 20:17 Wqw
 ' REF: impl item chars setting
 '
@@ -1624,7 +1627,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         Else
             pvGetCommandConfig FUNC_NAME, "InitDaisyText" & Index, eCmd, ucsFpcInitDaisyText, sParam, "R" & (56 + Index)
         End If
-        GetPaymentName = pvStripBold(SendCommand(eCmd, sParam))
+        GetPaymentName = Trim$(pvStripBold(SendCommand(eCmd, sParam)))
         Exceptions = bPrevExceptions
         '--- check for failure (returns 'F')
         If Status(ucsStbPrintingError) And GetPaymentName = "F" Then
