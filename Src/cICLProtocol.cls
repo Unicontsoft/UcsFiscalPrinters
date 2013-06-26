@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 57    25.06.13 17:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 58    26.06.13 20:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 58    26.06.13 20:17 Wqw
+' REF: impl item chars setting
+'
 ' 57    25.06.13 17:37 Wqw
 ' REF: trim bogus prefix in response from device
 '
@@ -579,6 +582,7 @@ Private Type UcsConfigValues
     IsEcr               As UcsTriState
     IsDaisy             As Boolean
     RowChars            As Long
+    ItemChars           As Long
     AbsoluteDiscount    As Boolean
     NegativePrices      As Boolean
     MaxReceiptRows      As Long
@@ -729,7 +733,7 @@ Private Property Get pvRowChars() As Long
             Exceptions = bPrevExceptions
             '--- check for paper width above 57mm (432px) e.g. 80mm paper is 576px wide
             If Len(sResult) * 4 > 432 Then
-                m_uConfig.RowChars = Len(sResult) * 4 / 12 - 2
+                m_uConfig.RowChars = Len(sResult) * 4 / 12 - 6
             End If
         End If
         If m_uConfig.RowChars <= 0 Then
@@ -740,6 +744,13 @@ Private Property Get pvRowChars() As Long
     Exit Property
 EH:
     RaiseError FUNC_NAME
+End Property
+
+Private Property Get pvItemChars() As Long
+    pvItemChars = m_uConfig.ItemChars
+    If pvItemChars = 0 Then
+        pvItemChars = LimitLong(pvRowChars - 5, , 30)
+    End If
 End Property
 
 '=========================================================================
@@ -913,6 +924,7 @@ Public Function Init( _
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = ucsTriTrue))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = ucsTriFalse))
         .RowChars = GetConfigNumber(sSerial, "RowChars", 0)
+        .ItemChars = GetConfigNumber(sSerial, "ItemChars", 0)
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
@@ -1614,6 +1626,10 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         End If
         GetPaymentName = pvStripBold(SendCommand(eCmd, sParam))
         Exceptions = bPrevExceptions
+        '--- check for failure (returns 'F')
+        If Status(ucsStbPrintingError) And GetPaymentName = "F" Then
+            GetPaymentName = vbNullString
+        End If
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
@@ -2314,7 +2330,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     "FormatPrice", sFormatPrice, "0.00", _
                     "FormatQty", sFormatQty, "0.000", _
                     "FormatDisc", sFormatDisc, "0.00"
-                vSplit = WrapText(.PluName, pvRowChars - 5)
+                vSplit = WrapText(.PluName, pvItemChars)
                 For lIdx = 0 To UBound(vSplit) - 2
                     pvPrintLine C_Str(vSplit(lIdx))
                 Next
@@ -2636,7 +2652,7 @@ Private Sub pvConvertExtraRows()
                 dblTotal = Round(m_uRow(lRow).PluQuantity * dblPrice, 2)
                 dblDiscTotal = Round(dblTotal * m_uRow(lRow).DiscValue / 100#, 2)
                 If Not m_uConfig.NegativePrices And dblPrice <= 0 Then
-                    vSplit = WrapText(m_uRow(lRow).PluName, pvRowChars - 5)
+                    vSplit = WrapText(m_uRow(lRow).PluName, pvItemChars)
                     lIdx = LimitLong(UBound(vSplit), , 1)
                     vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00"), pvRowChars)
                     m_uRow(lRow).RowType = ucsRowLine
