@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 59    26.06.13 22:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 60    4.07.13 16:44 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 60    4.07.13 16:44 Wqw
+' REF: auto detect reply text config
+'
 ' 59    26.06.13 22:13 Wqw
 ' REF: trim payment names
 '
@@ -764,6 +767,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Const FUNC_NAME     As String = "AutodetectDevices"
     Dim lIdx            As Long
     Dim sProbeText      As String
+    Dim sReplyText      As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
@@ -780,6 +784,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", Chr$(1) & Chr$(&H24) & Chr$(&H20) & Chr(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(&H15))  '--- NAK (&H15)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -848,9 +853,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
                     End If
-                    If .Buffer = Chr$(&H15) Then '--- NAK (&H15)
-                        If pvGetDeviceInfo(.hComm, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
-                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                    If LenB(.Buffer) <> 0 Then
+                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
+                            If pvGetDeviceInfo(.hComm, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                            End If
+                        Else
+                            DebugLog FUNC_NAME, "Unknown reply: " & ToHexDump(.Buffer)
                         End If
                     End If
                 End If

@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 27    26.06.13 21:50 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 28    4.07.13 16:44 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 28    4.07.13 16:44 Wqw
+' REF: auto detect reply text config
+'
 ' 27    26.06.13 21:50 Wqw
 ' REF: if invalid hex dump response in err message
 '
@@ -284,6 +287,7 @@ Private Const STR_STATUSES              As String = "Unknown error|Invalid comma
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
+Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
 Private Const DEF_TIMEOUT               As Long = 2000
 Private Const DEF_PRINT_TIMEOUT         As Long = 30000
@@ -580,7 +584,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Const FUNC_NAME     As String = "AutodetectDevices"
     Dim lIdx            As Long
     Dim sProbeText      As String
+    Dim sReplyText      As String
     Dim lTimeout        As Long
+    Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
     Dim vSpeed          As Variant
     Dim aPorts()        As UcsAutodetect
@@ -595,8 +601,10 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_ZEKA_FP, "ProbeText", Chr$(ucsZekCmdFastIsReady))
+    sReplyText = GetConfigValue(STR_PROTOCOL_ZEKA_FP, "ReplyText", Chr$(ucsZekCmdFastIsReady))
     lTimeout = GetConfigNumber(STR_PROTOCOL_ZEKA_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
-    AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
+    lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_ZEKA_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
+    AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_ZEKA_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
     If IsObject(vSpeeds) Then
         vSpeeds = vSpeeds.Items()
     End If
@@ -662,9 +670,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
                     End If
-                    If Right$(.Buffer, 1) = sProbeText Then
-                        If pvGetDeviceInfo(.hComm, 1000, Empty, sProtocol, sModel) Then
-                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                    If LenB(.Buffer) <> 0 Then
+                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
+                            If pvGetDeviceInfo(.hComm, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                            End If
+                        Else
+                            DebugLog FUNC_NAME, "Unknown reply: " & ToHexDump(.Buffer)
                         End If
                     End If
                 End If
