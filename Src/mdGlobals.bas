@@ -1,14 +1,17 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 22    18.06.13 17:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 23    16.10.13 15:47 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
 '
-'   Globalni funktsii, constanti i promenliwi
+'   Global functions, constants and variables
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 23    16.10.13 15:47 Wqw
+' REF: impl log rotate on output debug log
+'
 ' 22    18.06.13 17:20 Wqw
 ' REF: break on all errors. ADD: Function ToHexDump, SearchCollection,
 ' DispInvoke, DispPropertyGet, ParseSum, Property LockControl
@@ -546,11 +549,13 @@ EH:
 End Function
 
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
+    Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
     Dim sFile           As String
     Dim nFile           As Integer
     Dim lErrNum         As Long
     Dim sErrSrc         As String
     Dim sErrDesc        As String
+    Dim sNewFile        As String
     
     lErrNum = Err.Number
     sErrSrc = Err.Source
@@ -561,6 +566,16 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         sFile = Environ$("TEMP") & "\UcsFP.log"
         If Not FileExists(sFile) Then
             GoTo QH
+        End If
+    End If
+    If FileExists(sFile) Then
+        If FileLen(sFile) > LNG_MAX_SIZE Then
+            If InStrRev(sFile, ".") > InStrRev(sFile, "\") Then
+                sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
+            Else
+                sNewFile = sFile & Format$(Date, "_yyyy_mm_dd")
+            End If
+            Name sFile As sNewFile
         End If
     End If
     nFile = FreeFile
@@ -1213,16 +1228,7 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
 End Sub
 
 Public Function preg_replace(sPattern As String, sReplace As String, sText As String) As String
-    Dim lOffset          As Long
-    Dim oMatch           As Object
-    
-    preg_replace = sText
-    For Each oMatch In pvInitRegExp(sPattern).Execute(sText)
-        With oMatch
-            preg_replace = Left$(preg_replace, lOffset + .FirstIndex) & sReplace & Mid$(preg_replace, lOffset + .FirstIndex + .Length + 1)
-            lOffset = lOffset + Len(sReplace) - .Length
-        End With
-    Next
+    preg_replace = pvInitRegExp(sPattern).Replace(sText, sReplace)
 End Function
 
 Private Function pvInitRegExp(sPattern As String) As Object
