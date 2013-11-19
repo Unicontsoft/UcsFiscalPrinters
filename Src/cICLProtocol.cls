@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 60    4.07.13 16:44 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 61    19.11.13 13:57 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 61    19.11.13 13:57 Wqw
+' REF: suppress err raising in get device status
+'
 ' 60    4.07.13 16:44 Wqw
 ' REF: auto detect reply text config
 '
@@ -1740,9 +1743,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsStbPrintingError) Then
-        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), DontRaise:=True
     ElseIf Memory(ucsFmeMemoryError) Then
-        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), DontRaise:=True
     End If
     CurrentStatus = m_sLastError
     '--- success
