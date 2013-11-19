@@ -3,7 +3,7 @@
   version(1.0),
   helpstring("Unicontsoft VB Callable Interfaces Type Library 1.0")
 ]
-library UcsDsQuery10
+library UcsVbCall10
 {
 	importlib("stdole2.tlb");
 
