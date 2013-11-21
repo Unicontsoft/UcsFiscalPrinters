@@ -1,24 +1,27 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdJson.bas 2     16.11.12 18:52 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdJson.bas 3     21.11.13 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2012 Unicontsoft
+'   Copyright (c) 2008-2013 Unicontsoft
 '
 '   JSON parsing and dumping functions
 '
 ' $Log: /UcsFiscalPrinter/Src/mdJson.bas $
 ' 
+' 3     21.11.13 16:37 Wqw
+' REF: impl error handling
+'
 ' 2     16.11.12 18:52 Wqw
 ' REF: description
-' 
+'
 ' 1     5.10.12 10:22 Wqw
 ' Initial implementation
 '
 '=========================================================================
 Option Explicit
 DefObj A-Z
-'Private Const MODULE_NAME As String = "mdJson"
+Private Const MODULE_NAME As String = "mdJson"
 
 '=========================================================================
 ' API
@@ -34,13 +37,30 @@ Private Type JsonContext
 End Type
 
 '=========================================================================
+' Error management
+'=========================================================================
+
+Private Sub RaiseError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+End Sub
+
+Private Sub PrintError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+End Sub
+
+'=========================================================================
 ' Functions
 '=========================================================================
 
 Public Function JsonParse(sText As String, vResult As Variant, Optional Error As String) As Boolean
+    Const FUNC_NAME     As String = "JsonParse"
     Dim uCtx            As JsonContext
     Dim oResult         As Object
     
+    On Error GoTo EH
     With uCtx
         ReDim .Text(0 To Len(sText)) As Integer
         Call CopyMemory(.Text(0), ByVal StrPtr(sText), LenB(sText))
@@ -50,6 +70,10 @@ Public Function JsonParse(sText As String, vResult As Variant, Optional Error As
         End If
         Error = .Error
     End With
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvJsonMissing(Optional vMissing As Variant) As Variant
@@ -60,12 +84,14 @@ Private Function pvJsonParse(uCtx As JsonContext, vResult As Variant, oResult As
     '--- note: when using collections change type of parameter oResult to Collection
     #Const USE_RICHCLIENT = False
     #Const USE_COLLECTION = False
+    Const FUNC_NAME     As String = "pvJsonParse"
     Dim lIdx            As Long
     Dim vKey            As Variant
     Dim vValue          As Variant
     Dim oValue          As Object
     Dim sText           As String
     
+    On Error GoTo EH
     vValue = pvJsonMissing
     With uCtx
         Select Case pvJsonGetChar(uCtx)
@@ -216,12 +242,12 @@ NoProp:
                     Exit For
                 End Select
             Next
-            sText = Space(lIdx + 1)
+            sText = Space$(lIdx + 1)
             Call CopyMemory(ByVal StrPtr(sText), .Text(.Pos - 1), LenB(sText))
             If LCase$(Left$(sText, 2)) = "0x" Then
                 sText = "&H" & Mid$(sText, 3)
             End If
-            On Error GoTo EH
+            On Error GoTo ErrorConvert
             vResult = CDbl(sText)
             On Error GoTo 0
             .Pos = .Pos + lIdx
@@ -238,14 +264,19 @@ QH:
 UnexpectedSymbol:
         .Error = "Unexpected symbol '" & ChrW$(.LastChar) & "' at position " & .Pos
         Exit Function
-EH:
-        .Error = Error$ & " at position " & .Pos
+ErrorConvert:
+        .Error = Err.Description & " at position " & .Pos
     End With
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvJsonGetChar(uCtx As JsonContext) As Integer
+    Const FUNC_NAME     As String = "pvJsonGetChar"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     With uCtx
         Do While .Pos <= UBound(.Text)
             .LastChar = .Text(.Pos)
@@ -288,19 +319,24 @@ Private Function pvJsonGetChar(uCtx As JsonContext) As Integer
             End Select
         Loop
     End With
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvJsonGetString(uCtx As JsonContext) As String
+    Const FUNC_NAME     As String = "pvJsonGetString"
     Dim lIdx            As Long
     Dim nChar           As Integer
     Dim sText           As String
     
+    On Error GoTo EH
     With uCtx
         For lIdx = 0 To &H7FFFFFFF
             nChar = .Text(.Pos + lIdx)
             Select Case nChar
             Case 0, 34, 92 ' " \
-                sText = Space(lIdx)
+                sText = Space$(lIdx)
                 Call CopyMemory(ByVal StrPtr(sText), .Text(.Pos), LenB(sText))
                 pvJsonGetString = pvJsonGetString & sText
                 If nChar <> 92 Then ' \
@@ -336,9 +372,13 @@ Private Function pvJsonGetString(uCtx As JsonContext) As String
             End Select
         Next
     End With
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
-Public Function JsonDump(vJson As Variant, Optional ByVal lLevel As Long) As String
+Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean) As String
+    Const FUNC_NAME     As String = "JsonDump"
     Const STR_CODES     As String = "\u0000|\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007|\b|\t|\n|\u000B|\f|\r|\u000E|\u000F|\u0010|\u0011|\u0012|\u0013|\u0014|\u0015|\u0016|\u0017|\u0018|\u0019|\u001A|\u001B|\u001C|\u001D|\u001E|\u001F"
     Const INDENT        As Long = 4
     Static vTranscode   As Variant
@@ -347,30 +387,32 @@ Public Function JsonDump(vJson As Variant, Optional ByVal lLevel As Long) As Str
     Dim lIdx            As Long
     Dim lSize           As Long
     Dim sCompound       As String
+    Dim sSpace          As String
     Dim lAsc            As Long
     
     On Error GoTo EH
     Select Case VarType(vJson)
     Case vbObject
         sCompound = IIf(vJson.CompareMode = 0, "[]", "{}")
+        sSpace = IIf(Minimize, vbNullString, " ")
         If vJson.Count = 0 Then
             JsonDump = sCompound
         Else
             vKeys = vJson.Keys
             vItems = vJson.Items
             For lIdx = 0 To vJson.Count - 1
-                vItems(lIdx) = JsonDump(vItems(lIdx), lLevel + 1)
-                If VarType(vKeys(lIdx)) = vbString Then
-                    vItems(lIdx) = JsonDump(vKeys(lIdx)) & ": " & vItems(lIdx)
+                vItems(lIdx) = JsonDump(vItems(lIdx), Level + 1, Minimize)
+                If vJson.CompareMode = 1 Then
+                    vItems(lIdx) = JsonDump(vKeys(lIdx)) & ":" & sSpace & vItems(lIdx)
                 End If
                 lSize = lSize + Len(vItems(lIdx))
             Next
-            If lSize > 100 Then
+            If lSize > 100 And Not Minimize Then
                 JsonDump = Left$(sCompound, 1) & vbCrLf & _
-                    Space((lLevel + 1) * INDENT) & Join(vItems, "," & vbCrLf & Space((lLevel + 1) * INDENT)) & vbCrLf & _
-                    Space(lLevel * INDENT) & Right$(sCompound, 1)
+                    Space$((Level + 1) * INDENT) & Join(vItems, "," & vbCrLf & Space$((Level + 1) * INDENT)) & vbCrLf & _
+                    Space$(Level * INDENT) & Right$(sCompound, 1)
             Else
-                JsonDump = Left$(sCompound, 1) & " " & Join(vItems, ", ") & " " & Right$(sCompound, 1)
+                JsonDump = Left$(sCompound, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(sCompound, 1)
             End If
         End If
     Case vbNull
@@ -402,9 +444,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal lLevel As Long) As Str
     End Select
     Exit Function
 EH:
-    Debug.Print Error
+    PrintError FUNC_NAME
     Resume Next
 End Function
-
-
 
