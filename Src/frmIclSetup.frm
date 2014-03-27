@@ -2238,7 +2238,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 12    18.06.13 17:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 13    27.03.14 17:46 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -2247,6 +2247,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 13    27.03.14 17:46 Wqw
+' REF: uses ec tape new command
+'
 ' 12    18.06.13 17:19 Wqw
 ' REF: break on all errors
 '
@@ -2997,13 +3000,13 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             m_oFP.Exceptions = False
             '--- "rychno" razpechatwane na elektronna kontrolna lenta
             If chkReportClosure.Value = vbChecked Then
-                vResult = Split(m_oFP.SendCommand(ucsFpcInitEcTape, "I"), ",")
+                vResult = Split(m_oFP.SendCommand(ucsFpcInitEcTapeNew, "I"), ",")
                 '--- print
                 For lIdx = 1 To C_Lng(At(vResult, 1))
-                    m_oFP.SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
+                    m_oFP.SendCommand ucsFpcInitEcTapeNew, IIf(lIdx = 1, "PS", "CS")
                     If lIdx = C_Lng(At(vResult, 1)) Then
                         '--- erase
-                        m_oFP.SendCommand ucsFpcInitEcTape, "E"
+                        m_oFP.SendCommand ucsFpcInitEcTapeNew, "E"
                     End If
                 Next
             End If
