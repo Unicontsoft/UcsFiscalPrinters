@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 61    19.11.13 13:57 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 62    27.03.14 17:46 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 62    27.03.14 17:46 Wqw
+' ADD: more commands. REF: more compatible postamble check
+'
 ' 61    19.11.13 13:57 Wqw
 ' REF: suppress err raising in get device status
 '
@@ -281,6 +284,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInitItem = 107
     ucsFpcInitLogo = 115
     ucsFpcInitOpenDrawer = 106
+    ucsFpcInitEcTapeNew = 119
     ucsFpcInitEcTape = 120
     ucsFpcInitDaisyText = 149
     '--- transaction
@@ -290,19 +294,21 @@ Public Enum UcsIclCommandsEnum
     ucsFpcFiscalOpen = 48
     ucsFpcFiscalSell = 49
     ucsFpcFiscalSubtotal = 51
+    ucsFpcFiscalSellAndDisplay = 52
     ucsFpcFiscalPayment = 53
     ucsFpcFiscalText = 54
     ucsFpcFiscalClose = 56
     ucsFpcFiscalCgInfo = 57
     ucsFpcFiscalCancel = 60
     ucsFpcAdminCashDebitCredit = 70
-    ucsFpcPrintDuplicate = 109
     ucsFpcLineFeed = 44
     '--- info
+    ucsFpcInfoServiceContract = 34
     ucsFpcInfoDateTime = 62
     ucsFpcInfoLastFiscalBlock = 64
     ucsFpcInfoTotalsByVatGroups = 65
     ucsFpcInfoDailyStats = 67
+    ucsFpcInfoFreeMemoryRecords = 68
     ucsFpcInfoStatus = 74
     ucsFpcInfoTransaction = 76
     ucsFpcInfoLastFiscalDateTime = 86
@@ -315,19 +321,35 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInfoOperator = 112
     ucsFpcInfoLastReceipt = 113
     ucsFpcInfoFiscalRecord = 114
+    ucsFpcInfoMemoryDump = 116
     ucsFpcInfoDaisyConsts = 128
     '--- print
+    ucsFpcPrintReportTaxRates = 50
     ucsFpcPrintDailyReport = 69
     ucsFpcPrintDiagnostics = 71
     ucsFpcPrintReportByNumberDetailed = 73
     ucsFpcPrintReportByDateShort = 79
+    ucsFpcPrintBarcode = 84
+    ucsFpcPrintSeparator = 92
     ucsFpcPrintReportByDateDetailed = 94
     ucsFpcPrintReportByNumberShort = 95
     ucsFpcPrintReportByOperators = 105
     ucsFpcPrintDailyReportItems = 108
+    ucsFpcPrintDuplicate = 109
+    ucsFpcPrintReportByItems = 111
     ucsFpcPrintDailyReportDepartments = 117
     ucsFpcPrintDailyReportItemsDepartments = 118
-    ucsFpcPrintReportTaxRates = 50
+    '--- paper
+    ucsFpcPaperLinefeed = 44
+    ucsFpcPaperCut = 45
+    '--- display
+    ucsFpcDisplayClear = 33
+    ucsFpcDisplaySecondLine = 35
+    ucsFpcDisplayFirstLine = 47
+    ucsFpcDisplayClock = 63
+    ucsFpcDisplayText = 100
+    '--- misc
+    ucsFpcMiscRingSound = 80
     '--- ECR
     ucsFpcEcrReadRow = &HFF84&
     ucsFpcEcrWriteRow = &HFF86&
@@ -1433,17 +1455,17 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     If bEcClear Then
         '--- clear electronic control tape (if present)
         sEcParam = "I"
-        pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam, _
+        pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam, _
             "Index", lEcIndex, 1
         lEcCount = C_Lng(At(Split(SendCommand(eEcCmd, sEcParam), DEF_DELIM), lEcIndex))
         If Not Status(ucsStbPrintingError) Then
             For lIdx = 1 To lEcCount
                 sEcParam = IIf(lIdx = 1, "PS", "CS")
-                pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam
+                pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam
                 SendCommand eEcCmd, sEcParam
             Next
             sEcParam = "E"
-            pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam
+            pvGetCommandConfig FUNC_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam
             SendCommand eEcCmd, sEcParam
         End If
     End If
@@ -2058,12 +2080,18 @@ RetryParse:
         '--- check if response complete (3 = Terminator)
         If Right$(sText, 1) = Chr$(3) Then
             If Left$(sText, 1) = Chr$(1) Then
-                lIdx = InStr(sText, Chr$(4))
+                lIdx = InStr(sText, Chr$(5))
                 If lIdx > 2 Then
                     lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
                     '--- check message length
-                    If lIdx - 5 = lSize Then
-                        pvSetStatus Mid$(sText, lIdx + 1, 6)
+                    If lIdx - 5 >= lSize Then
+                        '--- check for status info
+                        lIdx = InStrRev(sText, Chr$(4), lIdx)
+                        If lIdx > 0 Then
+                            pvSetStatus Mid$(sText, lIdx + 1, 6)
+                        Else
+                            pvSetStatus vbNullString '--- clear
+                        End If
                         pvSendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
                         DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
                             IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), vbNullString) & _
