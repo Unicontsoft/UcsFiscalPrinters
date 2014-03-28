@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 62    27.03.14 17:46 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 63    28.03.14 11:57 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 63    28.03.14 11:57 Wqw
+' REF: more compatible response size check
+'
 ' 62    27.03.14 17:46 Wqw
 ' ADD: more commands. REF: more compatible postamble check
 '
@@ -2082,17 +2085,18 @@ RetryParse:
             If Left$(sText, 1) = Chr$(1) Then
                 lIdx = InStr(sText, Chr$(5))
                 If lIdx > 2 Then
-                    lSize = Asc(Mid$(sText, 2, 1)) - &H20 - 11
+                    lSize = Asc(Mid$(sText, 2, 1)) - &H20
                     '--- check message length
-                    If lIdx - 5 >= lSize Then
+                    If lSize >= 4 And lSize < lIdx Then
                         '--- check for status info
                         lIdx = InStrRev(sText, Chr$(4), lIdx)
-                        If lIdx > 0 Then
+                        If lIdx > 4 Then
                             pvSetStatus Mid$(sText, lIdx + 1, 6)
+                            lSize = lIdx - 1
                         Else
                             pvSetStatus vbNullString '--- clear
                         End If
-                        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize), False)
+                        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
                         DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
                             IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), vbNullString) & _
                             IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), vbNullString)
