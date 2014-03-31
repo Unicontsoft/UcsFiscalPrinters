@@ -1,14 +1,17 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 23    16.10.13 15:47 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 24    31.03.14 17:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2014 Unicontsoft
 '
 '   Global functions, constants and variables
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 24    31.03.14 17:34 Wqw
+' REF: impl GetConfigForCommand params for localized commands
+'
 ' 23    16.10.13 15:47 Wqw
 ' REF: impl log rotate on output debug log
 '
@@ -1248,25 +1251,29 @@ Private Function pvInitRegExp(sPattern As String) As Object
     End With
 End Function
 
-Public Function GetConfigForCommand(oCommands As Collection, sFunc As String, sKey As String, Optional Default As Variant) As Variant
+Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As Collection, sFunc As String, sKey As String, Optional Default As Variant) As Variant
+    Dim sMerged         As String
     Dim vItem           As Variant
     
-    If Not SearchCollection(oCommands, "\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString), vItem) Then
-        If Not IsMissing(Default) Then
-            GetConfigForCommand = Default
+    sMerged = "\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    If Not SearchCollection(oConfigCmd, sMerged, vItem) Then
+        If Not SearchCollection(oLocalizedCmd, sMerged, vItem) Then
+            If Not IsMissing(Default) Then
+                GetConfigForCommand = Default
+            End If
+            Exit Function
         End If
-    Else
-        Select Case VarType(Default)
-        Case vbLong, vbInteger, vbByte
-            GetConfigForCommand = C_Lng(vItem)
-        Case vbDouble, vbSingle
-            GetConfigForCommand = C_Dbl(vItem)
-        Case vbString
-            GetConfigForCommand = C_Str(vItem)
-        Case vbBoolean
-            GetConfigForCommand = C_Bool(vItem)
-        End Select
     End If
+    Select Case VarType(Default)
+    Case vbLong, vbInteger, vbByte
+        GetConfigForCommand = C_Lng(vItem)
+    Case vbDouble, vbSingle
+        GetConfigForCommand = C_Dbl(vItem)
+    Case vbString
+        GetConfigForCommand = C_Str(vItem)
+    Case vbBoolean
+        GetConfigForCommand = C_Bool(vItem)
+    End Select
 End Function
 
 Public Property Get DateTimer() As Double
