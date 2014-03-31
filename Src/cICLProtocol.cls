@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 63    28.03.14 11:57 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 64    31.03.14 17:33 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2014 Unicontsoft
 '
 '   Protocol for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 64    31.03.14 17:33 Wqw
+' ADD: Sub SetLocalizedCommand, ClearLocalizedCommand
+'
 ' 63    28.03.14 11:57 Wqw
 ' REF: more compatible response size check
 '
@@ -625,7 +628,8 @@ Private Type UcsConfigValues
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
     MaxOperatorName     As Long
-    Commands            As Collection
+    ConfigCommands      As Collection
+    LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -974,7 +978,7 @@ Public Function Init( _
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
         .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", DEF_MAX_OPERATOR_NAME)
-        Set .Commands = GetConfigCollection(sSerial, "Commands")
+        Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
     Init = True
@@ -1927,6 +1931,54 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Sub SetLocalizedCommand( _
+            sFunction As String, _
+            sKey As String, _
+            Optional ByVal Cmd As UcsIclCommandsEnum, _
+            Optional Param As String, _
+            Optional More As Variant)
+    Dim sMerged         As String
+    Dim lIdx            As Long
+    
+    If m_uConfig.LocalizedCommands Is Nothing Then
+        Set m_uConfig.LocalizedCommands = New Collection
+    End If
+    sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    With m_uConfig.LocalizedCommands
+        If Cmd <> 0 Then
+            .Add Cmd, sMerged
+        End If
+        If LenB(Param) <> 0 Then
+            .Add Param, sMerged & "Param"
+        End If
+        If IsArray(More) Then
+            For lIdx = 0 To UBound(More) Step 2
+                .Add More(lIdx + 1), sMerged & More(lIdx)
+            Next
+        End If
+    End With
+End Sub
+
+Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional More As Variant)
+    Dim sMerged         As String
+    Dim lIdx            As Long
+    
+    sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    If SearchCollection(m_uConfig.LocalizedCommands, sMerged) Then
+        m_uConfig.LocalizedCommands.Remove sMerged
+    End If
+    If SearchCollection(m_uConfig.LocalizedCommands, sMerged & "Param") Then
+        m_uConfig.LocalizedCommands.Remove sMerged & "Param"
+    End If
+    If IsArray(More) Then
+        For lIdx = 0 To UBound(More)
+            If SearchCollection(m_uConfig.LocalizedCommands, sMerged & More(lIdx)) Then
+                m_uConfig.LocalizedCommands.Remove sMerged & More(lIdx)
+            End If
+        Next
+    End If
+End Sub
+
 '= private ===============================================================
 
 Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
@@ -2307,6 +2359,8 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim lAmountIndex    As Long
     Dim lPaidIndex      As Long
     Dim sFormatAddr     As String
+    Dim sOperParamMax   As String
+    Dim sOperParamMin   As String
     
     On Error GoTo EH
     '--- ring sale
@@ -2325,9 +2379,11 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     If .InitOperatorName <> sData Then
                         pvGetCommandConfig FUNC_NAME, "InitOperatorName", eCmd, ucsFpcInitOperatorName, sParam, "%1,%2,%3", _
                             "MinName", lMinName, 10
-                        SendCommand eCmd, Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
-                        If Status(ucsStbPrintingError) Then
-                            SendCommand eCmd, Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
+                        sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
+                        sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
+                        SendCommand eCmd, sOperParamMax
+                        If Status(ucsStbPrintingError) And sOperParamMin <> sOperParamMax Then
+                            SendCommand eCmd, sOperParamMin
                         End If
                     End If
                 Else
@@ -2918,8 +2974,8 @@ End Function
 Private Function pvStripBold(sText As String) As String
     Const FUNC_NAME     As String = "pvStripBold"
     
-    pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.Commands, FUNC_NAME, "Pattern", "/\^/i"), _
-        GetConfigForCommand(m_uConfig.Commands, FUNC_NAME, "Replace", vbNullString), sText)
+    pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
+        GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString), sText)
 End Function
 
 Private Sub pvGetCommandConfig( _
@@ -2932,10 +2988,10 @@ Private Sub pvGetCommandConfig( _
             ParamArray A() As Variant)
     Dim lIdx            As Long
     
-    eCmd = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey, eCmdDefault)
-    sParam = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey & "Param", sParamDefault)
+    eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey, eCmdDefault)
+    sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
-        A(lIdx + 1) = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey & A(lIdx + 0), A(lIdx + 2))
+        A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
 End Sub
 
@@ -2965,7 +3021,7 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS_ONLY
     LocalizedText(ucsFscLciDipSwitchesTexts) = STR_DIP_SWITCHES
     LocalizedText(ucsFscLciMemoryTexts) = STR_MEMORY
-    Set m_uConfig.Commands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
+    Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
 End Sub
 
 Private Sub Class_Terminate()

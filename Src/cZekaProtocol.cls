@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 28    4.07.13 16:44 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 29    31.03.14 17:33 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2014 Unicontsoft
 '
 '   Protocol for Tremol/Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 29    31.03.14 17:33 Wqw
+' ADD: Sub SetLocalizedCommand, ClearLocalizedCommand
+'
 ' 28    4.07.13 16:44 Wqw
 ' REF: auto detect reply text config
 '
@@ -484,7 +487,8 @@ Private Type UcsConfigValues
     MaxInvoiceNo        As Long
     MaxPluName          As Long
     MaxComment          As Long
-    Commands            As Collection
+    ConfigCommands      As Collection
+    LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -755,7 +759,7 @@ Public Function Init( _
         .MaxInvoiceNo = GetConfigNumber(sSerial, "MaxInvoiceNo", DEF_MAX_INVOICENO)
         .MaxPluName = GetConfigNumber(sSerial, "MaxPluName", DEF_MAX_PLUNAME)
         .MaxComment = GetConfigNumber(sSerial, "MaxComment", DEF_MAX_COMMENT)
-        Set .Commands = GetConfigCollection(sSerial, "Commands")
+        Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
     Init = True
@@ -1727,6 +1731,54 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Sub SetLocalizedCommand( _
+            sFunction As String, _
+            sKey As String, _
+            Optional ByVal Cmd As UcsZekaCommandsEnum, _
+            Optional Param As String, _
+            Optional More As Variant)
+    Dim sMerged         As String
+    Dim lIdx            As Long
+    
+    If m_uConfig.LocalizedCommands Is Nothing Then
+        Set m_uConfig.LocalizedCommands = New Collection
+    End If
+    sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    With m_uConfig.LocalizedCommands
+        If Cmd <> 0 Then
+            .Add Cmd, sMerged
+        End If
+        If LenB(Param) <> 0 Then
+            .Add Param, sMerged & "Param"
+        End If
+        If IsArray(More) Then
+            For lIdx = 0 To UBound(More) Step 2
+                .Add More(lIdx + 1), sMerged & More(lIdx)
+            Next
+        End If
+    End With
+End Sub
+
+Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional More As Variant)
+    Dim sMerged         As String
+    Dim lIdx            As Long
+    
+    sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    If SearchCollection(m_uConfig.LocalizedCommands, sMerged) Then
+        m_uConfig.LocalizedCommands.Remove sMerged
+    End If
+    If SearchCollection(m_uConfig.LocalizedCommands, sMerged & "Param") Then
+        m_uConfig.LocalizedCommands.Remove sMerged & "Param"
+    End If
+    If IsArray(More) Then
+        For lIdx = 0 To UBound(More)
+            If SearchCollection(m_uConfig.LocalizedCommands, sMerged & More(lIdx)) Then
+                m_uConfig.LocalizedCommands.Remove sMerged & More(lIdx)
+            End If
+        Next
+    End If
+End Sub
+
 '= private ===============================================================
 
 Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
@@ -2618,10 +2670,10 @@ Private Sub pvGetCommandConfig( _
             ParamArray A() As Variant)
     Dim lIdx            As Long
     
-    eCmd = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey, eCmdDefault)
-    sParam = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey & "Param", sParamDefault)
+    eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey, eCmdDefault)
+    sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
-        A(lIdx + 1) = GetConfigForCommand(m_uConfig.Commands, sFunc, sKey & A(lIdx + 0), A(lIdx + 2))
+        A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
 End Sub
 
@@ -2646,7 +2698,7 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
-    Set m_uConfig.Commands = GetConfigCollection(STR_PROTOCOL_ZEKA_FP, "Commands")
+    Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_ZEKA_FP, "Commands")
 End Sub
 
 Private Sub Class_Terminate()
