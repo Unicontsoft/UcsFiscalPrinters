@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 65    25.04.14 22:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 66    30.07.14 15:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 66    30.07.14 15:09 Wqw
+' REF: impl daisy custom params on totals and operators reset on z-report
+'
 ' 65    25.04.14 22:53 Wqw
 ' REF: separate conf name constants
 '
@@ -1489,6 +1492,10 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     End If
     SendCommand eCmd, sParam
     Exceptions = bPrevExceptions
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "DaisyOperatorsReset", eCmd, ucsFpcInitOperatorReset, sParam, "0,9999"
+        SendCommand eCmd, sParam
+    End If
     '--- success
     RunZReport = True
 QH:
@@ -1821,7 +1828,11 @@ Public Function GetTotalsByPayments() As Variant
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, vbNullString
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "DaisyInfoTotalsByVatPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, "A"
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByVatPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, vbNullString
+    End If
     bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     Exceptions = bPrevExceptions
@@ -1830,7 +1841,9 @@ Public Function GetTotalsByPayments() As Variant
         For lIdx = 0 To UBound(vRetVal)
             '--- WTF?!#@ happened w/ these indexes!
             lJdx = At(Split("0|3|1|2", "|"), lIdx, C_Str(lIdx))
-            vRetVal(lJdx) = ParseSum(At(vSplit, lIdx))
+            If lIdx <= UBound(vSplit) - IIf(IsDaisy, 3, 2) Then
+                vRetVal(lJdx) = ParseSum(At(vSplit, lIdx))
+            End If
         Next
         GetTotalsByPayments = vRetVal
     Else
@@ -1855,7 +1868,11 @@ Public Function GetTotalsByVatGroups() As Variant
     
     On Error GoTo EH
     bPrevExceptions = pvSetExceptions(False)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, vbNullString
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "DaisyInfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, "T"
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, vbNullString
+    End If
     vTotals = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups1", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, "1"
     vVatSums = Split(SendCommand(eCmd, sParam), DEF_DELIM)
@@ -1938,13 +1955,16 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
+    Dim bPrevExceptions As Boolean
     
     On Error GoTo EH
     sFormat = IIf(dblValue <> 0, "0.00", "\")
     pvGetCommandConfig CONF_NAME, "AdminCashDebitCredit" & -(dblValue <> 0), eCmd, ucsFpcAdminCashDebitCredit, sParam, "%1", _
         "Format", sFormat, sFormat
     sParam = Printf(sParam, SafeFormat(dblValue, sFormat))
+    bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    Exceptions = bPrevExceptions
     If UBound(vSplit) > 0 Then
         ReDim vRetVal(0 To 2) As Double
         For lIdx = 0 To UBound(vRetVal)
