@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 30    25.04.14 22:53 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 31    31.07.14 16:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 31    31.07.14 16:06 Wqw
+' REF: uses epsilon for floating point comparisons
+'
 ' 30    25.04.14 22:53 Wqw
 ' REF: separate conf name constants
 '
@@ -977,7 +980,7 @@ Public Function AddPLU( _
     With uRow
         .RowType = ucsRowPlu
         .PluName = RTrim$(SafeText(Name))
-        bNegative = (Round(Price, 2) * Round(Quantity, 3) < 0)
+        bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(Abs(Quantity), 3)
         .PluVatGroup = LimitLong(VatGroup, 1, 8)
@@ -1034,7 +1037,7 @@ Public Function AddDiscount( _
     End If
     Select Case DiscType
     Case ucsFscDstTotal
-        AddPLU Printf(IIf(Value > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), vbNullString), Value
+        AddPLU Printf(IIf(Value > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), vbNullString), Value
     Case ucsFscDstPlu
         For lIdx = m_lRowCount - 1 To 0 Step -1
             With m_uRow(lIdx)
@@ -1709,7 +1712,7 @@ Public Function CashDebitCredit( _
     Dim lPrintTimeout   As Long
     
     On Error GoTo EH
-    If Value <> 0 Then
+    If Abs(Value) > DBL_EPSILON Then
         pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
             "Index", lIndex, 9
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
@@ -2251,12 +2254,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 Next
                 sData = Pad(At(vSplit, UBound(vSplit)), m_uConfig.MaxPluName)
                 sData = sData & ";" & Chr$(191 + .PluVatGroup) & ";"
-                If .PluQuantity <> 0 Then
+                If Abs(.PluQuantity) > DBL_EPSILON Then
                     sData = sData & SafeFormat(.PluPrice, sFormatPrice)
                     If .PluQuantity <> 1 Then
                         sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
                     End If
-                    If .DiscType = ucsFscDstPlu And .PluPrice >= 0 Then
+                    If .DiscType = ucsFscDstPlu And Abs(.PluPrice) > DBL_EPSILON Then
                         sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
                     End If
                 Else
@@ -2270,7 +2273,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     "FormatQty", sFormatQty, "0.000", _
                     "FormatDisc", sFormatDisc, "0.00", _
                     "FormatAmount", sFormatAmount, "0.00"
-                If .PluPrice < 0 Then
+                If .PluPrice < -DBL_EPSILON Then
                     pvPrintLine CenterText(pvText(ucsTxtPluVoid), pvRowChars)
                 End If
                 If .PrintRowType = ucsFscRetNonfiscal Then
@@ -2289,10 +2292,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvPrintLine AlignText(Printf(pvText(ucsTxtPluTotal), Chr$(191 + .PluVatGroup)), SafeFormat(Abs(dblTotal), sFormatAmount), pvRowChars)
                 End If
                 If .DiscType = ucsFscDstPlu Then
-                    pvPrintLine AlignText(Printf(IIf(IIf(.PluPrice < 0, -1, 1) * dblDisc > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + .PluVatGroup) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                        SafeFormat(IIf(.PluPrice < 0, -1, 1) * dblDisc, sFormatAmount), pvRowChars)
+                    pvPrintLine AlignText(Printf(IIf(IIf(.PluPrice < -DBL_EPSILON, -1, 1) * dblDisc > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + .PluVatGroup) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                        SafeFormat(IIf(.PluPrice < -DBL_EPSILON, -1, 1) * dblDisc, sFormatAmount), pvRowChars)
                 End If
-                If .PluPrice < 0 Then
+                If .PluPrice < -DBL_EPSILON Then
                     pvPrintLine CenterText(String(pvRowChars - 10, "-"), pvRowChars)
                 End If
             End Select
@@ -2312,9 +2315,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         "FormatAmount", sFormatAmount, "0.00"
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvRowChars)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
-                        If uCtx.GrpTotal(lIdx) <> 0 Then
+                        If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                            pvPrintLine AlignText(Printf(IIf(dblTotal > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                            pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                 SafeFormat(dblTotal, sFormatAmount), pvRowChars)
                         End If
                     Next
@@ -2322,7 +2325,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End Select
             If .DiscType = ucsFscDstSubtotal Then
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
-                    If uCtx.GrpTotal(lIdx) <> 0 Then
+                    If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                         dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
                         uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + dblTotal, 2)
                     End If
@@ -2340,9 +2343,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
                     dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
-                    If dblTotal > 0 Then
+                    If dblTotal > DBL_EPSILON Then
                         pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, "0.00"), pvRowChars)
-                    ElseIf dblTotal < 0 Then
+                    ElseIf dblTotal < -DBL_EPSILON Then
                         pvPrintLine AlignText(pvText(ucsTxtFooterChange), SafeFormat(-dblTotal, "0.00"), pvRowChars)
                     End If
                     uCtx.ChangePrinted = True
@@ -2390,7 +2393,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                                 GoTo QH
                             End If
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
-                                If uCtx.GrpTotal(lIdx) <> 0 Then
+                                If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                                     dblTotal = Round(uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), 2)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupTotal), Chr$(191 + lIdx)), SafeFormat(uCtx.GrpTotal(lIdx), sFormatAmount), pvRowChars)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupVat), Chr$(191 + lIdx), SafeFormat(C_Dbl(At(vSplit, lIdx - 1)), sFormatAmount) & "%"), _
@@ -2411,9 +2414,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 Else
                     If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
                         dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
-                        If dblTotal > 0 Then
+                        If dblTotal > DBL_EPSILON Then
                             pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvRowChars)
-                        ElseIf dblTotal < 0 Then
+                        ElseIf dblTotal < -DBL_EPSILON Then
                             pvPrintLine AlignText(pvText(ucsTxtFooterChange), SafeFormat(-dblTotal, sFormatAmount), pvRowChars)
                         End If
                         uCtx.ChangePrinted = True
@@ -2505,16 +2508,16 @@ Private Sub pvConvertExtraRows()
                         dblDiscount = m_uRow(lRow).DiscValue
                         m_uRow(lRow).DiscType = 0
                         m_uRow(lRow).DiscValue = 0
-                        AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + m_uRow(lRow).PluVatGroup) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
+                        AddPLU Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + m_uRow(lRow).PluVatGroup) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
                             Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                     End If
-                ElseIf m_uRow(lRow).DiscType = ucsFscDstPlu And m_uRow(lRow).PluPrice < 0 Then
+                ElseIf m_uRow(lRow).DiscType = ucsFscDstPlu And m_uRow(lRow).PluPrice < -DBL_EPSILON Then
                     '--- convert PLU discount on void rows
                     dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
                     dblDiscount = m_uRow(lRow).DiscValue
                     m_uRow(lRow).DiscType = 0
                     m_uRow(lRow).DiscValue = 0
-                    AddPLU Printf(IIf(dblTotal * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + m_uRow(lRow).PluVatGroup) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
+                    AddPLU Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + m_uRow(lRow).PluVatGroup) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
                             Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                 End If
             ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
@@ -2533,8 +2536,8 @@ Private Sub pvConvertExtraRows()
                         dblDiscount = m_uRow(lRow).DiscValue
                         m_uRow(lRow).DiscValue = 0
                         For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
-                            If uSum.GrpTotal(lIdx) <> 0 Then
-                                AddPLU Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > 0, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
+                            If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
+                                AddPLU Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
                                     Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
                             End If
                         Next
@@ -2557,7 +2560,7 @@ Private Sub pvConvertExtraRows()
     If lCount > m_uConfig.MaxReceiptRows Then
         '--- count different VAT groups in PLUs
         For lRow = 1 To UBound(uCtx.GrpTotal)
-            If uCtx.GrpTotal(lRow) <> 0 Then
+            If Abs(uCtx.GrpTotal(lRow)) > DBL_EPSILON Then
                 lTotal = lTotal + 1
                 uCtx.GrpTotal(lRow) = 0
             End If
@@ -2597,7 +2600,7 @@ Private Sub pvConvertExtraRows()
         Next
         '--- append fiscal rows for GrpTotal by VAT groups
         For lIdx = 1 To UBound(uCtx.GrpTotal)
-            If uCtx.GrpTotal(lIdx) <> 0 Then
+            If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                 AddPLU Printf(pvText(ucsTxtPluSales), Chr$(191 + lIdx)), uCtx.GrpTotal(lIdx), 1, lIdx, lRow
                 lRow = lRow + 1
             End If
