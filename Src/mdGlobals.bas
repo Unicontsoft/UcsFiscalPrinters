@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 24    31.03.14 17:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 25    31.07.14 16:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 25    31.07.14 16:06 Wqw
+' ADD: Consts
+'
 ' 24    31.03.14 17:34 Wqw
 ' REF: impl GetConfigForCommand params for localized commands
 '
@@ -327,6 +330,7 @@ Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY MICRO"
 Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
 Public Const CHR1                   As String = "" '--- Chr$(1)
+Public Const DBL_EPSILON            As Double = 0.0000000001
 
 Public g_sDecimalSeparator      As String
 Public g_hGdip                  As Long
