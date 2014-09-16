@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 67    31.07.14 16:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 68    16.09.14 16:10 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 68    16.09.14 16:10 Wqw
+' REF: set status checks for invalid bytes (highest reserved bit must be
+' set)
+'
 ' 67    31.07.14 16:06 Wqw
 ' REF: uses epsilon for floating point comparisons
 '
@@ -2255,9 +2259,15 @@ End Function
 Private Sub pvSetStatus(sStatus As String)
     Const FUNC_NAME     As String = "pvSetStatus"
     Dim baStatus()      As Byte
+    Dim lIdx            As Long
     
     On Error GoTo EH
     baStatus = StrConv(sStatus, vbFromUnicode)
+    For lIdx = 0 To UBound(baStatus)
+        If (baStatus(lIdx) And &H80) = 0 Then
+            baStatus(lIdx) = 0
+        End If
+    Next
     If UBound(baStatus) >= 2 Then
         Call CopyMemory(m_eStatus, baStatus(0), 3)
     Else
