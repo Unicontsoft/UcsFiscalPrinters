@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 68    16.09.14 16:10 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 69    25.09.14 17:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 69    25.09.14 17:49 Wqw
+' REF: retry send on NAK
+'
 ' 68    16.09.14 16:10 Wqw
 ' REF: set status checks for invalid bytes (highest reserved bit must be
 ' set)
@@ -2086,6 +2089,7 @@ Private Function pvSendCommand( _
             Optional Data As String, _
             Optional Error As String) As String
     Const FUNC_NAME     As String = "pvSendCommand"
+    Dim sSend           As String
     Dim sText           As String
     Dim baText()        As Byte
     Dim lIdx            As Long
@@ -2097,29 +2101,31 @@ Private Function pvSendCommand( _
     Dim sBuffer         As String
     Dim lMask           As Long
     Dim lActual         As Long
+    Dim lNakRetry       As Long
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
-    sText = pvTranscode(Data, True)
+    sSend = pvTranscode(Data, True)
     Do While eCmd >= &H100
-        sText = Chr$(eCmd Mod &H100) & sText
+        sSend = Chr$(eCmd Mod &H100) & sSend
         eCmd = eCmd \ &H100
     Loop
-    sText = Chr$(1) & Chr$(&H20 + 4 + Len(sText)) & Chr$(m_lSequence) & Chr$(eCmd) & sText & Chr$(5)
+    sSend = Chr$(1) & Chr$(&H20 + 4 + Len(sSend)) & Chr$(m_lSequence) & Chr$(eCmd) & sSend & Chr$(5)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
-    baText = StrConv(sText, vbFromUnicode)
+    baText = StrConv(sSend, vbFromUnicode)
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
-    sText = sText & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
+    sSend = sSend & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
+RetrySend:
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    lResult = WriteFile(hComm, ByVal sText, Len(sText), lWritten, uOver)
+    lResult = WriteFile(hComm, ByVal sSend, Len(sSend), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
             Error = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
@@ -2170,9 +2176,13 @@ InLoop:
                 sBuffer = Left$(sBuffer, lActual)
                 '--- check for NAK (&H15)
                 If InStr(sBuffer, Chr$(&H15)) > 0 Then
-                    DebugLog FUNC_NAME, "NAK, sBuffer=" & sBuffer
-                    Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
-                    GoTo QH
+                    DebugLog FUNC_NAME, "NAK received, sBuffer=0x" & ToHexDump(sBuffer)
+                    lNakRetry = lNakRetry + 1
+                    If lNakRetry > 5 Then
+                        Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
+                        GoTo QH
+                    End If
+                    GoTo RetrySend
                 End If
                 '--- remove SYN (&H16)
                 sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
@@ -2209,20 +2219,20 @@ RetryParse:
                             IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), vbNullString)
                         GoTo QH
                     Else
-                        Error = Printf(pvInternal(ucsErrInvalidResponseLength), ToHexDump(sText))
+                        Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
                     End If
                 Else
-                    Error = Printf(pvInternal(ucsErrResponseMissingPostamble), ToHexDump(sText))
+                    Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
                 End If
             Else
                 '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
                 lIdx = InStr(sText, Chr$(1))
                 If lIdx > 1 Then
-                    DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=" & ToHexDump(Left$(sText, lIdx - 1))
+                    DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
                     sText = Mid$(sText, lIdx)
                     GoTo RetryParse
                 End If
-                Error = Printf(pvInternal(ucsErrResponseMissingPreamble), ToHexDump(sText))
+                Error = Printf(pvInternal(ucsErrResponseMissingPreamble), "0x" & ToHexDump(sText))
             End If
             pvSetStatus vbNullString '--- clear
             Exit Do
