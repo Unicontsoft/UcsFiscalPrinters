@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 69    25.09.14 17:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 70    20.10.14 19:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 70    20.10.14 19:13 Wqw
+' REF: can customize payment types prefix for command
+'
 ' 69    25.09.14 17:49 Wqw
 ' REF: retry send on NAK
 '
@@ -2641,7 +2644,8 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Select Case .PrintRowType
             Case ucsFscRetFiscal, ucsFscRetInvoiceFiscal
                 If .PmtType <> 0 Then
-                    sType = Mid$("PDCNIJKL", .PmtType, 1)
+                    pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sParam, "PDCNIJKL"
+                    sType = Mid$(sParam, .PmtType, 1)
                     If .PmtType > 4 Then
                         bPrevExceptions = pvSetExceptions(False)
                         If Not IsDaisy Then
