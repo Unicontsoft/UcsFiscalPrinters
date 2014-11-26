@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 70    20.10.14 19:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 71    26.11.14 19:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 71    26.11.14 19:19 Wqw
+' REF: defaults of max cg info
+'
 ' 70    20.10.14 19:13 Wqw
 ' REF: can customize payment types prefix for command
 '
@@ -484,7 +487,7 @@ Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
-Private Const DEF_MAX_CGINFO            As String = "14|26|26|26|14|36|36"
+Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_DELIM                 As String = ","
 Private Const MIK_OFFSET                As Long = &H80
