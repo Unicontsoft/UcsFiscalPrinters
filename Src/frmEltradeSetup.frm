@@ -2282,15 +2282,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 10    18.06.13 17:18 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 11    26.11.14 19:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2014 Unicontsoft
 '
 '   Nastrojka na ECR po Eltrade protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 11    26.11.14 19:19 Wqw
+' REF: spelling
+'
 ' 10    18.06.13 17:18 Wqw
 ' REF: uses global c_lng
 '
@@ -2357,7 +2360,7 @@ Private Const STR_STATUS_SUCCESS_FETCH As String = "Успешно получаване на %1 (%2
 Private Const STR_STATUS_SAVING     As String = "Запазване..."
 Private Const STR_STATUS_SUCCESS_SAVE As String = "Успешно запазване на %1 (%2 сек.)"
 Private Const STR_STATUS_SUCCESS_CONNECT As String = "Свързан %1"
-Private Const STR_STATUS_FETCH_OPER As String = "Получаване опрератор %1 от " & LNG_NUM_OPERS & "..."
+Private Const STR_STATUS_FETCH_OPER As String = "Получаване оператор %1 от " & LNG_NUM_OPERS & "..."
 Private Const STR_STATUS_NO_OPER_SELECTED As String = "Липсва избран оператор"
 Private Const STR_STATUS_FETCH_DEP  As String = "Получаване департамент %1 от " & LNG_NUM_DEPS & "..."
 Private Const STR_STATUS_NO_DEP_SELECTED As String = "Липсва избран департамент"

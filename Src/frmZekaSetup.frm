@@ -2348,15 +2348,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 7     18.06.13 17:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 8     26.11.14 19:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2014 Unicontsoft
 '
 '   Nastrojki na FP po Zeka protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 8     26.11.14 19:19 Wqw
+' REF: spelling
+'
 ' 7     18.06.13 17:19 Wqw
 ' REF: break on all errors
 '
@@ -2415,7 +2418,7 @@ Private Const STR_STATUS_SUCCESS_FETCH As String = "Успешно получаване на %1 (%2
 Private Const STR_STATUS_NOT_IMPLEMENTED As String = "Не е реализирано"
 Private Const STR_STATUS_FETCH_DEP  As String = "Получаване департамент %1 от " & LNG_NUM_DEPS & "..."
 Private Const STR_STATUS_ENUM_PORTS As String = "Изброяване на налични принтери..."
-Private Const STR_STATUS_FETCH_OPER As String = "Получаване опрератор %1 от " & LNG_NUM_OPERS & "..."
+Private Const STR_STATUS_FETCH_OPER As String = "Получаване оператор %1 от " & LNG_NUM_OPERS & "..."
 Private Const STR_STATUS_PRINT      As String = "Отпечатване..."
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
 Private Const STR_LOGO_DIMENSIONS   As String = "Размер в байтове: %1"
