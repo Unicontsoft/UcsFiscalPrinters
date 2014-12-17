@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmEltradeSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ELTRADE протокол"
-   ClientHeight    =   6228
-   ClientLeft      =   48
-   ClientTop       =   432
+   ClientHeight    =   6230
+   ClientLeft      =   50
+   ClientTop       =   430
    ClientWidth     =   8100
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.4
+      Size            =   8.5
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,7 +19,7 @@ Begin VB.Form frmEltradeSetup
    LinkTopic       =   "Form2"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6228
+   ScaleHeight     =   6230
    ScaleWidth      =   8100
    StartUpPosition =   3  'Windows Default
    Begin VB.Frame fraCommands 
@@ -499,7 +499,7 @@ Begin VB.Form frmEltradeSetup
       Top             =   90
       Width           =   5775
       Begin VB.ListBox lstYesNoParams 
-         Height          =   4152
+         Height          =   3950
          ItemData        =   "frmEltradeSetup.frx":000C
          Left            =   180
          List            =   "frmEltradeSetup.frx":0040
@@ -2210,7 +2210,7 @@ Begin VB.Form frmEltradeSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.4
+            Size            =   8.5
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 11    26.11.14 19:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 12    17.12.14 16:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 12    17.12.14 16:09 Wqw
+' REF: uses to ascii
+'
 ' 11    26.11.14 19:19 Wqw
 ' REF: spelling
 '
@@ -3105,8 +3108,8 @@ Private Function pvFromPbcd(sText As String) As String
     Dim baText()        As Byte
     Dim lIdx            As Long
     
-    baText = StrConv(sText, vbFromUnicode)
-    For lIdx = 0 To UBound(baText)
+    baText = ToAscii(sText)
+    For lIdx = 0 To Len(sText) - 1
         pvFromPbcd = pvFromPbcd & Right$("0" & Hex(baText(lIdx)), 2)
     Next
 End Function
