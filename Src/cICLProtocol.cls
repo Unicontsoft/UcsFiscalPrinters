@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 71    26.11.14 19:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 72    17.12.14 16:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,11 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 72    17.12.14 16:09 Wqw
+' REF: uses to ascii for string to byte array conversion, retries on
+' handle eof (RDP serial ports), uses ucsFpcInfoNap for info on cash
+' dt/kt
+'
 ' 71    26.11.14 19:19 Wqw
 ' REF: defaults of max cg info
 '
@@ -332,6 +337,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcLineFeed = 44
     '--- info
     ucsFpcInfoServiceContract = 34
+    ucsFpcInfoNap = 37
     ucsFpcInfoDateTime = 62
     ucsFpcInfoLastFiscalBlock = 64
     ucsFpcInfoTotalsByVatGroups = 65
@@ -400,6 +406,7 @@ Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
+Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
 Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
 Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
@@ -837,6 +844,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sModel          As String
     Dim sError          As String
     Dim vSpeeds         As Variant
+    Dim baText()        As Byte
     
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", Chr$(1) & Chr$(&H24) & Chr$(&H20) & Chr(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
@@ -871,7 +879,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If .hComm <> 0 Then
                     Call PurgeComm(.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-                    lResult = WriteFile(.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
+                    baText = ToAscii(sProbeText)
+                    lResult = WriteFile(.hComm, baText(0), Len(sProbeText), lActual, .WriteOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .WriteOver.hEvent
                         lEventsCount = lEventsCount + 1
@@ -1972,6 +1981,8 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     Dim sParam          As String
     Dim sFormat         As String
     Dim bPrevExceptions As Boolean
+    Dim sIndexes        As String
+    Dim vElem           As Variant
     
     On Error GoTo EH
     sFormat = IIf(Abs(dblValue) > DBL_EPSILON, "0.00", "\")
@@ -1986,6 +1997,27 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
         For lIdx = 0 To UBound(vRetVal)
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
+        '--- sParam=4 -> P,CashInN,CashInS,CashOutN,CashOutS,CashSum
+        pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsFpcInfoNap, sParam, "4", _
+            "Indexes", sIndexes, "0,5,2,4"
+        bPrevExceptions = pvSetExceptions(False)
+        vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+        Exceptions = bPrevExceptions
+        lIdx = 0
+        If UBound(vSplit) > 0 Then
+            For Each vElem In Split(sIndexes, DEF_DELIM)
+                If lIdx >= LBound(vRetVal) And lIdx <= UBound(vRetVal) Then
+                    If C_Str(C_Lng(vElem)) = C_Str(vElem) Then
+                        If LenB(At(vSplit, C_Lng(vElem))) <> 0 Then
+                            vRetVal(lIdx) = ParseSum(At(vSplit, C_Lng(vElem)))
+                        End If
+                    Else
+                        vRetVal(lIdx) = vElem
+                    End If
+                End If
+                lIdx = lIdx + 1
+            Next
+        End If
         CashDebitCredit = vRetVal
     Else
         CashDebitCredit = EmptyDoubleArray
@@ -2122,8 +2154,8 @@ Private Function pvSendCommand( _
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
-    baText = StrConv(sSend, vbFromUnicode)
-    For lIdx = 1 To UBound(baText)
+    baText = ToAscii(sSend)
+    For lIdx = 1 To Len(sSend) - 1
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
@@ -2131,7 +2163,8 @@ Private Function pvSendCommand( _
 RetrySend:
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    lResult = WriteFile(hComm, ByVal sSend, Len(sSend), lWritten, uOver)
+    baText = ToAscii(sSend)
+    lResult = WriteFile(hComm, baText(0), Len(sSend), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
             Error = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
@@ -2167,14 +2200,19 @@ RetrySend:
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
             sBuffer = String$(1000, 0)
+            lActual = 0
             lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
             If lResult = 0 Then
-                If Err.LastDllError <> ERROR_IO_PENDING Then
-                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
-                    Error = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
-                    GoTo QH
+                If Err.LastDllError = ERROR_HANDLE_EOF Then
+                    lResult = WAIT_OBJECT_0
+                Else
+                    If Err.LastDllError <> ERROR_IO_PENDING Then
+                        DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                        Error = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
+                        GoTo QH
+                    End If
+                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
                 End If
-                lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
             Else
                 lResult = WAIT_OBJECT_0
             End If
@@ -2278,7 +2316,7 @@ Private Sub pvSetStatus(sStatus As String)
     Dim lIdx            As Long
     
     On Error GoTo EH
-    baStatus = StrConv(sStatus, vbFromUnicode)
+    baStatus = ToAscii(sStatus)
     For lIdx = 0 To UBound(baStatus)
         If (baStatus(lIdx) And &H80) = 0 Then
             baStatus(lIdx) = 0
