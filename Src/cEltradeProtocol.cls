@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 30    20.06.13 12:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 31    17.12.14 16:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2013 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 31    17.12.14 16:09 Wqw
+' REF: uses to ascii for string to byte array conversion, retries on
+' handle eof (RDP serial ports)
+'
 ' 30    20.06.13 12:49 Wqw
 ' REF: handle custom payment types in AddPayment and GetPaymentName
 '
@@ -193,6 +197,7 @@ Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
+Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
 Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
 Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
@@ -1450,14 +1455,14 @@ Private Function pvSendCommand( _
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     sText = Chr$(&HAA) & Chr$(&H55) & Chr$(m_lCashDesk) & Chr$(eCmd) & Chr$(Len(sData)) & sData
     '--- calc checksum
-    baText = StrConv(sText, vbFromUnicode)
-    For lIdx = 3 To UBound(baText)
+    baText = ToAscii(sText)
+    For lIdx = 3 To Len(sText) - 1
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum
     sText = sText & Chr$((256 - lSum Mod 256) Mod 256)
     lSize = Len(sText)
-    baText = StrConv(sText, vbFromUnicode)
+    baText = ToAscii(sText)
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
     lResult = WriteFile(hComm, baText(0), lSize, lActual, VarPtr(uOver))
@@ -1494,14 +1499,19 @@ Private Function pvSendCommand( _
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
+            lActual = 0
             lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
             If lResult = 0 Then
-                If Err.LastDllError <> ERROR_IO_PENDING Then
-                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
-                    sError = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
-                    GoTo QH
+                If Err.LastDllError = ERROR_HANDLE_EOF Then
+                    lResult = WAIT_OBJECT_0
+                Else
+                    If Err.LastDllError <> ERROR_IO_PENDING Then
+                        DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                        sError = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
+                        GoTo QH
+                    End If
+                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
                 End If
-                lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
             Else
                 lResult = WAIT_OBJECT_0
             End If
@@ -1519,7 +1529,7 @@ InLoop:
         End If
         '--- check if response complete
         If Len(sText) >= 5 Then
-            baText = StrConv(sText, vbFromUnicode)
+            baText = ToAscii(sText)
             If baText(0) <> &HAA Or baText(1) <> &H55 Or baText(2) <> m_lCashDesk Then
                 DebugLog FUNC_NAME, "Invalid response header, sText=" & pvDumpHex(sText)
                 sError = pvInternal(ucsErrInvalidResponseHeader)
@@ -1770,8 +1780,8 @@ Private Function pvFromPbcd(sText As String) As String
     Dim lIdx            As Long
     
     On Error GoTo EH
-    baText = StrConv(sText, vbFromUnicode)
-    For lIdx = 0 To UBound(baText)
+    baText = ToAscii(sText)
+    For lIdx = 0 To Len(sText) - 1
         pvFromPbcd = pvFromPbcd & Right$("0" & Hex(baText(lIdx)), 2)
     Next
     Exit Function

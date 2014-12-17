@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 31    31.07.14 16:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 32    17.12.14 16:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -21,6 +21,10 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 32    17.12.14 16:09 Wqw
+' REF: uses to ascii for string to byte array conversion, retries on
+' handle eof (RDP serial ports)
+'
 ' 31    31.07.14 16:06 Wqw
 ' REF: uses epsilon for floating point comparisons
 '
@@ -222,6 +226,7 @@ Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
+Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
 Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
 Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
@@ -1890,8 +1895,8 @@ RetrySend:
         '--- increment sequence
         m_lSequence = IIf(m_lSequence >= &H9F, ZFP_BASEDATA, m_lSequence + 1)
         '--- calc checksum
-        baText = StrConv(sText, vbFromUnicode)
-        For lIdx = 1 To UBound(baText)
+        baText = ToAscii(sText)
+        For lIdx = 1 To Len(sText) - 1
             lSum = lSum Xor baText(lIdx)
         Next
         '--- append checksum and terminator
@@ -1899,7 +1904,8 @@ RetrySend:
     End If
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    lResult = WriteFile(hComm, ByVal sText, Len(sText), lWritten, uOver)
+    baText = ToAscii(sText)
+    lResult = WriteFile(hComm, baText(0), Len(sText), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
             Error = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(Err.LastDllError))
@@ -1935,14 +1941,19 @@ RetrySend:
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
             sBuffer = String$(1000, 0)
+            lActual = 0
             lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
             If lResult = 0 Then
-                If Err.LastDllError <> ERROR_IO_PENDING Then
-                    DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", ReadFile, Err.LastDllError=" & Err.LastDllError
-                    Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
-                    GoTo QH
+                If Err.LastDllError = ERROR_HANDLE_EOF Then
+                    lResult = WAIT_OBJECT_0
+                Else
+                    If Err.LastDllError <> ERROR_IO_PENDING Then
+                        DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                        Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
+                        GoTo QH
+                    End If
+                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
                 End If
-                lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
             Else
                 lResult = WAIT_OBJECT_0
             End If
