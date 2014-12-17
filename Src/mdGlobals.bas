@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 25    31.07.14 16:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 26    17.12.14 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 26    17.12.14 16:07 Wqw
+' REF: impl to ascii
+'
 ' 25    31.07.14 16:06 Wqw
 ' ADD: Consts
 '
@@ -200,6 +203,7 @@ Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function VariantCopy Lib "oleaut32" (dest As Variant, src As Variant) As Long
+Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -895,10 +899,12 @@ Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String,
     Const FUNC_NAME     As String = "OpenSaveDialog"
     Dim uOFN            As OPENFILENAME
     Dim sBuffer         As String
+    Dim baFilter()      As Byte
+    Dim baTitle()       As Byte
     
     On Error GoTo EH
-    sFilter = StrConv(Replace(sFilter, "|", vbNullChar), vbFromUnicode)
-    sTitle = StrConv(sTitle, vbFromUnicode)
+    baFilter = ToAscii(Replace(sFilter, "|", vbNullChar))
+    baTitle = ToAscii(sTitle)
     sBuffer = String$(1000, 0)
     If OsVersion >= 500 Then
         uOFN.lStructSize = Len(uOFN)
@@ -907,9 +913,9 @@ Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String,
     End If
     uOFN.flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
     uOFN.hWndOwner = hWndOwner
-    uOFN.lpstrFilter = StrPtr(sFilter)
+    uOFN.lpstrFilter = VarPtr(baFilter(0))
     uOFN.nFilterIndex = 1
-    uOFN.lpstrTitle = StrPtr(sTitle)
+    uOFN.lpstrTitle = VarPtr(baTitle(0))
     uOFN.lpstrFile = StrPtr(sBuffer)
     uOFN.nMaxFile = Len(sBuffer)
     If GetOpenFileName(uOFN) <> 0 Then
@@ -1343,12 +1349,12 @@ Public Function DispInvoke( _
     If Not IsMissing(Args) Then
         If IsArray(Args) Then
             lParamCount = UBound(Args) - LBound(Args)
-            ReDim aParams(0 To lParamCount)
+            ReDim aParams(0 To lParamCount) As Variant
             For lIdx = 0 To lParamCount
                 Call VariantCopy(aParams(lParamCount - lIdx), Args(lIdx))
             Next
         Else
-            ReDim aParams(0 To 0)
+            ReDim aParams(0 To 0) As Variant
             Call VariantCopy(aParams(0), Args)
         End If
         With uParams
@@ -1402,3 +1408,16 @@ Public Function ParseSum(sValue As String) As Double
     End If
 End Function
 
+Public Function ToAscii(sSend As String) As Byte()
+    Dim lSize           As Long
+    Dim baText()        As Byte
+    
+    lSize = Len(sSend)
+    If lSize > 0 Then
+        ReDim baText(0 To lSize - 1) As Byte
+        Call WideCharToMultiByte(0, 0, StrPtr(sSend), lSize, baText(0), Len(sSend), 0, 0)
+    Else
+        baText = " "
+    End If
+    ToAscii = baText
+End Function
