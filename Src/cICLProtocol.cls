@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 72    17.12.14 16:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 73    6.01.15 17:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2014 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
 '   Protocol for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 73    6.01.15 17:49 Wqw
+' REF: impl timeout on port open
+'
 ' 72    17.12.14 16:09 Wqw
 ' REF: uses to ascii for string to byte array conversion, retries on
 ' handle eof (RDP serial ports), uses ucsFpcInfoNap for info on cash
@@ -399,6 +402,7 @@ Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
 Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 Private Const INVALID_HANDLE_VALUE          As Long = -1
+Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
 '--- for WaitForMultipleObjects
@@ -864,12 +868,14 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
                     sError = vbNullString
-                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, sError)
+                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, 0, sError)
                     If .hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
                         .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
                     Else
-                        Call CloseHandle(.hComm)
+                        If .hComm <> INVALID_HANDLE_VALUE Then
+                            Call CloseHandle(.hComm)
+                        End If
                         .hComm = 0
                     End If
                 End If
@@ -934,7 +940,11 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If .hComm <> 0 Then
                     Call CloseHandle(.hComm)
+                End If
+                If .WriteOver.hEvent <> 0 Then
                     Call CloseHandle(.WriteOver.hEvent)
+                End If
+                If .ReadOver.hEvent <> 0 Then
                     Call CloseHandle(.ReadOver.hEvent)
                 End If
             End With
@@ -961,6 +971,7 @@ Public Function Init( _
     Dim sDaisyPrefix    As String
     Dim lSerialIndex    As Long
     Dim lSwitchesIndex  As Long
+    Dim sError          As String
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
@@ -974,18 +985,18 @@ Public Function Init( _
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
         IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
-    m_hComm = pvOpenPort(m_sDevice, m_sLastError)
-    If LenB(m_sLastError) <> 0 Then
-        pvSetLastError m_sLastError
+    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, sError)
+    If LenB(sError) <> 0 Then
+        pvSetLastError sError
         GoTo QH
     End If
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, vbNullString, _
         "DaisyPrefix", sDaisyPrefix, "DY", _
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
-    m_vInfoDiagnostics = Split(pvSendCommand(m_hComm, m_lTimeout, eCmd, sParam, m_sLastError), DEF_DELIM)
-    If LenB(m_sLastError) <> 0 Then
-        pvSetLastError m_sLastError
+    m_vInfoDiagnostics = Split(pvSendCommand(m_hComm, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
+    If LenB(sError) <> 0 Then
+        pvSetLastError sError
         GoTo QH
     End If
     '--- load config values
@@ -1024,6 +1035,7 @@ End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
+    Dim sError          As String
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_hComm=" & m_hComm
@@ -1032,9 +1044,9 @@ Public Function Connect() As Boolean
         pvSetLastError pvInternal(ucsErrAlreadyConnected)
         GoTo QH
     End If
-    m_hComm = pvOpenPort(m_sDevice, m_sLastError)
-    If LenB(m_sLastError) <> 0 Then
-        pvSetLastError m_sLastError
+    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, sError)
+    If LenB(sError) <> 0 Then
+        pvSetLastError sError
         GoTo QH
     End If
     '--- success
@@ -1073,6 +1085,7 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As S
     Dim eDecimalsCmd    As UcsIclCommandsEnum
     Dim sDecimalsParam  As String
     Dim lDecimalsIndex  As Long
+    Dim sError          As String
     
     On Error GoTo EH
     pvSetLastError vbNullString
@@ -1083,19 +1096,19 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As S
     If m_uConfig.Charset = ucsCrsAuto Then
         pvGetCommandConfig CONF_NAME, "InitDecimals", eDecimalsCmd, ucsFpcInitDecimals, sDecimalsParam, vbNullString, _
             "Index", lDecimalsIndex, 2
-        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, eDecimalsCmd, sDecimalsParam, m_sLastError), DEF_DELIM)
-        If LenB(m_sLastError) <> 0 Then
-            pvSetLastError m_sLastError
+        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_DELIM)
+        If LenB(sError) <> 0 Then
+            pvSetLastError sError
             GoTo QH
         End If
         '--- first char of currency name
         lChar = Asc(Zn(Trim$(At(vResult, lDecimalsIndex)), " "))
         m_uConfig.Charset = IIf(lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40, ucsCrsMik, ucsCrsWindows)
     End If
-    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
+    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
-    If LenB(m_sLastError) <> 0 Then
-        pvSetLastError m_sLastError
+    If LenB(sError) <> 0 Then
+        pvSetLastError sError
         GoTo QH
     End If
     If Status(ucsStbPrintingError) Then
@@ -2077,11 +2090,13 @@ End Sub
 
 '= private ===============================================================
 
-Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
+Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
     Dim vSplit          As Variant
     Dim uTimeout        As COMMTIMEOUTS
     Dim uDCB            As DCB
+    Dim lApiError       As Long
+    Dim dblTimer        As Double
     
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
@@ -2091,8 +2106,23 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     End If
     pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = INVALID_HANDLE_VALUE Then
-        Error = pvInternal(ucsErrCreateFileFailed) & GetApiErr(Err.LastDllError)
-        GoTo QH
+        lApiError = Err.LastDllError
+        Error = pvInternal(ucsErrCreateFileFailed) & GetApiErr(lApiError)
+        If lApiError = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
+            dblTimer = DateTimer + lTimeout / 1000#
+            Do While DateTimer < dblTimer
+                DoEvents
+                Call Sleep(100)
+                pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
+                If pvOpenPort <> INVALID_HANDLE_VALUE Then
+                    Error = vbNullString
+                    Exit Do
+                End If
+            Loop
+        End If
+        If LenB(Error) <> 0 Then
+            GoTo QH
+        End If
     End If
     With uTimeout
         .ReadIntervalTimeout = -1

@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 32    17.12.14 16:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 33    6.01.15 17:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2014 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
 '   Protocol for Tremol/Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 33    6.01.15 17:49 Wqw
+' REF: impl timeout on port open
+'
 ' 32    17.12.14 16:09 Wqw
 ' REF: uses to ascii for string to byte array conversion, retries on
 ' handle eof (RDP serial ports)
@@ -219,6 +222,7 @@ Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
 Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 Private Const INVALID_HANDLE_VALUE          As Long = -1
+Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
 '--- for WaitForMultipleObjects
@@ -632,12 +636,14 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
                     sError = vbNullString
-                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, Error:=sError)
+                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, 0, Error:=sError)
                     If .hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
                         .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
                     Else
-                        Call CloseHandle(.hComm)
+                        If .hComm <> INVALID_HANDLE_VALUE Then
+                            Call CloseHandle(.hComm)
+                        End If
                         .hComm = 0
                     End If
                 End If
@@ -701,7 +707,11 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If .hComm <> 0 Then
                     Call CloseHandle(.hComm)
+                End If
+                If .WriteOver.hEvent <> 0 Then
                     Call CloseHandle(.WriteOver.hEvent)
+                End If
+                If .ReadOver.hEvent <> 0 Then
                     Call CloseHandle(.ReadOver.hEvent)
                 End If
             End With
@@ -737,7 +747,7 @@ Public Function Init( _
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
         IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
-    m_hComm = pvOpenPort(m_sDevice, m_sLastError)
+    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
     End If
@@ -791,7 +801,7 @@ Public Function Connect() As Boolean
         pvSetLastError pvInternal(ucsErrAlreadyConnected)
         GoTo QH
     End If
-    m_hComm = pvOpenPort(m_sDevice, m_sLastError)
+    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, m_sLastError)
     '--- success
     Connect = True
 QH:
@@ -1815,11 +1825,13 @@ End Sub
 
 '= private ===============================================================
 
-Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
+Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
     Dim vSplit          As Variant
     Dim uTimeout        As COMMTIMEOUTS
     Dim uDCB            As DCB
+    Dim lApiError       As Long
+    Dim dblTimer        As Double
     
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
@@ -1829,8 +1841,23 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     End If
     pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
     If pvOpenPort = INVALID_HANDLE_VALUE Then
-        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(Err.LastDllError))
-        GoTo QH
+        lApiError = Err.LastDllError
+        Error = pvInternal(ucsErrCreateFileFailed) & GetApiErr(lApiError)
+        If lApiError = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
+            dblTimer = DateTimer + lTimeout / 1000#
+            Do While DateTimer < dblTimer
+                DoEvents
+                Call Sleep(100)
+                pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
+                If pvOpenPort <> INVALID_HANDLE_VALUE Then
+                    Error = vbNullString
+                    Exit Do
+                End If
+            Loop
+        End If
+        If LenB(Error) <> 0 Then
+            GoTo QH
+        End If
     End If
     With uTimeout
         .ReadIntervalTimeout = -1
