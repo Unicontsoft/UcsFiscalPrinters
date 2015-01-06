@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmIclSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ICL протокол"
-   ClientHeight    =   6252
-   ClientLeft      =   48
-   ClientTop       =   336
-   ClientWidth     =   8172
+   ClientHeight    =   6250
+   ClientLeft      =   50
+   ClientTop       =   340
+   ClientWidth     =   8170
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.4
+      Size            =   8.5
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,8 +19,8 @@ Begin VB.Form frmIclSetup
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6252
-   ScaleWidth      =   8172
+   ScaleHeight     =   6250
+   ScaleWidth      =   8170
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
@@ -340,8 +340,8 @@ Begin VB.Form frmIclSetup
          BorderStyle     =   0  'None
          Height          =   2445
          Left            =   180
-         ScaleHeight     =   2448
-         ScaleWidth      =   5412
+         ScaleHeight     =   2450
+         ScaleWidth      =   5420
          TabIndex        =   206
          TabStop         =   0   'False
          Top             =   720
@@ -361,8 +361,8 @@ Begin VB.Form frmIclSetup
             BorderStyle     =   0  'None
             Height          =   1635
             Left            =   0
-            ScaleHeight     =   1632
-            ScaleWidth      =   5232
+            ScaleHeight     =   1640
+            ScaleWidth      =   5240
             TabIndex        =   207
             TabStop         =   0   'False
             Top             =   0
@@ -2166,7 +2166,7 @@ Begin VB.Form frmIclSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.4
+            Size            =   8.5
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2238,15 +2238,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 14    26.11.14 19:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 15    6.01.15 17:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2014 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
 '   Nastrojki na FP po ICL protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 15    6.01.15 17:49 Wqw
+' REF: err check za daisy FP
+'
 ' 14    26.11.14 19:19 Wqw
 ' REF: spelling
 '
@@ -2659,7 +2662,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             If Not IsArray(m_vOpers(lIdx)) Then
                 pvStatus = Printf(STR_STATUS_FETCH_OPER, lIdx)
                 m_vOpers(lIdx) = Split(m_oFP.SendCommand(ucsFpcInfoOperator, C_Str(lIdx)), ",")
-                If m_oFP.Status(ucsStbPrintingError) Then
+                If m_oFP.Status(ucsStbPrintingError) Or LenB(m_oFP.LastError) <> 0 Then
                     ReDim Preserve m_vOpers(0 To lIdx - 1) As Variant
                     Exit For
                 End If
@@ -2684,7 +2687,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             If Not IsArray(m_vDeps(lIdx)) Then
                 pvStatus = Printf(STR_STATUS_FETCH_DEP, lIdx)
                 m_vDeps(lIdx) = Split(m_oFP.SendCommand(ucsFpcInfoDepartment, C_Str(lIdx)), ",")
-                If m_oFP.Status(ucsStbPrintingError) Then
+                If m_oFP.Status(ucsStbPrintingError) Or LenB(m_oFP.LastError) <> 0 Then
                     ReDim Preserve m_vDeps(0 To lIdx - 1) As Variant
                     Exit For
                 End If
@@ -2742,7 +2745,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             For lRow = 0 To UBound(m_vLogo)
                 pvStatus = Printf(STR_STATUS_FETCH_LOGO, lRow + 1)
                 m_vLogo(lRow) = m_oFP.SendCommand(ucsFpcInitLogo, "R" & lRow)
-                If m_oFP.Status(ucsStbPrintingError) Then
+                If m_oFP.Status(ucsStbPrintingError) Or LenB(m_oFP.LastError) <> 0 Then
                     If lRow > 0 Then
                         ReDim Preserve m_vLogo(0 To lRow - 1) As Variant
                     Else
