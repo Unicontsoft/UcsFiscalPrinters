@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 27    23.01.15 17:11 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 28    23.01.15 17:58 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 28    23.01.15 17:58 Wqw
+' ADD: global persistent port object
+'
 ' 27    23.01.15 17:11 Wqw
 ' REF: impl persistent com ports
 '
@@ -343,9 +346,7 @@ Public Const DBL_EPSILON            As Double = 0.0000000001
 Public g_sDecimalSeparator      As String
 Public g_hGdip                  As Long
 Public g_oConfig                As Object
-Private m_sPersistentPort       As String
-Private m_hPersistentComm       As Long
-Private m_bPersistentReleased  As Boolean
+Public g_oPersistentPort        As New cPersistentPort
 
 '=========================================================================
 ' Error handling
@@ -1429,70 +1430,3 @@ Public Function ToAscii(sSend As String) As Byte()
     ToAscii = baText
 End Function
 
-Public Function OpenComPort(sPort As String, ByVal bPersistent As Boolean) As Long
-    Const FUNC_NAME     As String = "OpenComPort"
-    
-    On Error GoTo EH
-    If bPersistent Then
-        If LCase$(m_sPersistentPort) <> LCase$(sPort) Or m_hPersistentComm = 0 Then
-            If m_hPersistentComm <> 0 And m_bPersistentReleased Then
-                If m_hPersistentComm <> INVALID_HANDLE_VALUE Then
-                    Call CloseHandle(m_hPersistentComm)
-                End If
-                m_hPersistentComm = 0
-            End If
-            m_hPersistentComm = CreateFile("\\.\" & sPort, GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
-            m_sPersistentPort = IIf(m_hPersistentComm <> INVALID_HANDLE_VALUE, sPort, vbNullString)
-        End If
-        OpenComPort = m_hPersistentComm
-        m_bPersistentReleased = False
-    Else
-        If LCase$(m_sPersistentPort) = LCase$(sPort) Then
-            If m_hPersistentComm <> 0 And m_bPersistentReleased Then
-                If m_hPersistentComm <> INVALID_HANDLE_VALUE Then
-                    Call CloseHandle(m_hPersistentComm)
-                End If
-                m_hPersistentComm = 0
-            End If
-        End If
-        OpenComPort = CreateFile("\\.\" & sPort, GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Public Function CloseComPort(ByVal hComm As Long) As Long
-    Const FUNC_NAME     As String = "CloseComPort"
-    
-    On Error GoTo EH
-    If hComm <> m_hPersistentComm Then
-        If hComm <> INVALID_HANDLE_VALUE Then
-            CloseComPort = CloseHandle(hComm)
-        End If
-    Else
-        m_bPersistentReleased = True
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Public Sub TerminatePersistentComPort()
-    Const FUNC_NAME     As String = "TerminatePersistentComPort"
-    
-    On Error GoTo EH
-    If m_hPersistentComm <> 0 Then
-        If m_hPersistentComm <> INVALID_HANDLE_VALUE Then
-            Call CloseHandle(m_hPersistentComm)
-        End If
-        m_hPersistentComm = 0
-        m_sPersistentPort = vbNullString
-    End If
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Sub
