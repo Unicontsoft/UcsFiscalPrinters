@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 31    17.12.14 16:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 32    23.01.15 17:11 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2013 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
 '   Protocol for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 32    23.01.15 17:11 Wqw
+' REF: uses persistent com port connection
+'
 ' 31    17.12.14 16:09 Wqw
 ' REF: uses to ascii for string to byte array conversion, retries on
 ' handle eof (RDP serial ports)
@@ -185,10 +188,6 @@ End Enum
 '=========================================================================
 
 '--- for CreateFile
-Private Const GENERIC_READ                  As Long = &H80000000
-Private Const GENERIC_WRITE                 As Long = &H40000000
-Private Const OPEN_EXISTING                 As Long = 3
-Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 Private Const INVALID_HANDLE_VALUE          As Long = -1
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
@@ -202,14 +201,12 @@ Private Const ERROR_HANDLE_EOF              As Long = 38
 Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
 Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
 
-Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, ByVal lpOverlapped As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lpCommTimeouts As COMMTIMEOUTS) As Long
 Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
 Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
-'Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
 Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As OVERLAPPED) As Long
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
@@ -534,7 +531,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
                     End If
                 End If
-                Call CloseHandle(hComm)
+                CloseComPort hComm
+                hComm = 0
             End If
         Next
     Next
@@ -554,15 +552,13 @@ Public Function Init( _
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", lTimeout=" & lTimeout
     pvSetLastError vbNullString
-    If m_hComm <> INVALID_HANDLE_VALUE Then
-        Call CloseHandle(m_hComm)
-        m_hComm = INVALID_HANDLE_VALUE
-    End If
+    CloseComPort m_hComm
+    m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(lTimeout <= 0, DEF_TIMEOUT, lTimeout)
     m_lCashDesk = lCashDesk
     vSplit = Split(sDevice, ",")
-    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & C_Lng(At(vSplit, 2, "8")) & "," & _
-        IIf(UCase$(At(vSplit, 3, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 4, "1"))
+    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
+        IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", m_sLastError=" & m_sLastError
@@ -605,7 +601,7 @@ Public Function Disconnect() As Boolean
         pvSetLastError pvInternal(ucsErrNotConnected)
         GoTo QH
     End If
-    Call CloseHandle(m_hComm)
+    CloseComPort m_hComm
     m_hComm = INVALID_HANDLE_VALUE
     '--- cleanup cache
     m_sHeadingLines = vbNullString
@@ -1400,7 +1396,7 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         sError = pvInternal(ucsErrNoDeviceInfoSet)
         GoTo QH
     End If
-    pvOpenPort = CreateFile("\\.\" & At(vSplit, 0), GENERIC_READ Or GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, 0)
+    pvOpenPort = OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
     If pvOpenPort = INVALID_HANDLE_VALUE Then
         sError = pvInternal(ucsErrCreateFileFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
@@ -1413,14 +1409,17 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
+        TerminatePersistentComPort
         sError = pvInternal(ucsErrSetCommTimeoutsFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
-    If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 2, 8) & " parity=" & At(vSplit, 3, "N") & " stop=" & At(vSplit, 4, 1), uDCB) = 0 Then
+    If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
+        TerminatePersistentComPort
         sError = pvInternal(ucsErrBuildCommDCBFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
     If SetCommState(pvOpenPort, uDCB) = 0 Then
+        TerminatePersistentComPort
         sError = pvInternal(ucsErrSetCommStateFailed) & GetApiErr(Err.LastDllError)
         GoTo QH
     End If
@@ -2445,10 +2444,8 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    If m_hComm <> INVALID_HANDLE_VALUE Then
-        Call CloseHandle(m_hComm)
-        m_hComm = INVALID_HANDLE_VALUE
-    End If
+    CloseComPort m_hComm
+    m_hComm = INVALID_HANDLE_VALUE
 End Sub
 
 '=========================================================================
