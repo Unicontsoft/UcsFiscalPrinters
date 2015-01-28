@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 33    23.01.15 17:57 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 34    28.01.15 15:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 34    28.01.15 15:34 Wqw
+' REF: error messages
+'
 ' 33    23.01.15 17:57 Wqw
 ' REF: uses persistent port global object
 '
@@ -269,7 +272,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: |SetCommTimeouts failed: |BuildCommDCB failed: |SetCommState failed: |WriteFile failure: |Timeout waiting for response|ReadFile failed: |Already connected|Not connected|Invalid response header|WaitCommEvent failed: |No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt|Error in line %1: %2"
+Private Const STR_INTERNAL_ERRORS       As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|Already connected|Not connected|Invalid response header|WaitCommEvent failed: %1|No receipt started|Out of paper|Invalid 'Command' parameter|Invalid command for duplicate receipt|Printing error|Fatal error|Cannot cancel previous receipt|Error in line %1: %2"
 Private Const STR_RECEIPT_TEXTS         As String = "TOTAL|SUBTOTAL|Sales %1|unit price|quantity|value*%1|CHANGE|total|VAT*%1|netto|Invoice #|Seller:|   * * * * * * * *|Received by:|Tax # |VAT # |%1 items|Resp:|Recv:|SURCHARGE|DISCOUNT"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
 Private Const DEF_AUTODETECTSPEEDS      As String = "9600" ' |38400|115200
@@ -1401,7 +1404,7 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     End If
     pvOpenPort = g_oPersistentPort.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
     If pvOpenPort = INVALID_HANDLE_VALUE Then
-        sError = pvInternal(ucsErrCreateFileFailed) & GetApiErr(Err.LastDllError)
+        sError = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     With uTimeout
@@ -1413,17 +1416,17 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     End With
     If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
         Set g_oPersistentPort = Nothing
-        sError = pvInternal(ucsErrSetCommTimeoutsFailed) & GetApiErr(Err.LastDllError)
+        sError = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
         Set g_oPersistentPort = Nothing
-        sError = pvInternal(ucsErrBuildCommDCBFailed) & GetApiErr(Err.LastDllError)
+        sError = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If SetCommState(pvOpenPort, uDCB) = 0 Then
         Set g_oPersistentPort = Nothing
-        sError = pvInternal(ucsErrSetCommStateFailed) & GetApiErr(Err.LastDllError)
+        sError = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
 QH:
@@ -1471,14 +1474,14 @@ Private Function pvSendCommand( _
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
             DebugLog FUNC_NAME, "WriteFile, Err.LastDllError=" & Err.LastDllError
-            sError = pvInternal(ucsErrWriteFileFailure) & GetApiErr(Err.LastDllError)
+            sError = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(Err.LastDllError))
             GoTo QH
         End If
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
-        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         Call CancelIo(hComm)
+        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
         GoTo QH
     End If
     '--- async read response
@@ -1491,7 +1494,7 @@ Private Function pvSendCommand( _
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
                 DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
-                sError = pvInternal(ucsErrWaitCommEventFailed) & GetApiErr(Err.LastDllError)
+                sError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
                 GoTo QH
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
@@ -1501,41 +1504,44 @@ Private Function pvSendCommand( _
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
-            lActual = 0
-            lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
-            If lResult = 0 Then
-                If Err.LastDllError = ERROR_HANDLE_EOF Then
-                    lResult = WAIT_OBJECT_0
-                Else
-                    If Err.LastDllError <> ERROR_IO_PENDING Then
-                        DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                        sError = pvInternal(ucsErrReadFileFailed) & GetApiErr(Err.LastDllError)
-                        GoTo QH
+            Do
+                lActual = 0
+                lResult = ReadFile(hComm, ByVal StrPtr(sBuffer), Len(sBuffer), lActual, VarPtr(uOver))
+                If lResult = 0 Then
+                    If Err.LastDllError = ERROR_HANDLE_EOF Then
+                        lResult = WAIT_OBJECT_0
+                    Else
+                        If Err.LastDllError <> ERROR_IO_PENDING Then
+                            DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            sError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
+                            GoTo QH
+                        End If
+                        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
                     End If
-                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+                Else
+                    lResult = WAIT_OBJECT_0
                 End If
-            Else
-                lResult = WAIT_OBJECT_0
-            End If
-            If lResult = WAIT_OBJECT_0 Then
+                If lActual = 0 Then
+                    Exit Do
+                End If
                 sText = sText & Left$(StrConv(sBuffer, vbUnicode), lActual)
-            End If
+            Loop
         End If
         If lResult <> WAIT_OBJECT_0 Then
+            Call CancelIo(hComm)
             DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lTimeout=" & lTimeout
             If lResult = WAIT_TIMEOUT Then
                 sError = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
-            Call CancelIo(hComm)
             GoTo QH
         End If
         '--- check if response complete
         If Len(sText) >= 5 Then
             baText = ToAscii(sText)
             If baText(0) <> &HAA Or baText(1) <> &H55 Or baText(2) <> m_lCashDesk Then
+                Call CancelIo(hComm)
                 DebugLog FUNC_NAME, "Invalid response header, sText=" & pvDumpHex(sText)
                 sError = pvInternal(ucsErrInvalidResponseHeader)
-                Call CancelIo(hComm)
                 GoTo QH
             End If
             '--- 5 = sizeof header, baText(4) = size of response, 1 - size of checksum

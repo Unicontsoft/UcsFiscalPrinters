@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 35    23.01.15 17:57 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 36    28.01.15 15:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 36    28.01.15 15:34 Wqw
+' REF: error messages
+'
 ' 35    23.01.15 17:57 Wqw
 ' REF: uses persistent port global object
 '
@@ -1939,11 +1942,11 @@ RetrySend:
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
+        Call CancelIo(hComm)
         DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
         If lResult = WAIT_TIMEOUT Then
             Error = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
-        Call CancelIo(hComm)
         GoTo QH
     End If
     '--- async read response
@@ -1965,36 +1968,39 @@ RetrySend:
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
 InLoop:
-            sBuffer = String$(1000, 0)
-            lActual = 0
-            lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
-            If lResult = 0 Then
-                If Err.LastDllError = ERROR_HANDLE_EOF Then
-                    lResult = WAIT_OBJECT_0
-                Else
-                    If Err.LastDllError <> ERROR_IO_PENDING Then
-                        DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                        Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
-                        GoTo QH
+            Do
+                sBuffer = String$(1000, 0)
+                lActual = 0
+                lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
+                If lResult = 0 Then
+                    If Err.LastDllError = ERROR_HANDLE_EOF Then
+                        lResult = WAIT_OBJECT_0
+                    Else
+                        If Err.LastDllError <> ERROR_IO_PENDING Then
+                            DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
+                            GoTo QH
+                        End If
+                        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
                     End If
-                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
+                Else
+                    lResult = WAIT_OBJECT_0
                 End If
-            Else
-                lResult = WAIT_OBJECT_0
-            End If
-            If lResult = WAIT_OBJECT_0 Then
+                If lActual = 0 Then
+                    Exit Do
+                End If
                 sText = sText & Left$(sBuffer, lActual)
-            End If
+            Loop
         End If
         If lResult <> WAIT_OBJECT_0 Then
+            Call CancelIo(hComm)
             If bLogging Then
                 DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lTimeout=" & lTimeout
             End If
             If lResult = WAIT_TIMEOUT Then
                 Error = pvInternal(ucsErrTimeoutWaitingForResponse)
             End If
-            Call CancelIo(hComm)
-            Exit Do
+            GoTo QH
         End If
 RetryParse:
         If LenB(sText) <> 0 Then
@@ -2033,8 +2039,8 @@ RetryParse:
                     Exit Do
                 End If
             Case ZFP_RETRY          ' &HE
-                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
                 Call CancelIo(hComm)
+                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
                 Error = Printf(pvInternal(ucsErrInvalidMessageFormatOrChecksum), ToHexDump(sText))
