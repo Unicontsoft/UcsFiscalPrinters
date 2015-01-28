@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 28    23.01.15 17:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 29    28.01.15 15:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 29    28.01.15 15:34 Wqw
+' REF: output debug log keeps log file open for performance
+'
 ' 28    23.01.15 17:58 Wqw
 ' ADD: global persistent port object
 '
@@ -127,7 +130,6 @@ Private Const GENERIC_READ                  As Long = &H80000000
 Private Const GENERIC_WRITE                 As Long = &H40000000
 Private Const OPEN_EXISTING                 As Long = 3
 Private Const INVALID_HANDLE_VALUE          As Long = -1
-Private Const FILE_FLAG_OVERLAPPED          As Long = &H40000000
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
@@ -569,38 +571,47 @@ End Function
 
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
+    Static nFile        As Integer
     Dim sFile           As String
-    Dim nFile           As Integer
     Dim lErrNum         As Long
     Dim sErrSrc         As String
     Dim sErrDesc        As String
     Dim sNewFile        As String
     
+    If nFile = -1 Then
+        Exit Sub
+    End If
     lErrNum = Err.Number
     sErrSrc = Err.Source
     sErrDesc = Err.Description
     On Error Resume Next '--- checked
-    sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
-    If LenB(sFile) = 0 Then
-        sFile = Environ$("TEMP") & "\UcsFP.log"
-        If Not FileExists(sFile) Then
-            GoTo QH
-        End If
-    End If
-    If FileExists(sFile) Then
-        If FileLen(sFile) > LNG_MAX_SIZE Then
-            If InStrRev(sFile, ".") > InStrRev(sFile, "\") Then
-                sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
-            Else
-                sNewFile = sFile & Format$(Date, "_yyyy_mm_dd")
+    If nFile = 0 Then
+        sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
+        If LenB(sFile) = 0 Then
+            sFile = Environ$("TEMP") & "\UcsFP.log"
+            If Not FileExists(sFile) Then
+                nFile = -1
+                GoTo QH
             End If
-            Name sFile As sNewFile
         End If
+        If FileExists(sFile) Then
+            If FileLen(sFile) > LNG_MAX_SIZE Then
+                If InStrRev(sFile, ".") > InStrRev(sFile, "\") Then
+                    sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
+                Else
+                    sNewFile = sFile & Format$(Date, "_yyyy_mm_dd")
+                End If
+                Name sFile As sNewFile
+            End If
+        End If
+        nFile = FreeFile
+        Open sFile For Append Access Write Shared As #nFile
     End If
-    nFile = FreeFile
-    Open sFile For Append Access Write As #nFile
     Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right$(Format$(Timer, "#0.00"), 2) & "): " & sText
-    Close #nFile
+    If LOF(nFile) > LNG_MAX_SIZE Then
+        Close #nFile
+        nFile = 0
+    End If
 QH:
     On Error GoTo 0
     Err.Number = lErrNum
