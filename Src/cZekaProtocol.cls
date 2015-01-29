@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 36    28.01.15 15:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 37    29.01.15 11:44 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 37    29.01.15 11:44 Wqw
+' REF: open port on error clears persistent comm handle
+'
 ' 36    28.01.15 15:34 Wqw
 ' REF: error messages
 '
@@ -645,7 +648,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
                         .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
                     Else
-                        g_oPersistentPort.CloseComPort .hComm
+                        PortWrapper.CloseComPort .hComm
                         .hComm = 0
                     End If
                 End If
@@ -707,7 +710,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         Next
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                g_oPersistentPort.CloseComPort .hComm
+                PortWrapper.CloseComPort .hComm
                 .hComm = 0
                 If .WriteOver.hEvent <> 0 Then
                     Call CloseHandle(.WriteOver.hEvent)
@@ -739,7 +742,7 @@ Public Function Init( _
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
     pvSetLastError vbNullString
-    g_oPersistentPort.CloseComPort m_hComm
+    PortWrapper.CloseComPort m_hComm
     m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(Timeout <= 0, DEF_TIMEOUT, Timeout)
     m_lCashDeskNo = IIf(CashDeskNo <= 0, 1, CashDeskNo)
@@ -819,7 +822,7 @@ Public Function Disconnect() As Boolean
         pvSetLastError pvInternal(ucsErrNotConnected)
         GoTo QH
     End If
-    g_oPersistentPort.CloseComPort m_hComm
+    PortWrapper.CloseComPort m_hComm
     m_hComm = INVALID_HANDLE_VALUE
     '--- success
     Disconnect = True
@@ -1827,6 +1830,7 @@ End Sub
 Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
     Dim vSplit          As Variant
+    Dim hComm           As Long
     Dim uTimeout        As COMMTIMEOUTS
     Dim uDCB            As DCB
     Dim lApiError       As Long
@@ -1838,16 +1842,16 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         Error = pvInternal(ucsErrNoDeviceInfoSet)
         GoTo QH
     End If
-    pvOpenPort = g_oPersistentPort.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
-    If pvOpenPort = INVALID_HANDLE_VALUE Then
+    hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
+    If hComm = INVALID_HANDLE_VALUE Then
         lApiError = Err.LastDllError
         Error = pvInternal(ucsErrCreateFileFailed) & GetApiErr(lApiError)
         If lApiError = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
             dblTimer = DateTimer + lTimeout / 1000#
             Do While DateTimer < dblTimer
                 Call Sleep(100)
-                pvOpenPort = g_oPersistentPort.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
-                If pvOpenPort <> INVALID_HANDLE_VALUE Then
+                hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
+                If hComm <> INVALID_HANDLE_VALUE Then
                     Error = vbNullString
                     Exit Do
                 End If
@@ -1864,21 +1868,22 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         .WriteTotalTimeoutConstant = 500
         .WriteTotalTimeoutMultiplier = 1
     End With
-    If SetCommTimeouts(pvOpenPort, uTimeout) = 0 Then
-        Set g_oPersistentPort = Nothing
+    If SetCommTimeouts(hComm, uTimeout) = 0 Then
+        PortWrapper.CloseComPort hComm, ClearPersistent:=True
         Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
-        Set g_oPersistentPort = Nothing
+        PortWrapper.CloseComPort hComm, ClearPersistent:=True
         Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
-    If SetCommState(pvOpenPort, uDCB) = 0 Then
-        Set g_oPersistentPort = Nothing
+    If SetCommState(hComm, uDCB) = 0 Then
+        PortWrapper.CloseComPort hComm, ClearPersistent:=True
         Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
+    pvOpenPort = hComm
 QH:
     Exit Function
 EH:
@@ -2776,7 +2781,7 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    g_oPersistentPort.CloseComPort m_hComm
+    PortWrapper.CloseComPort m_hComm
     m_hComm = INVALID_HANDLE_VALUE
 End Sub
 
