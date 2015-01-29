@@ -6,21 +6,24 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cPersistentPort"
+Attribute VB_Name = "cPortWrapper"
 Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = True
+Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = True
+Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cPersistentPort.cls 1     27.01.15 15:22 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cPortWrapper.cls 2     29.01.15 11:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
 '
-'   Persistent COM port
+'   Persistent COM port wrapper
 '
-' $Log: /UcsFiscalPrinter/Src/cPersistentPort.cls $
+' $Log: /UcsFiscalPrinter/Src/cPortWrapper.cls $
 ' 
+' 2     29.01.15 11:43 Wqw
+' REF: close debug log file on terminate
+'
 ' 1     27.01.15 15:22 Wqw
 ' Initial implementation
 '
@@ -55,13 +58,9 @@ Private m_bReleased         As Boolean
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String, Optional ByVal bUnattended As Boolean)
+Private Sub PrintError(sFunc As String)
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    If bUnattended Then
-        OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
-    Else
-        MsgBox MODULE_NAME & "." & sFunc & "(" & Erl & ")" & ": " & Err.Description, vbCritical
-    End If
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 '=========================================================================
@@ -102,9 +101,11 @@ EH:
     Resume Next
 End Function
 
-Public Function CloseComPort(ByVal hComm As Long) As Long
+Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent As Boolean) As Long
     Const FUNC_NAME     As String = "CloseComPort"
+    Dim vErr            As Variant
     
+    vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error GoTo EH
     If hComm <> m_hComm Then
         If hComm <> INVALID_HANDLE_VALUE Then
@@ -113,13 +114,35 @@ Public Function CloseComPort(ByVal hComm As Long) As Long
     Else
         m_bReleased = True
     End If
+    If ClearPersistent Then
+        If m_hComm <> 0 Then
+            If m_hComm <> INVALID_HANDLE_VALUE Then
+                Call CloseHandle(m_hComm)
+            End If
+            m_hComm = 0
+            m_sPort = vbNullString
+        End If
+    End If
+    On Error GoTo 0
+    Err.Number = vErr(0)
+    Err.Description = vErr(1)
+    Err.Source = vErr(2)
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
 
+'=========================================================================
+' Base class events
+'=========================================================================
+
 Private Sub Class_Terminate()
+    Const FUNC_NAME     As String = "Class_Terminate"
+    Dim vErr            As Variant
+    
+    vErr = Array(Err.Number, Err.Description, Err.Source)
+    On Error GoTo EH
     If m_hComm <> 0 Then
         If m_hComm <> INVALID_HANDLE_VALUE Then
             Call CloseHandle(m_hComm)
@@ -127,4 +150,16 @@ Private Sub Class_Terminate()
         m_hComm = 0
         m_sPort = vbNullString
     End If
+    If DebugLogFile <> 0 And DebugLogFile <> -1 Then
+        Close #DebugLogFile
+        DebugLogFile = 0
+    End If
+    On Error GoTo 0
+    Err.Number = vErr(0)
+    Err.Description = vErr(1)
+    Err.Source = vErr(2)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Sub
