@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 29    28.01.15 15:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 30    29.01.15 11:45 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 30    29.01.15 11:45 Wqw
+' REF: public debug log file handle
+'
 ' 29    28.01.15 15:34 Wqw
 ' REF: output debug log keeps log file open for performance
 '
@@ -347,20 +350,17 @@ Public Const DBL_EPSILON            As Double = 0.0000000001
 
 Public g_sDecimalSeparator      As String
 Public g_hGdip                  As Long
-Public g_oConfig                As Object
-Public g_oPersistentPort        As New cPersistentPort
+Private m_oConfig               As Object
+Private m_oPortWrapper          As cPortWrapper
+Private m_nDebugLogFile         As Integer
 
 '=========================================================================
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String, Optional ByVal bUnattended As Boolean)
+Private Sub PrintError(sFunc As String)
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    If bUnattended Then
-        OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
-    Else
-        MsgBox MODULE_NAME & "." & sFunc & "(" & Erl & ")" & ": " & Err.Description, vbCritical
-    End If
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 Private Sub RaiseError(sFunc As String)
@@ -368,6 +368,22 @@ Private Sub RaiseError(sFunc As String)
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
+
+'=========================================================================
+' Properties
+'=========================================================================
+
+Property Get DebugLogFile() As Integer
+    DebugLogFile = m_nDebugLogFile
+End Property
+
+Property Let DebugLogFile(ByVal nValue As Integer)
+    m_nDebugLogFile = nValue
+End Property
+
+Property Get PortWrapper() As cPortWrapper
+    Set PortWrapper = m_oPortWrapper
+End Property
 
 '=========================================================================
 ' Functions
@@ -392,7 +408,8 @@ Private Sub Main()
     If Not IsObject(vJson) Then
         JsonParse "{}", vJson
     End If
-    Set g_oConfig = vJson
+    Set m_oConfig = vJson
+    Set m_oPortWrapper = New cPortWrapper
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -565,32 +582,27 @@ Public Function EnumSerialPorts() As Variant
     End If
     Exit Function
 EH:
-    PrintError FUNC_NAME, True
+    PrintError FUNC_NAME
     Resume Next
 End Function
 
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
-    Static nFile        As Integer
     Dim sFile           As String
-    Dim lErrNum         As Long
-    Dim sErrSrc         As String
-    Dim sErrDesc        As String
     Dim sNewFile        As String
+    Dim vErr            As Variant
     
-    If nFile = -1 Then
+    vErr = Array(Err.Number, Err.Description, Err.Source)
+    If m_nDebugLogFile = -1 Then
         Exit Sub
     End If
-    lErrNum = Err.Number
-    sErrSrc = Err.Source
-    sErrDesc = Err.Description
     On Error Resume Next '--- checked
-    If nFile = 0 Then
+    If m_nDebugLogFile = 0 Then
         sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
         If LenB(sFile) = 0 Then
             sFile = Environ$("TEMP") & "\UcsFP.log"
             If Not FileExists(sFile) Then
-                nFile = -1
+                m_nDebugLogFile = -1
                 GoTo QH
             End If
         End If
@@ -604,19 +616,19 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
                 Name sFile As sNewFile
             End If
         End If
-        nFile = FreeFile
-        Open sFile For Append Access Write Shared As #nFile
+        m_nDebugLogFile = FreeFile
+        Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #nFile, sModule & "." & sFunc & "(" & Now & "." & Right$(Format$(Timer, "#0.00"), 2) & "): " & sText
-    If LOF(nFile) > LNG_MAX_SIZE Then
-        Close #nFile
-        nFile = 0
+    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & "." & Right$(Format$(Timer, "#0.00"), 2) & "): " & sText
+    If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
+        Close #m_nDebugLogFile
+        m_nDebugLogFile = 0
     End If
 QH:
     On Error GoTo 0
-    Err.Number = lErrNum
-    Err.Source = sErrSrc
-    Err.Description = sErrDesc
+    Err.Number = vErr(0)
+    Err.Description = vErr(1)
+    Err.Source = vErr(2)
 End Sub
 
 Public Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double
@@ -1146,10 +1158,10 @@ Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefa
     
     On Error GoTo EH
     If LenB(sSerial) <> 0 Then
-        If g_oConfig.Exists(sSerial) Then
-            If IsObject(g_oConfig(sSerial)) Then
-                If g_oConfig(sSerial).Exists(sKey) Then
-                    AssignVariant GetConfigValue, g_oConfig(sSerial).Item(sKey)
+        If m_oConfig.Exists(sSerial) Then
+            If IsObject(m_oConfig(sSerial)) Then
+                If m_oConfig(sSerial).Exists(sKey) Then
+                    AssignVariant GetConfigValue, m_oConfig(sSerial).Item(sKey)
                     Exit Function
                 End If
             End If
