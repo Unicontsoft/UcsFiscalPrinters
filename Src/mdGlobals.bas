@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 30    29.01.15 11:45 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 31    30.01.15 15:06 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 31    30.01.15 15:06 Wqw
+' ADD: Sub FlushDebugLog
+'
 ' 30    29.01.15 11:45 Wqw
 ' REF: public debug log file handle
 '
@@ -348,8 +351,8 @@ Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ZEKA"
 Public Const CHR1                   As String = "" '--- Chr$(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
 
-Public g_sDecimalSeparator      As String
-Public g_hGdip                  As Long
+Private m_sDecimalSeparator     As String
+Private m_hGdiPlus              As Long
 Private m_oConfig               As Object
 Private m_oPortWrapper          As cPortWrapper
 Private m_nDebugLogFile         As Integer
@@ -373,12 +376,8 @@ End Sub
 ' Properties
 '=========================================================================
 
-Property Get DebugLogFile() As Integer
-    DebugLogFile = m_nDebugLogFile
-End Property
-
-Property Let DebugLogFile(ByVal nValue As Integer)
-    m_nDebugLogFile = nValue
+Property Get DecimalSeparator() As String
+    DecimalSeparator = m_sDecimalSeparator
 End Property
 
 Property Get PortWrapper() As cPortWrapper
@@ -396,7 +395,7 @@ Private Sub Main()
     Dim sError          As String
     
     On Error GoTo EH
-    g_sDecimalSeparator = GetDecimalSeparator()
+    m_sDecimalSeparator = GetDecimalSeparator()
     sFile = LocateFile(App.Path & "\" & App.EXEName & ".conf")
     If LenB(sFile) <> 0 Then
         OutputDebugLog MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
@@ -472,7 +471,7 @@ Public Function C_Dbl(Value As Variant) As Double
     
     If VarType(Value) = vbDouble Then
         C_Dbl = Value
-    ElseIf VariantChangeType(vDest, Replace(C_Str(Value), ".", g_sDecimalSeparator), 0, VT_R8) = 0 Then
+    ElseIf VariantChangeType(vDest, Replace(C_Str(Value), ".", m_sDecimalSeparator), 0, VT_R8) = 0 Then
         C_Dbl = vDest
     End If
 End Function
@@ -588,9 +587,9 @@ End Function
 
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
+    Dim vErr            As Variant
     Dim sFile           As String
     Dim sNewFile        As String
-    Dim vErr            As Variant
     
     vErr = Array(Err.Number, Err.Description, Err.Source)
     If m_nDebugLogFile = -1 Then
@@ -626,6 +625,21 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     End If
 QH:
     On Error GoTo 0
+    Err.Number = vErr(0)
+    Err.Description = vErr(1)
+    Err.Source = vErr(2)
+End Sub
+
+Public Sub FlushDebugLog()
+    Dim vErr            As Variant
+    
+    vErr = Array(Err.Number, Err.Description, Err.Source)
+    On Error GoTo QH
+    If m_nDebugLogFile <> 0 And m_nDebugLogFile <> -1 Then
+        Close #m_nDebugLogFile
+        m_nDebugLogFile = 0
+    End If
+QH:
     Err.Number = vErr(0)
     Err.Description = vErr(1)
     Err.Source = vErr(2)
@@ -1076,9 +1090,9 @@ End Function
 Public Function GdipLoadImage(sFile As String) As Long
     Dim uStartup        As GDIPLUS_STARTUP_INPUT
     
-    If g_hGdip = 0 Then
+    If m_hGdiPlus = 0 Then
         uStartup.GdiplusVersion = 1&
-        Call GdiplusStartup(g_hGdip, uStartup)
+        Call GdiplusStartup(m_hGdiPlus, uStartup)
     End If
     Call GdipLoadImageFromFile(StrPtr(sFile), GdipLoadImage)
 End Function
@@ -1251,7 +1265,7 @@ Public Function LocateFile(sFile As String) As String
 End Function
 
 Public Function SafeFormat(Expression As Variant, Optional Fmt As Variant, Optional sDecimal As String = ".") As String
-    SafeFormat = Replace(Format$(Expression, Fmt), g_sDecimalSeparator, sDecimal)
+    SafeFormat = Replace(Format$(Expression, Fmt), m_sDecimalSeparator, sDecimal)
 End Function
 
 Public Function SafeText(sText As String) As String
