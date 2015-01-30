@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 32    28.01.15 15:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 33    30.01.15 15:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2014 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
 '   Fiscal devices management using IDeviceProtocol protocols
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 33    30.01.15 15:07 Wqw
+' REF: calls flush debug log on terminate
+'
 ' 32    28.01.15 15:34 Wqw
 ' REF: error messages
 '
@@ -916,3 +919,10 @@ Private Function pvGetVatGroup(sVatGroup As String) As Long
     End If
 End Function
 
+'=========================================================================
+' Base class events
+'=========================================================================
+
+Private Sub Class_Terminate()
+    FlushDebugLog
+End Sub

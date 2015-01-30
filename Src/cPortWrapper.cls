@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cPortWrapper.cls 2     29.01.15 11:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cPortWrapper.cls 3     30.01.15 15:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/cPortWrapper.cls $
 ' 
+' 3     30.01.15 15:07 Wqw
+' REF: calls flush debug log on terminate
+'
 ' 2     29.01.15 11:43 Wqw
 ' REF: close debug log file on terminate
 '
@@ -106,6 +109,9 @@ Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent
     Dim vErr            As Variant
     
     vErr = Array(Err.Number, Err.Description, Err.Source)
+    If (hComm = 0 Or hComm = INVALID_HANDLE_VALUE) And Not ClearPersistent Then
+        Exit Function
+    End If
     On Error GoTo EH
     If hComm <> m_hComm Then
         If hComm <> INVALID_HANDLE_VALUE Then
@@ -150,10 +156,7 @@ Private Sub Class_Terminate()
         m_hComm = 0
         m_sPort = vbNullString
     End If
-    If DebugLogFile <> 0 And DebugLogFile <> -1 Then
-        Close #DebugLogFile
-        DebugLogFile = 0
-    End If
+    FlushDebugLog
     On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
