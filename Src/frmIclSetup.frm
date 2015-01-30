@@ -2,13 +2,13 @@ VERSION 5.00
 Begin VB.Form frmIclSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ICL протокол"
-   ClientHeight    =   6250
-   ClientLeft      =   50
-   ClientTop       =   340
-   ClientWidth     =   8170
+   ClientHeight    =   6252
+   ClientLeft      =   48
+   ClientTop       =   336
+   ClientWidth     =   8172
    BeginProperty Font 
       Name            =   "Tahoma"
-      Size            =   8.5
+      Size            =   8.4
       Charset         =   204
       Weight          =   400
       Underline       =   0   'False
@@ -19,8 +19,8 @@ Begin VB.Form frmIclSetup
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
-   ScaleHeight     =   6250
-   ScaleWidth      =   8170
+   ScaleHeight     =   6252
+   ScaleWidth      =   8172
    StartUpPosition =   1  'CenterOwner
    Begin VB.Frame fraCommands 
       Height          =   5775
@@ -340,8 +340,8 @@ Begin VB.Form frmIclSetup
          BorderStyle     =   0  'None
          Height          =   2445
          Left            =   180
-         ScaleHeight     =   2450
-         ScaleWidth      =   5420
+         ScaleHeight     =   2448
+         ScaleWidth      =   5412
          TabIndex        =   206
          TabStop         =   0   'False
          Top             =   720
@@ -361,8 +361,8 @@ Begin VB.Form frmIclSetup
             BorderStyle     =   0  'None
             Height          =   1635
             Left            =   0
-            ScaleHeight     =   1640
-            ScaleWidth      =   5240
+            ScaleHeight     =   1632
+            ScaleWidth      =   5232
             TabIndex        =   207
             TabStop         =   0   'False
             Top             =   0
@@ -2166,7 +2166,7 @@ Begin VB.Form frmIclSetup
          BackStyle       =   0  'Transparent
          BeginProperty Font 
             Name            =   "Tahoma"
-            Size            =   8.5
+            Size            =   8.4
             Charset         =   204
             Weight          =   700
             Underline       =   0   'False
@@ -2238,7 +2238,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 15    6.01.15 17:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 16    30.01.15 15:32 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -2247,6 +2247,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 16    30.01.15 15:32 Wqw
+' REF: format elapsed time in ms
+'
 ' 15    6.01.15 17:49 Wqw
 ' REF: err check za daisy FP
 '
@@ -3211,7 +3214,7 @@ Private Sub lstCmds_Click()
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
-    dblTimer = Timer
+    dblTimer = DateTimer
     If lstCmds.ListIndex = ucsCmdSettings Or lstCmds.ListIndex = ucsCmdOperations Or lstCmds.ListIndex = ucsCmdAdmin Then
         lVisibleFrame = -1
         GoTo QH
@@ -3229,7 +3232,7 @@ Private Sub lstCmds_Click()
     pvStatus = STR_STATUS_FETCHING
     If pvFetchData(lstCmds.ListIndex) Then
         If pvStatus = STR_STATUS_FETCHING Or LenB(pvStatus) = 0 Then
-            pvStatus = Printf(STR_STATUS_SUCCESS_FETCH, Trim(lstCmds.List(lstCmds.ListIndex)), Round(Timer - dblTimer, 2))
+            pvStatus = Printf(STR_STATUS_SUCCESS_FETCH, Trim(lstCmds.List(lstCmds.ListIndex)), Format$(DateTimer - dblTimer, "0.000"))
         End If
         lVisibleFrame = lstCmds.ListIndex
     Else
@@ -3269,7 +3272,7 @@ Private Sub cmdSave_Click(Index As Integer)
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
-    dblTimer = Timer
+    dblTimer = DateTimer
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect Then
         pvStatus = STR_STATUS_CONNECTING
         On Error Resume Next '--- checked
@@ -3286,7 +3289,7 @@ Private Sub cmdSave_Click(Index As Integer)
         End If
         If pvFetchData(lstCmds.ListIndex) Then
             If pvStatus = STR_STATUS_SAVING & " " & STR_STATUS_FETCHING Then
-                pvStatus = Printf(STR_STATUS_SUCCESS_SAVE, Trim(lstCmds.List(lstCmds.ListIndex)), Round(Timer - dblTimer, 2))
+                pvStatus = Printf(STR_STATUS_SUCCESS_SAVE, Trim(lstCmds.List(lstCmds.ListIndex)), Format$(DateTimer - dblTimer, "0.000"))
             End If
         End If
     End If

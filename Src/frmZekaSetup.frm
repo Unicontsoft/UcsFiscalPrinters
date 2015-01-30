@@ -2348,7 +2348,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 8     26.11.14 19:19 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 9     30.01.15 15:32 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -2357,6 +2357,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 9     30.01.15 15:32 Wqw
+' REF: format elapsed time in ms
+'
 ' 8     26.11.14 19:19 Wqw
 ' REF: spelling
 '
@@ -3148,7 +3151,7 @@ Private Sub lstCmds_Click()
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
-    dblTimer = Timer
+    dblTimer = DateTimer
     If lstCmds.ListIndex = ucsCmdSettings Or lstCmds.ListIndex = ucsCmdOperations Or lstCmds.ListIndex = ucsCmdAdmin Then
         lVisibleFrame = -1
         GoTo QH
@@ -3166,7 +3169,7 @@ Private Sub lstCmds_Click()
     pvStatus = STR_STATUS_FETCHING
     If pvFetchData(lstCmds.ListIndex) Then
         If pvStatus = STR_STATUS_FETCHING Or LenB(pvStatus) = 0 Then
-            pvStatus = Printf(STR_STATUS_SUCCESS_FETCH, Trim(lstCmds.List(lstCmds.ListIndex)), Round(Timer - dblTimer, 2))
+            pvStatus = Printf(STR_STATUS_SUCCESS_FETCH, Trim(lstCmds.List(lstCmds.ListIndex)), Format$(DateTimer - dblTimer, "0.000"))
         End If
         lVisibleFrame = lstCmds.ListIndex
     Else
@@ -3207,7 +3210,7 @@ Private Sub cmdSave_Click(Index As Integer)
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
-    dblTimer = Timer
+    dblTimer = DateTimer
     If Not m_oFP.IsConnected And lstCmds.ListIndex <> ucsCmdConnect Then
         pvStatus = STR_STATUS_CONNECTING
         On Error Resume Next '--- checked
@@ -3224,7 +3227,7 @@ Private Sub cmdSave_Click(Index As Integer)
         End If
         If pvFetchData(lstCmds.ListIndex) Then
             If pvStatus = STR_STATUS_SAVING & " " & STR_STATUS_FETCHING Then
-                pvStatus = Printf(STR_STATUS_SUCCESS_SAVE, Trim(lstCmds.List(lstCmds.ListIndex)), Round(Timer - dblTimer, 2))
+                pvStatus = Printf(STR_STATUS_SUCCESS_SAVE, Trim(lstCmds.List(lstCmds.ListIndex)), Format$(DateTimer - dblTimer, "0.000"))
             End If
         End If
     End If
