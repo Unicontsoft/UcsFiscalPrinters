@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 31    30.01.15 15:06 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 32    30.01.15 15:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 32    30.01.15 15:30 Wqw
+' REF: date timer precision
+'
 ' 31    30.01.15 15:06 Wqw
 ' ADD: Sub FlushDebugLog
 '
@@ -219,6 +222,7 @@ Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttribut
 Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function VariantCopy Lib "oleaut32" (dest As Variant, src As Variant) As Long
 Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
+Private Declare Function GetSystemTimeAsFileTime Lib "kernel32.dll" (lpSystemTimeAsFileTime As Currency) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -618,7 +622,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         m_nDebugLogFile = FreeFile
         Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & "." & Right$(Format$(Timer, "#0.00"), 2) & "): " & sText
+    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & Right$(Format$(DateTimer, "0.000"), 4) & "): " & sText
     If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
@@ -1332,7 +1336,10 @@ Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As C
 End Function
 
 Public Property Get DateTimer() As Double
-    DateTimer = CLng(Date) * 86400# + Timer
+    Dim cDateTime       As Currency
+    
+    Call GetSystemTimeAsFileTime(cDateTime)
+    DateTimer = CDbl(cDateTime - 9435304800000@) / 1000#
 End Property
 
 Public Function ToHexDump(sText As String) As String
