@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 35    29.01.15 11:44 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 36    30.01.15 15:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 36    30.01.15 15:07 Wqw
+' REF: uses decimal separator property
+'
 ' 35    29.01.15 11:44 Wqw
 ' REF: open port on error clears persistent comm handle
 '
@@ -1277,7 +1280,7 @@ Public Function CancelReceipt() As Boolean
                 Exit For
             End If
             If pvPeek(sResult, 4, 2) <> ucsLcdVoid Then
-                SendInput Chr$(ucsChrClear) & Replace(Round(pvPeek(sResult, 0, 4) / 100#, 2), g_sDecimalSeparator, Chr$(ucsChrDot))
+                SendInput Chr$(ucsChrClear) & Replace(Round(pvPeek(sResult, 0, 4) / 100#, 2), DecimalSeparator, Chr$(ucsChrDot))
                 Exit For
             End If
         Next
@@ -2019,7 +2022,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     sData = sData & Chr$(ucsChrRFN)
                 End If
                 If .PluQuantity <> 1 Then
-                    sData = sData & Replace(.PluQuantity, g_sDecimalSeparator, Chr$(ucsChrDot))
+                    sData = sData & Replace(.PluQuantity, DecimalSeparator, Chr$(ucsChrDot))
                     sData = sData & Chr$(ucsChrX)
                 End If
                 sData = sData & lPlu & Chr$(ucsChrPLU)
@@ -2075,7 +2078,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     lTotal = pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4)
                     sData = IIf(.DiscType = ucsFscDstSubtotal, Chr$(ucsChrSubtotal), vbNullString)
                     If .DiscValue <> 0 Then
-                        sData = sData & Replace(Abs(.DiscValue), g_sDecimalSeparator, Chr$(ucsChrDot))
+                        sData = sData & Replace(Abs(.DiscValue), DecimalSeparator, Chr$(ucsChrDot))
                         sData = sData & IIf(.DiscValue < 0, Chr$(ucsChrMinus), Chr$(ucsChrPlus))
                     End If
                     If LenB(sData) <> 0 Then
@@ -2183,7 +2186,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         End If
                     End If
                     lTotal = pvPeek(SendCommand(ucsEltCmdInfoStatus), 0, 4)
-                    sData = Replace(Round(.PmtAmount, 2), g_sDecimalSeparator, Chr$(ucsChrDot))
+                    sData = Replace(Round(.PmtAmount, 2), DecimalSeparator, Chr$(ucsChrDot))
                     Select Case .PmtType
                     Case 2
                         sData = sData & Chr$(ucsChrPy1)
