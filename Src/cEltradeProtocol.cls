@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 36    30.01.15 15:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 37    17.02.15 19:23 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 37    17.02.15 19:23 Wqw
+' REF: err hanlding on port open
+'
 ' 36    30.01.15 15:07 Wqw
 ' REF: uses decimal separator property
 '
@@ -535,7 +538,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(vPorts)
             If LenB(At(vPorts, lIdx)) <> 0 Then
                 sError = vbNullString
-                hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, sError:=sError)
+                hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, Error:=sError)
                 If hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
                     If LenB(pvSendCommand(hComm, lTimeout, ucsEltCmdInfoStatus)) = 0 Then
                         '--- do nothing
@@ -1396,7 +1399,7 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvOpenPort(sDevice As String, Optional sError As String) As Long
+Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
     Dim vSplit          As Variant
     Dim hComm           As Long
@@ -1406,12 +1409,12 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
     If LenB(At(vSplit, 0)) = 0 Then
-        sError = pvInternal(ucsErrNoDeviceInfoSet)
+        Error = pvInternal(ucsErrNoDeviceInfoSet)
         GoTo QH
     End If
     hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
     If hComm = INVALID_HANDLE_VALUE Then
-        sError = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     With uTimeout
@@ -1422,18 +1425,18 @@ Private Function pvOpenPort(sDevice As String, Optional sError As String) As Lon
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(hComm, uTimeout) = 0 Then
+        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        sError = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
+        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        sError = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     If SetCommState(hComm, uDCB) = 0 Then
+        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        sError = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
         GoTo QH
     End If
     pvOpenPort = hComm
