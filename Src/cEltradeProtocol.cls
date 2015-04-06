@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 37    17.02.15 19:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 38    6.04.15 15:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 38    6.04.15 15:16 Wqw
+' REF: non-fiscal invoice total vat rounding
+'
 ' 37    17.02.15 19:23 Wqw
 ' REF: err hanlding on port open
 '
@@ -2116,8 +2119,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
                                 If uCtx.GrpTotal(lIdx) <> 0 Then
                                     pvPrintLine AlignText(pvText(ucsTxtPmtTotal), Format$(uCtx.GrpTotal(lIdx), "0.00"), pvRowChars - 2)
+                                    '--- first, round VAT
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - uCtx.GrpTotal(lIdx) / (1 + pvPeek(sResult, (lIdx - 1) * 2, 2) / 10000#), 2)
                                     '--- total w/o VAT
-                                    dblTotal = Round(uCtx.GrpTotal(lIdx) / (1 + pvPeek(sResult, (lIdx - 1) * 2, 2) / 10000#), 2)
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - dblTotal, 2)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtPmtVatGroup), Chr$(191 + lIdx)), Format$(uCtx.GrpTotal(lIdx) - dblTotal, "0.00"), pvRowChars - 2)
                                     pvPrintLine Chr$(191 + lIdx) & "=" & Format$(pvPeek(sResult, (lIdx - 1) * 2, 2) / 100#, "0.00")
                                     pvPrintLine AlignText(pvText(ucsTxtPmtNeto), Format$(dblTotal, "0.00"), pvRowChars - 2)

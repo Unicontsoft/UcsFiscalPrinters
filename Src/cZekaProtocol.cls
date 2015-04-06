@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 38    17.02.15 19:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 39    6.04.15 15:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 39    6.04.15 15:16 Wqw
+' REF: non-fiscal invoice total vat rounding
+'
 ' 38    17.02.15 19:23 Wqw
 ' REF: err hanlding on port open
 '
@@ -2232,9 +2235,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     End If
                 End If
                 '--- setup invoice no
-                If .InitReceiptType = ucsFscRetInvoiceFiscal And C_Lng(.InitInvData(ucsInvNumber)) <> 0 Then
+                If .InitReceiptType = ucsFscRetInvoiceFiscal And LenB(.InitInvData(ucsInvNumber)) <> 0 Then
                     pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsZekCmdInitInvoiceNo, sParam, "%1;%1"
-                    sParam = Printf(sParam, Pad(C_Lng(.InitInvData(ucsInvNumber)), -m_uConfig.MaxInvoiceNo))
+                    sParam = Printf(sParam, Pad(.InitInvData(ucsInvNumber), -m_uConfig.MaxInvoiceNo))
                     SendCommand eCmd, sParam
                     If LenB(m_sLastError) <> 0 Then
                         GoTo QH
@@ -2444,7 +2447,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             End If
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
                                 If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                                    dblTotal = Round(uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), 2)
+                                    '--- first, round VAT
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), 2)
+                                    '--- then, calc TaxBase = Total - VAT
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - dblTotal, 2)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupTotal), Chr$(191 + lIdx)), SafeFormat(uCtx.GrpTotal(lIdx), sFormatAmount), pvRowChars)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupVat), Chr$(191 + lIdx), SafeFormat(C_Dbl(At(vSplit, lIdx - 1)), sFormatAmount) & "%"), _
                                         SafeFormat(Round(uCtx.GrpTotal(lIdx) - dblTotal, 2), sFormatAmount), pvRowChars)
