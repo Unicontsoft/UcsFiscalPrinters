@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 79    6.04.15 15:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 80    14.04.15 18:23 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 80    14.04.15 18:23 Wqw
+' REF: uses VbTriState enum
+'
 ' 79    6.04.15 15:16 Wqw
 ' REF: non-fiscal invoice total vat rounding
 '
@@ -648,12 +651,6 @@ Private Enum UcsCharset
     ucsCrsMik
 End Enum
 
-Private Enum UcsTriState
-    ucsTri_Undefined = -2       ' Undefined value. Usually value is inherited from parent definition.
-    ucsTriFalse = 0             ' (Default) Represents False.
-    ucsTriTrue = -1             ' Represents True.
-End Enum
-
 Private Type UcsAutodetect
     hComm               As Long
     WriteOver           As OVERLAPPED
@@ -663,7 +660,7 @@ End Type
 
 Private Type UcsConfigValues
     Charset             As UcsCharset
-    IsEcr               As UcsTriState
+    IsEcr               As VbTriState
     IsDaisy             As Boolean
     RowChars            As Long
     ItemChars           As Long
@@ -780,12 +777,12 @@ Property Get IsEcr() As Boolean
     Dim sParam          As String
     
     On Error GoTo EH
-    If m_uConfig.IsEcr = ucsTri_Undefined Then
+    If m_uConfig.IsEcr = vbUseDefault Then
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsFpcEcrReadRow, sParam, "2;1;", _
             "Timeout", lTimeout, 100
-        m_uConfig.IsEcr = IIf(LenB(pvSendCommand(m_hComm, lTimeout, eCmd, sParam)) <> 0, ucsTriTrue, ucsTriFalse)
+        m_uConfig.IsEcr = IIf(LenB(pvSendCommand(m_hComm, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
     End If
-    IsEcr = (m_uConfig.IsEcr = ucsTriTrue)
+    IsEcr = (m_uConfig.IsEcr = vbTrue)
     Exit Property
 EH:
     RaiseError FUNC_NAME
@@ -979,7 +976,7 @@ Public Function Init( _
     Dim lIdx            As Long
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
-    Dim eHasSwitchesInfo As UcsTriState
+    Dim eHasSwitchesInfo As VbTriState
     Dim sDaisyPrefix    As String
     Dim lSerialIndex    As Long
     Dim lSwitchesIndex  As Long
@@ -1011,17 +1008,17 @@ Public Function Init( _
     End If
     '--- load config values
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
-    eHasSwitchesInfo = GetConfigNumber(sSerial, "HasSwitchesInfo", ucsTri_Undefined)
-    If eHasSwitchesInfo = ucsTri_Undefined Then
+    eHasSwitchesInfo = GetConfigNumber(sSerial, "HasSwitchesInfo", vbUseDefault)
+    If eHasSwitchesInfo = vbUseDefault Then
         '--- heuristic check for recent version of firmware
-        eHasSwitchesInfo = IIf(Len(At(m_vInfoDiagnostics, lSwitchesIndex)) > 2, ucsTriTrue, ucsTriFalse)
+        eHasSwitchesInfo = IIf(Len(At(m_vInfoDiagnostics, lSwitchesIndex)) > 2, vbTrue, vbFalse)
     End If
     With m_uConfig
         .Charset = ucsCrsAuto
-        .IsEcr = ucsTri_Undefined
+        .IsEcr = vbUseDefault
         .IsDaisy = Left$(GetSerialNumber(), Len(sDaisyPrefix)) = sDaisyPrefix
-        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = ucsTriTrue))
-        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = ucsTriFalse))
+        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
+        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
         .RowChars = GetConfigNumber(sSerial, "RowChars", 0)
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", 0)
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
