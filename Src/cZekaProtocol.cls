@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 39    6.04.15 15:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 40    14.04.15 18:23 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 40    14.04.15 18:23 Wqw
+' REF: impl ecr check and default password
+'
 ' 39    6.04.15 15:16 Wqw
 ' REF: non-fiscal invoice total vat rounding
 '
@@ -323,7 +326,8 @@ Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|576
 Private Const DEF_TIMEOUT               As Long = 2000
 Private Const DEF_PRINT_TIMEOUT         As Long = 30000
 Private Const DEF_OPERNO                As String = "1"
-Private Const DEF_PASSWORD              As String = "0"
+Private Const DEF_ECR_PASSWORD          As String = "0"
+Private Const DEF_FP_PASSWORD           As String = "0000"
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
@@ -497,6 +501,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    IsEcr               As VbTriState
     RowChars            As Long
     MaxReceiptRows      As Long
     MinDiscount         As Double
@@ -596,7 +601,26 @@ Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue A
 End Property
 
 Property Get IsEcr() As Boolean
-    IsEcr = True
+    Const FUNC_NAME     As String = "IsEcr [get]"
+    Const CONF_NAME     As String = "IsEcr"
+    Dim eCmd            As UcsIclCommandsEnum
+    Dim sParam          As String
+    Dim lTimeout        As Long
+    Dim lTypeIndex      As Long
+    Dim vInfoVersion    As Variant
+    
+    On Error GoTo EH
+    If m_uConfig.IsEcr = vbUseDefault Then
+        pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
+            "Timeout", lTimeout, 100, _
+            "TypeIndex", lTypeIndex, 0
+        vInfoVersion = Split(pvSendCommand(m_hComm, lTimeout, eCmd, sParam), DEF_DELIM)
+        m_uConfig.IsEcr = IIf(At(vInfoVersion, lTypeIndex) = "1", vbTrue, vbFalse)
+    End If
+    IsEcr = (m_uConfig.IsEcr = vbTrue)
+    Exit Property
+EH:
+    RaiseError FUNC_NAME
 End Property
 
 Private Property Get pvRowChars() As Long
@@ -771,6 +795,7 @@ Public Function Init( _
     '--- load config values
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uConfig
+        .IsEcr = vbUseDefault
         .RowChars = GetConfigNumber(sSerial, "RowChars", 0)
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
@@ -1742,7 +1767,7 @@ Public Function CashDebitCredit( _
         If C_Bool(At(vSplit, lIndex)) Then
             '--- use single operator
             OperatorCode = DEF_OPERNO
-            OperatorPassword = DEF_PASSWORD
+            OperatorPassword = IDeviceProtocol_GetDefaultPassword(DEF_OPERNO)
         End If
         pvGetCommandConfig CONF_NAME, "AdminCashDebitCredit", eCmd, ucsZekCmdAdminCashDebitCredit, sParam, "%1;%2;%3;%4@%5", _
             "Format", sFormat, "0.00", _
@@ -2206,7 +2231,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             If C_Bool(At(vSplit, lIndex)) Then
                 '--- use single operator
                 .InitOperatorCode = DEF_OPERNO
-                .InitOperatorPassword = DEF_PASSWORD
+                .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(DEF_OPERNO)
             End If
             pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsZekCmdInfoOperator, sParam, "%1", _
                 "Index", lIndex, 1, _
@@ -2855,10 +2880,14 @@ Private Function IDeviceProtocol_GetCommandLog() As String
 End Function
 
 Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
-    If IsEcr And C_Lng(OperatorCode) > 1 Then
-        IDeviceProtocol_GetDefaultPassword = OperatorCode
+    If IsEcr Then
+        If C_Lng(OperatorCode) > 1 Then
+            IDeviceProtocol_GetDefaultPassword = OperatorCode
+        Else
+            IDeviceProtocol_GetDefaultPassword = DEF_ECR_PASSWORD
+        End If
     Else
-        IDeviceProtocol_GetDefaultPassword = DEF_PASSWORD
+        IDeviceProtocol_GetDefaultPassword = DEF_FP_PASSWORD
     End If
 End Function
 
