@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 80    14.04.15 18:23 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 81    12.05.15 13:31 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 81    12.05.15 13:31 Wqw
+' REF: prints quantity on rows w/ negative prices
+'
 ' 80    14.04.15 18:23 Wqw
 ' REF: uses VbTriState enum
 '
@@ -1197,7 +1200,7 @@ Public Function AddPLU( _
         .PluName = RTrim$(SafeText(Name))
         bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
-        .PluQuantity = Round(Abs(Quantity), 3)
+        .PluQuantity = Round(IIf(bNegative Or m_uConfig.NegativePrices, Abs(Quantity), Quantity), 3)
         .PluVatGroup = LimitLong(VatGroup, 1, 8)
         .PrintRowType = m_uRow(0).InitReceiptType
     End With
@@ -2930,12 +2933,14 @@ Private Sub pvConvertExtraRows()
                 If Not m_uConfig.NegativePrices And dblPrice <= 0 Then
                     vSplit = WrapText(m_uRow(lRow).PluName, pvItemChars)
                     lIdx = LimitLong(UBound(vSplit), , 1)
-                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00"), pvRowChars)
+                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + m_uRow(lRow).PluVatGroup), pvRowChars)
                     m_uRow(lRow).RowType = ucsRowLine
                     m_uRow(lRow).LineText = vSplit(0)
                     If lIdx > 0 Then
                         AddLine At(vSplit, 1), False, lRow + 1
                         lRow = lRow + 1
+                    ElseIf lIdx = 0 And m_uRow(lRow).PluQuantity <> 1 Then
+                        AddLine AlignText(vbNullString, SafeFormat(m_uRow(lRow).PluQuantity, "0.000") & " x " & SafeFormat(m_uRow(lRow).PluPrice, "0.00"), pvRowChars - 2), False, lRow
                     End If
                     If dblPrice < -DBL_EPSILON Then
                         AddDiscount ucsFscDstSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
