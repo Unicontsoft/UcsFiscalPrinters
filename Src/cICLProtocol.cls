@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 81    12.05.15 13:31 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 82    22.05.15 10:56 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 82    22.05.15 10:56 Wqw
+' REF: nap info indexes in cash debit/credit
+'
 ' 81    12.05.15 13:31 Wqw
 ' REF: prints quantity on rows w/ negative prices
 '
@@ -2023,7 +2026,7 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
         Next
         '--- sParam=4 -> P,CashInN,CashInS,CashOutN,CashOutS,CashSum
         pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsFpcInfoNap, sParam, "4", _
-            "Indexes", sIndexes, "0,5,2,4"
+            "Indexes", sIndexes, "5,2,4"
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
         Exceptions = bPrevExceptions
