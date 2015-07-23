@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 82    22.05.15 10:56 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 83    23.07.15 10:55 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 83    23.07.15 10:55 Wqw
+' REF: cash debit/credit indexes in info nap
+'
 ' 82    22.05.15 10:56 Wqw
 ' REF: nap info indexes in cash debit/credit
 '
@@ -2010,6 +2013,7 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     Dim bPrevExceptions As Boolean
     Dim sIndexes        As String
     Dim vElem           As Variant
+    Dim lOffset         As Long
     
     On Error GoTo EH
     sFormat = IIf(Abs(dblValue) > DBL_EPSILON, "0.00", "\")
@@ -2026,17 +2030,18 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
         Next
         '--- sParam=4 -> P,CashInN,CashInS,CashOutN,CashOutS,CashSum
         pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsFpcInfoNap, sParam, "4", _
-            "Indexes", sIndexes, "5,2,4"
+            "Indexes", sIndexes, "4,1,3"
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
         Exceptions = bPrevExceptions
         lIdx = 0
         If UBound(vSplit) > 0 Then
+            lOffset = IIf(At(vSplit, 0) = "P", 1, 0)
             For Each vElem In Split(sIndexes, DEF_DELIM)
                 If lIdx >= LBound(vRetVal) And lIdx <= UBound(vRetVal) Then
                     If C_Str(C_Lng(vElem)) = C_Str(vElem) Then
-                        If LenB(At(vSplit, C_Lng(vElem))) <> 0 Then
-                            vRetVal(lIdx) = ParseSum(At(vSplit, C_Lng(vElem)))
+                        If LenB(At(vSplit, C_Lng(vElem) + lOffset)) <> 0 Then
+                            vRetVal(lIdx) = ParseSum(At(vSplit, C_Lng(vElem) + lOffset))
                         End If
                     Else
                         vRetVal(lIdx) = vElem
