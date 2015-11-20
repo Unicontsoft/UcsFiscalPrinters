@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 32    30.01.15 15:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 33    20.11.15 16:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
@@ -9,6 +9,10 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 33    20.11.15 16:43 Wqw
+' REF: disp invoke imp call type param as a mask, search collection
+' invokes both prop get and method on default disp id
+'
 ' 32    30.01.15 15:30 Wqw
 ' REF: date timer precision
 '
@@ -124,10 +128,10 @@ Public Enum UcsRegistryRootsEnum
 End Enum
 
 Public Enum UcsInvokeCallEnum
-    UcsIclMethod = 1
-    UcsIclPropGet = 2
-    UcsIclPropLet = 4
-    UcsIclPropSet = 8
+    ucsIclMethod = 1
+    ucsIclPropGet = 2
+    ucsIclPropLet = 4
+    ucsIclPropSet = 8
 End Enum
 
 '=========================================================================
@@ -142,14 +146,13 @@ Private Const INVALID_HANDLE_VALUE          As Long = -1
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
-'--- for GetVersionEx
-Private Const VER_PLATFORM_WIN32_NT         As Long = 2
 '--- error codes
 Private Const ERROR_ACCESS_DENIED           As Long = 5&
 Private Const ERROR_GEN_FAILURE             As Long = 31&
 Private Const ERROR_SHARING_VIOLATION       As Long = 32&
 Private Const ERROR_SEM_TIMEOUT             As Long = 121&
 '--- for GetLocaleInfo
+Private Const LOCALE_USER_DEFAULT           As Long = &H400
 Private Const LOCALE_SDECIMAL               As Long = &HE   ' decimal separator
 '--- windows messages
 Private Const WM_PRINTCLIENT                As Long = &H318
@@ -176,18 +179,16 @@ Private Const VT_BSTR                       As Long = 8
 Private Const VT_BOOL                       As Long = 11
 'Private Const VT_UI1                        As Long = 17
 Private Const VARIANT_ALPHABOOL             As Long = 2
-'--- for invoke
-Private Const LOCALE_SYSTEM_DEFAULT         As Long = &H800
 '--- hresults
 Private Const S_OK                          As Long = 0
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function GetVersionEx Lib "kernel32" Alias "GetVersionExA" (lpVersionInformation As OSVERSIONINFO) As Long
+Private Declare Function GetVersion Lib "kernel32" () As Long
 Private Declare Function QueryDosDevice Lib "kernel32" Alias "QueryDosDeviceA" (ByVal lpDeviceName As Long, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function GetLocaleInfo Lib "kernel32" Alias "GetLocaleInfoA" (ByVal Locale As Long, ByVal LCType As Long, ByVal lpLCData As String, ByVal cchData As Long) As Long
-Private Declare Function GetUserDefaultLCID Lib "kernel32" () As Long
 Private Declare Function DllGetVersion Lib "comctl32.dll" (pdvi As DLLVERSIONINFO) As Long
 Private Declare Function SetWindowSubclass Lib "comctl32" (ByVal hWnd As Long, ByVal pfnSubclass As Long, ByVal uIdSubclass As Long, ByVal dwRefData As Long) As Long
 Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
@@ -333,9 +334,9 @@ End Type
 Private Type EXCEPINFO
     wCode               As Integer
     wReserved           As Integer
-    Source              As Long
-    Description         As Long
-    HelpFile            As Long
+    Source              As String
+    Description         As String
+    HelpFile            As String
     dwHelpContext       As Long
     pvReserved          As Long
     pfnDeferredFillIn   As Long
@@ -516,14 +517,12 @@ Public Function GetApiErr(ByVal lLastDllError As Long) As String
 End Function
 
 Public Function IsNT() As Boolean
-    Dim udtVer          As OSVERSIONINFO
+    Static lVersion     As Long
     
-    udtVer.dwOSVersionInfoSize = Len(udtVer)
-    If GetVersionEx(udtVer) Then
-        If udtVer.dwPlatformID = VER_PLATFORM_WIN32_NT Then
-            IsNT = True
-        End If
+    If lVersion = 0 Then
+        lVersion = GetVersion()
     End If
+    IsNT = ((lVersion And &H80000000) = 0)
 End Function
 
 Public Property Get OsVersion() As Long
@@ -644,6 +643,7 @@ Public Sub FlushDebugLog()
         m_nDebugLogFile = 0
     End If
 QH:
+    On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
     Err.Source = vErr(2)
@@ -668,7 +668,7 @@ Public Function GetDecimalSeparator() As String
     Dim nSize           As Long
 
     sBuffer = Space$(100)
-    nSize = GetLocaleInfo(GetUserDefaultLCID(), LOCALE_SDECIMAL, sBuffer, Len(sBuffer))
+    nSize = GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, sBuffer, Len(sBuffer))
     If nSize > 0 Then
         GetDecimalSeparator = Left$(sBuffer, nSize - 1)
     Else
@@ -1255,6 +1255,9 @@ Public Function LocateFile(sFile As String) As String
                 lPos = InStrRev(sDir, "\", Len(sDir) - 1)
                 If lPos > 0 Then
                     sDir = Left$(sDir, lPos)
+                    If Left$(sDir, 2) = "\\" And InStrRev(sDir, "\", Len(sDir) - 1) <= 2 Then
+                        Exit Function
+                    End If
                 Else
                     Exit Function
                 End If
@@ -1358,20 +1361,16 @@ Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optiona
         '--- do nothing
     ElseIf TypeOf pCol Is IVbCollection Then
         Set pVbCol = pCol
-        SearchCollection = pVbCol.Item(Index, RetVal) = 0
+        SearchCollection = pVbCol.Item(Index, RetVal) = S_OK
     Else
-        SearchCollection = DispInvoke(pCol, DISPID_VALUE, UcsIclPropGet, Result:=RetVal, Args:=Index)
-        If Not SearchCollection Then
-            '--- some weird collections have default (Item) method
-            SearchCollection = DispInvoke(pCol, DISPID_VALUE, UcsIclMethod, Result:=RetVal, Args:=Index)
-        End If
+        SearchCollection = DispInvoke(pCol, DISPID_VALUE, ucsIclPropGet Or ucsIclMethod, Result:=RetVal, Args:=Index)
     End If
 End Function
 
 Public Function DispInvoke( _
             ByVal pDisp As IVbDispatch, _
             Name As Variant, _
-            Optional ByVal CallType As UcsInvokeCallEnum = UcsIclMethod, _
+            Optional ByVal CallType As UcsInvokeCallEnum = ucsIclMethod, _
             Optional Result As Variant, _
             Optional Args As Variant) As Boolean
     Const DISPID_PROPERTYPUT As Long = -3
@@ -1393,7 +1392,7 @@ Public Function DispInvoke( _
     If IsNumeric(Name) Then
         lDispID = C_Lng(Name)
     Else
-        If pDisp.GetIDsOfNames(IID_NULL, C_Str(Name), 1, LOCALE_SYSTEM_DEFAULT, lDispID) <> S_OK Then
+        If pDisp.GetIDsOfNames(IID_NULL, C_Str(Name), 1, LOCALE_USER_DEFAULT, lDispID) <> S_OK Then
             Exit Function
         End If
     End If
@@ -1413,7 +1412,7 @@ Public Function DispInvoke( _
             .cArgs = lParamCount + 1
             .rgPointerToVariantArray = VarPtr(aParams(0))
         End With
-        If CallType = UcsIclPropLet Or CallType = UcsIclPropSet Then
+        If (CallType And (ucsIclPropLet Or ucsIclPropSet)) <> 0 Then
             lNamedParam = DISPID_PROPERTYPUT
             With uParams
                 .cNamedArgs = 1
@@ -1421,15 +1420,19 @@ Public Function DispInvoke( _
             End With
         End If
     End If
-    If CallType = UcsIclPropGet Or CallType = UcsIclMethod And Not IsMissing(Result) Then
+    If (CallType And ucsIclPropGet) <> 0 Or (CallType And ucsIclMethod) <> 0 And Not IsMissing(Result) Then
         Result = Empty
         lPtrResult = VarPtr(Result)
     End If
-    DispInvoke = (pDisp.Invoke(lDispID, IID_NULL, LOCALE_SYSTEM_DEFAULT, CallType, uParams, ByVal lPtrResult, uInfo, lArgErr) = S_OK)
+    If pDisp.Invoke(lDispID, IID_NULL, LOCALE_USER_DEFAULT, CallType, uParams, ByVal lPtrResult, uInfo, lArgErr) = S_OK Then
+        DispInvoke = True
+    Else
+        Result = Array(uInfo.sCode, uInfo.Description, uInfo.Source)
+    End If
 End Function
 
 Public Function DispPropertyGet(pDisp As Object, PropName As String, Optional Result As Variant) As Variant
-    If DispInvoke(pDisp, PropName, UcsIclPropGet, Result) Then
+    If DispInvoke(pDisp, PropName, ucsIclPropGet, Result) Then
         AssignVariant DispPropertyGet, Result
     End If
 End Function
@@ -1437,18 +1440,18 @@ End Function
 Public Property Get LockControl(oCtl As Object) As Boolean
     Dim vResult         As Variant
     
-    If DispInvoke(oCtl, "Locked", UcsIclPropGet, vResult) Then
+    If DispInvoke(oCtl, "Locked", ucsIclPropGet, vResult) Then
         LockControl = vResult
-    ElseIf DispInvoke(oCtl, "Enabled", UcsIclPropGet, vResult) Then
+    ElseIf DispInvoke(oCtl, "Enabled", ucsIclPropGet, vResult) Then
         LockControl = Not vResult
     End If
 End Property
 
 Public Property Let LockControl(oCtl As Object, ByVal bValue As Boolean)
-    If DispInvoke(oCtl, "Locked", UcsIclPropLet, Args:=bValue) Then
-        DispInvoke oCtl, "BackColor", UcsIclPropLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
+    If DispInvoke(oCtl, "Locked", ucsIclPropLet, Args:=bValue) Then
+        DispInvoke oCtl, "BackColor", ucsIclPropLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
     Else
-        DispInvoke oCtl, "Enabled", UcsIclPropLet, Args:=Not bValue
+        DispInvoke oCtl, "Enabled", ucsIclPropLet, Args:=Not bValue
     End If
 End Property
 
