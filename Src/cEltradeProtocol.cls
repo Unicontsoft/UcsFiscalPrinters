@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 38    6.04.15 15:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 39    20.11.15 16:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
 '
-'   Protocol for Eltrade cash registers
+'   Protocol handler for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 39    20.11.15 16:39 Wqw
+' REF: optional param of EndReceipt impl of IDeviceProtocol interface
+'
 ' 38    6.04.15 15:16 Wqw
 ' REF: non-fiscal invoice total vat rounding
 '
@@ -2517,8 +2520,8 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_EndReceipt(sResumeTicket As String) As Boolean
-    IDeviceProtocol_EndReceipt = EndReceipt(sResumeTicket)
+Private Function IDeviceProtocol_EndReceipt(Optional ResumeTicket As String) As Boolean
+    IDeviceProtocol_EndReceipt = EndReceipt(ResumeTicket)
 End Function
 
 Private Function IDeviceProtocol_GetCharsPerLine() As Long
@@ -2565,8 +2568,8 @@ Private Function IDeviceProtocol_GetLastReceiptNumber() As String
     IDeviceProtocol_GetLastReceiptNumber = GetLastReceiptNumber()
 End Function
 
-Private Function IDeviceProtocol_GetLastError(Optional ErrNumber As UcsFiscalErrorsEnum) As String
-    ErrNumber = LastErrNumber
+Private Function IDeviceProtocol_GetLastError(Optional ErrCategory As UcsFiscalErrorsEnum) As String
+    ErrCategory = LastErrNumber
     IDeviceProtocol_GetLastError = LastError
 End Function
 
