@@ -11,16 +11,24 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+Attribute VB_Description = "cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the library"
+''
+' cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the
+' library.
+'
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 7     9.08.11 23:25 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 8     20.11.15 16:40 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2011 Unicontsoft
+'   Copyright (c) 2008-2015 Unicontsoft
 '
-'   Nastrojka na fiscalni ustrojstwa
+'   Administration of fiscal devices and handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 8     20.11.15 16:40 Wqw
+' REF: add VBDOX documentation and typelib descriptions
+'
 ' 7     9.08.11 23:25 Wqw
 ' REF: supports zeka protocol
 '
@@ -71,7 +79,11 @@ End Sub
 ' Properties
 '=========================================================================
 
+''
+' Returns whether the library is registered under COM+ as an application for remote access
+'
 Public Property Get IsShared() As Boolean
+Attribute IsShared.VB_Description = "Returns whether the library is registered under COM+ as an application for remote access"
     Const FUNC_NAME     As String = "IsShared [get]"
     Dim lIdx            As Long
     
@@ -94,6 +106,13 @@ EH:
     Resume Next
 End Property
 
+''
+' Used to registers FP classes in a COM+ application for remote access. Needs admin permissions for modifying
+' system COM+ configuration.
+'
+' @return `True` if already registered, `False` if COM+ application is not found
+' @remark Can be used only if `CanShare` property is `True`
+'
 Public Property Let IsShared(ByVal bValue As Boolean)
     Const FUNC_NAME     As String = "IsShared [let]"
     Dim sDllHostImage   As String
@@ -180,7 +199,14 @@ EH:
     Resume Next
 End Property
 
+''
+' Used to check if FP classes are available for COM+ registration. If the user application is using reg-free COM these
+' classes are not available in registry and cannot by registered for remoting
+'
+' @return `True` is fiscal component can be remoted, `False` is registration unavailable (reg-free COM)
+'
 Public Property Get CanShare() As Boolean
+Attribute CanShare.VB_Description = "Used to check if FP classes are available for COM+ registration"
     Dim vElem           As Variant
     
     For Each vElem In Split(STR_COMPLUS_IMPORT_PROGID, "|")
@@ -195,7 +221,17 @@ End Property
 ' Methods
 '=========================================================================
 
+''
+' Used to show device's specific configuration dialog where the end-user can configure operators, departments
+' and other device settings
+'
+' @param `DeviceString` see `cFiscalPrinter` class documentation
+' @param `Server`       network address of DCOM server to be used for device communication. Empty for local machine
+' @param `OwnerForm`    reference to owner VB form
+' @return `True` if form is confirmed, `False` if cancelled
+'
 Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
+Attribute ShowSetup.VB_Description = "Used to show device's specific configuration dialog where the end-user can configure operators, departments and other device settings"
     Dim oFrmIcl         As New frmIclSetup
     Dim oFrmEltrade     As New frmEltradeSetup
     Dim oFrmZeka        As New frmZekaSetup
@@ -211,7 +247,14 @@ Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As
     End Select
 End Function
 
+''
+' Class factory for fiscal printers classes. Can be used for reg-free COM instantiation
+'
+' @param `sProgID` ProgID of FP class
+' @return Object reference to FP class instance or `Nothing` is unknown `ProgID`
+'
 Public Function CreateObject(sProgID As String) As Object
+Attribute CreateObject.VB_Description = "Class factory for fiscal printers classes. Can be used for reg-free COM instantiation"
     Select Case LCase$(sProgID)
     Case LCase$(LIB_NAME & ".cFiscalPrinter")
         Set CreateObject = New cFiscalPrinter

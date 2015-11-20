@@ -11,16 +11,85 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
+Attribute VB_Description = "cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers and can be used to call methods of the chatty IDeviceProtocol protocol in batches"
+''
+' cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers
+' and can be used to call methods of the chatty IDeviceProtocol protocol in batches.
+'
+' Each public function returns `True` on success and `False` on error. If present, output parameter `LastError` is
+' populated with the error reported by the native protocol driver that was used to perform the operation and
+' `CommandLog` is populated with debug info from the driver too.
+'
+' @param `DeviceString` Most functions accept `DeviceString` as first input parameter which is formatted as
+'                       "Protocol[;Device[;TimeoutMs [;CashDesk]]]" where:
+'   `Protocol`          - is one of `STR_PROTOCOL_Xxx` string constants in `mdGlobals`
+'   `Device`            - is in "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]" format, defaults to
+'                         "COM1", e.g. "COM1,9600,P,8,N,1"
+'   `TimeoutMs`         - is timeout in milliseconds, defaults to protocol's DEF_TIMEOUT constant (usually 3000)
+'   `CashDesk`          - is the cash desk number if multiple cash desks are supported by the device, defaults to 1
+'
+' @param `OperatorData` Some functions accept `OperatorData` as an array of (OperatorCode, OperatorName, OperatorPass
+'                       [, CashDeskNo[, LastReceipt[, PrevReceipt[, PrevCount[, ResumeTicket]]]]]) where:
+'   `OperatorCode`      - is operator number to be authenticated (usually 1-8)
+'   `OperatorName`      - is operator name to be printed on receipt
+'   `OperatorPass`      - is operator password, can be `Empty` if default for device
+'   `CashDeskNo`        - is cash desk number, defaults to 1
+'   `LastReceipt`       - [output] gets the number of the last printed receipt
+'   `PrevReceipt`       - [output] gets the number of the receipt printed before the current one
+'   `PrevCount`         - not used
+'   `ResumeTicket`      - [in/out] gets resume ticket on print error, can be supplied to resume receipt printing
+'
+' @param `InvoiceData`  Function `PrintReceipt` accepts `InvoiceData` as an array of (InvoiceNo, CgName, CgTaxNo,
+'                       CgVatNo, CgAddress, CgPersonReceiver, OwnPersonSeller, LnkDoc, InvoiceNoPrefix) where:
+'   `InvoiceNo`         - the number of the invoice/credit note to be printed
+'   `CgName`            - name of the company that is receiving the document
+'   `CgTaxNo`           - local identification number of the company (country specific)
+'   `CgVatNo`           - VAT identification number of the company (EU specific)
+'   `CgAddress`         - address of the company that is receiving the document
+'   `CgPersonReceiver`  - name of the person that is receiving the document
+'   `OwnPersonSeller`   - name of the person that is issueing the document (not used)
+'   `LnkDoc`            - for credit notes: document number of the invoice that is being corrected
+'   `InvoiceNoPrefix`   - for non-fiscal receipts: prefix to be printed before `InvoiceNo`
+'
+' @param `Rows`         Function `PrintReceipt` function accept `Rows` as an arrays of rows to be printed on the
+'                       receipt, each element can be one of three types of rows for PLUs, payments and free text
+'                       printing respectively (determined by array size):
+'                       1. array of (ItemName, Price, Group, Quantity, Discount) for PLU row
+'                       2. array of (WayOfPmtName, WayOfPmt, Amount) for payment row, cannot by followed by PLUs rows
+'                       3. array of (Text) for free text row, where:
+'   `ItemName`          - is the name of the PLU to be printed
+'   `Price`             - is a double with PLU price, rounded to 0.00
+'   `Group`             - is the VAT group the row will be accumulated to (1-8)
+'   `Quantity`          - is a double with row quantity, rounded to 0.000
+'   `Discount`          - is optional positive percent for discount and negative for surcharge (-100.00 to 100.00)
+'   `PaymentName`       - is the name of the payment if custom type of payment is used (officially registered vouchers,
+'                         etc.)
+'   `WayOfPmt`          - is the type of payment for the amount. Standard types are 1-3 (cash, card, cheque), custom
+'                         types are 5-8
+'   `Amount`            - is a double with the amount that is paid using `WayOfPmt`, rounded to 0.00
+'
+' @remarks Protocol strings can be localized using `UcsFP01.conf` JSON file. Private `pvInit` function reads protocol
+' specific strings under a section with protocol name (`STR_PROTOCOL_Xxx` constants) which include (by protocol):
+' `ELTRADE ECR`      - reads `InternalErrors` and `ReceiptTexts`
+' `DATECS FP/ECR`    - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
+'                      and `ReceiptTexts`
+' `DAISY MICRO`      - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
+'                      and `ReceiptTexts`
+' `TREMOL ZEKA`      - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
+'
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 33    30.01.15 15:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 34    20.11.15 16:40 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2015 Unicontsoft
 '
-'   Fiscal devices management using IDeviceProtocol protocols
+'   Fiscal devices management using IDeviceProtocol protocol handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 34    20.11.15 16:40 Wqw
+' REF: add VBDOX documentation and typelib descriptions
+'
 ' 33    30.01.15 15:07 Wqw
 ' REF: calls flush debug log on terminate
 '
@@ -148,7 +217,7 @@ Public Enum UcsFiscalParamIndexesEnum
     ucsFscPixAmount
     ucsFscPixInvoiceNo = 0
     ucsFscPixCgName
-    ucsFscPixCgBulstat
+    ucsFscPixCgTaxNo
     ucsFscPixCgVatNo
     ucsFscPixCgAddress
     ucsFscPixCgPersonReceiver
@@ -194,6 +263,8 @@ End Enum
 '=========================================================================
 
 '--- strings
+Private Const STR_TEXTS                 As String = "ДУБЛИКАТ|ОРИГИНАЛ|към ф-ра |Касиер"
+Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Липсват редове за печат|Командата не се поддържа от протокола"
 Private Const STR_ELTRADE_ECR_INTERNAL  As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Вече има отворена връзка|Няма отворена връзка|Невалидно заглавие на отговор от устройството|Грешка при WaitCommEvent: %1|Няма започната бележка|Липсва хартия|Невалиден параметър 'Command'|Непозволена команда за печат на повече от един дубликат|Грешка при печат|Фатална грешка на фискалното устройство|Невъзможно отказване на предишна транзакция|Грешка на ред %1: %2"
 Private Const STR_ELTRADE_ECR_TEXTS     As String = "СУМА|МЕЖДИННА СУМА|Продажби %1|ед. цена|количество|сума*%1|РЕСТО|всичко|ДДС*%1|нето ст-ст|Фактура #|Продавач:|   * * * * * * * *|Получател:|ИДЕНТ # |ЗДДС # |%1 артикули|МОЛ:|Получил:|НАДБАВКА|ОТСТЪПКА"
 Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Грешка при WaitCommEvent: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
@@ -206,14 +277,6 @@ Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Гре
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
 Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|С карта|С чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
-Private Const STR_DUPLICATE             As String = "ДУБЛИКАТ"
-Private Const STR_ORIGINAL              As String = "ОРИГИНАЛ"
-Private Const STR_HEAD_CREDIT_NOTE2     As String = "към ф-ра "
-Private Const STR_CASHIER               As String = "Касиер"
-'--- errors
-Private Const ERR_INIT_PROTOCOL         As String = "Грешка при инициализация на протокол %1"
-Private Const ERR_MISSING_ROWS          As String = "Липсват редове за печат"
-Private Const ERR_NOT_IMPLEMENTED       As String = "Командата не се поддържа от протокола"
 '--- config entries
 Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
 Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
@@ -221,6 +284,8 @@ Private Const CFG_PRINTER_ERRORS        As String = "PrinterErrors"
 Private Const CFG_DIP_SWITCHES_TEXTS    As String = "DipSwitchesTexts"
 Private Const CFG_MEMORY_TEXTS          As String = "MemoryTexts"
 Private Const CFG_RECEIPT_TEXTS         As String = "ReceiptTexts"
+
+Private m_uConfig                   As UcsConfigValues
 
 Private Enum UcsRowTypeEnum
     ucsRwtSell = 1
@@ -239,6 +304,23 @@ Private Type UcsRow
     Amount          As String
 End Type
 
+Private Type UcsConfigValues
+    LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
+End Type
+
+Private Enum UcsInternalErrors
+    ucsErrInitProtocol
+    ucsErrMissingRows
+    ucsErrNotImplemented
+End Enum
+
+Private Enum UcsReceiptTextsEnum
+    ucsTxtDuplicate
+    ucsTxtOriginal
+    ucsTxtHeadCreditNote
+    ucsTxtCashier
+End Enum
+
 '=========================================================================
 ' Error handling
 '=========================================================================
@@ -248,15 +330,41 @@ Private Sub PrintError(sFunc As String)
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
+Private Sub RaiseError(sFunc As String)
+    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
+    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+End Sub
+
 Private Sub DebugLog(sFunc As String, sText As String)
     OutputDebugLog MODULE_NAME, sFunc, sText
 End Sub
 
 '=========================================================================
+' Properties
+'=========================================================================
+
+Private Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
+    LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+End Property
+
+Private Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
+    m_uConfig.LocalizedText(eIdx) = Split(sValue, "|")
+End Property
+
+'=========================================================================
 ' Methods
 '=========================================================================
 
+''
+' Used for enumeration of available system serial COM ports and auto-detection of connected fiscal devices
+'
+' @return An array with available COM ports including info for auto-detected devices. Each element of the returned
+'         array is an array of (port, auto-detected baud rate, auto-detected FP protocol, auto-detected FP model).
+'         Auto-detected elements can be `Empty` if no device is found on the specified COM port.
+'
 Public Function EnumPorts() As Variant
+Attribute EnumPorts.VB_Description = "Used for enumeration of available system serial COM ports and auto-detection of connected fiscal devices"
     Const FUNC_NAME     As String = "EnumPorts"
     Dim vPorts          As Variant
     Dim vElem           As Variant
@@ -281,12 +389,24 @@ EH:
     Resume Next
 End Function
 
+''
+' Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current
+' date/time, last receipt number, names of payment types, max characters on a row and operator's default password
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `OperatorData` [input]  see `OperatorData` description in class header
+' @param `RetVal`       [in/out] param with the array with requested strings which get populated on return. Look at
+'                                `UcsFiscalHeaderIndexesEnum` enum for proper indexes meaning
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+'
 Public Function GetHeaderFooter( _
             DeviceString As String, _
             Optional OperatorData As Variant, _
             Optional RetVal As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute GetHeaderFooter.VB_Description = "Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current date/time, last receipt number, names of payment types, max characters on a row and operator's default password"
     Const FUNC_NAME     As String = "GetHeaderFooter"
     Dim oFP             As IDeviceProtocol
     Dim vInput          As Variant
@@ -375,6 +495,21 @@ EH:
     End If
 End Function
 
+''
+' Used to batch print a fiscal or non-fiscal receipt or invoice
+'
+' @param `DeviceString`   [input]  see `DeviceString` description in class header
+' @param `ReceiptType`    [input]  designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
+'                                  regular sales receipt
+' @param `Rows`           [input]  see `Rows` description in class header
+' @param `OperatorData`   [in/out] see `OperatorData` description in class header
+' @param `InvoiceData`    [input]  see `InvoiceData` description in class header
+' @param `PrintDuplicate` [input]  a flag to request receipt duplicate to be printed if the fiscal device supports
+'                                  this operation
+' @param `LastError`      [output] see `LastError` description in class header
+' @param `CommandLog`     [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function PrintReceipt( _
             DeviceString As String, _
             ByVal ReceiptType As UcsFiscalReceiptTypeEnum, _
@@ -384,6 +519,7 @@ Public Function PrintReceipt( _
             Optional PrintDuplicate As Boolean, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fiscal receipt or invoice"
     Const FUNC_NAME     As String = "PrintReceipt"
     Dim oFP             As IDeviceProtocol
     Dim vElem           As Variant
@@ -419,10 +555,10 @@ Public Function PrintReceipt( _
     End If
     If IsArray(Rows) Then
         oFP.StartReceipt ReceiptType, At(OperatorData, ucsFscPixOperatorCode), _
-            At(OperatorData, ucsFscPixOperatorName, STR_CASHIER), _
+            At(OperatorData, ucsFscPixOperatorName, pvText(ucsTxtCashier)), _
             At(OperatorData, ucsFscPixOperatorPass), _
             IIf(ReceiptType = ucsFscRetInvoiceNonfiscal, At(InvoiceData, ucsFscPixInvoiceNoPrefix), vbNullString) & At(InvoiceData, ucsFscPixInvoiceNo), _
-            At(InvoiceData, ucsFscPixCgBulstat), _
+            At(InvoiceData, ucsFscPixCgTaxNo), _
             At(InvoiceData, ucsFscPixCgVatNo), _
             At(InvoiceData, ucsFscPixCgName), _
             vbNullString, _
@@ -430,12 +566,12 @@ Public Function PrintReceipt( _
             At(InvoiceData, ucsFscPixCgPersonReceiver), _
             vbNullString
         If LenB(At(InvoiceData, ucsFscPixLnkDoc)) <> 0 Then
-            oFP.AddLine STR_HEAD_CREDIT_NOTE2 & At(InvoiceData, ucsFscPixLnkDoc)
+            oFP.AddLine pvText(ucsTxtHeadCreditNote) & At(InvoiceData, ucsFscPixLnkDoc)
         End If
         If PrintDuplicate Then
-            oFP.AddLine STR_DUPLICATE
+            oFP.AddLine pvText(ucsTxtDuplicate)
         ElseIf ReceiptType = ucsFscRetInvoiceNonfiscal Then
-            oFP.AddLine STR_ORIGINAL
+            oFP.AddLine pvText(ucsTxtOriginal)
         End If
         For Each vElem In Rows
             With pvGetRowData(vElem)
@@ -471,7 +607,7 @@ Public Function PrintReceipt( _
         Select Case ReceiptType
         Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
             If IsEmpty(Rows) Then
-                LastError = ERR_MISSING_ROWS
+                LastError = pvInternal(ucsErrMissingRows)
                 GoTo QH
             End If
         Case Else
@@ -506,6 +642,24 @@ EH:
     End If
 End Function
 
+''
+' Used to print a fiscal report as supported by the fiscal device
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `ReportType`   [input]  designates the type of report to be printed. Only daily x-report or z-report and
+'                                report by date range are supported
+' @param `ReportData`   [input]  an array of (IsClear, IsItems, IsDepartments) for daily report and array of
+'                                (FromDate, ToDate, IsDetailed) for date range report, where:
+'   `IsClear`           - a boolean, when `True` clears fiscal memory (z-report)
+'   `IsItems`           - a boolean, when `True` prints detailed report by items
+'   `IsDepartments`     - a boolean, when `True` prints detailed report by department
+'   `FromDate`-`ToDate` - specify the date range to print
+'   `IsDetailed`        - a boolean, when `True` date range report is detailed by date
+' @param `OperatorData` [input]  see `OperatorData` description in class header
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function PrintReport( _
             DeviceString As String, _
             ByVal ReportType As UcsFiscalPrintReportTypeEnum, _
@@ -513,6 +667,7 @@ Public Function PrintReport( _
             Optional OperatorData As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute PrintReport.VB_Description = "Used to print a fiscal report as supported by the fiscal device"
     Const FUNC_NAME     As String = "PrintReport"
     Dim oFP             As IDeviceProtocol
     Dim bResult         As Boolean
@@ -582,10 +737,20 @@ EH:
     End If
 End Function
 
+''
+' Used to send an impulse to the drawer opener. The fiscal device has to be connected with a compatible cash
+' drawer for this command to work
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function OpenDrawer( _
             DeviceString As String, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute OpenDrawer.VB_Description = "Used to send an impulse to the drawer opener. The fiscal device has to be connected with a compatible cash drawer for this command to work"
     Const FUNC_NAME     As String = "OpenDrawer"
     Dim oFP             As IDeviceProtocol
     
@@ -615,11 +780,21 @@ EH:
     End If
 End Function
 
+''
+' Used to adjust the date and time of the fiscal device clock
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `sDateTime`    [input]  a date and time to be set or `Empty` for current date and time
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function InitDateTime( _
             DeviceString As String, _
             sDateTime As String, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute InitDateTime.VB_Description = "Used to adjust the date and time of the fiscal device clock"
     Const FUNC_NAME     As String = "InitDateTime"
     Dim oFP             As IDeviceProtocol
     Dim bResult         As Boolean
@@ -656,11 +831,24 @@ EH:
     End If
 End Function
 
+''
+' Used to retrieve accumulated totals by payment types since last z-report
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `vPayments`    [output] array indexed by 1-3 for standard payment types and 5-8 for custom. Each element is
+'                                an array of (Amount, PaymentName) where `Amount` is a double total sum and
+'                                `PaymentName` is a localised string for standard or custom payment name as returned
+'                                by the fiscal device
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function GetTotalsByPayments( _
             DeviceString As String, _
             vPayments As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute GetTotalsByPayments.VB_Description = "Used to retrieve accumulated totals by payment types since last z-report"
     Const FUNC_NAME     As String = "GetTotalsByPayments"
     Dim oFP             As IDeviceProtocol
     Dim lIdx            As Long
@@ -671,7 +859,7 @@ Public Function GetTotalsByPayments( _
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.GetTotalsByPayments()
     If Not IsArray(vTotals) Then
-        LastError = ERR_NOT_IMPLEMENTED
+        LastError = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
@@ -700,11 +888,22 @@ EH:
     End If
 End Function
 
+''
+' Used to retrieve accumulated totals by VAT groups (1-8) since last z-report
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `vTotals`      [output] array of doubles (TotalByVat1, TotalByVat2, ..., TotalByVat8) where each total is
+'                                indexed by VAT group
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function GetTotalsByVatGroups( _
             DeviceString As String, _
             vTotals As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute GetTotalsByVatGroups.VB_Description = "Used to retrieve accumulated totals by VAT groups (1-8) since last z-report"
     Const FUNC_NAME     As String = "GetTotalsByVatGroups"
     Dim oFP             As IDeviceProtocol
     
@@ -713,7 +912,7 @@ Public Function GetTotalsByVatGroups( _
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.GetTotalsByVatGroups()
     If Not IsArray(vTotals) Then
-        LastError = ERR_NOT_IMPLEMENTED
+        LastError = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
@@ -738,11 +937,22 @@ EH:
     End If
 End Function
 
+''
+' Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `vStats`       [output] array of (ReceiptsCount, LastReceiptTime) where `LastReceiptTime` can be `Empty`
+'                                if no receipt is printed after last z-report
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function GetTotalsStats( _
             DeviceString As String, _
             vStats As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute GetTotalsStats.VB_Description = "Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed"
     Const FUNC_NAME     As String = "GetTotalsStats"
     Dim oFP             As IDeviceProtocol
 
@@ -751,7 +961,7 @@ Public Function GetTotalsStats( _
     Set oFP = pvInit(DeviceString)
     vStats = oFP.GetTotalsStats()
     If Not IsArray(vStats) Then
-        LastError = ERR_NOT_IMPLEMENTED
+        LastError = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vStats) < 0 Then
         LastError = oFP.GetLastError()
@@ -776,6 +986,22 @@ EH:
     End If
 End Function
 
+''
+' Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales,
+' e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `dblValue`     [input]  positive amount to be debitted and negative for credit. When 0.00 is passed no
+'                                operation is performed, only `vTotals` is populated
+' @param `vTotals`      [output] total debit/credit operations since last z-report as an array of doubles with
+'                                (TotalAvailable, TotalDebit, TotalCredit) where:
+'   `TotalAvailable`    - total available cash, including regular sales
+'   `TotalDebit`        - total inbound debit, outside regular sales
+'   `TotalCredit`       - total outbound credit, outside regular sales
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function CashDebitCredit( _
             DeviceString As String, _
             dblValue As Double, _
@@ -783,6 +1009,7 @@ Public Function CashDebitCredit( _
             Optional OperatorData As Variant, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute CashDebitCredit.VB_Description = "Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales, e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too"
     Const FUNC_NAME     As String = "CashDebitCredit"
     Dim oFP             As IDeviceProtocol
     
@@ -791,7 +1018,7 @@ Public Function CashDebitCredit( _
     Set oFP = pvInit(DeviceString)
     vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), dblValue)
     If Not IsArray(vTotals) Then
-        LastError = ERR_NOT_IMPLEMENTED
+        LastError = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
@@ -817,11 +1044,22 @@ EH:
     End If
 End Function
 
+''
+' Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the
+' device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing
+'
+' @param `DeviceString` [input]  see `DeviceString` description in class header
+' @param `sStatus`      [output] current device status. Empty string when the device is ready to print
+' @param `LastError`    [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `LastError` description in class header
+' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
+'
 Public Function GetStatus( _
             DeviceString As String, _
             sStatus As String, _
             Optional LastError As String, _
             Optional CommandLog As String) As Boolean
+Attribute GetStatus.VB_Description = "Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing"
     Const FUNC_NAME     As String = "GetStatus"
     Dim oFP             As IDeviceProtocol
     
@@ -847,6 +1085,14 @@ EH:
         End If
     End If
 End Function
+
+''
+' Used to set localized strings used for non-fiscal receipt texts and component internal errors
+'
+Public Sub SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
+Attribute SetLocalizedText.VB_Description = "Used to set localized strings used for non-fiscal receipt texts and component internal errors"
+    LocalizedText(Index) = Text
+End Sub
 
 '= private ===============================================================
 
@@ -882,7 +1128,7 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
     End Select
     If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
-        Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(ERR_INIT_PROTOCOL, At(vSplit, 0, STR_NONE)))
+        Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
     End If
 End Function
 
@@ -919,9 +1165,40 @@ Private Function pvGetVatGroup(sVatGroup As String) As Long
     End If
 End Function
 
+Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
+    Const FUNC_NAME     As String = "pvInternal"
+    
+    On Error GoTo EH
+    pvInternal = At(m_uConfig.LocalizedText(ucsFscLciInternalErrors), lIdx)
+    If LenB(pvInternal) = 0 Then
+        pvInternal = At(Split(STR_INTERNAL, "|"), lIdx)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvText(ByVal lIdx As UcsReceiptTextsEnum) As String
+    Const FUNC_NAME     As String = "pvText"
+    
+    On Error GoTo EH
+    pvText = At(m_uConfig.LocalizedText(ucsFscLciReceiptTexts), lIdx)
+    If LenB(pvText) = 0 Then
+        pvText = At(Split(STR_TEXTS, "|"), lIdx)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
+
+Private Sub Class_Initialize()
+    LocalizedText(ucsFscLciInternalErrors) = GetConfigValue(MODULE_NAME, CFG_INTERNAL_ERRORS, STR_INTERNAL)
+    LocalizedText(ucsFscLciReceiptTexts) = GetConfigValue(MODULE_NAME, CFG_RECEIPT_TEXTS, STR_TEXTS)
+End Sub
 
 Private Sub Class_Terminate()
     FlushDebugLog
