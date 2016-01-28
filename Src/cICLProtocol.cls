@@ -12,15 +12,19 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 84    20.11.15 16:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 85    28.01.16 16:02 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2016 Unicontsoft
 '
 '   Protocol handler for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 85    28.01.16 16:02 Wqw
+' REF: better support for virtual usb/com ports for file read/write in
+' overlapped mode
+'
 ' 84    20.11.15 16:39 Wqw
 ' REF: optional param of EndReceipt impl of IDeviceProtocol interface
 '
@@ -434,6 +438,7 @@ Private Const INVALID_HANDLE_VALUE          As Long = -1
 Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
+Private Const EV_ERR                        As Long = &H80
 '--- for WaitForMultipleObjects
 Private Const WAIT_OBJECT_0                 As Long = 0
 Private Const WAIT_TIMEOUT                  As Long = 258
@@ -458,6 +463,7 @@ Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As 
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
+Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -925,11 +931,15 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If .hComm <> 0 Then
                     .Buffer = String$(1000, 0)
+                    lActual = 0
                     lResult = ReadFile(.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .ReadOver.hEvent
                         lEventsCount = lEventsCount + 1
                     Else
+                        If lActual = 0 Then
+                            Call GetOverlappedResult(.hComm, .ReadOver, lActual, 0)
+                        End If
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                 End If
@@ -2220,6 +2230,7 @@ Private Function pvSendCommand( _
     baText = ToAscii(sSend)
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
+    Call SetCommMask(hComm, EV_RXCHAR Or EV_ERR)
 RetrySend:
     lResult = WriteFile(hComm, baText(0), Len(sSend), lWritten, uOver)
     If lResult = 0 Then
@@ -2239,73 +2250,77 @@ RetrySend:
     End If
     '--- async read response
     sText = vbNullString
-    Call SetCommMask(hComm, EV_RXCHAR)
-    GoTo InLoop
     Do
-        lIterTimeout = LimitLong(m_uConfig.CommEventTimeout, , lTimeout - lRetryCount * m_uConfig.CommEventTimeout)
-        lResult = WaitCommEvent(hComm, lMask, uOver)
-        If lResult = 0 Then
-            If Err.LastDllError <> ERROR_IO_PENDING Then
-                DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
-                Error = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
+        Do While Right$(sText, 1) <> Chr$(3)
+            lIterTimeout = LimitLong(m_uConfig.CommEventTimeout, , lTimeout - lRetryCount * m_uConfig.CommEventTimeout)
+            sBuffer = String$(1000, 0)
+            lActual = 0
+            lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
+            If lResult <> 0 And lActual = 0 Then
+                lResult = WaitCommEvent(hComm, lMask, uOver)
+                If lResult = 0 Then
+                    Select Case Err.LastDllError
+                    Case ERROR_IO_PENDING
+                        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
+                        Select Case lResult
+                        Case WAIT_OBJECT_0
+                            If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
+                                DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            End If
+                        Case WAIT_TIMEOUT
+                            lRetryCount = lRetryCount + 1
+                        End Select
+                    Case Else
+                        DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
+                        Error = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
+                        GoTo QH
+                    End Select
+                End If
+                lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
+            End If
+            If lResult = 0 Then
+                Select Case Err.LastDllError
+                Case ERROR_IO_PENDING
+                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
+                    Select Case lResult
+                    Case WAIT_OBJECT_0
+                        If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
+                            DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                        End If
+                    Case WAIT_TIMEOUT
+                        lRetryCount = lRetryCount + 1
+                    End Select
+                Case ERROR_HANDLE_EOF
+                    lResult = WAIT_OBJECT_0
+                Case Else
+                    DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                    Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
+                    GoTo QH
+                End Select
+            End If
+            If lResult <> 0 And lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
+                Call CancelIo(hComm)
+                DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_uConfig.CommEventTimeout=" & m_uConfig.CommEventTimeout & ", lTimeout=" & lTimeout
+                Error = pvInternal(ucsErrTimeoutWaitingForResponse)
                 GoTo QH
             End If
-            lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-        Else
-            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult
-            lResult = WAIT_OBJECT_0
-        End If
-        If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
-InLoop:
-            Do
-                sBuffer = String$(1000, 0)
-                lActual = 0
-                lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
-                If lResult = 0 Then
-                    If Err.LastDllError = ERROR_HANDLE_EOF Then
-                        lResult = WAIT_OBJECT_0
-                    Else
-                        If Err.LastDllError <> ERROR_IO_PENDING Then
-                            DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                            Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
-                            GoTo QH
-                        End If
-                        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-                    End If
-                Else
-                    lResult = WAIT_OBJECT_0
-                End If
-                If lActual = 0 Then
-                    Exit Do
-                End If
-                sBuffer = Left$(sBuffer, lActual)
-                '--- check for NAK (&H15)
-                If InStr(sBuffer, Chr$(&H15)) > 0 Then
-                    lRetryCount = lRetryCount + 1
-                    If lRetryCount * m_uConfig.CommEventTimeout < lTimeout Then
-                        DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
-                        GoTo RetrySend
-                    End If
-                    Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
-                    GoTo QH
-                End If
-                '--- remove SYN (&H16)
-                sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
-            Loop
-        End If
-        If lResult <> WAIT_OBJECT_0 Then
-            Call CancelIo(hComm)
-            DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_uConfig.CommEventTimeout=" & m_uConfig.CommEventTimeout & ", lTimeout=" & lTimeout
-            If lResult = WAIT_TIMEOUT Then
+            If lActual = 0 Then
+                Exit Do
+            End If
+            sBuffer = Left$(sBuffer, lActual)
+            '--- check for NAK (&H15)
+            If InStr(sBuffer, Chr$(&H15)) > 0 Then
                 lRetryCount = lRetryCount + 1
                 If lRetryCount * m_uConfig.CommEventTimeout < lTimeout Then
-                    DebugLog FUNC_NAME, "Will retry send, lRetryCount=" & lRetryCount & ", sText=0x" & ToHexDump(sText)
+                    DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
                     GoTo RetrySend
                 End If
-                Error = pvInternal(ucsErrTimeoutWaitingForResponse)
+                Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
+                GoTo QH
             End If
-            GoTo QH
-        End If
+            '--- remove SYN (&H16)
+            sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
+        Loop
 RetryParse:
         '--- check if response complete (3 = Terminator)
         If Right$(sText, 1) = Chr$(3) Then
