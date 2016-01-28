@@ -2238,15 +2238,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 16    30.01.15 15:32 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 17    28.01.16 16:00 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2016 Unicontsoft
 '
 '   Nastrojki na FP po ICL protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 17    28.01.16 16:00 Wqw
+' REF: disp invoke params
+'
 ' 16    30.01.15 15:32 Wqw
 ' REF: format elapsed time in ms
 '
@@ -2483,7 +2486,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         cobItemGroup.AddItem vElem
     Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
             fraCommands(lIdx).Visible = False
         End If
     Next
@@ -3243,14 +3246,14 @@ Private Sub lstCmds_Click()
     End If
 QH:
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", UcsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
             fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
         End If
     Next
     tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
     Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
     For lIdx = cmdSave.LBound To cmdSave.UBound
-        If DispInvoke(cmdSave(lIdx), "Index", UcsIclPropGet) Then
+        If DispInvoke(cmdSave(lIdx), "Index", ucsIclPropGet) Then
             If cmdSave(lIdx).Visible Then
                 cmdSave(lIdx).Default = True
             End If
