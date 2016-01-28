@@ -73,20 +73,23 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `ELTRADE ECR`      - reads `InternalErrors` and `ReceiptTexts`
 ' `DATECS FP/ECR`    - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
 '                      and `ReceiptTexts`
-' `DAISY MICRO`      - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
+' `DAISY FP/ECR`     - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
 '                      and `ReceiptTexts`
-' `TREMOL ZEKA`      - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
+' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 34    20.11.15 16:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 35    28.01.16 16:01 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2016 Unicontsoft
 '
 '   Fiscal devices management using IDeviceProtocol protocol handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 35    28.01.16 16:01 Wqw
+' REF: daisy/tremol driver name
+'
 ' 34    20.11.15 16:40 Wqw
 ' REF: add VBDOX documentation and typelib descriptions
 '
