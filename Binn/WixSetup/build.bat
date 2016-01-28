@@ -25,6 +25,7 @@ echo Link setup...
 
 rem ------ set swaprun to portable
 echo Prepare portable...
+del /q UcsFP10.portable.dll 2> nul
 copy ..\UcsFP10.dll UcsFP10.portable.dll > nul
 %editbin% /SWAPRUN:NET UcsFP10.portable.dll
 
