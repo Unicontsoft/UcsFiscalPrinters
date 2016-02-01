@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 34    28.01.16 16:01 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 35    1.02.16 17:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 35    1.02.16 17:17 Wqw
+' ADD: Function SplitOrReindex
+'
 ' 34    28.01.16 16:01 Wqw
 ' REF: disp invoke params
 '
@@ -1485,5 +1488,24 @@ Public Function ToAscii(sSend As String) As Byte()
         baText = " "
     End If
     ToAscii = baText
+End Function
+
+Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
+    Dim vResult         As Variant
+    Dim lIdx            As Long
+    Dim lSize           As Long
+    
+    SplitOrReindex = Split(Expression, Delimiter)
+    '--- check if reindex needed
+    If IsNumeric(At(SplitOrReindex, 0)) Then
+        For lIdx = 0 To UBound(SplitOrReindex) Step 2
+            lSize = LimitLong(lSize, C_Lng(At(SplitOrReindex, lIdx)))
+        Next
+        ReDim vResult(0 To lSize) As Variant
+        For lIdx = 0 To UBound(SplitOrReindex) Step 2
+            vResult(C_Lng(At(SplitOrReindex, lIdx))) = At(SplitOrReindex, lIdx + 1)
+        Next
+        SplitOrReindex = vResult
+    End If
 End Function
 
