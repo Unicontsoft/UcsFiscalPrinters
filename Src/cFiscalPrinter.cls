@@ -71,14 +71,14 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' @remarks Protocol strings can be localized using `UcsFP01.conf` JSON file. Private `pvInit` function reads protocol
 ' specific strings under a section with protocol name (`STR_PROTOCOL_Xxx` constants) which include (by protocol):
 ' `ELTRADE ECR`      - reads `InternalErrors` and `ReceiptTexts`
-' `DATECS FP/ECR`    - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
-'                      and `ReceiptTexts`
-' `DAISY FP/ECR`     - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`
-'                      and `ReceiptTexts`
+' `DATECS FP/ECR`    - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`,
+'                      `ReceiptTexts` and `ExtendedErrors`
+' `DAISY FP/ECR`     - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`,
+'                      `ReceiptTexts` and `ExtendedErrors`,
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 35    28.01.16 16:01 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 36    1.02.16 17:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 36    1.02.16 17:21 Wqw
+' REF: impl extended errors for daisy fp/ecr
+'
 ' 35    28.01.16 16:01 Wqw
 ' REF: daisy/tremol driver name
 '
@@ -280,6 +283,9 @@ Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Гре
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
 Private Const STR_ZEKA_FP_TEXTS         As String = "В брой|С карта|С чек|Надбавка%1|Отстъпка%1|Сума|Междинна сума|Фактура No %1|Продажби %1|Единична цена|Количество|Сума*%1|Всичко група %1|ДДС*%1=%2|Нето стойност|Обща сума|%1 Продажби|1 Продажба|Ресто|Продавач: |Получател: |Купувач: |Идент. No: |ЗДДС No: |ЕИК;ЕГН;ЛНЧ;Служебен No|КОРЕКЦИЯ"
+Private Const STR_DAISY_FP_EXT_ERRORS   As String = "1|Въпросната операция ще доведе до препълване|3|Нямате право на повече продажби в този бон|4|Нямате право на повече плащания в този бон|5|Опит за извършване на нулева транзакция|6|Опит за извършване на продажба, след като е започнато плащане|7|Нямате право на такава операция|8|Забранена за продажби дан. група|11|Въвеждане на повече от една десетична точка|12|Въвеждане на повече от един символ '+' или '-'|13|Символът '+' или '-' не е в първа позиция|14|Недопустим символ, напр. баркод, който съдържа не само цифри|15|Повече от допустимия брой знаци след десетичната точка|16|Въведени са повече от разрешения брой символи|20|В дадената ситуация не се обслужва избраната от Вас команда от PC|21|Стойността е извън допустимите граници|22|Виж системен параметър 8|23|Опит за ""дълбок"" войд след отстъпка/надбавка в/у междинна сума|24|Опит за ""дълбок"" войд на несъществуваща транзакция|25|Опит за извършване на плащане, без да има продажби|" & _
+                                                    "26|Опит за продажба на артикул с количество, надвишаващо запаса му|41|Некоректен баркод (грешна контролна сума)|42|Опит за продажба с нулев баркод|43|Опит за програмиране с тегловен баркод|44|Опит за продажба с непрограмиран баркод|45|Опит за програмиране на вече съществуващ баркод|66|Некоректна парола|71|!!! Некоректни данни във ФП !!!!|72|!!! Грешка при запис във ФП !!!!|76|Необходима е информация от сървъра на НАП|90|Не е нулиран периодичният отчет|91|Не е нулиран дневният финансов отчет|92|Не е нулиран отчетът по оператори|93|Не е нулиран отчетът по артикули|94|Не може да се препрограмира това поле|81|Дневният финансов отчет е препълнен|83|Отчетът по оператори е препълнен|84|Отчетът по артикули е препълнен|84|Периодичният отчет е препълнен|88|КЛЕН е препълнен|102|Няма комуникация между ФУ и ДТ|104|Некоректна комуникация между ФУ и ДТ|110|Подменена SIM карта|111|Грешка при комуникация между ДТ и сървъра на НАП|" & _
+                                                    "113|Сървърът на НАП не приема подадените му данни|117|Неуспешен опит за свързване на ДТ с мрежата на мобилния оператор|118|Операцията е забранена|119|Грешна въведена стойност|120|Невъведена стойност"
 '--- config entries
 Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
 Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
@@ -287,6 +293,7 @@ Private Const CFG_PRINTER_ERRORS        As String = "PrinterErrors"
 Private Const CFG_DIP_SWITCHES_TEXTS    As String = "DipSwitchesTexts"
 Private Const CFG_MEMORY_TEXTS          As String = "MemoryTexts"
 Private Const CFG_RECEIPT_TEXTS         As String = "ReceiptTexts"
+Private Const CFG_EXTENDED_ERRORS       As String = "ExtendedErrors"
 
 Private m_uConfig                   As UcsConfigValues
 
@@ -401,7 +408,7 @@ End Function
 ' @param `RetVal`       [in/out] param with the array with requested strings which get populated on return. Look at
 '                                `UcsFiscalHeaderIndexesEnum` enum for proper indexes meaning
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 '
 Public Function GetHeaderFooter( _
             DeviceString As String, _
@@ -660,7 +667,7 @@ End Function
 '   `IsDetailed`        - a boolean, when `True` date range report is detailed by date
 ' @param `OperatorData` [input]  see `OperatorData` description in class header
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function PrintReport( _
@@ -746,7 +753,7 @@ End Function
 '
 ' @param `DeviceString` [input]  see `DeviceString` description in class header
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function OpenDrawer( _
@@ -789,7 +796,7 @@ End Function
 ' @param `DeviceString` [input]  see `DeviceString` description in class header
 ' @param `sDateTime`    [input]  a date and time to be set or `Empty` for current date and time
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function InitDateTime( _
@@ -843,7 +850,7 @@ End Function
 '                                `PaymentName` is a localised string for standard or custom payment name as returned
 '                                by the fiscal device
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function GetTotalsByPayments( _
@@ -898,7 +905,7 @@ End Function
 ' @param `vTotals`      [output] array of doubles (TotalByVat1, TotalByVat2, ..., TotalByVat8) where each total is
 '                                indexed by VAT group
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function GetTotalsByVatGroups( _
@@ -947,7 +954,7 @@ End Function
 ' @param `vStats`       [output] array of (ReceiptsCount, LastReceiptTime) where `LastReceiptTime` can be `Empty`
 '                                if no receipt is printed after last z-report
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function GetTotalsStats( _
@@ -1002,7 +1009,7 @@ End Function
 '   `TotalDebit`        - total inbound debit, outside regular sales
 '   `TotalCredit`       - total outbound credit, outside regular sales
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function CashDebitCredit( _
@@ -1054,7 +1061,7 @@ End Function
 ' @param `DeviceString` [input]  see `DeviceString` description in class header
 ' @param `sStatus`      [output] current device status. Empty string when the device is ready to print
 ' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `LastError` description in class header
+' @param `CommandLog`   [output] see `CommandLog` description in class header
 ' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
 '
 Public Function GetStatus( _
@@ -1119,6 +1126,7 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_DATECS_FP_DIP_SWITCHES)
         pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_FP_MEMORY)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
+        pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol, CFG_EXTENDED_ERRORS, STR_DAISY_FP_EXT_ERRORS)
     Case STR_PROTOCOL_ZEKA_FP
         Set pvInit = New cZekaProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ZEKA_FP_INTERNAL)
