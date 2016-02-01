@@ -27,19 +27,22 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' receipt, followed by one or multiple calls to `AddPayment` to specify paid amount by payment types and finally
 ' complete and print the receipt by calling `EndReceipt`.
 '
-' See `PrintReport` method of `cFiscalPrinter` class for a complete workflow for printing a daily or monthly fiscal
-' reports.
+' Also see `PrintReport` method of `cFiscalPrinter` class for a complete workflow for printing a daily or monthly
+' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 17    20.11.15 16:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 18    1.02.16 17:17 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2016 Unicontsoft
 '
 '   Abstract interface for fiscal device protocol handling
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 18    1.02.16 17:17 Wqw
+' ADD: entries in UcsFiscalLocalizedIndexesEnum
+'
 ' 17    20.11.15 16:40 Wqw
 ' REF: add VBDOX documentation and typelib descriptions
 '
@@ -125,6 +128,7 @@ Public Enum UcsFiscalLocalizedIndexesEnum
     ucsFscLciDipSwitchesTexts
     ucsFscLciMemoryTexts
     ucsFscLciReceiptTexts
+    ucsFscLciExtendedErrors
     [_ucsFscLciMax]
 End Enum
 
