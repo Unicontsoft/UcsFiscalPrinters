@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 86    1.02.16 17:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 87    2.02.16 15:16 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 87    2.02.16 15:16 Wqw
+' ADD: daisy settings
+'
 ' 86    1.02.16 17:21 Wqw
 ' REF: better daisy fx1300-kl support
 '
@@ -363,6 +366,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInitEcTapeNew = 119
     ucsFpcInitEcTape = 120
     ucsFpcInitDaisyText = 149
+    ucsFpcInitDaisySetting = 150
     ucsFpcInitDaisyCurrencyRate = 151
     '--- transaction
     ucsFpcNonFiscalOpen = 38
