@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 35    1.02.16 17:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 36    2.02.16 15:18 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 36    2.02.16 15:18 Wqw
+' REF: property lock control [let]
+'
 ' 35    1.02.16 17:17 Wqw
 ' ADD: Function SplitOrReindex
 '
@@ -1461,7 +1464,7 @@ Public Property Get LockControl(oCtl As Object) As Boolean
 End Property
 
 Public Property Let LockControl(oCtl As Object, ByVal bValue As Boolean)
-    If DispInvoke(oCtl, "Locked", ucsIclPropLet, Args:=bValue) Then
+    If DispInvoke(oCtl, "Locked", ucsIclPropLet, Args:=bValue) Or TypeOf oCtl Is ListBox Then
         DispInvoke oCtl, "BackColor", ucsIclPropLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
     Else
         DispInvoke oCtl, "Enabled", ucsIclPropLet, Args:=Not bValue
