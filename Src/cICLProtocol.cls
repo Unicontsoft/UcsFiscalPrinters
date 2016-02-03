@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 87    2.02.16 15:16 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 88    3.02.16 12:49 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 88    3.02.16 12:49 Wqw
+' REF: daisy invoice no support
+'
 ' 87    2.02.16 15:16 Wqw
 ' ADD: daisy settings
 '
@@ -1649,8 +1652,13 @@ Public Function GetLastInvoiceNumber() As String
     Dim lIndex          As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, vbNullString, _
-        "Index", lIndex, 0
+    If Not IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, vbNullString, _
+            "Index", lIndex, 0
+    Else
+        pvGetCommandConfig CONF_NAME, "DaisyInitInvoiceNo", eCmd, ucsFpcInitDaisySetting, sParam, "R17", _
+            "Index", lIndex, 1
+    End If
     bPrevExceptions = pvSetExceptions(False)
     GetLastInvoiceNumber = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
     Exceptions = bPrevExceptions
@@ -2587,6 +2595,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim sFormatAddr     As String
     Dim sOperParamMax   As String
     Dim sOperParamMin   As String
+    Dim lEndIndex       As Long
     
     On Error GoTo EH
     '--- ring sale
@@ -2616,9 +2625,21 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     .InitOperatorName = RTrim$(sData)
                 End If
                 If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
-                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
-                    sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                    SendCommand eCmd, sParam
+                    If Not IsDaisy Then
+                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                        SendCommand eCmd, sParam
+                    Else
+                        pvGetCommandConfig CONF_NAME, "DaisyInitInvoiceNo", eCmd, ucsFpcInitDaisySetting, sParam, "P%1,%2", _
+                            "StartIndex", lIndex, 17, _
+                            "EndIndex", lEndIndex, 18
+                        If lIndex > 0 Then
+                            SendCommand eCmd, Printf(sParam, lIndex, .InitInvData(ucsInvNumber))
+                        End If
+                        If lEndIndex > 0 Then
+                            SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
+                        End If
+                    End If
                 End If
                 pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
                     sParam, "%1,%2,%3" & IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ",I", vbNullString)
