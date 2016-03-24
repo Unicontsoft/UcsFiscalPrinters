@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 88    3.02.16 12:49 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 89    24.03.16 10:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2016 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 89    24.03.16 10:20 Wqw
+' REF: remote desktop handle eof
+'
 ' 88    3.02.16 12:49 Wqw
 ' REF: daisy invoice no support
 '
@@ -2293,6 +2296,7 @@ RetrySend:
             lActual = 0
             lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
             If lResult <> 0 And lActual = 0 Then
+WaitEvent:
                 lResult = WaitCommEvent(hComm, lMask, uOver)
                 If lResult = 0 Then
                     Select Case Err.LastDllError
@@ -2302,6 +2306,10 @@ RetrySend:
                         Case WAIT_OBJECT_0
                             If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
                                 DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                                lRetryCount = lRetryCount + 1
+                                If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
+                                    GoTo TimeoutReached
+                                End If
                             End If
                         Case WAIT_TIMEOUT
                             lRetryCount = lRetryCount + 1
@@ -2322,12 +2330,16 @@ RetrySend:
                     Case WAIT_OBJECT_0
                         If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
                             DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            lRetryCount = lRetryCount + 1
+                            If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
+                                GoTo TimeoutReached
+                            End If
                         End If
                     Case WAIT_TIMEOUT
                         lRetryCount = lRetryCount + 1
                     End Select
                 Case ERROR_HANDLE_EOF
-                    lResult = WAIT_OBJECT_0
+                    GoTo WaitEvent
                 Case Else
                     DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
                     Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
@@ -2335,6 +2347,7 @@ RetrySend:
                 End Select
             End If
             If lResult <> 0 And lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
+TimeoutReached:
                 Call CancelIo(hComm)
                 DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_uConfig.CommEventTimeout=" & m_uConfig.CommEventTimeout & ", lTimeout=" & lTimeout
                 Error = pvInternal(ucsErrTimeoutWaitingForResponse)
