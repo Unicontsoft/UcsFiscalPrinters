@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 41    20.11.15 16:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 42    25.04.18 10:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Protocol handler for Tremol/Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 42    25.04.18 10:41 Wqw
+' REF: start receipt params
+'
 ' 41    20.11.15 16:39 Wqw
 ' REF: optional param of EndReceipt impl of IDeviceProtocol interface
 '
@@ -1159,7 +1162,7 @@ Public Function EndReceipt(sResumeTicket As String) As Boolean
         GoTo QH
     End If
     '--- restore context
-    vSplit = Split(sResumeTicket, CHR1)
+    vSplit = Split(sResumeTicket, STR_CHR1)
     With m_uCtxPrint
         For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
             .GrpTotal(lIdx) = C_Dbl(At(vSplit, lPos)): lPos = lPos + 1
@@ -1202,9 +1205,9 @@ Public Function GetResumeTicket() As String
         With m_uCtxPrint
             If .PmtPrinted Then
                 For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                    GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & CHR1
+                    GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & STR_CHR1
                 Next
-                GetResumeTicket = GetResumeTicket & .Paid & CHR1 & .PluCount & CHR1 & -.PmtPrinted & CHR1 & -.ChangePrinted & CHR1 & .Row
+                GetResumeTicket = GetResumeTicket & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
             End If
         End With
     End Select
@@ -1814,7 +1817,7 @@ End Function
 Public Sub SetLocalizedCommand( _
             sFunction As String, _
             sKey As String, _
-            Optional ByVal Cmd As UcsZekaCommandsEnum, _
+            Optional ByVal cmd As UcsZekaCommandsEnum, _
             Optional Param As String, _
             Optional More As Variant)
     Dim sMerged         As String
@@ -1825,8 +1828,8 @@ Public Sub SetLocalizedCommand( _
     End If
     sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
     With m_uConfig.LocalizedCommands
-        If Cmd <> 0 Then
-            .Add Cmd, sMerged
+        If cmd <> 0 Then
+            .Add cmd, sMerged
         End If
         If LenB(Param) <> 0 Then
             .Add Param, sMerged & "Param"
@@ -2507,7 +2510,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     End If
                     If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
                         With uRow(0)
-                            pvPrintLine AlignText(pvText(ucsTxtFooterSeller), Chr$(1) & ".", pvRowChars)
+                            pvPrintLine AlignText(pvText(ucsTxtFooterSeller), STR_CHR1 & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
                             pvPrintLine CenterText(String(pvRowChars - 10, "-"), pvRowChars)
                             pvPrintLine WrapText(pvText(ucsTxtFooterReceiver) & .InitInvData(ucsInvCompany), pvRowChars)
@@ -2995,7 +2998,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String) As Boolean
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String) As Boolean
     IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver)
 End Function
 
