@@ -2360,15 +2360,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 19    2.02.16 15:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 20    25.04.18 10:41 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2016 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Nastrojki na FP po ICL protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 20    25.04.18 10:41 Wqw
+' REF: UI
+'
 ' 19    2.02.16 15:17 Wqw
 ' REF: impl daisy settings
 '
