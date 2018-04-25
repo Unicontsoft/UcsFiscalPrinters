@@ -1,14 +1,17 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 36    2.02.16 15:18 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 37    25.04.18 10:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2016 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Global functions, constants and variables
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 37    25.04.18 10:43 Wqw
+' ADD: WrapMultiline, InitDeviceConnector
+'
 ' 36    2.02.16 15:18 Wqw
 ' REF: property lock control [let]
 '
@@ -207,7 +210,7 @@ Private Declare Function RegCloseKey Lib "advapi32.dll" (ByVal hKey As Long) As 
 Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetOpenFileName Lib "comdlg32.dll" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
-Private Declare Function CreateDIBSection Lib "gdi32" (ByVal hDC As Long, lpBitsInfo As BITMAPINFOHEADER, ByVal wUsage As Long, lpBits As Long, ByVal handle As Long, ByVal dw As Long) As Long
+Private Declare Function CreateDIBSection Lib "gdi32" (ByVal hDC As Long, lpBitsInfo As BITMAPINFOHEADER, ByVal wUsage As Long, lpBits As Long, ByVal Handle As Long, ByVal dw As Long) As Long
 Private Declare Function CreateCompatibleDC Lib "gdi32" (ByVal hDC As Long) As Long
 Private Declare Function SelectObject Lib "gdi32" (ByVal hDC As Long, ByVal hObject As Long) As Long
 Private Declare Function DeleteObject Lib "gdi32" (ByVal hObject As Long) As Long
@@ -246,7 +249,7 @@ Private Type OPENFILENAME
     nMaxFileTitle       As Long     ' Max Length of filename
     lpstrInitialDir     As Long     ' Starting Directory
     lpstrTitle          As Long     ' Title of window
-    flags               As Long
+    Flags               As Long
     nFileOffset         As Integer
     nFileExtension      As Integer
     lpstrDefExt         As Long
@@ -360,7 +363,8 @@ Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
 Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ECR"
-Public Const CHR1                   As String = "" '--- Chr$(1)
+Public Const STR_PROTOCOL_ESP_POS   As String = "ESC/POS"
+Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
 
 Private m_sDecimalSeparator     As String
@@ -697,6 +701,25 @@ Public Function IsWhiteSpace(sText As String) As Boolean
     End If
 End Function
 
+Public Function WrapMultiline(ByVal sText As String, ByVal lWidth As Long) As Variant
+    Dim vElem           As Variant
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    For Each vElem In Split(sText, vbCrLf)
+        vElem = WrapText(C_Str(vElem), lWidth)
+        If Not IsArray(vRetVal) Then
+            vRetVal = vElem
+        Else
+            ReDim Preserve vRetVal(0 To UBound(vRetVal) + UBound(vElem) + 1) As Variant
+            For lIdx = 0 To UBound(vElem)
+                vRetVal(UBound(vRetVal) - UBound(vElem) + lIdx) = vElem(lIdx)
+            Next
+        End If
+    Next
+    WrapMultiline = vRetVal
+End Function
+
 Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
     Dim lRight          As Long
     Dim lLeft           As Long
@@ -815,7 +838,7 @@ Public Function AlignText( _
             ByVal sRight As String, _
             ByVal lWidth As Long) As String
     sLeft = Left$(sLeft, lWidth)
-    If Left$(sRight, 1) = Chr$(1) Then
+    If Left$(sRight, 1) = STR_CHR1 Then
         sRight = String$(lWidth - Len(sLeft), Right$(sRight, 1))
     Else
         sRight = Right$(sRight, lWidth)
@@ -967,7 +990,7 @@ Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String,
     Else
         uOFN.lStructSize = Len(uOFN) - 12
     End If
-    uOFN.flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
+    uOFN.Flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
     uOFN.hWndOwner = hWndOwner
     uOFN.lpstrFilter = VarPtr(baFilter(0))
     uOFN.nFilterIndex = 1
@@ -1512,3 +1535,25 @@ Public Function SplitOrReindex(Expression As String, Delimiter As String) As Var
     End If
 End Function
 
+Public Function InitDeviceConnector(sDevice As String, ByVal lTimeout As Long, sLocalizedConnectorErrors As String, sError As String) As IDeviceConnector
+    Dim oSerialPortConn As cSerialPortConnector
+    Dim oSocketConn     As cSocketConnector
+    
+    If LCase$(Left$(sDevice, 3)) = "com" Then
+        Set oSerialPortConn = New cSerialPortConnector
+        oSerialPortConn.LocalizedText(ucsFscLciInternalErrors) = sLocalizedConnectorErrors
+        If Not oSerialPortConn.Init(sDevice, lTimeout) Then
+            sError = oSerialPortConn.GetLastError()
+            GoTo QH
+        End If
+        Set InitDeviceConnector = oSerialPortConn
+    Else
+        Set oSocketConn = New cSocketConnector
+        If Not oSocketConn.Init(sDevice, lTimeout) Then
+            sError = oSocketConn.GetLastError()
+            GoTo QH
+        End If
+        Set InitDeviceConnector = oSocketConn
+    End If
+QH:
+End Function
