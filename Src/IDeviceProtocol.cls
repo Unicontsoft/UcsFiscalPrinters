@@ -31,15 +31,18 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 18    1.02.16 17:17 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 19    25.04.18 10:42 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2016 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Abstract interface for fiscal device protocol handling
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 19    25.04.18 10:42 Wqw
+' REF: StartReceipt params
+'
 ' 18    1.02.16 17:17 Wqw
 ' ADD: entries in UcsFiscalLocalizedIndexesEnum
 '
@@ -102,6 +105,7 @@ Public Enum UcsFiscalReceiptTypeEnum
     ucsFscRetFiscal
     ucsFscRetInvoiceFiscal
     ucsFscRetInvoiceNonfiscal
+    ucsFscRetOrderList
     [_ucsFscRetMax]
 End Enum
 
@@ -129,6 +133,7 @@ Public Enum UcsFiscalLocalizedIndexesEnum
     ucsFscLciMemoryTexts
     ucsFscLciReceiptTexts
     ucsFscLciExtendedErrors
+    ucsFscLciConnectorErrors
     [_ucsFscLciMax]
 End Enum
 
@@ -217,6 +222,7 @@ End Function
 ' @param `InvAddress`       [in, optional] address of the company that is receiving the document
 ' @param `InvMol`           [in, optional] name of the person that is fiscally responsible for the company (not used)
 ' @param `InvReceiver`      [in, optional] name of the person that is receiving the document
+' @param `OwnData`          [in, optional] optional owner info for header: name, address, eik, dep name, dep address
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _
@@ -224,6 +230,7 @@ Public Function StartReceipt( _
             OperatorCode As String, _
             OperatorName As String, _
             OperatorPassword As String, _
+            Optional TableNo As String, _
             Optional InvNumber As String, _
             Optional InvTaxNumber As String, _
             Optional InvVatNumber As String, _
@@ -231,8 +238,8 @@ Public Function StartReceipt( _
             Optional InvCity As String, _
             Optional InvAddress As String, _
             Optional InvMol As String, _
-            Optional InvReceiver As String) As Boolean
-Attribute StartReceipt.VB_Description = "Used to begin printing of a new receipt. The actual printing of the receipt is usually postponed until `EndReceipt` is called"
+            Optional InvReceiver As String, _
+            Optional OwnData As String) As Boolean
             
 End Function
 
@@ -617,7 +624,7 @@ End Function
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `Value`            [input] positive for debig, negative for creadit, 0.00 for info only
+' @param `Value`            [input] positive for debit, negative for creadit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function CashDebitCredit( _
