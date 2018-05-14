@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 90    25.04.18 10:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 91    14.05.18 12:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 91    14.05.18 12:38 Wqw
+' REF: params preg replace
+'
 ' 90    25.04.18 10:40 Wqw
 ' REF: def pmt types
 '
@@ -3266,7 +3269,7 @@ Private Function pvStripBold(sText As String) As String
     Const FUNC_NAME     As String = "pvStripBold"
     
     pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
-        GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString), sText)
+        sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
 End Function
 
 Private Sub pvGetCommandConfig( _
