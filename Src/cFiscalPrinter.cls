@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 37    25.04.18 10:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 38    14.05.18 12:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 38    14.05.18 12:38 Wqw
+' REF: auto-detect esp/pos printers
+'
 ' 37    25.04.18 10:40 Wqw
 ' REF: impl ESC/POS driver support
 '
@@ -392,7 +395,8 @@ Attribute EnumPorts.VB_Description = "Used for enumeration of available system s
     
     On Error GoTo EH
     vPorts = EnumSerialPorts
-    For Each vElem In Array(New cZekaProtocol, New cICLProtocol, New cEltradeProtocol)
+    For Each vElem In Array(pvInit(STR_PROTOCOL_ZEKA_FP), pvInit(STR_PROTOCOL_ESP_POS), _
+                            pvInit(STR_PROTOCOL_DATECS_FP), pvInit(STR_PROTOCOL_ELTRADE_ECR))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -1156,8 +1160,10 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ELTRADE_ECR_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
     End Select
-    If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
-        Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
+    If LenB(At(vSplit, 1)) <> 0 Then
+        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
+            Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
+        End If
     End If
 End Function
 
