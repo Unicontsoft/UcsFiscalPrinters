@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 37    25.04.18 10:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 38    14.05.18 12:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 38    14.05.18 12:37 Wqw
+' REF: init device connector
+'
 ' 37    25.04.18 10:43 Wqw
 ' ADD: WrapMultiline, InitDeviceConnector
 '
@@ -1322,13 +1325,13 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
     End If
 End Sub
 
-Public Function preg_replace(sPattern As String, sReplace As String, sText As String) As String
-    preg_replace = pvInitRegExp(sPattern).Replace(sText, sReplace)
+Public Function preg_replace(find_re As String, sText As String, Optional sReplace As String) As String
+    preg_replace = pvInitRegExp(find_re).Replace(sText, sReplace)
 End Function
 
 Private Function pvInitRegExp(sPattern As String) As Object
     Dim lIdx            As Long
-    
+
     Set pvInitRegExp = CreateObject("VBScript.RegExp")
     With pvInitRegExp
         .Global = True
@@ -1535,22 +1538,28 @@ Public Function SplitOrReindex(Expression As String, Delimiter As String) As Var
     End If
 End Function
 
-Public Function InitDeviceConnector(sDevice As String, ByVal lTimeout As Long, sLocalizedConnectorErrors As String, sError As String) As IDeviceConnector
+Public Function InitDeviceConnector( _
+            sDevice As String, _
+            ByVal lTimeout As Long, _
+            Optional LocalizedConnectorErrors As String, _
+            Optional Error As String) As IDeviceConnector
     Dim oSerialPortConn As cSerialPortConnector
     Dim oSocketConn     As cSocketConnector
     
     If LCase$(Left$(sDevice, 3)) = "com" Then
         Set oSerialPortConn = New cSerialPortConnector
-        oSerialPortConn.LocalizedText(ucsFscLciInternalErrors) = sLocalizedConnectorErrors
+        If LenB(LocalizedConnectorErrors) <> 0 Then
+            oSerialPortConn.LocalizedText(ucsFscLciInternalErrors) = LocalizedConnectorErrors
+        End If
         If Not oSerialPortConn.Init(sDevice, lTimeout) Then
-            sError = oSerialPortConn.GetLastError()
+            Error = oSerialPortConn.GetLastError()
             GoTo QH
         End If
         Set InitDeviceConnector = oSerialPortConn
     Else
         Set oSocketConn = New cSocketConnector
         If Not oSocketConn.Init(sDevice, lTimeout) Then
-            sError = oSocketConn.GetLastError()
+            Error = oSocketConn.GetErrorDescription(oSocketConn.LastError)
             GoTo QH
         End If
         Set InitDeviceConnector = oSocketConn
