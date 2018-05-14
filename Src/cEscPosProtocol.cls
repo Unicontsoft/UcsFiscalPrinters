@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 1     25.04.18 10:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 2     14.05.18 12:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 2     14.05.18 12:38 Wqw
+' REF: impl AutodetectDevices
+'
 ' 1     25.04.18 10:38 Wqw
 ' Initial implementation
 '
@@ -31,6 +34,12 @@ Const MODULE_NAME As String = "cEscPosProtocol"
 Implements IDeviceProtocol
 
 '=========================================================================
+' API
+'=========================================================================
+
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -39,6 +48,7 @@ Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SUR
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
+Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
 Private Const ucsFscDstPluAbs           As Long = ucsFscDstPlu + 100
 Private Const ucsFscDstSubtotalAbs      As Long = ucsFscDstSubtotal + 100
 Private Const STR_GS                    As String = "" ' Chr$(29)
@@ -212,7 +222,9 @@ Property Get IsConnected() As Boolean
 End Property
 
 Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
-    LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    If IsArray(m_uConfig.LocalizedText(eIdx)) Then
+        LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    End If
 End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
@@ -241,6 +253,83 @@ End Property
 '=========================================================================
 ' Methods
 '=========================================================================
+
+Public Function AutodetectDevices(vPorts As Variant) As Variant
+    Const FUNC_NAME     As String = "AutodetectDevices"
+    Dim vRetVal         As Variant
+    Dim vSpeed          As Variant
+    Dim aPorts          As Variant
+    Dim oConnector      As IDeviceConnector
+    Dim lIdx            As Long
+    Dim baBuffer()      As Byte
+    Dim dblTimer        As Double
+    Dim bHasMore           As Boolean
+    Dim sModel          As String
+    
+    On Error GoTo EH
+    vRetVal = vPorts
+    For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
+        ReDim aPorts(0 To UBound(vPorts)) As Variant
+        For lIdx = 0 To UBound(aPorts)
+            If Not IsArray(vRetVal(lIdx)) Then
+                Set oConnector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, 1000, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
+                If Not oConnector Is Nothing Then
+                    oConnector.WriteData ToAscii(STR_GS & "I1"), 1
+                    Set aPorts(lIdx) = oConnector
+                End If
+            End If
+        Next
+        dblTimer = DateTimer
+        Do While DateTimer < dblTimer + 0.2
+            bHasMore = False
+            For lIdx = 0 To UBound(aPorts)
+                If IsObject(aPorts(lIdx)) Then
+                    bHasMore = True
+                    Set oConnector = aPorts(lIdx)
+                    If oConnector.ReadData(baBuffer, 0) Then
+                        sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
+                                 pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
+                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESP_POS, Mid$(sModel, 2))
+                        aPorts(lIdx) = Empty
+                    End If
+                End If
+            Next
+            If Not bHasMore Then
+                Exit For
+            End If
+            Call Sleep(10)
+        Loop
+    Next
+    AutodetectDevices = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvGetAutodetectInfo(oConnector As IDeviceConnector, ByVal lIndex As Long) As String
+    Dim sRetVal         As String
+    Dim baBuffer()      As Byte
+    Dim lRepeat         As Long
+    
+Repeat:
+    If oConnector.WriteData(ToAscii(STR_GS & "I" & Chr$(lIndex)), 100) Then
+        If oConnector.ReadData(baBuffer, 100) Then
+            If baBuffer(0) = 95 Then
+                sRetVal = Mid$(StrConv(baBuffer, vbUnicode), 2)
+                If InStr(sRetVal, Chr$(0)) > 0 Then
+                    sRetVal = Left$(sRetVal, InStr(sRetVal, Chr$(0)) - 1)
+                End If
+            End If
+            If LenB(sRetVal) = 0 And lRepeat < 10 Then
+                lRepeat = lRepeat + 1
+                GoTo Repeat
+            End If
+        End If
+    End If
+    If LenB(sRetVal) <> 0 Then
+        pvGetAutodetectInfo = ", " & sRetVal
+    End If
+End Function
 
 Public Function Init( _
             sDevice As String, _
@@ -1004,7 +1093,7 @@ Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, B
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
-    
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(Ports)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
