@@ -2360,7 +2360,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 20    25.04.18 10:41 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 21    15.05.18 12:29 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -2369,6 +2369,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 21    15.05.18 12:29 Wqw
+' REF: empty variant array
+'
 ' 20    25.04.18 10:41 Wqw
 ' REF: UI
 '
@@ -2932,7 +2935,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             If lRow > 0 Then
                 ReDim m_vLogo(0 To lRow - 1) As Variant
             Else
-                m_vLogo = EmptyVariantArray
+                m_vLogo = Array()
             End If
             For lRow = 0 To UBound(m_vLogo)
                 pvStatus = Printf(STR_STATUS_FETCH_LOGO, lRow + 1)
@@ -2946,7 +2949,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                                 m_vLogo(lIdx) = String$(lWidth / 4, "0")
                             Next
                         Else
-                            m_vLogo = EmptyVariantArray
+                            m_vLogo = Array()
                         End If
                     End If
                     Exit For
