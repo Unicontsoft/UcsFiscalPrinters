@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 91    14.05.18 12:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 92    15.05.18 12:29 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 92    15.05.18 12:29 Wqw
+' REF: empty variant array
+'
 ' 91    14.05.18 12:38 Wqw
 ' REF: params preg replace
 '
@@ -1973,7 +1976,7 @@ Public Function GetTotalsByPayments() As Variant
         Next
         GetTotalsByPayments = vRetVal
     Else
-        GetTotalsByPayments = EmptyVariantArray
+        GetTotalsByPayments = Array()
     End If
     Exit Function
 EH:
@@ -2016,7 +2019,7 @@ Public Function GetTotalsByVatGroups() As Variant
         Next
         GetTotalsByVatGroups = vRetVal
     Else
-        GetTotalsByVatGroups = EmptyVariantArray
+        GetTotalsByVatGroups = Array()
     End If
     Exit Function
 EH:
