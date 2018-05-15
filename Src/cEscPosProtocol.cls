@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 2     14.05.18 12:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 3     15.05.18 12:29 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 3     15.05.18 12:29 Wqw
+' REF: handle open drawer and get device model
+'
 ' 2     14.05.18 12:38 Wqw
 ' REF: impl AutodetectDevices
 '
@@ -44,7 +47,7 @@ Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 '=========================================================================
 
 Private Const STR_INTERNAL              As String = "No receipt started|Error in line %1: %2"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1"
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1|EIC: %1"
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
@@ -53,7 +56,6 @@ Private Const ucsFscDstPluAbs           As Long = ucsFscDstPlu + 100
 Private Const ucsFscDstSubtotalAbs      As Long = ucsFscDstSubtotal + 100
 Private Const STR_GS                    As String = "" ' Chr$(29)
 Private Const STR_ESC                   As String = "" ' Chr$(27)
-Private Const STR_DEVICE_MODEL          As String = "ESC/POS Model"
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -102,6 +104,7 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtHeaderDate
     ucsTxtHeaderOper
     ucsTxtHeaderTable
+    ucsTxtHeaderEic
 End Enum
 
 Private Enum UcsRowTypeEnum
@@ -605,7 +608,17 @@ Public Function GetPaymentName(ByVal Index As Long) As String
 End Function
 
 Public Function OpenDrawer() As Boolean
-    '--- ToDo: send pulse
+    Dim sCmd            As String
+    
+    '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
+    sCmd = STR_ESC & "p" & Chr$(0) & Chr$(25) & Chr$(250)
+    If Not m_oConnector.WriteData(ToAscii(sCmd), 100) Then
+        m_sLastError = m_oConnector.GetLastError()
+        GoTo QH
+    End If
+    '--- success
+    OpenDrawer = True
+QH:
 End Function
 
 Public Function CancelReceipt() As Boolean
@@ -613,7 +626,8 @@ Public Function CancelReceipt() As Boolean
 End Function
 
 Public Function GetDeviceModel() As String
-    GetDeviceModel = STR_DEVICE_MODEL
+    GetDeviceModel = pvGetAutodetectInfo(m_oConnector, 67) & pvGetAutodetectInfo(m_oConnector, 66) & _
+                     pvGetAutodetectInfo(m_oConnector, 68) & pvGetAutodetectInfo(m_oConnector, 65)
 End Function
 
 Public Function GetDeviceProtocol() As String
@@ -761,7 +775,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnName), pvRowChars)
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnAddress), pvRowChars)
-                pvPrintLine CenterText("≈»  π: " & At(.InitOwnData, ucsOwnBulstat), pvRowChars)
+                pvPrintLine CenterText(Printf(pvText(ucsTxtHeaderEic), At(.InitOwnData, ucsOwnBulstat)), pvRowChars)
                 If LenB(At(.InitOwnData, ucsOwnDepName)) <> 0 Then
                     pvPrintLine CenterText(At(.InitOwnData, ucsOwnDepName), pvRowChars)
                 End If
