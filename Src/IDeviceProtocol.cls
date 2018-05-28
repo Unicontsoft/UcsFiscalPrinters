@@ -31,7 +31,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 19    25.04.18 10:42 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 20    28.05.18 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -40,6 +40,9 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 20    28.05.18 16:37 Wqw
+' ADD: entries in UcsFiscalPaymentTypeEnum
+'
 ' 19    25.04.18 10:42 Wqw
 ' REF: StartReceipt params
 '
@@ -123,6 +126,7 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCustom1 = -1
     ucsFscPmtCustom2 = -2
     ucsFscPmtCustom3 = -3
+    ucsFscPmtCustom4 = -4
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum
