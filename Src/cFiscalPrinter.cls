@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 39    15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 40    28.05.18 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 40    28.05.18 16:37 Wqw
+' ADD: entries in UcsFiscalHeaderIndexesEnum
+'
 ' 39    15.05.18 12:29 Wqw
 ' REF: esp/pos consts
 '
@@ -270,6 +273,7 @@ Public Enum UcsFiscalHeaderIndexesEnum
     ucsFscHdrWopCustom1
     ucsFscHdrWopCustom2
     ucsFscHdrWopCustom3
+    ucsFscHdrWopCustom4
     ucsFscHdrCharsPerLine
     ucsFscHdrDefOperPassword
     [_ucsFscHdrLast]
@@ -495,6 +499,9 @@ Attribute GetHeaderFooter.VB_Description = "Used to retrieve an array with info 
     End If
     If LenB(At(vInput, ucsFscHdrWopCustom3, "1")) <> 0 Then
         RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-3)
+    End If
+    If LenB(At(vInput, ucsFscHdrWopCustom4, "1")) <> 0 Then
+        RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-4)
     End If
     If LenB(At(vInput, ucsFscHdrCharsPerLine, "1")) <> 0 Then
         RetVal(ucsFscHdrCharsPerLine) = oFP.GetCharsPerLine()
