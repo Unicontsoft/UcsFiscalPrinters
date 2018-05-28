@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 39    15.05.18 12:28 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 40    28.05.18 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 40    28.05.18 16:37 Wqw
+' REF: uses GetErrorTempPath
+'
 ' 39    15.05.18 12:28 Wqw
 ' REF: gdip startip, disp invoke
 '
@@ -239,6 +242,7 @@ Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttribut
 Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
 Private Declare Function GetSystemTimeAsFileTime Lib "kernel32.dll" (lpSystemTimeAsFileTime As Currency) As Long
+Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -610,7 +614,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     If m_nDebugLogFile = 0 Then
         sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
         If LenB(sFile) = 0 Then
-            sFile = Environ$("TEMP") & "\UcsFP.log"
+            sFile = GetErrorTempPath() & "\UcsFP.log"
             If Not FileExists(sFile) Then
                 m_nDebugLogFile = -1
                 GoTo QH
@@ -1594,3 +1598,15 @@ End Function
 Public Function PeekInt(ByVal lPtr As Long) As Integer
     Call CopyMemory(PeekInt, ByVal lPtr, 2)
 End Function
+
+Public Function GetErrorTempPath() As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetTempPath(Len(sBuffer) - 1, sBuffer)
+    GetErrorTempPath = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+    If Right$(GetErrorTempPath, 1) = "\" Then
+        GetErrorTempPath = Left$(GetErrorTempPath, Len(GetErrorTempPath) - 1)
+    End If
+End Function
+
