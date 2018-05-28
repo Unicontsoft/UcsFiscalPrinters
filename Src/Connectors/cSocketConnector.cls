@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls 2     14.05.18 12:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls 3     28.05.18 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls $
 ' 
+' 3     28.05.18 16:37 Wqw
+' REF: timeout on create
+'
 ' 2     14.05.18 12:39 Wqw
 ' REF: impl w/o ext dep on async socket class
 '
@@ -192,7 +195,8 @@ End Property
 Public Function Create( _
             Optional ByVal SocketPort As Long, _
             Optional ByVal SocketType As UcsConnectorSocketTypeEnum = ucsSckStream, _
-            Optional SocketAddress As String) As Boolean
+            Optional SocketAddress As String, _
+            Optional ByVal Timeout As Long) As Boolean
     Const FUNC_NAME     As String = "Create"
     
     On Error GoTo EH
@@ -205,6 +209,7 @@ Public Function Create( _
         pvLastError = Err.LastDllError
         GoTo QH
     End If
+    m_lResolvTimeout = IIf(Timeout <> 0, Timeout, 3000)
     If Not Bind(SocketAddress, SocketPort) Then
         Close_
         GoTo QH
@@ -500,9 +505,8 @@ Public Function Init(Device As String, Optional ByVal Timeout As Long) As Boolea
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    m_lResolvTimeout = Timeout
     vSplit = Split(Device, ":")
-    If Not Create(SocketType:=ucsSckStream) Then
+    If Not Create(SocketType:=ucsSckStream, Timeout:=Timeout) Then
         DebugLog FUNC_NAME, "Create failed, LastError=" & LastError
         GoTo QH
     End If
