@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls 2     14.05.18 12:39 Wqw $
+' $Header: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls 3     28.05.18 16:37 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls $
 ' 
+' 3     28.05.18 16:37 Wqw
+' REF: impl connector get last error
+'
 ' 2     14.05.18 12:39 Wqw
 ' REF: read data
 '
@@ -432,7 +435,7 @@ End Sub
 '=========================================================================
 
 Private Function IDeviceConnector_GetLastError(Optional ErrCategory As UcsConnectorErrorsEnum) As String
-    
+    IDeviceConnector_GetLastError = GetLastError()
 End Function
 
 Private Function IDeviceConnector_Init(Device As String, Optional ByVal Timeout As Long) As Boolean
