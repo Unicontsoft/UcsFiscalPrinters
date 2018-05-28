@@ -2348,7 +2348,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 10    28.01.16 16:00 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 11    28.05.18 16:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2014 Unicontsoft
@@ -2357,6 +2357,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 11    28.05.18 16:38 Wqw
+' REF: uses GetErrorTempPath
+'
 ' 10    28.01.16 16:00 Wqw
 ' REF: disp invoke params
 '
@@ -3412,7 +3415,7 @@ Private Function pvLoadBmp(baData() As Byte) As StdPicture
     Dim nFile           As Integer
     Dim sFile           As String
     
-    sFile = Environ$("TEMP") & "\~tmp" & Timer * 100 & ".bmp"
+    sFile = GetErrorTempPath() & "\~tmp" & Timer * 100 & ".bmp"
     On Error Resume Next '--- checked
     SetAttr sFile, vbArchive
     Kill sFile
