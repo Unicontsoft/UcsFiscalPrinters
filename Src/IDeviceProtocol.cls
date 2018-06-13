@@ -31,7 +31,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 20    28.05.18 16:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 21    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -40,6 +40,9 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 21    13.06.18 12:20 Wqw
+' ADD: Init params
+'
 ' 20    28.05.18 16:37 Wqw
 ' ADD: entries in UcsFiscalPaymentTypeEnum
 '
@@ -163,9 +166,10 @@ End Enum
 ' @param `Device`       [input] string formatted as "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]"
 ' @param `Timeout`      [in, optional] COM port open timeout in milliseconds, usually defaults to 3000
 ' @param `ChashDeskNo`  [in, optional] cash desk number if supported by the device, defaults to 1
+' @param `RowChars`     [in, optional] number of caracters per row, according paper width
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
+Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
 Attribute Init.VB_Description = "Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved"
 
 End Function
