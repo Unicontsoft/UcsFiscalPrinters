@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 40    28.05.18 16:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 41    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 41    13.06.18 12:20 Wqw
+' REF: params na ToAscii
+'
 ' 40    28.05.18 16:37 Wqw
 ' REF: uses GetErrorTempPath
 '
@@ -1529,14 +1532,14 @@ Public Function ParseSum(sValue As String) As Double
     End If
 End Function
 
-Public Function ToAscii(sSend As String) As Byte()
+Public Function ToAscii(sSend As String, Optional ByVal CodePage As Long) As Byte()
     Dim lSize           As Long
     Dim baText()        As Byte
     
     lSize = Len(sSend)
     If lSize > 0 Then
         ReDim baText(0 To lSize - 1) As Byte
-        Call WideCharToMultiByte(0, 0, StrPtr(sSend), lSize, baText(0), Len(sSend), 0, 0)
+        Call WideCharToMultiByte(CodePage, 0, StrPtr(sSend), lSize, baText(0), Len(sSend), 0, 0)
     Else
         baText = " "
     End If
