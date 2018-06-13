@@ -12,7 +12,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls 3     28.05.18 16:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls 4     13.06.18 12:19 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls $
 ' 
+' 4     13.06.18 12:19 Wqw
+' REF: clear persistent on terminate
+'
 ' 3     28.05.18 16:37 Wqw
 ' REF: impl connector get last error
 '
@@ -131,6 +134,7 @@ Private m_sDevice               As String
 Private m_sLastError            As String
 Private m_vLocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 Private m_lCommEventTimeout     As Long
+Private m_bClearPersistent      As Boolean
 
 Private Enum UcsInternalErrors
     ucsErrNoDeviceInfoSet
@@ -208,16 +212,18 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
     Dim lWritten        As Long
     Dim uOver           As OVERLAPPED
     Dim lResult         As Long
+    Dim lLastErr        As Long
     
     On Error GoTo EH
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     Call PurgeComm(m_hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     lResult = WriteFile(m_hComm, Data(0), UBound(Data) + 1, lWritten, uOver)
+    lLastErr = Err.LastDllError
     If lResult = 0 Then
-        If Err.LastDllError <> ERROR_IO_PENDING Then
-            m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(Err.LastDllError))
-            DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & Err.LastDllError
+        If lLastErr <> ERROR_IO_PENDING Then
+            m_bClearPersistent = True
+            m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(lLastErr))
+            DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
             GoTo QH
         End If
     End If
@@ -225,6 +231,7 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
     If lResult <> WAIT_OBJECT_0 And Timeout <> 0 Then
         Call CancelIo(m_hComm)
         If lResult = WAIT_TIMEOUT Then
+            m_bClearPersistent = True
             m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
         DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
@@ -248,21 +255,25 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     Dim lActual         As Long
     Dim lRetryCount     As Long
     Dim lIterTimeout    As Long
+    Dim lLastErr        As Long
     
     On Error GoTo EH
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
     ReDim Result(0 To 65535) As Byte
+    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     '--- async read response
     Do
         lIterTimeout = LimitLong(m_lCommEventTimeout, , Timeout - lRetryCount * m_lCommEventTimeout)
         lActual = 0
         lResult = ReadFile(m_hComm, Result(0), UBound(Result) + 1, lActual, uOver)
+        lLastErr = Err.LastDllError
         If Timeout <> 0 Then
             If lResult <> 0 And lActual = 0 Then
 WaitEvent:
                 lResult = WaitCommEvent(m_hComm, lMask, uOver)
+                lLastErr = Err.LastDllError
                 If lResult = 0 Then
-                    Select Case Err.LastDllError
+                    Select Case lLastErr
                     Case ERROR_IO_PENDING
                         lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
                         Select Case lResult
@@ -278,15 +289,17 @@ WaitEvent:
                             lRetryCount = lRetryCount + 1
                         End Select
                     Case Else
-                        m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
-                        DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
+                        m_bClearPersistent = True
+                        m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
+                        DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & lLastErr
                         GoTo QH
                     End Select
                 End If
                 lResult = ReadFile(m_hComm, Result(0), UBound(Result) + 1, lActual, uOver)
+                lLastErr = Err.LastDllError
             End If
             If lResult = 0 Then
-                Select Case Err.LastDllError
+                Select Case lLastErr
                 Case ERROR_IO_PENDING
                     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
                     Select Case lResult
@@ -304,8 +317,9 @@ WaitEvent:
                 Case ERROR_HANDLE_EOF
                     GoTo WaitEvent
                 Case Else
-                    m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
-                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & Err.LastDllError
+                    m_bClearPersistent = True
+                    m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(lLastErr))
+                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & lLastErr
                     GoTo QH
                 End Select
             End If
@@ -313,6 +327,7 @@ WaitEvent:
 TimeoutReached:
                 Call CancelIo(m_hComm)
                 DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
+                m_bClearPersistent = True
                 m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 GoTo QH
             End If
@@ -426,7 +441,7 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    PortWrapper.CloseComPort m_hComm
+    PortWrapper.CloseComPort m_hComm, m_bClearPersistent
     m_hComm = INVALID_HANDLE_VALUE
 End Sub
 
