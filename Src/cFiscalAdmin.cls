@@ -17,15 +17,18 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 ' library.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 8     20.11.15 16:40 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 9     13.06.18 15:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Administration of fiscal devices and handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 9     13.06.18 15:09 Wqw
+' REF: esc/pos protocol
+'
 ' 8     20.11.15 16:40 Wqw
 ' REF: add VBDOX documentation and typelib descriptions
 '
@@ -60,7 +63,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 '=========================================================================
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol|cZekaProtocol"
+Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol|cZekaProtocol|cEscPosProtocol"
 
 '=========================================================================
 ' Error handling
@@ -264,6 +267,8 @@ Attribute CreateObject.VB_Description = "Class factory for fiscal printers class
         Set CreateObject = New cEltradeProtocol
     Case LCase$(LIB_NAME & ".cZekaProtocol")
         Set CreateObject = New cZekaProtocol
+    Case LCase$(LIB_NAME & ".cEscPosProtocol")
+        Set CreateObject = New cEscPosProtocol
     End Select
 End Function
 
