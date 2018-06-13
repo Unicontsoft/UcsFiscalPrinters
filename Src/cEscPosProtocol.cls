@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 3     15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 4     13.06.18 12:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 4     13.06.18 12:21 Wqw
+' REF: impl configurable row chars
+'
 ' 3     15.05.18 12:29 Wqw
 ' REF: handle open drawer and get device model
 '
@@ -52,6 +55,7 @@ Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
+Private Const DEF_ROW_CHARS             As Long = 48
 Private Const ucsFscDstPluAbs           As Long = ucsFscDstPlu + 100
 Private Const ucsFscDstSubtotalAbs      As Long = ucsFscDstSubtotal + 100
 Private Const STR_GS                    As String = "" ' Chr$(29)
@@ -240,18 +244,14 @@ Private Property Get pvRowChars() As Long
     
     If m_uConfig.RowChars = 0 Then
         pvGetCommandConfig CONF_NAME, "RowChars", 0, 0, vbNullString, vbNullString, _
-                "Value", sValue, "48"
+                "Value", sValue, vbNullString
         m_uConfig.RowChars = C_Lng(sValue)
         If m_uConfig.RowChars <= 0 Then
-            m_uConfig.RowChars = 48
+            m_uConfig.RowChars = DEF_ROW_CHARS
         End If
     End If
     pvRowChars = m_uConfig.RowChars
 End Property
-
-'Private Property Get pvItemChars() As Long
-'    pvItemChars = LimitLong(pvRowChars - 5, , 30)
-'End Property
 
 '=========================================================================
 ' Methods
@@ -266,8 +266,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lIdx            As Long
     Dim baBuffer()      As Byte
     Dim dblTimer        As Double
-    Dim bHasMore           As Boolean
+    Dim bHasMore        As Boolean
     Dim sModel          As String
+    Dim sCmd            As String
     
     On Error GoTo EH
     vRetVal = vPorts
@@ -277,7 +278,10 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             If Not IsArray(vRetVal(lIdx)) Then
                 Set oConnector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, 1000, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
                 If Not oConnector Is Nothing Then
-                    oConnector.WriteData ToAscii(STR_GS & "I1"), 1
+                    sCmd = STR_ESC & "@"            '--- Initialize printer
+                    '--- STR_GS & "I1"
+                    sCmd = STR_GS & "r" & Chr$(1)   '--- Transmits paper sensor status
+                    oConnector.WriteData ToAscii(sCmd), 100
                     Set aPorts(lIdx) = oConnector
                 End If
             End If
@@ -310,12 +314,14 @@ EH:
 End Function
 
 Private Function pvGetAutodetectInfo(oConnector As IDeviceConnector, ByVal lIndex As Long) As String
+    Dim sCmd            As String
     Dim sRetVal         As String
     Dim baBuffer()      As Byte
     Dim lRepeat         As Long
     
 Repeat:
-    If oConnector.WriteData(ToAscii(STR_GS & "I" & Chr$(lIndex)), 100) Then
+    sCmd = STR_GS & "I" & Chr$(lIndex)
+    If oConnector.WriteData(ToAscii(sCmd), 100) Then
         If oConnector.ReadData(baBuffer, 100) Then
             If baBuffer(0) = 95 Then
                 sRetVal = Mid$(StrConv(baBuffer, vbUnicode), 2)
@@ -337,20 +343,22 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long) As Boolean
+            Optional ByVal CashDeskNo As Long, _
+            Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
-    If LCase$(Left$(sDevice, 3)) = "com" Then
+    vSplit = Split(sDevice, ",")
+    If LCase$(Left$(At(vSplit, 0), 3)) = "com" Then
         m_sDevice = sDevice
     Else
-        vSplit = Split(sDevice, ",")
-        m_sDevice = vSplit(0) & IIf(InStr(vSplit(0), ":") = 0, ":9100", vbNullString)
+        m_sDevice = vSplit(0) & IIf(InStr(At(vSplit, 0), ":") = 0, ":9100", vbNullString)
     End If
     m_lTimeout = IIf(Timeout <> 0, Timeout, DEF_TIMEOUT)
     m_lCashDeskNo = CashDeskNo
+    m_uConfig.RowChars = RowChars
     '--- success
     Init = Connect()
 QH:
@@ -361,10 +369,18 @@ End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
+    Dim sCmd            As String
     
     On Error GoTo EH
     Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
     If m_oConnector Is Nothing Then
+        GoTo QH
+    End If
+    sCmd = STR_ESC & "@"                        '--- Initialize printer
+    sCmd = sCmd & STR_ESC & "t" & Chr$(17)      '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
+    sCmd = sCmd & STR_ESC & "M" & Chr$(0)       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+        m_sLastError = m_oConnector.GetLastError()
         GoTo QH
     End If
     '--- success
@@ -612,7 +628,7 @@ Public Function OpenDrawer() As Boolean
     
     '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
     sCmd = STR_ESC & "p" & Chr$(0) & Chr$(25) & Chr$(250)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), 100) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -635,9 +651,22 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+    Dim sCmd            As String
+    Dim baBuffer()      As Byte
+    
+    sCmd = STR_GS & "r" & Chr$(1)
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+        m_sLastError = m_oConnector.GetLastError()
+        GoTo QH
+    End If
+    If Not m_oConnector.ReadData(baBuffer, m_lTimeout) Then
+        m_sLastError = m_oConnector.GetLastError()
+        GoTo QH
+    End If
     CurrentStatus = vbNullString
     '--- success
     GetDeviceStatus = True
+QH:
 End Function
 
 '= private ===============================================================
@@ -706,13 +735,13 @@ Private Function pvPrintLine(vText As Variant) As Boolean
     
     If IsArray(vText) Then
         For Each vElem In vText
-            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf), m_lTimeout) Then
+            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, 866), m_lTimeout) Then
                 m_sLastError = m_oConnector.GetLastError()
                 GoTo QH
             End If
         Next
     Else
-        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf), m_lTimeout) Then
+        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, 866), m_lTimeout) Then
             m_sLastError = m_oConnector.GetLastError()
             GoTo QH
         End If
@@ -1171,7 +1200,11 @@ Private Function IDeviceProtocol_GetFooterText(ByVal Index As Long) As String
 End Function
 
 Private Function IDeviceProtocol_GetHeaderText(ByVal Index As Long) As String
-
+    If Index = 1 Then
+        If Not GetDeviceStatus(vbNullString) Then
+            Err.Raise vbObjectError, , LastError
+        End If
+    End If
 End Function
 
 Private Function IDeviceProtocol_GetLastReceiptNumber() As String
@@ -1219,8 +1252,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean
