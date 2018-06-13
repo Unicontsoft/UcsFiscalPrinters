@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 43    15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 44    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 44    13.06.18 12:20 Wqw
+' REF: Init params
+'
 ' 43    15.05.18 12:29 Wqw
 ' REF: empty variant array
 '
@@ -769,7 +772,8 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long) As Boolean
+            Optional ByVal CashDeskNo As Long, _
+            Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
@@ -805,7 +809,7 @@ Public Function Init( _
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uConfig
         .IsEcr = vbUseDefault
-        .RowChars = GetConfigNumber(sSerial, "RowChars", 0)
+        .RowChars = GetConfigNumber(sSerial, "RowChars", RowChars)
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
@@ -2969,8 +2973,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

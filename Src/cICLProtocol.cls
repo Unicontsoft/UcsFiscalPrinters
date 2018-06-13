@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 92    15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 93    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 93    13.06.18 12:20 Wqw
+' REF: Init params
+'
 ' 92    15.05.18 12:29 Wqw
 ' REF: empty variant array
 '
@@ -554,7 +557,7 @@ Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|576
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0000"
-Private Const DEF_COMMENT_LEN           As Long = 30
+Private Const DEF_ROW_CHARS             As Long = 30
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
@@ -894,7 +897,7 @@ Private Property Get pvRowChars() As Long
             End If
         End If
         If m_uConfig.RowChars <= 0 Then
-            m_uConfig.RowChars = DEF_COMMENT_LEN
+            m_uConfig.RowChars = DEF_ROW_CHARS
         End If
     End If
     pvRowChars = m_uConfig.RowChars
@@ -1044,7 +1047,8 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long) As Boolean
+            Optional ByVal CashDeskNo As Long, _
+            Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
@@ -1095,7 +1099,7 @@ Public Function Init( _
         .IsDaisy = Left$(GetSerialNumber(), Len(sDaisyPrefix)) = sDaisyPrefix
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
-        .RowChars = GetConfigNumber(sSerial, "RowChars", 0)
+        .RowChars = GetConfigNumber(sSerial, "RowChars", RowChars)
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", 0)
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
@@ -3461,8 +3465,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

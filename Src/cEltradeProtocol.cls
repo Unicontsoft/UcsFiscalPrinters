@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 41    15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 42    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 42    13.06.18 12:20 Wqw
+' REF: Init params
+'
 ' 41    15.05.18 12:29 Wqw
 ' REF: empty variant array
 '
@@ -572,7 +575,8 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal lTimeout As Long, _
-            Optional ByVal lCashDesk As Long) As Boolean
+            Optional ByVal lCashDesk As Long, _
+            Optional ByVal lRowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
     
@@ -583,6 +587,7 @@ Public Function Init( _
     m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(lTimeout <= 0, DEF_TIMEOUT, lTimeout)
     m_lCashDesk = lCashDesk
+    m_lRowChars = lRowChars
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
         IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
@@ -633,7 +638,6 @@ Public Function Disconnect() As Boolean
     '--- cleanup cache
     m_sHeadingLines = vbNullString
     m_sPaymentTypes = vbNullString
-    m_lRowChars = 0
     '--- success
     Disconnect = True
 QH:
@@ -2618,8 +2622,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

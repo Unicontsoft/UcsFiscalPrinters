@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 40    28.05.18 16:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 41    13.06.18 12:20 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 41    13.06.18 12:20 Wqw
+' REF: Init params
+'
 ' 40    28.05.18 16:37 Wqw
 ' ADD: entries in UcsFiscalHeaderIndexesEnum
 '
@@ -1171,7 +1174,7 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
     End Select
     If LenB(At(vSplit, 1)) <> 0 Then
-        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
+        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3)), C_Lng(At(vSplit, 4))) Then
             Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
         End If
     End If
