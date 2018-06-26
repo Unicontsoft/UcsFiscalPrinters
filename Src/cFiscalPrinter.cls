@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 42    26.06.18 13:21 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 43    26.06.18 16:31 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 43    26.06.18 16:31 Wqw
+' REF: copy last receipt params
+'
 ' 42    26.06.18 13:21 Wqw
 ' REF: debug log last error
 '
@@ -655,7 +658,7 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
                 GoTo QH
             End If
         Case Else
-            If Not oFP.CopyLastReceipt() Then
+            If Not oFP.CopyLastReceipt(At(InvoiceData, ucsFscPixInvoiceNo)) Then
                 LastError = oFP.GetLastError()
                 DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError
                 GoTo QH

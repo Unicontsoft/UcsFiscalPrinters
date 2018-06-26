@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 93    13.06.18 12:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 94    26.06.18 16:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 94    26.06.18 16:30 Wqw
+' REF: copy last receipt params
+'
 ' 93    13.06.18 12:20 Wqw
 ' REF: Init params
 '
@@ -381,8 +384,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInitItem = 107
     ucsFpcInitLogo = 115
     ucsFpcInitOpenDrawer = 106
-    ucsFpcInitEcTapeNew = 119
-    ucsFpcInitEcTape = 120
+    ucsFpcInitEcTape = 119
     ucsFpcInitDaisyText = 149
     ucsFpcInitDaisySetting = 150
     ucsFpcInitDaisyCurrencyRate = 151
@@ -1461,14 +1463,22 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt() As Boolean
+Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const CONF_NAME     As String = "CopyLastReceipt"
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
+    Dim sFormat         As String
     
     On Error GoTo EH_Cancel
-    pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsFpcPrintDuplicate, sParam, "1"
-    SendCommand eCmd, sParam
+    If LenB(ReceiptNumber) = 0 Then
+        pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsFpcPrintDuplicate, sParam, "1"
+        SendCommand eCmd, sParam
+    Else
+        sParam = "P"
+        pvGetCommandConfig CONF_NAME, "InitEcTape" & sParam, eCmd, ucsFpcInitEcTape, sParam, sParam, _
+            "Format", sFormat, "%1,%2"
+        SendCommand eCmd, Printf(sFormat, sParam, ReceiptNumber)
+    End If
     '--- success
     CopyLastReceipt = True
 EH_Cancel:
@@ -1500,7 +1510,7 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsFpcInitDateTime, sParam, "%1", _
-        "Format", sFormat, "dd-MM-yy hh:mm:ss"
+        "Format", sFormat, "dd\-MM\-yy hh\:nn\:ss"
     SendCommand eCmd, Printf(sParam, Format$(NewDate, sFormat))
     '--- success
     SetClock = True
@@ -1602,17 +1612,17 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     If bEcClear Then
         '--- clear electronic control tape (if present)
         sEcParam = "I"
-        pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam, _
+        pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam, _
             "Index", lEcIndex, 1
         lEcCount = C_Lng(At(Split(SendCommand(eEcCmd, sEcParam), DEF_DELIM), lEcIndex))
         If Not Status(ucsStbPrintingError) Then
             For lIdx = 1 To lEcCount
                 sEcParam = IIf(lIdx = 1, "PS", "CS")
-                pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam
+                pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam
                 SendCommand eEcCmd, sEcParam
             Next
             sEcParam = "E"
-            pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTapeNew, sEcParam, sEcParam
+            pvGetCommandConfig CONF_NAME, "InitEcTape" & sEcParam, eEcCmd, ucsFpcInitEcTape, sEcParam, sEcParam
             SendCommand eEcCmd, sEcParam
         End If
     End If
@@ -3368,8 +3378,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt() As Boolean
-    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt()
+Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
+    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt(ReceiptNumber)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean

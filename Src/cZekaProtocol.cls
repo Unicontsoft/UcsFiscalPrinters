@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 44    13.06.18 12:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 45    26.06.18 16:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 45    26.06.18 16:30 Wqw
+' REF: copy last receipt params
+'
 ' 44    13.06.18 12:20 Wqw
 ' REF: Init params
 '
@@ -1224,7 +1227,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt() As Boolean
+Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const FUNC_NAME     As String = "CopyLastReceipt"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsZekaCommandsEnum
@@ -1234,20 +1237,32 @@ Public Function CopyLastReceipt() As Boolean
     Dim lPrintTimeout   As Long
     
     On Error GoTo EH
-    sPrevReceiptNo = GetLastReceiptNumber()
-    pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString, _
-        "PrintTimeout", lPrintTimeout, 0
-    SendCommand eCmd, sParam
-    If Not LenB(m_sLastError) = 0 Then
-        GoTo QH
-    End If
-    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
-        GoTo QH
-    End If
-    sReceiptNo = GetLastReceiptNumber()
-    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
-        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), ucsErrIllegalCommand)
-        GoTo QH
+    If LenB(ReceiptNumber) = 0 Then
+        sPrevReceiptNo = GetLastReceiptNumber()
+        pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString, _
+            "PrintTimeout", lPrintTimeout, 0
+        SendCommand eCmd, sParam
+        If Not LenB(m_sLastError) = 0 Then
+            GoTo QH
+        End If
+        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+            GoTo QH
+        End If
+        sReceiptNo = GetLastReceiptNumber()
+        If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), ucsErrIllegalCommand)
+            GoTo QH
+        End If
+    Else
+        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1;N;%1;%1", _
+            "PrintTimeout", lPrintTimeout, 0
+        SendCommand eCmd, Printf(sParam, Pad(ReceiptNumber, 5))
+        If Not LenB(m_sLastError) = 0 Then
+            GoTo QH
+        End If
+        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+            GoTo QH
+        End If
     End If
     '--- success
     CopyLastReceipt = True
@@ -1281,7 +1296,7 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsZekCmdInitDateTime, sParam, "%1", _
-        "Format", sFormat, "dd-MM-yy hh:mm:ss", _
+        "Format", sFormat, "dd\-MM\-yy hh\:nn\:ss", _
         "PrintTimeout", lPrintTimeout, 0
     sParam = Printf(sParam, Format$(NewDate, sFormat))
     SendCommand eCmd, sParam
@@ -2868,8 +2883,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt() As Boolean
-    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt()
+Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
+    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt(ReceiptNumber)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean

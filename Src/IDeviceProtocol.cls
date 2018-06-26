@@ -31,7 +31,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 21    13.06.18 12:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 22    26.06.18 16:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -40,6 +40,9 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 22    26.06.18 16:30 Wqw
+' REF: copy last receipt params
+'
 ' 21    13.06.18 12:20 Wqw
 ' ADD: Init params
 '
@@ -340,7 +343,7 @@ End Function
 ' @remark Most fiscal devices are able to print a single duplicate of last fiscal receipt only. On second copy request
 ' an error is returned.
 '
-Public Function CopyLastReceipt() As Boolean
+Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
 Attribute CopyLastReceipt.VB_Description = "Used to print a duplicate of the last fiscal receipt"
 
 End Function

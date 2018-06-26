@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 42    13.06.18 12:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 43    26.06.18 16:30 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 43    26.06.18 16:30 Wqw
+' REF: copy last receipt params
+'
 ' 42    13.06.18 12:20 Wqw
 ' REF: Init params
 '
@@ -2525,7 +2528,7 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt() As Boolean
+Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     IDeviceProtocol_CopyLastReceipt = CopyLastReceipt()
 End Function
 
