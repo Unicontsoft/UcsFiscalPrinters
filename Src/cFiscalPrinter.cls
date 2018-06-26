@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 41    13.06.18 12:20 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 42    26.06.18 13:21 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 42    26.06.18 13:21 Wqw
+' REF: debug log last error
+'
 ' 41    13.06.18 12:20 Wqw
 ' REF: Init params
 '
@@ -575,6 +578,7 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
     If LenB(sResumeTicket) = 0 Then
         If Not oFP.CancelReceipt() Then
             LastError = oFP.GetLastError()
+            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), LastError=" & LastError
             GoTo QH
         End If
     End If
@@ -653,6 +657,7 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
         Case Else
             If Not oFP.CopyLastReceipt() Then
                 LastError = oFP.GetLastError()
+                DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError
                 GoTo QH
             End If
             '--- success
@@ -755,6 +760,7 @@ Attribute PrintReport.VB_Description = "Used to print a fiscal report as support
     End Select
     If Not bResult Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError
         GoTo QH
     End If
     ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
@@ -799,6 +805,7 @@ Attribute OpenDrawer.VB_Description = "Used to send an impulse to the drawer ope
     Set oFP = pvInit(DeviceString)
     If Not oFP.OpenDrawer() Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), LastError=" & LastError
         GoTo QH
     End If
     '--- success
@@ -849,6 +856,7 @@ Attribute InitDateTime.VB_Description = "Used to adjust the date and time of the
     End If
     If Not bResult Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError
         GoTo QH
     End If
     sDateTime = oFP.GetClock()
@@ -903,6 +911,7 @@ Attribute GetTotalsByPayments.VB_Description = "Used to retrieve accumulated tot
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
         GoTo QH
     End If
     ReDim vPayments(0 To UBound(vTotals)) As Variant
@@ -956,6 +965,7 @@ Attribute GetTotalsByVatGroups.VB_Description = "Used to retrieve accumulated to
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
         GoTo QH
     End If
     '--- success
@@ -1005,6 +1015,7 @@ Attribute GetTotalsStats.VB_Description = "Used to retrieve number of receipts p
         GoTo QH
     ElseIf UBound(vStats) < 0 Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "UBound(vStats) < 0, LastError=" & LastError
         GoTo QH
     End If
     '--- success
@@ -1062,6 +1073,7 @@ Attribute CashDebitCredit.VB_Description = "Used to debit/credit the fiscal devi
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
         LastError = oFP.GetLastError()
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
         GoTo QH
     End If
     ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
