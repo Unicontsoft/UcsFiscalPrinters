@@ -2360,7 +2360,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 21    15.05.18 12:29 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 22    26.06.18 16:31 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -2369,6 +2369,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 22    26.06.18 16:31 Wqw
+' REF: time format
+'
 ' 21    15.05.18 12:29 Wqw
 ' REF: empty variant array
 '
@@ -3205,13 +3208,13 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             m_oFP.Exceptions = False
             '--- "rychno" razpechatwane na elektronna kontrolna lenta
             If chkReportClosure.Value = vbChecked Then
-                vResult = Split(m_oFP.SendCommand(ucsFpcInitEcTapeNew, "I"), ",")
+                vResult = Split(m_oFP.SendCommand(ucsFpcInitEcTape, "I"), ",")
                 '--- print
                 For lIdx = 1 To C_Lng(At(vResult, 1))
-                    m_oFP.SendCommand ucsFpcInitEcTapeNew, IIf(lIdx = 1, "PS", "CS")
+                    m_oFP.SendCommand ucsFpcInitEcTape, IIf(lIdx = 1, "PS", "CS")
                     If lIdx = C_Lng(At(vResult, 1)) Then
                         '--- erase
-                        m_oFP.SendCommand ucsFpcInitEcTapeNew, "E"
+                        m_oFP.SendCommand ucsFpcInitEcTape, "E"
                     End If
                 Next
             End If
@@ -3672,8 +3675,8 @@ Private Sub scbLogoHor_Scroll()
 End Sub
 
 Private Sub tmrDate_Timer()
-    txtDateCompDate.Text = Format$(Now, "dd-MM-yy")
-    txtDateCompTime.Text = Format$(Now, "hh:mm:ss")
+    txtDateCompDate.Text = Format$(Now, "dd\-MM\-yy")
+    txtDateCompTime.Text = Format$(Now, "hh\:nn\:ss")
 End Sub
 
 Private Sub cmdDateTransfer_Click()

@@ -2282,15 +2282,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 13    30.01.15 15:32 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 14    26.06.18 16:31 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2014 Unicontsoft
+'   Copyright (c) 2008-2018 Unicontsoft
 '
 '   Nastrojka na ECR po Eltrade protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 14    26.06.18 16:31 Wqw
+' REF: time format
+'
 ' 13    30.01.15 15:32 Wqw
 ' REF: format elapsed time in ms
 '
@@ -3399,8 +3402,8 @@ EH:
 End Sub
 
 Private Sub tmrDate_Timer()
-    txtDateCompDate.Text = Format$(Now, "dd-MM-yy")
-    txtDateCompTime.Text = Format$(Now, "hh:mm:ss")
+    txtDateCompDate.Text = Format$(Now, "dd\-MM\-yy")
+    txtDateCompTime.Text = Format$(Now, "hh\:nn\:ss")
 End Sub
 
 Private Sub cmdDateTransfer_Click()
