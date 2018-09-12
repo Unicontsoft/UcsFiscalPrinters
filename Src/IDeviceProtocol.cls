@@ -31,7 +31,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 22    26.06.18 16:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 23    12.09.18 17:24 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -39,6 +39,9 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '   Abstract interface for fiscal device protocol handling
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
+' 
+' 23    12.09.18 17:24 Wqw
+' REF: comments
 ' 
 ' 22    26.06.18 16:30 Wqw
 ' REF: copy last receipt params
@@ -635,7 +638,7 @@ End Function
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `Value`            [input] positive for debit, negative for creadit, 0.00 for info only
+' @param `Value`            [input] positive for debit, negative for credit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function CashDebitCredit( _
