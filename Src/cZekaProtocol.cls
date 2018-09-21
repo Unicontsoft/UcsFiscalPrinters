@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 45    26.06.18 16:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 46    21.09.18 14:08 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 46    21.09.18 14:08 Wqw
+' REF: fix get total by payments for custom payments
+'
 ' 45    26.06.18 16:30 Wqw
 ' REF: copy last receipt params
 '
@@ -1129,7 +1132,7 @@ EH:
 End Function
 
 Public Function AddPayment( _
-            ByVal Number As UcsFiscalPaymentTypeEnum, _
+            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
             Name As String, _
             ByVal Amount As Double) As Boolean
     Const FUNC_NAME     As String = "AddPayment"
@@ -1140,13 +1143,13 @@ Public Function AddPayment( _
         pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
-    If Number < 0 Then
+    If PmtType < 0 Then
         '--- custom payment types: 4 & 5
-        Number = 3 - Number
+        PmtType = 3 - PmtType
     End If
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
-        .PmtType = LimitLong(Number, 1, 8)
+        .PmtType = LimitLong(PmtType, 1, 8)
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, 2)
         .PrintRowType = m_uRow(0).InitReceiptType
@@ -1702,9 +1705,15 @@ Public Function GetTotalsByPayments() As Variant
     pvGetCommandConfig CONF_NAME, "InfoRegisters6", eCmd, ucsZekCmdInfoRegisters, sParam, "6"
     vChanges = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     If UBound(vPayments) > 0 Then
-        ReDim vRetVal(0 To 4) As Double
+        ReDim vRetVal(0 To 5) As Double
         For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = ParseSum(At(vPayments, lIdx + 1)) - ParseSum(At(vChanges, lIdx + 1))
+            Select Case lIdx
+            Case 0 To 2
+                vRetVal(lIdx) = ParseSum(At(vPayments, lIdx + 1)) - ParseSum(At(vChanges, lIdx + 1))
+            Case 3 '--- skip
+            Case Else
+                vRetVal(lIdx) = ParseSum(At(vPayments, lIdx)) - ParseSum(At(vChanges, lIdx))
+            End Select
         Next
         GetTotalsByPayments = vRetVal
     Else
@@ -1774,7 +1783,7 @@ End Function
 Public Function CashDebitCredit( _
         Optional ByVal OperatorCode As String, _
         Optional ByVal OperatorPassword As String, _
-        Optional ByVal PmtNumber As UcsFiscalPaymentTypeEnum, _
+        Optional ByVal PmtType As UcsFiscalPaymentTypeEnum, _
         Optional ByVal Value As Double, _
         Optional Comment As String) As Variant
     Const FUNC_NAME     As String = "CashDebitCredit"
@@ -1788,6 +1797,10 @@ Public Function CashDebitCredit( _
     Dim lPrintTimeout   As Long
     
     On Error GoTo EH
+    If PmtType < 0 Then
+        '--- custom payment types: 4 & 5
+        PmtType = 3 - PmtType
+    End If
     If Abs(Value) > DBL_EPSILON Then
         pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
             "Index", lIndex, 9
@@ -1802,7 +1815,7 @@ Public Function CashDebitCredit( _
             "PrintTimeout", lPrintTimeout, 0
         sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
             Pad(Zn(OperatorPassword, IDeviceProtocol_GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
-            LimitLong(PmtNumber - 1, 0, 7), _
+            LimitLong(PmtType - 1, 0, 7), _
             SafeFormat(Value, sFormat), _
             Left$(Comment, m_uConfig.MaxComment))
         SendCommand eCmd, sParam
@@ -1822,13 +1835,13 @@ Public Function CashDebitCredit( _
         GoTo QH
     End If
     ReDim vRetVal(0 To 2) As Double
-    vRetVal(0) = C_Dbl(At(vSplit, PmtNumber))
+    vRetVal(0) = C_Dbl(At(vSplit, PmtType))
     pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    vRetVal(1) = C_Dbl(At(vSplit, PmtNumber))
+    vRetVal(1) = C_Dbl(At(vSplit, PmtType))
     pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    vRetVal(2) = C_Dbl(At(vSplit, PmtNumber))
+    vRetVal(2) = C_Dbl(At(vSplit, PmtType))
 QH:
     CashDebitCredit = vRetVal
     Exit Function
