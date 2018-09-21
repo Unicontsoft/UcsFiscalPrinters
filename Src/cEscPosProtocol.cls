@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 5     26.06.18 16:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 6     21.09.18 14:09 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 6     21.09.18 14:09 Wqw
+' REF: impl logging
+'
 ' 5     26.06.18 16:30 Wqw
 ' REF: copy last receipt params
 '
@@ -375,8 +378,10 @@ Public Function Connect() As Boolean
     Dim sCmd            As String
     
     On Error GoTo EH
+    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout
     Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
     If m_oConnector Is Nothing Then
+        DebugLog FUNC_NAME, "InitDeviceConnector failed, m_sLastError=" & m_sLastError
         GoTo QH
     End If
     sCmd = STR_ESC & "@"                        '--- Initialize printer
@@ -384,6 +389,7 @@ Public Function Connect() As Boolean
     sCmd = sCmd & STR_ESC & "M" & Chr$(0)       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
+        DebugLog FUNC_NAME, "WriteData failed, m_sLastError=" & m_sLastError
         GoTo QH
     End If
     '--- success
@@ -398,6 +404,7 @@ Public Function Disconnect() As Boolean
     Const FUNC_NAME     As String = "Disconnect"
     
     On Error GoTo EH
+    DebugLog FUNC_NAME, "TypeOf m_oConnector=" & TypeName(m_oConnector)
     Set m_oConnector = Nothing
     '--- success
     Disconnect = True
@@ -734,9 +741,11 @@ EH:
 End Sub
 
 Private Function pvPrintLine(vText As Variant) As Boolean
+    Const FUNC_NAME     As String = "pvPrintLine"
     Dim vElem           As Variant
     
     If IsArray(vText) Then
+        DebugLog FUNC_NAME, "vText=" & Join(vText, vbCrLf)
         For Each vElem In vText
             If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, 866), m_lTimeout) Then
                 m_sLastError = m_oConnector.GetLastError()
@@ -744,6 +753,7 @@ Private Function pvPrintLine(vText As Variant) As Boolean
             End If
         Next
     Else
+        DebugLog FUNC_NAME, "vText=" & vText
         If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, 866), m_lTimeout) Then
             m_sLastError = m_oConnector.GetLastError()
             GoTo QH
@@ -755,8 +765,10 @@ QH:
 End Function
 
 Private Function pvSendPaperFeed(Optional ByVal Lines As Long = 1) As Boolean
+    Const FUNC_NAME     As String = "pvSendPaperFeed"
     Dim sCmd            As String
     
+    DebugLog FUNC_NAME, "Lines=" & Lines
     sCmd = STR_ESC & "d" & Chr$(Lines)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
@@ -768,8 +780,10 @@ QH:
 End Function
 
 Private Function pvSendPaperCut(Optional ByVal Full As Boolean = True, Optional ByVal Lines As Long = 2) As Boolean
+    Const FUNC_NAME     As String = "pvSendPaperCut"
     Dim sCmd            As String
     
+    DebugLog FUNC_NAME, "Full=" & Full & ", Lines=" & Lines
     sCmd = STR_GS & "V" & IIf(Full, "A" & Chr$(0), "0")
     If Lines > 0 Then
         sCmd = sCmd & STR_ESC & "d" & Chr$(Lines)
