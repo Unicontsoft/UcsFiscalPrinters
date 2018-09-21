@@ -31,7 +31,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' fiscal reports.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 23    12.09.18 17:24 Wqw $
+' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 24    21.09.18 14:08 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -40,9 +40,12 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '
 ' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
 ' 
+' 24    21.09.18 14:08 Wqw
+' REF: comments
+'
 ' 23    12.09.18 17:24 Wqw
 ' REF: comments
-' 
+'
 ' 22    26.06.18 16:30 Wqw
 ' REF: copy last receipt params
 '
@@ -318,7 +321,7 @@ End Function
 ' e.g. 10.00 by card and 50.00 in cash, etc. are able to pay out a 35.00 total receipt
 '
 Public Function AddPayment( _
-            ByVal Number As UcsFiscalPaymentTypeEnum, _
+            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
             Name As String, _
             ByVal Amount As Double, _
             Optional ByVal Rate As Double) As Boolean
@@ -591,7 +594,9 @@ End Function
 ''
 ' Used to retrieve totals by payment types since last z-report
 '
-' @return Array of totals for each payment type (1-8)
+' @return Array of totals for each payment type (1-8): ucsFscPmtCash, ucsFscPmtCard, ucsFscPmtCheque,
+'         reserved, ucsFscPmtCustom1, ucsFscPmtCustom2, ucsFscPmtCustom3 and ucsFscPmtCustom4
+' @remark Index 4 in return array is unused and should be 0
 '
 Public Function GetTotalsByPayments() As Variant
 Attribute GetTotalsByPayments.VB_Description = "Used to retrieve totals by payment types since last z-report"
