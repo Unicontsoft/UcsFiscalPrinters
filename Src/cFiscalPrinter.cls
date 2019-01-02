@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 43    26.06.18 16:31 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 44    2.01.19 15:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -87,6 +87,15 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 44    2.01.19 15:13 Wqw
+' REF: communicate invalid password on methods with operator data
+' 
+' 45    4.10.18 15:26 Wqw
+' REF: more invalid password communication
+'
+' 44    2.10.18 17:28 Wqw
+' REF: communicate invalid password on methods with operator data
+'
 ' 43    26.06.18 16:31 Wqw
 ' REF: copy last receipt params
 '
@@ -449,6 +458,8 @@ Attribute GetHeaderFooter.VB_Description = "Used to retrieve an array with info 
     Const FUNC_NAME     As String = "GetHeaderFooter"
     Dim oFP             As IDeviceProtocol
     Dim vInput          As Variant
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim sLastErr        As String
     
     On Error GoTo EH
     LastError = vbNullString
@@ -531,7 +542,11 @@ EH:
         LastError = Err.Description
         DebugLog FUNC_NAME, "LastError=" & LastError
         If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            If eLastNum = ucsFerInvalidPassword Then
+                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+            End If
             Resume QH
         End If
     End If
@@ -580,8 +595,11 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
     Set oFP = pvInit(DeviceString)
     If LenB(sResumeTicket) = 0 Then
         If Not oFP.CancelReceipt() Then
-            LastError = oFP.GetLastError()
-            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), LastError=" & LastError
+            LastError = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
+            If eLastNum = ucsFerInvalidPassword Then
+                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+            End If
             GoTo QH
         End If
     End If
@@ -659,8 +677,11 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
             End If
         Case Else
             If Not oFP.CopyLastReceipt(At(InvoiceData, ucsFscPixInvoiceNo)) Then
-                LastError = oFP.GetLastError()
-                DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError
+                LastError = oFP.GetLastError(eLastNum)
+                DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
+                If eLastNum = ucsFerInvalidPassword Then
+                    ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+                End If
                 GoTo QH
             End If
             '--- success
@@ -719,6 +740,8 @@ Attribute PrintReport.VB_Description = "Used to print a fiscal report as support
     Const FUNC_NAME     As String = "PrintReport"
     Dim oFP             As IDeviceProtocol
     Dim bResult         As Boolean
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim sLastErr        As String
     
     On Error GoTo EH
     LastError = vbNullString
@@ -762,8 +785,11 @@ Attribute PrintReport.VB_Description = "Used to print a fiscal report as support
         '-- ReportData = Empty
     End Select
     If Not bResult Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError
+        LastError = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError & ", eLastNum=" & eLastNum
+        If eLastNum = ucsFerInvalidPassword Then
+            ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+        End If
         GoTo QH
     End If
     ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
@@ -780,7 +806,11 @@ EH:
         LastError = Err.Description
         DebugLog FUNC_NAME, "LastError=" & LastError
         If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            If eLastNum = ucsFerInvalidPassword Then
+                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+            End If
             Resume QH
         End If
     End If
@@ -1066,6 +1096,8 @@ Public Function CashDebitCredit( _
 Attribute CashDebitCredit.VB_Description = "Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales, e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too"
     Const FUNC_NAME     As String = "CashDebitCredit"
     Dim oFP             As IDeviceProtocol
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim sLastErr        As String
     
     On Error GoTo EH
     LastError = vbNullString
@@ -1075,8 +1107,11 @@ Attribute CashDebitCredit.VB_Description = "Used to debit/credit the fiscal devi
         LastError = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
+        LastError = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError & ", eLastNum=" & eLastNum
+        If eLastNum = ucsFerInvalidPassword Then
+            ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+        End If
         GoTo QH
     End If
     ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
@@ -1093,7 +1128,11 @@ EH:
         LastError = Err.Description
         DebugLog FUNC_NAME, "LastError=" & LastError
         If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            If eLastNum = ucsFerInvalidPassword Then
+                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
+            End If
             Resume QH
         End If
     End If
