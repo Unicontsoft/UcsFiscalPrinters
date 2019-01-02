@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 6     21.09.18 14:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 7     2.01.19 15:12 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,12 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 7     2.01.19 15:12 Wqw
+' REF: allow code page in port
+'
+' 7     1.10.18 16:45 Wqw
+' REF: allow code page in port
+'
 ' 6     21.09.18 14:09 Wqw
 ' REF: impl logging
 '
@@ -60,7 +66,7 @@ Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SUR
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
-Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
+Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600|4800|2400"
 Private Const DEF_ROW_CHARS             As Long = 48
 Private Const ucsFscDstPluAbs           As Long = ucsFscDstPlu + 100
 Private Const ucsFscDstSubtotalAbs      As Long = ucsFscDstSubtotal + 100
@@ -69,6 +75,7 @@ Private Const STR_ESC                   As String = "" ' Chr$(27)
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
+Private m_lCodePage                 As Long
 Private m_lTimeout                  As Long
 Private m_lCashDeskNo               As Long
 Private m_eLastErrNumber            As UcsFiscalErrorsEnum
@@ -353,15 +360,19 @@ Public Function Init( _
             Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
+    Dim vPort           As Variant
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
     vSplit = Split(sDevice, ",")
+    vPort = Split(vSplit(0), "/")
+    vSplit(0) = At(vPort, 0)
     If LCase$(Left$(At(vSplit, 0), 3)) = "com" Then
-        m_sDevice = sDevice
+        m_sDevice = Join(vSplit, ",")
     Else
         m_sDevice = vSplit(0) & IIf(InStr(At(vSplit, 0), ":") = 0, ":9100", vbNullString)
     End If
+    m_lCodePage = Znl(C_Lng(At(vPort, 1)), 866)
     m_lTimeout = IIf(Timeout <> 0, Timeout, DEF_TIMEOUT)
     m_lCashDeskNo = CashDeskNo
     m_uConfig.RowChars = RowChars
@@ -378,14 +389,16 @@ Public Function Connect() As Boolean
     Dim sCmd            As String
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout
+    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout & ", m_lCodePage=" & m_lCodePage
     Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
     If m_oConnector Is Nothing Then
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_sLastError=" & m_sLastError
         GoTo QH
     End If
     sCmd = STR_ESC & "@"                        '--- Initialize printer
-    sCmd = sCmd & STR_ESC & "t" & Chr$(17)      '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
+    If m_lCodePage = 866 Then
+        sCmd = sCmd & STR_ESC & "t" & Chr$(17)  '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
+    End If
     sCmd = sCmd & STR_ESC & "M" & Chr$(0)       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
@@ -747,14 +760,14 @@ Private Function pvPrintLine(vText As Variant) As Boolean
     If IsArray(vText) Then
         DebugLog FUNC_NAME, "vText=" & Join(vText, vbCrLf)
         For Each vElem In vText
-            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, 866), m_lTimeout) Then
+            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, m_lCodePage), m_lTimeout) Then
                 m_sLastError = m_oConnector.GetLastError()
                 GoTo QH
             End If
         Next
     Else
         DebugLog FUNC_NAME, "vText=" & vText
-        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, 866), m_lTimeout) Then
+        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, m_lCodePage), m_lTimeout) Then
             m_sLastError = m_oConnector.GetLastError()
             GoTo QH
         End If
