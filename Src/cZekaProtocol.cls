@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 46    21.09.18 14:08 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 47    2.01.19 15:13 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -21,6 +21,18 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 47    2.01.19 15:13 Wqw
+' REF: fix pmt name for bank pm
+' 
+' 49    4.10.18 16:52 Wqw
+' REF: fix pmt name for bank pmt
+'
+' 48    4.10.18 15:26 Wqw
+' REF: handle bad password in send command
+'
+' 47    1.10.18 16:45 Wqw
+' REF: get payment name
+'
 ' 46    21.09.18 14:08 Wqw
 ' REF: fix get total by payments for custom payments
 '
@@ -415,6 +427,7 @@ End Enum
 Private Enum UcsDeviceErrorsAndStatuses
     '--- device errors
     ucsErrOutOfPaper = 1
+    ucsErrBadPassword = 9
     ucsErrPrinterOverheated = 13
     '--- device statuses
     ucsErrIllegalCommand = 2
@@ -894,6 +907,9 @@ Public Function SendCommand(ByVal eCmd As UcsZekaCommandsEnum, Optional Data As 
         Exit Function
     End If
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
+    If LenB(m_sLastError) <> 0 Then
+        m_eLastErrNumber = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
+    End If
     '--- raise event
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     Exit Function
@@ -1569,6 +1585,10 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     If Index < 0 Then
         '--- custom payment types: 4 & 5
         Index = 3 - Index
+    ElseIf Index = 4 Then
+        Exit Function
+    ElseIf Index > 4 Then
+        Index = Index - 1
     End If
     If Index >= 1 And Index <= 3 Then
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
@@ -1819,7 +1839,7 @@ Public Function CashDebitCredit( _
             SafeFormat(Value, sFormat), _
             Left$(Comment, m_uConfig.MaxComment))
         SendCommand eCmd, sParam
-        If LenB(LastError) <> 0 Then
+        If LenB(m_sLastError) <> 0 Then
             vRetVal = EmptyDoubleArray
             GoTo QH
         End If
@@ -1830,7 +1850,7 @@ Public Function CashDebitCredit( _
     End If
     pvGetCommandConfig CONF_NAME, "InfoRegisters0", eCmd, ucsZekCmdInfoRegisters, sParam, "0"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    If LenB(LastError) <> 0 Then
+    If LenB(m_sLastError) <> 0 Then
         vRetVal = EmptyDoubleArray
         GoTo QH
     End If
@@ -2323,7 +2343,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     Pad(.InitInvData(ucsInvCity), m_uConfig.MaxCity))
                 SendCommand eCmd, sParam
                 If LenB(m_sLastError) <> 0 Then
-                    pvSetLastError m_sLastError, ucsFerInvalidPassword
                     GoTo QH
                 End If
             Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
