@@ -12,15 +12,18 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls 3     28.05.18 16:37 Wqw $
+' $Header: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls 4     19.02.19 16:59 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Network socket connector
 '
 ' $Log: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls $
 ' 
+' 4     19.02.19 16:59 Wqw
+' REF: impl timeout on connect
+'
 ' 3     28.05.18 16:37 Wqw
 ' REF: timeout on create
 '
@@ -85,14 +88,16 @@ Private Const INADDR_ANY                    As Long = 0
 Private Const INADDR_NONE                   As Long = -1
 '--- for ioctlsocket
 Private Const FIONREAD                      As Long = &H4004667F
+Private Const FIONBIO                       As Long = &H8004667E
 '--- for WSAGetLastError
 Private Const WSABASEERR                    As Long = 10000
 'Private Const WSAEINTR                      As Long = (WSABASEERR + 4)
 Private Const WSAEINVAL                     As Long = (WSABASEERR + 22)
 'Private Const WSAEMFILE                     As Long = (WSABASEERR + 24)
-'Private Const WSAEWOULDBLOCK                As Long = (WSABASEERR + 35)
+Private Const WSAEWOULDBLOCK                As Long = (WSABASEERR + 35)
 Private Const WSAEALREADY                   As Long = (WSABASEERR + 37)
 'Private Const WSAENOTCONN                   As Long = (WSABASEERR + 57)
+Private Const WSAETIMEDOUT                  As Long = (WSABASEERR + 60)
 'Private Const WSANOTINITIALISED             As Long = (WSABASEERR + 93)
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
@@ -120,12 +125,23 @@ Private Declare Function ws_recv Lib "ws2_32" Alias "recv" (ByVal s As Long, ByR
 Private Declare Function ws_recvfrom Lib "ws2_32" Alias "recvfrom" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long, ByRef from As SOCKADDR_IN, ByRef fromlen As Long) As Long
 Private Declare Function ws_send Lib "ws2_32" Alias "send" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long) As Long
 Private Declare Function ws_sendto Lib "ws2_32" Alias "sendto" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long, ByRef toaddr As SOCKADDR_IN, ByVal tolen As Long) As Long
+Private Declare Function ws_select Lib "ws2_32" Alias "select" (ByVal reserved As Long, readfds As Any, writefds As Any, exceptfds As Any, Timeout As Any) As Long
 
 Private Type SOCKADDR_IN
     sin_family          As Integer
     sin_port            As Integer
     sin_addr            As Long
     sin_zero(1 To 8)    As Byte
+End Type
+
+Private Type FD_SET
+    fd_count            As Long
+    fd_array(0 To 63)   As Long
+End Type
+
+Private Type TIMEVAL
+    tv_sec              As Long
+    tv_usec             As Long
 End Type
 
 '=========================================================================
@@ -254,22 +270,63 @@ End Sub
 Public Function Connect(HostAddress As String, ByVal HostPort As Long) As Boolean
     Const FUNC_NAME     As String = "Connect"
     Dim uAddr           As SOCKADDR_IN
+    Dim uWrite          As FD_SET
+    Dim uExcept         As FD_SET
+    Dim uTime           As TIMEVAL
+    Dim lIdx            As Long
+    Dim bFionbioSet     As Boolean
     
     On Error GoTo EH
     If pvToSockAddr(HostAddress, HostPort, uAddr) Then
         If SockOpt(ucsSsoType) = ucsSckStream Then
-            If ws_connect(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
-                pvLastError = Err.LastDllError
-                GoTo QH
+            If m_lResolvTimeout = 0 Then
+                If ws_connect(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
+                    pvLastError = Err.LastDllError
+                    GoTo QH
+                End If
+            Else
+                '--- set socket async
+                If ws_ioctlsocket(m_hSocket, FIONBIO, 1) = SOCKET_ERROR Then
+                    pvLastError = Err.LastDllError
+                    GoTo QH
+                End If
+                bFionbioSet = True
+                If ws_connect(m_hSocket, uAddr, LenB(uAddr)) = SOCKET_ERROR Then
+                    pvLastError = Err.LastDllError
+                    If m_lLastError <> WSAEWOULDBLOCK Then
+                        GoTo QH
+                    End If
+                    '--- wait socket to become available for write
+                    uWrite.fd_count = 1
+                    uWrite.fd_array(0) = m_hSocket
+                    uExcept.fd_count = 1
+                    uExcept.fd_array(0) = m_hSocket
+                    uTime.tv_sec = m_lResolvTimeout \ 1000
+                    uTime.tv_usec = m_lResolvTimeout Mod 1000
+                    If ws_select(0, ByVal 0, uWrite, uExcept, uTime) <= 0 Then
+                        pvLastError = WSAETIMEDOUT
+                        GoTo QH
+                    End If
+                    For lIdx = 0 To uExcept.fd_count - 1
+                        If uExcept.fd_array(lIdx) = m_hSocket Then
+                            pvLastError = SockOpt(ucsSsoError)
+                            GoTo QH
+                        End If
+                    Next
+                End If
             End If
         End If
     End If
     '--- success
     Connect = True
 QH:
+    If bFionbioSet Then
+        Call ws_ioctlsocket(m_hSocket, FIONBIO, 0)
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
+    Resume QH
 End Function
 
 Public Function SyncReceiveArray( _
