@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 94    26.06.18 16:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 95    19.02.19 16:58 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Protocol handler for Datecs & Daisy fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 95    19.02.19 16:58 Wqw
+' REF: uses timer ex
+'
 ' 94    26.06.18 16:30 Wqw
 ' REF: copy last receipt params
 '
@@ -2225,8 +2228,8 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         lLastErr = Err.LastDllError
         Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
         If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
-            dblTimer = DateTimer + lTimeout / 1000#
-            Do While DateTimer < dblTimer
+            dblTimer = TimerEx + lTimeout / 1000#
+            Do While TimerEx < dblTimer
                 Call Sleep(100)
                 hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
                 If hComm <> INVALID_HANDLE_VALUE Then

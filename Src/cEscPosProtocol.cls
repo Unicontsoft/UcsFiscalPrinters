@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 7     2.01.19 15:12 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 8     19.02.19 16:58 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   ESP/POS printer protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 8     19.02.19 16:58 Wqw
+' REF: uses timer ex
+'
 ' 7     2.01.19 15:12 Wqw
 ' REF: allow code page in port
 '
@@ -299,8 +302,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 End If
             End If
         Next
-        dblTimer = DateTimer
-        Do While DateTimer < dblTimer + 0.2
+        dblTimer = TimerEx + 0.2
+        Do While TimerEx < dblTimer
             bHasMore = False
             For lIdx = 0 To UBound(aPorts)
                 If IsObject(aPorts(lIdx)) Then
@@ -317,7 +320,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             If Not bHasMore Then
                 Exit For
             End If
-            Call Sleep(10)
+            Call Sleep(1)
         Loop
     Next
     AutodetectDevices = vRetVal
