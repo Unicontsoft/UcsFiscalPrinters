@@ -12,18 +12,21 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 47    2.01.19 15:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 48    19.02.19 16:56 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Protocol handler for Tremol/Zeka cash registers & FP
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 48    19.02.19 16:56 Wqw
+' REF: timeout increased to 3 sec, uses timer ex
+'
 ' 47    2.01.19 15:13 Wqw
 ' REF: fix pmt name for bank pm
-' 
+'
 ' 49    4.10.18 16:52 Wqw
 ' REF: fix pmt name for bank pmt
 '
@@ -353,7 +356,7 @@ Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
-Private Const DEF_TIMEOUT               As Long = 2000
+Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_PRINT_TIMEOUT         As Long = 30000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_ECR_PASSWORD          As String = "0"
@@ -933,8 +936,8 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     pvSetLastError vbNullString
     If Timeout >= 0 Then
         Timeout = Znl(Timeout, m_lTimeout)
-        dblTimer = DateTimer
-        Do While DateTimer - dblTimer < Timeout / 1000
+        dblTimer = TimerEx + Timeout / 1000#
+        Do While TimerEx < dblTimer
             lIter = lIter + 1
             pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
                 "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
@@ -1939,8 +1942,8 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         lLastErr = Err.LastDllError
         Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
         If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
-            dblTimer = DateTimer + lTimeout / 1000#
-            Do While DateTimer < dblTimer
+            dblTimer = TimerEx + lTimeout / 1000#
+            Do While TimerEx < dblTimer
                 Call Sleep(100)
                 hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
                 If hComm <> INVALID_HANDLE_VALUE Then
