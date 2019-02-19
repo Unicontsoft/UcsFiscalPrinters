@@ -1,14 +1,17 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 42    2.01.19 15:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 43    19.02.19 16:59 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Global functions, constants and variables
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 43    19.02.19 16:59 Wqw
+' ADD: Property TimerEx
+'
 ' 42    2.01.19 15:13 Wqw
 ' REF: api declare dlls
 '
@@ -79,7 +82,7 @@ Attribute VB_Name = "mdGlobals"
 '
 ' 20    3.01.13 16:38 Wqw
 ' ADD: Function SafeFormat, SafeText, AssignVariant, preg_replace,
-' GetConfigForCommand, Property DateTimer
+' GetConfigForCommand, Property Date Timer
 '
 ' 19    10.10.12 15:11 Wqw
 ' REF: config loading error handling
@@ -220,7 +223,7 @@ Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByV
 Private Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function RegOpenKeyEx Lib "advapi32" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
 Private Declare Function RegQueryValueEx Lib "advapi32" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
-Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long
+Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
 Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
@@ -247,8 +250,9 @@ Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
-Private Declare Function GetSystemTimeAsFileTime Lib "kernel32" (lpSystemTimeAsFileTime As Currency) As Long
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
+Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -639,7 +643,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         m_nDebugLogFile = FreeFile
         Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & Right$(Format$(DateTimer, "0.000"), 4) & "): " & sText
+    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & Right$(Format$(TimerEx, "0.000"), 4) & "): " & sText
     If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
@@ -1377,11 +1381,13 @@ Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As C
     End Select
 End Function
 
-Public Property Get DateTimer() As Double
-    Dim cDateTime       As Currency
+Public Property Get TimerEx() As Double
+    Dim cFreq           As Currency
+    Dim cValue          As Currency
     
-    Call GetSystemTimeAsFileTime(cDateTime)
-    DateTimer = CDbl(cDateTime - 9435304800000@) / 1000#
+    Call QueryPerformanceFrequency(cFreq)
+    Call QueryPerformanceCounter(cValue)
+    TimerEx = cValue / cFreq
 End Property
 
 Public Function ToHexDump(sText As String) As String
