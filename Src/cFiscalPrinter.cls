@@ -78,18 +78,21 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 44    2.01.19 15:13 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 45    7.03.19 12:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Fiscal devices management using IDeviceProtocol protocol handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 45    7.03.19 12:34 Wqw
+' REF: init date/time prowerqwa za delta nad edna minuta
+'
 ' 44    2.01.19 15:13 Wqw
 ' REF: communicate invalid password on methods with operator data
-' 
+'
 ' 45    4.10.18 15:26 Wqw
 ' REF: more invalid password communication
 '
@@ -521,7 +524,7 @@ Attribute GetHeaderFooter.VB_Description = "Used to retrieve an array with info 
         RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-3)
     End If
     If LenB(At(vInput, ucsFscHdrWopCustom4, "1")) <> 0 Then
-        RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-4)
+        RetVal(ucsFscHdrWopCustom4) = oFP.GetPaymentName(-4)
     End If
     If LenB(At(vInput, ucsFscHdrCharsPerLine, "1")) <> 0 Then
         RetVal(ucsFscHdrCharsPerLine) = oFP.GetCharsPerLine()
@@ -883,8 +886,9 @@ Attribute InitDateTime.VB_Description = "Used to adjust the date and time of the
     LastError = vbNullString
     Set oFP = pvInit(DeviceString)
     If C_Date(sDateTime) = 0 Then
-        bResult = oFP.SetClock(Now)
-    Else
+        sDateTime = Now
+    End If
+    If Abs(DateDiff("m", oFP.GetClock(), C_Date(sDateTime))) > 0 Then
         bResult = oFP.SetClock(C_Date(sDateTime))
     End If
     If Not bResult Then
