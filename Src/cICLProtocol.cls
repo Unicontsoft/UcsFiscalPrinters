@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 95    19.02.19 16:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 96    7.03.19 12:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 96    7.03.19 12:34 Wqw
+' REF: uses null char const
+'
 ' 95    19.02.19 16:58 Wqw
 ' REF: uses timer ex
 '
@@ -943,7 +946,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", STR_CHR1 & Chr$(&H24) & Chr$(&H20) & Chr(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", STR_CHR1 & Chr$(&H24) & Chr$(&H20) & Chr$(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(&H15))  '--- NAK (&H15)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
@@ -1014,9 +1017,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If .hComm <> 0 Then
-                    If InStr(.Buffer, Chr$(0)) > 0 Then
+                    If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
-                        .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
+                        .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
