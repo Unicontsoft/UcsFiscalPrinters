@@ -2282,7 +2282,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 15    19.02.19 16:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 16    7.03.19 12:42 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -2291,6 +2291,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
 ' 
+' 16    7.03.19 12:42 Wqw
+' REF: handle extended list of payment types
+'
 ' 15    19.02.19 16:58 Wqw
 ' REF: uses timer ex
 '
@@ -2886,7 +2889,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         sData = vbNullString
         For lIdx = 2 To 6
             If LenB(txtHeadHeader(lIdx).Text) = 0 Then
-                sData = sData & Chr$(0)
+                sData = sData & vbNullChar
             ElseIf chkHeadHeader(lIdx).Value = vbChecked Then
                 sData = sData & Chr$(&H90)
             Else
@@ -2993,7 +2996,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                         End If
                         m_oFP.WaitDevice 100
                     Next
-                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(0))
+                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, vbNullChar)
                 Else
                     '--- Z report
                     sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(4))
@@ -3006,7 +3009,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                         End If
                         m_oFP.WaitDevice 100
                     Next
-                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(0))
+                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, vbNullChar)
                 End If
             ElseIf chkReportItems.Value = vbChecked And chkReportDepartments.Value = vbUnchecked Then
                 If chkReportClosure.Value = vbUnchecked Then
@@ -3017,7 +3020,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
 '                    sData = Chr$(32) & Chr$(7) & Chr$(&H20)
 '                    sResult = m_oFP.SendCommand(ucsEltCmdKeyboardInput, Chr$(Len(sData)) & sData)
 '                    m_oFP.WaitDevice 5000
-'                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(0))
+'                    sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, vbNullChar)
                 Else
                 
                 End If
@@ -3046,7 +3049,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 End If
                 m_oFP.WaitDevice 100
             Next
-            sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, Chr$(0))
+            sResult = m_oFP.SendCommand(ucsEltCmdInitKeylock, vbNullChar)
         End If
     Case ucsCmdYesNoParams
         sData = m_oFP.SendCommand(ucsEltCmdInfoYesNoParams)
@@ -3094,7 +3097,7 @@ Private Function pvPoke(ByVal cValue As Currency, Optional ByVal lSize As Long =
 End Function
 
 Private Function pvSPeek(sText As String, ByVal lOffset As Long, ByVal lSize As Long) As String
-    pvSPeek = pvFromMik(RTrim$(Replace$(Mid$(sText, lOffset + 1, lSize), Chr$(0), vbNullString)))
+    pvSPeek = pvFromMik(RTrim$(Replace$(Mid$(sText, lOffset + 1, lSize), vbNullChar, vbNullString)))
 End Function
 
 Private Function pvSPoke(sText As String, ByVal lSize As Long, Optional ByVal eAlign As AlignmentConstants = vbLeftJustify, Optional ByVal lFillChar As Long = 32) As String

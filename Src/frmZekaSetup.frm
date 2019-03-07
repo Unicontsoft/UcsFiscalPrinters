@@ -26,134 +26,285 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   6
       Left            =   2250
-      TabIndex        =   187
-      Top             =   90
+      TabIndex        =   194
+      Top             =   84
       Width           =   5775
       Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   3
-         Left            =   2070
+         Height          =   300
+         Index           =   11
+         Left            =   2100
          MaxLength       =   40
-         TabIndex        =   37
-         Top             =   1344
-         Width           =   3525
+         TabIndex        =   46
+         Top             =   4872
+         Width           =   1776
       End
       Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   4
-         Left            =   2070
+         Height          =   300
+         Index           =   10
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   45
+         Top             =   4452
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   9
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   44
+         Top             =   4032
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   8
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   43
+         Top             =   3612
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   7
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   42
+         Top             =   3192
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   6
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   41
+         Top             =   2772
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   5
+         Left            =   2100
+         MaxLength       =   40
+         TabIndex        =   40
+         Top             =   2352
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtType 
+         Height          =   300
+         Index           =   3
+         Left            =   2100
          MaxLength       =   40
          TabIndex        =   38
-         Top             =   1710
-         Width           =   1725
+         Top             =   1512
+         Width           =   3540
       End
       Begin VB.TextBox txtPmtType 
-         Height          =   285
-         Index           =   5
-         Left            =   3870
+         Height          =   300
+         Index           =   4
+         Left            =   2100
          MaxLength       =   40
          TabIndex        =   39
-         Top             =   1710
-         Width           =   1725
+         Top             =   1932
+         Width           =   3540
+      End
+      Begin VB.TextBox txtPmtRate 
+         Height          =   300
+         Left            =   3948
+         MaxLength       =   40
+         TabIndex        =   47
+         Top             =   4872
+         Width           =   1692
       End
       Begin VB.TextBox txtPmtType 
-         Height          =   285
+         Height          =   300
          Index           =   2
-         Left            =   2070
+         Left            =   2100
          MaxLength       =   40
-         TabIndex        =   113
+         TabIndex        =   37
          TabStop         =   0   'False
-         Top             =   1008
-         Width           =   3525
+         Top             =   1092
+         Width           =   3540
       End
       Begin VB.TextBox txtPmtType 
          Appearance      =   0  'Flat
          BackColor       =   &H8000000F&
-         Height          =   285
+         Height          =   300
          Index           =   1
-         Left            =   2070
+         Left            =   2100
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   112
+         TabIndex        =   120
          TabStop         =   0   'False
-         Top             =   630
-         Width           =   3525
+         Top             =   672
+         Width           =   3540
       End
       Begin VB.CommandButton cmdSave 
          Caption         =   "Запис"
          Height          =   375
          Index           =   10
          Left            =   4320
-         TabIndex        =   40
+         TabIndex        =   48
          Top             =   5220
          Width           =   1275
       End
       Begin VB.TextBox txtPmtType 
          Appearance      =   0  'Flat
          BackColor       =   &H8000000F&
-         Height          =   285
+         Height          =   300
          Index           =   0
-         Left            =   2070
+         Left            =   2100
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   111
+         TabIndex        =   119
          TabStop         =   0   'False
-         Top             =   270
-         Width           =   3525
+         Top             =   252
+         Width           =   3540
       End
-      Begin VB.Label Label78 
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 12:"
+         Height          =   204
+         Index           =   11
+         Left            =   168
+         TabIndex        =   253
+         Top             =   4872
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 11:"
+         Height          =   204
+         Index           =   10
+         Left            =   168
+         TabIndex        =   252
+         Top             =   4452
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 10:"
+         Height          =   204
+         Index           =   9
+         Left            =   168
+         TabIndex        =   251
+         Top             =   4032
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 9:"
+         Height          =   204
+         Index           =   8
+         Left            =   168
+         TabIndex        =   250
+         Top             =   3612
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 8:"
+         Height          =   204
+         Index           =   7
+         Left            =   168
+         TabIndex        =   249
+         Top             =   3192
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 7:"
+         Height          =   204
+         Index           =   6
+         Left            =   168
+         TabIndex        =   248
+         Top             =   2772
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
+         AutoSize        =   -1  'True
+         BackStyle       =   0  'Transparent
+         Caption         =   "Тип плащане 6:"
+         Height          =   204
+         Index           =   5
+         Left            =   168
+         TabIndex        =   247
+         Top             =   2352
+         Width           =   1944
+         WordWrap        =   -1  'True
+      End
+      Begin VB.Label labPmtType 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
          Caption         =   "Тип плащане 5:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   213
-         Top             =   1710
-         Width           =   1905
+         Height          =   264
+         Index           =   4
+         Left            =   168
+         TabIndex        =   220
+         Top             =   1932
+         Width           =   1944
          WordWrap        =   -1  'True
       End
-      Begin VB.Label Label60 
+      Begin VB.Label labPmtType 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
          Caption         =   "Тип плащане 4:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   191
-         Top             =   1350
-         Width           =   1905
+         Height          =   264
+         Index           =   3
+         Left            =   168
+         TabIndex        =   198
+         Top             =   1512
+         Width           =   1944
          WordWrap        =   -1  'True
       End
-      Begin VB.Label Label59 
+      Begin VB.Label labPmtType 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
          Caption         =   "Тип плащане 3:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   190
-         Top             =   990
-         Width           =   1905
+         Height          =   264
+         Index           =   2
+         Left            =   168
+         TabIndex        =   197
+         Top             =   1092
+         Width           =   1944
          WordWrap        =   -1  'True
       End
-      Begin VB.Label Label58 
+      Begin VB.Label labPmtType 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
          Caption         =   "Тип плащане 2:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   189
-         Top             =   630
-         Width           =   1905
+         Height          =   264
+         Index           =   1
+         Left            =   168
+         TabIndex        =   196
+         Top             =   672
+         Width           =   1944
          WordWrap        =   -1  'True
       End
-      Begin VB.Label Label54 
+      Begin VB.Label labPmtType 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
          Caption         =   "Тип плащане 1:"
-         Height          =   195
-         Left            =   180
-         TabIndex        =   188
-         Top             =   270
-         Width           =   1905
+         Height          =   264
+         Index           =   0
+         Left            =   168
+         TabIndex        =   195
+         Top             =   252
+         Width           =   1944
          WordWrap        =   -1  'True
       End
    End
@@ -161,7 +312,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   5
       Left            =   2250
-      TabIndex        =   173
+      TabIndex        =   180
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtInvCurrent 
@@ -170,7 +321,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   110
+         TabIndex        =   118
          TabStop         =   0   'False
          Top             =   990
          Width           =   1545
@@ -206,7 +357,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Текущ номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   176
+         TabIndex        =   183
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -217,7 +368,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Краен номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   175
+         TabIndex        =   182
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -228,7 +379,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Начален номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   174
+         TabIndex        =   181
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -238,7 +389,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   0
       Left            =   2250
-      TabIndex        =   118
+      TabIndex        =   125
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkConnectRemember 
@@ -286,7 +437,7 @@ Begin VB.Form frmZekaSetup
          EndProperty
          Height          =   195
          Left            =   180
-         TabIndex        =   122
+         TabIndex        =   129
          Top             =   270
          Width           =   5325
          WordWrap        =   -1  'True
@@ -297,7 +448,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Сериен порт:"
          Height          =   195
          Left            =   180
-         TabIndex        =   121
+         TabIndex        =   128
          Top             =   1080
          Width           =   1785
          WordWrap        =   -1  'True
@@ -308,7 +459,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Скорост:"
          Height          =   195
          Left            =   180
-         TabIndex        =   120
+         TabIndex        =   127
          Top             =   1530
          Width           =   1785
          WordWrap        =   -1  'True
@@ -318,7 +469,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   2
       Left            =   2250
-      TabIndex        =   119
+      TabIndex        =   126
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtTaxOperPass 
@@ -335,7 +486,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   128
+         TabIndex        =   135
          TabStop         =   0   'False
          Top             =   1350
          Width           =   3525
@@ -346,7 +497,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   127
+         TabIndex        =   134
          TabStop         =   0   'False
          Top             =   990
          Width           =   3525
@@ -446,7 +597,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   125
+         TabIndex        =   132
          TabStop         =   0   'False
          Top             =   630
          Width           =   3525
@@ -457,7 +608,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   124
+         TabIndex        =   131
          TabStop         =   0   'False
          Top             =   270
          Width           =   3525
@@ -468,7 +619,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Парола:"
          Height          =   195
          Left            =   180
-         TabIndex        =   239
+         TabIndex        =   246
          Top             =   5220
          Width           =   1905
          WordWrap        =   -1  'True
@@ -479,7 +630,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Дата регистрация:"
          Height          =   195
          Left            =   180
-         TabIndex        =   233
+         TabIndex        =   240
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -490,7 +641,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Рег. номер в НАП:"
          Height          =   195
          Left            =   180
-         TabIndex        =   232
+         TabIndex        =   239
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -501,7 +652,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група З:"
          Height          =   195
          Left            =   180
-         TabIndex        =   231
+         TabIndex        =   238
          Top             =   4590
          Width           =   1905
          WordWrap        =   -1  'True
@@ -512,7 +663,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   230
+         TabIndex        =   237
          Top             =   4590
          Width           =   375
          WordWrap        =   -1  'True
@@ -523,7 +674,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група Ж:"
          Height          =   195
          Left            =   180
-         TabIndex        =   229
+         TabIndex        =   236
          Top             =   4230
          Width           =   1905
          WordWrap        =   -1  'True
@@ -534,7 +685,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   228
+         TabIndex        =   235
          Top             =   4230
          Width           =   375
          WordWrap        =   -1  'True
@@ -545,7 +696,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група Е:"
          Height          =   195
          Left            =   180
-         TabIndex        =   227
+         TabIndex        =   234
          Top             =   3870
          Width           =   1905
          WordWrap        =   -1  'True
@@ -556,7 +707,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   226
+         TabIndex        =   233
          Top             =   3870
          Width           =   375
          WordWrap        =   -1  'True
@@ -567,7 +718,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група Д:"
          Height          =   195
          Left            =   180
-         TabIndex        =   225
+         TabIndex        =   232
          Top             =   3510
          Width           =   1905
          WordWrap        =   -1  'True
@@ -578,7 +729,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   224
+         TabIndex        =   231
          Top             =   3510
          Width           =   375
          WordWrap        =   -1  'True
@@ -589,7 +740,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   137
+         TabIndex        =   144
          Top             =   3150
          Width           =   375
          WordWrap        =   -1  'True
@@ -600,7 +751,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   136
+         TabIndex        =   143
          Top             =   2790
          Width           =   375
          WordWrap        =   -1  'True
@@ -611,7 +762,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   135
+         TabIndex        =   142
          Top             =   2430
          Width           =   375
          WordWrap        =   -1  'True
@@ -622,7 +773,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "%"
          Height          =   195
          Left            =   3240
-         TabIndex        =   134
+         TabIndex        =   141
          Top             =   2070
          Width           =   375
          WordWrap        =   -1  'True
@@ -633,7 +784,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група Г:"
          Height          =   195
          Left            =   180
-         TabIndex        =   133
+         TabIndex        =   140
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -644,7 +795,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група В:"
          Height          =   195
          Left            =   180
-         TabIndex        =   132
+         TabIndex        =   139
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -655,7 +806,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група Б:"
          Height          =   195
          Left            =   180
-         TabIndex        =   131
+         TabIndex        =   138
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -666,7 +817,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Група А:"
          Height          =   195
          Left            =   180
-         TabIndex        =   130
+         TabIndex        =   137
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -677,7 +828,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Десетични знаци:"
          Height          =   195
          Left            =   180
-         TabIndex        =   129
+         TabIndex        =   136
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -688,7 +839,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Сериен номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   126
+         TabIndex        =   133
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -699,7 +850,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Номер на модула:"
          Height          =   195
          Left            =   180
-         TabIndex        =   123
+         TabIndex        =   130
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -709,7 +860,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   3
       Left            =   2250
-      TabIndex        =   138
+      TabIndex        =   145
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdDateTransfer 
@@ -732,7 +883,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   144
+         TabIndex        =   151
          TabStop         =   0   'False
          Top             =   270
          Width           =   1635
@@ -743,7 +894,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   143
+         TabIndex        =   150
          TabStop         =   0   'False
          Top             =   630
          Width           =   1635
@@ -777,7 +928,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Системен час:"
          Height          =   195
          Left            =   180
-         TabIndex        =   142
+         TabIndex        =   149
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -788,7 +939,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Системна дата:"
          Height          =   195
          Left            =   180
-         TabIndex        =   141
+         TabIndex        =   148
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -799,7 +950,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Принтер дата:"
          Height          =   195
          Left            =   180
-         TabIndex        =   140
+         TabIndex        =   147
          Top             =   1170
          Width           =   1905
          WordWrap        =   -1  'True
@@ -810,7 +961,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Принтер час:"
          Height          =   195
          Left            =   180
-         TabIndex        =   139
+         TabIndex        =   146
          Top             =   1530
          Width           =   1905
          WordWrap        =   -1  'True
@@ -820,7 +971,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   4
       Left            =   2250
-      TabIndex        =   145
+      TabIndex        =   152
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtHeadPingTimeout 
@@ -948,7 +1099,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Време за бърз отказ:"
          Height          =   285
          Left            =   180
-         TabIndex        =   235
+         TabIndex        =   242
          Top             =   4860
          Width           =   1905
       End
@@ -956,7 +1107,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Брой колони:"
          Height          =   285
          Left            =   180
-         TabIndex        =   234
+         TabIndex        =   241
          Top             =   4500
          Width           =   1815
       End
@@ -966,7 +1117,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Screensaver:"
          Height          =   195
          Left            =   180
-         TabIndex        =   214
+         TabIndex        =   221
          Top             =   3510
          Width           =   1905
          WordWrap        =   -1  'True
@@ -978,7 +1129,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   ":"
          Height          =   195
          Left            =   3690
-         TabIndex        =   155
+         TabIndex        =   162
          Top             =   990
          Width           =   285
          WordWrap        =   -1  'True
@@ -989,7 +1140,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "БУЛСТАТ:"
          Height          =   195
          Left            =   180
-         TabIndex        =   154
+         TabIndex        =   161
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1000,7 +1151,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 6:"
          Height          =   195
          Left            =   180
-         TabIndex        =   153
+         TabIndex        =   160
          Top             =   2430
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1011,7 +1162,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Footer:"
          Height          =   195
          Left            =   180
-         TabIndex        =   152
+         TabIndex        =   159
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1022,7 +1173,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 7:"
          Height          =   195
          Left            =   180
-         TabIndex        =   151
+         TabIndex        =   158
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1033,7 +1184,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 5:"
          Height          =   195
          Left            =   180
-         TabIndex        =   150
+         TabIndex        =   157
          Top             =   2070
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1044,7 +1195,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 4:"
          Height          =   195
          Left            =   180
-         TabIndex        =   149
+         TabIndex        =   156
          Top             =   1710
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1055,7 +1206,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 3:"
          Height          =   195
          Left            =   180
-         TabIndex        =   148
+         TabIndex        =   155
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1066,7 +1217,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 1:"
          Height          =   195
          Left            =   180
-         TabIndex        =   147
+         TabIndex        =   154
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1077,7 +1228,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Header 2:"
          Height          =   195
          Left            =   180
-         TabIndex        =   146
+         TabIndex        =   153
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1087,7 +1238,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5685
       Index           =   11
       Left            =   2250
-      TabIndex        =   222
+      TabIndex        =   229
       Top             =   180
       Width           =   5775
       Begin VB.CheckBox chkParam 
@@ -1095,7 +1246,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   2
          Left            =   168
-         TabIndex        =   72
+         TabIndex        =   80
          Top             =   1008
          Width           =   5472
       End
@@ -1104,7 +1255,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   14
          Left            =   4320
-         TabIndex        =   79
+         TabIndex        =   87
          Top             =   5130
          Width           =   1275
       End
@@ -1113,7 +1264,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   9
          Left            =   168
-         TabIndex        =   78
+         TabIndex        =   86
          Top             =   3024
          Width           =   5472
       End
@@ -1122,7 +1273,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   7
          Left            =   168
-         TabIndex        =   77
+         TabIndex        =   85
          Top             =   2688
          Width           =   5472
       End
@@ -1130,7 +1281,7 @@ Begin VB.Form frmZekaSetup
          Alignment       =   1  'Right Justify
          Height          =   285
          Left            =   1800
-         TabIndex        =   70
+         TabIndex        =   78
          Top             =   270
          Width           =   825
       End
@@ -1139,7 +1290,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   4
          Left            =   168
-         TabIndex        =   74
+         TabIndex        =   82
          Top             =   1680
          Width           =   5472
       End
@@ -1148,7 +1299,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   1
          Left            =   168
-         TabIndex        =   71
+         TabIndex        =   79
          Top             =   672
          Width           =   5472
       End
@@ -1157,7 +1308,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   3
          Left            =   168
-         TabIndex        =   73
+         TabIndex        =   81
          Top             =   1344
          Width           =   5472
       End
@@ -1166,7 +1317,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   6
          Left            =   168
-         TabIndex        =   76
+         TabIndex        =   84
          Top             =   2352
          Width           =   5472
       End
@@ -1175,7 +1326,7 @@ Begin VB.Form frmZekaSetup
          Height          =   348
          Index           =   5
          Left            =   168
-         TabIndex        =   75
+         TabIndex        =   83
          Top             =   2016
          Width           =   5472
       End
@@ -1183,7 +1334,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "No. на каса:"
          Height          =   285
          Left            =   180
-         TabIndex        =   223
+         TabIndex        =   230
          Top             =   270
          Width           =   1185
       End
@@ -1192,20 +1343,20 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   13
       Left            =   2250
-      TabIndex        =   177
+      TabIndex        =   184
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtCashComment 
          Height          =   285
          Left            =   2070
-         TabIndex        =   84
+         TabIndex        =   92
          Top             =   2700
          Width           =   3525
       End
       Begin VB.TextBox txtCashOperPass 
          Height          =   285
          Left            =   2070
-         TabIndex        =   86
+         TabIndex        =   94
          Text            =   "0"
          Top             =   5220
          Width           =   1095
@@ -1213,7 +1364,7 @@ Begin VB.Form frmZekaSetup
       Begin VB.TextBox txtCashOperNo 
          Height          =   285
          Left            =   2070
-         TabIndex        =   85
+         TabIndex        =   93
          Text            =   "1"
          Top             =   4860
          Width           =   1095
@@ -1221,7 +1372,7 @@ Begin VB.Form frmZekaSetup
       Begin VB.ComboBox cobCashPayment 
          Height          =   315
          Left            =   2070
-         TabIndex        =   80
+         TabIndex        =   88
          Top             =   270
          Width           =   1545
       End
@@ -1229,7 +1380,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Извеждане"
          Height          =   285
          Left            =   3528
-         TabIndex        =   82
+         TabIndex        =   90
          Top             =   1980
          Width           =   1455
       End
@@ -1237,7 +1388,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Въвеждане"
          Height          =   285
          Left            =   2070
-         TabIndex        =   81
+         TabIndex        =   89
          Top             =   1980
          Value           =   -1  'True
          Width           =   1455
@@ -1246,7 +1397,7 @@ Begin VB.Form frmZekaSetup
          Alignment       =   1  'Right Justify
          Height          =   285
          Left            =   2070
-         TabIndex        =   83
+         TabIndex        =   91
          Top             =   2340
          Width           =   1545
       End
@@ -1255,7 +1406,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   6
          Left            =   4320
-         TabIndex        =   87
+         TabIndex        =   95
          Top             =   5220
          Width           =   1275
       End
@@ -1265,7 +1416,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   182
+         TabIndex        =   189
          TabStop         =   0   'False
          Top             =   1350
          Width           =   1545
@@ -1276,7 +1427,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   180
+         TabIndex        =   187
          TabStop         =   0   'False
          Top             =   990
          Width           =   1545
@@ -1287,7 +1438,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   2070
          Locked          =   -1  'True
-         TabIndex        =   178
+         TabIndex        =   185
          TabStop         =   0   'False
          Top             =   630
          Width           =   1545
@@ -1298,7 +1449,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Коментар:"
          Height          =   195
          Left            =   180
-         TabIndex        =   238
+         TabIndex        =   245
          Top             =   2700
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1309,7 +1460,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Парола:"
          Height          =   195
          Left            =   180
-         TabIndex        =   237
+         TabIndex        =   244
          Top             =   5220
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1320,7 +1471,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Оператор:"
          Height          =   195
          Left            =   180
-         TabIndex        =   236
+         TabIndex        =   243
          Top             =   4860
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1331,7 +1482,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Вид плащане:"
          Height          =   195
          Left            =   180
-         TabIndex        =   221
+         TabIndex        =   228
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1342,7 +1493,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Сума:"
          Height          =   195
          Left            =   180
-         TabIndex        =   184
+         TabIndex        =   191
          Top             =   2340
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1353,7 +1504,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Служебен износ:"
          Height          =   195
          Left            =   180
-         TabIndex        =   183
+         TabIndex        =   190
          Top             =   1350
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1364,7 +1515,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Служебен внос:"
          Height          =   195
          Left            =   180
-         TabIndex        =   181
+         TabIndex        =   188
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1375,7 +1526,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Наличност каса:"
          Height          =   195
          Left            =   180
-         TabIndex        =   179
+         TabIndex        =   186
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1385,14 +1536,14 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   14
       Left            =   2250
-      TabIndex        =   185
+      TabIndex        =   192
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkReportPayments2 
          Caption         =   "Плащания"
          Height          =   285
          Left            =   2520
-         TabIndex        =   101
+         TabIndex        =   109
          Top             =   3330
          Width           =   1545
       End
@@ -1400,7 +1551,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Плащания"
          Height          =   285
          Left            =   2520
-         TabIndex        =   96
+         TabIndex        =   104
          Top             =   2070
          Width           =   1545
       End
@@ -1409,7 +1560,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   5
          Left            =   180
-         TabIndex        =   105
+         TabIndex        =   113
          Top             =   4860
          Width           =   5145
       End
@@ -1417,7 +1568,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Нулиране"
          Height          =   285
          Left            =   900
-         TabIndex        =   103
+         TabIndex        =   111
          Top             =   4140
          Width           =   1725
       End
@@ -1425,7 +1576,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Департаменти"
          Height          =   285
          Left            =   2520
-         TabIndex        =   90
+         TabIndex        =   98
          Top             =   630
          Width           =   1905
       End
@@ -1434,7 +1585,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   3
          Left            =   180
-         TabIndex        =   102
+         TabIndex        =   110
          Top             =   3780
          Width           =   5145
       End
@@ -1442,21 +1593,21 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Детайлен"
          Height          =   285
          Left            =   900
-         TabIndex        =   95
+         TabIndex        =   103
          Top             =   2070
          Width           =   1725
       End
       Begin VB.TextBox txtReportStart 
          Height          =   285
          Left            =   1800
-         TabIndex        =   93
+         TabIndex        =   101
          Top             =   1710
          Width           =   1095
       End
       Begin VB.TextBox txtReportEnd 
          Height          =   285
          Left            =   3420
-         TabIndex        =   94
+         TabIndex        =   102
          Top             =   1710
          Width           =   1095
       End
@@ -1464,21 +1615,21 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Детайлен"
          Height          =   285
          Left            =   900
-         TabIndex        =   100
+         TabIndex        =   108
          Top             =   3330
          Width           =   1725
       End
       Begin VB.TextBox txtReportTD 
          Height          =   285
          Left            =   3420
-         TabIndex        =   99
+         TabIndex        =   107
          Top             =   2880
          Width           =   1095
       End
       Begin VB.TextBox txtReportFD 
          Height          =   285
          Left            =   1800
-         TabIndex        =   98
+         TabIndex        =   106
          Top             =   2880
          Width           =   1095
       End
@@ -1487,7 +1638,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   7
          Left            =   4320
-         TabIndex        =   106
+         TabIndex        =   114
          Top             =   5220
          Width           =   1275
       End
@@ -1496,7 +1647,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   4
          Left            =   180
-         TabIndex        =   104
+         TabIndex        =   112
          Top             =   4500
          Width           =   5145
       End
@@ -1505,7 +1656,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   2
          Left            =   180
-         TabIndex        =   97
+         TabIndex        =   105
          Top             =   2520
          Width           =   5145
       End
@@ -1514,7 +1665,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   1
          Left            =   180
-         TabIndex        =   92
+         TabIndex        =   100
          Top             =   1350
          Width           =   5145
       End
@@ -1522,7 +1673,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Артикули"
          Height          =   285
          Left            =   900
-         TabIndex        =   89
+         TabIndex        =   97
          Top             =   630
          Width           =   1725
       End
@@ -1530,7 +1681,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Нулиране"
          Height          =   285
          Left            =   900
-         TabIndex        =   91
+         TabIndex        =   99
          Top             =   990
          Width           =   1725
       End
@@ -1539,7 +1690,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Index           =   0
          Left            =   180
-         TabIndex        =   88
+         TabIndex        =   96
          Top             =   270
          Value           =   -1  'True
          Width           =   5145
@@ -1550,7 +1701,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "От номер:"
          Height          =   195
          Left            =   900
-         TabIndex        =   195
+         TabIndex        =   202
          Top             =   1710
          Width           =   915
          WordWrap        =   -1  'True
@@ -1562,7 +1713,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "до: "
          Height          =   195
          Left            =   2520
-         TabIndex        =   194
+         TabIndex        =   201
          Top             =   1710
          Width           =   915
          WordWrap        =   -1  'True
@@ -1574,7 +1725,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "до: "
          Height          =   195
          Left            =   2520
-         TabIndex        =   193
+         TabIndex        =   200
          Top             =   2880
          Width           =   915
          WordWrap        =   -1  'True
@@ -1585,7 +1736,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "От дата:"
          Height          =   300
          Left            =   900
-         TabIndex        =   192
+         TabIndex        =   199
          Top             =   2880
          Width           =   915
          WordWrap        =   -1  'True
@@ -1595,14 +1746,14 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   16
       Left            =   2250
-      TabIndex        =   186
+      TabIndex        =   193
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdStatusReset 
          Caption         =   "Ресет"
          Height          =   375
          Left            =   168
-         TabIndex        =   108
+         TabIndex        =   116
          Top             =   5208
          Width           =   1185
       End
@@ -1611,7 +1762,7 @@ Begin VB.Form frmZekaSetup
          IntegralHeight  =   0   'False
          Left            =   90
          Style           =   1  'Checkbox
-         TabIndex        =   107
+         TabIndex        =   115
          Top             =   180
          Width           =   5595
       End
@@ -1620,14 +1771,14 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   9
       Left            =   2250
-      TabIndex        =   197
+      TabIndex        =   204
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdItemLoad 
          Caption         =   "Зареждане"
          Height          =   375
          Left            =   2610
-         TabIndex        =   51
+         TabIndex        =   59
          Top             =   270
          Width           =   1275
       End
@@ -1635,7 +1786,7 @@ Begin VB.Form frmZekaSetup
          Alignment       =   1  'Right Justify
          Height          =   285
          Left            =   1620
-         TabIndex        =   57
+         TabIndex        =   65
          Top             =   2250
          Width           =   825
       End
@@ -1645,7 +1796,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          Locked          =   -1  'True
-         TabIndex        =   116
+         TabIndex        =   123
          TabStop         =   0   'False
          Top             =   3510
          Width           =   1545
@@ -1655,7 +1806,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          Locked          =   -1  'True
-         TabIndex        =   117
+         TabIndex        =   124
          TabStop         =   0   'False
          Top             =   3870
          Width           =   1545
@@ -1664,7 +1815,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Изтриване"
          Height          =   375
          Left            =   4320
-         TabIndex        =   58
+         TabIndex        =   66
          Top             =   4770
          Width           =   1275
       End
@@ -1672,7 +1823,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Нов"
          Height          =   375
          Left            =   3960
-         TabIndex        =   52
+         TabIndex        =   60
          Top             =   270
          Width           =   1275
       End
@@ -1682,7 +1833,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          Locked          =   -1  'True
-         TabIndex        =   114
+         TabIndex        =   121
          TabStop         =   0   'False
          Top             =   2790
          Width           =   1545
@@ -1692,7 +1843,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          MaxLength       =   9
-         TabIndex        =   54
+         TabIndex        =   62
          Top             =   1170
          Width           =   825
       End
@@ -1701,7 +1852,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          MaxLength       =   5
-         TabIndex        =   53
+         TabIndex        =   61
          Top             =   810
          Width           =   825
       End
@@ -1711,7 +1862,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          Locked          =   -1  'True
-         TabIndex        =   115
+         TabIndex        =   122
          TabStop         =   0   'False
          Top             =   3150
          Width           =   1545
@@ -1719,14 +1870,14 @@ Begin VB.Form frmZekaSetup
       Begin VB.ComboBox cobItemGroup 
          Height          =   315
          Left            =   1620
-         TabIndex        =   55
+         TabIndex        =   63
          Top             =   1530
          Width           =   825
       End
       Begin VB.TextBox txtItemName 
          Height          =   285
          Left            =   1620
-         TabIndex        =   56
+         TabIndex        =   64
          Top             =   1890
          Width           =   3975
       End
@@ -1735,7 +1886,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   13
          Left            =   4320
-         TabIndex        =   59
+         TabIndex        =   67
          Top             =   5220
          Width           =   1275
       End
@@ -1744,7 +1895,7 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   1620
          MaxLength       =   40
-         TabIndex        =   50
+         TabIndex        =   58
          Top             =   270
          Width           =   825
       End
@@ -1754,7 +1905,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Поделение:"
          Height          =   195
          Left            =   180
-         TabIndex        =   216
+         TabIndex        =   223
          Top             =   2250
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1765,7 +1916,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Посл. отчет:"
          Height          =   195
          Left            =   180
-         TabIndex        =   215
+         TabIndex        =   222
          Top             =   3510
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1776,7 +1927,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Отчетен на:"
          Height          =   195
          Left            =   180
-         TabIndex        =   205
+         TabIndex        =   212
          Top             =   3870
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1787,7 +1938,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Оборот:"
          Height          =   195
          Left            =   180
-         TabIndex        =   204
+         TabIndex        =   211
          Top             =   2790
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1798,7 +1949,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Цена:"
          Height          =   195
          Left            =   180
-         TabIndex        =   203
+         TabIndex        =   210
          Top             =   1170
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1809,7 +1960,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "PLU:"
          Height          =   195
          Left            =   180
-         TabIndex        =   202
+         TabIndex        =   209
          Top             =   810
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1820,7 +1971,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Данъчна група:"
          Height          =   195
          Left            =   180
-         TabIndex        =   201
+         TabIndex        =   208
          Top             =   1530
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1831,7 +1982,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Количество:"
          Height          =   195
          Left            =   180
-         TabIndex        =   200
+         TabIndex        =   207
          Top             =   3150
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1842,7 +1993,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Наименование:"
          Height          =   195
          Left            =   180
-         TabIndex        =   199
+         TabIndex        =   206
          Top             =   1890
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1853,7 +2004,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Номер:"
          Height          =   195
          Left            =   180
-         TabIndex        =   198
+         TabIndex        =   205
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -1863,7 +2014,7 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   17
       Left            =   2250
-      TabIndex        =   196
+      TabIndex        =   203
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtLog 
@@ -1872,7 +2023,7 @@ Begin VB.Form frmZekaSetup
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   2  'Vertical
-         TabIndex        =   109
+         TabIndex        =   117
          Top             =   180
          Width           =   5595
       End
@@ -1881,13 +2032,13 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   10
       Left            =   2250
-      TabIndex        =   166
+      TabIndex        =   173
       Top             =   90
       Width           =   5775
       Begin VB.ComboBox cobLogoActive 
          Height          =   315
          Left            =   3780
-         TabIndex        =   61
+         TabIndex        =   69
          Top             =   270
          Width           =   1815
       End
@@ -1895,14 +2046,14 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Зареждане"
          Height          =   1815
          Left            =   180
-         TabIndex        =   210
+         TabIndex        =   217
          Top             =   810
          Width           =   5415
          Begin VB.TextBox txtLogoIndex 
             Alignment       =   1  'Right Justify
             Height          =   285
             Left            =   1800
-            TabIndex        =   68
+            TabIndex        =   76
             Top             =   1350
             Width           =   465
          End
@@ -1910,7 +2061,7 @@ Begin VB.Form frmZekaSetup
             Alignment       =   1  'Right Justify
             Height          =   285
             Left            =   2520
-            TabIndex        =   65
+            TabIndex        =   73
             Text            =   "140"
             Top             =   630
             Width           =   465
@@ -1919,7 +2070,7 @@ Begin VB.Form frmZekaSetup
             Alignment       =   1  'Right Justify
             Height          =   285
             Left            =   1800
-            TabIndex        =   64
+            TabIndex        =   72
             Text            =   "512"
             Top             =   630
             Width           =   465
@@ -1928,7 +2079,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Разпънато"
             Height          =   285
             Left            =   1800
-            TabIndex        =   66
+            TabIndex        =   74
             Top             =   990
             Value           =   -1  'True
             Width           =   1455
@@ -1937,7 +2088,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Центрирано"
             Height          =   285
             Left            =   3420
-            TabIndex        =   67
+            TabIndex        =   75
             Top             =   990
             Width           =   1545
          End
@@ -1945,7 +2096,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Избор"
             Height          =   375
             Left            =   3960
-            TabIndex        =   63
+            TabIndex        =   71
             Top             =   270
             Width           =   1275
          End
@@ -1953,7 +2104,7 @@ Begin VB.Form frmZekaSetup
             Alignment       =   1  'Right Justify
             Height          =   285
             Left            =   1800
-            TabIndex        =   62
+            TabIndex        =   70
             Text            =   "50"
             Top             =   270
             Width           =   465
@@ -1963,7 +2114,7 @@ Begin VB.Form frmZekaSetup
             BackStyle       =   0  'Transparent
             Height          =   285
             Left            =   2340
-            TabIndex        =   220
+            TabIndex        =   227
             Top             =   1350
             Width           =   2985
             WordWrap        =   -1  'True
@@ -1974,7 +2125,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Програмиране:"
             Height          =   195
             Left            =   180
-            TabIndex        =   219
+            TabIndex        =   226
             Top             =   1350
             Width           =   1635
             WordWrap        =   -1  'True
@@ -1986,7 +2137,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "x"
             Height          =   285
             Left            =   2250
-            TabIndex        =   218
+            TabIndex        =   225
             Top             =   630
             Width           =   285
             WordWrap        =   -1  'True
@@ -1997,7 +2148,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Размер:"
             Height          =   195
             Left            =   180
-            TabIndex        =   217
+            TabIndex        =   224
             Top             =   630
             Width           =   1635
             WordWrap        =   -1  'True
@@ -2008,7 +2159,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "Ниво на черно:"
             Height          =   390
             Left            =   180
-            TabIndex        =   212
+            TabIndex        =   219
             Top             =   270
             Width           =   1635
             WordWrap        =   -1  'True
@@ -2019,7 +2170,7 @@ Begin VB.Form frmZekaSetup
             Caption         =   "%"
             Height          =   195
             Left            =   2340
-            TabIndex        =   211
+            TabIndex        =   218
             Top             =   270
             Width           =   555
             WordWrap        =   -1  'True
@@ -2029,7 +2180,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Печат графично лого преди header"
          Height          =   285
          Left            =   180
-         TabIndex        =   60
+         TabIndex        =   68
          Top             =   270
          Width           =   4245
       End
@@ -2038,7 +2189,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   4
          Left            =   4320
-         TabIndex        =   69
+         TabIndex        =   77
          Top             =   5220
          Width           =   1275
       End
@@ -2048,7 +2199,7 @@ Begin VB.Form frmZekaSetup
          Left            =   180
          ScaleHeight     =   2448
          ScaleWidth      =   5412
-         TabIndex        =   207
+         TabIndex        =   214
          TabStop         =   0   'False
          Top             =   2700
          Width           =   5415
@@ -2056,7 +2207,7 @@ Begin VB.Form frmZekaSetup
             CausesValidation=   0   'False
             Height          =   240
             Left            =   0
-            TabIndex        =   209
+            TabIndex        =   216
             TabStop         =   0   'False
             Top             =   2070
             Width           =   5415
@@ -2069,7 +2220,7 @@ Begin VB.Form frmZekaSetup
             Left            =   0
             ScaleHeight     =   1632
             ScaleWidth      =   5232
-            TabIndex        =   208
+            TabIndex        =   215
             TabStop         =   0   'False
             Top             =   0
             Width           =   5235
@@ -2080,13 +2231,13 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   8
       Left            =   2250
-      TabIndex        =   157
+      TabIndex        =   164
       Top             =   90
       Width           =   5775
       Begin VB.ComboBox cobDepGroup 
          Height          =   315
          Left            =   4050
-         TabIndex        =   47
+         TabIndex        =   55
          Top             =   630
          Width           =   825
       End
@@ -2097,7 +2248,7 @@ Begin VB.Form frmZekaSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   164
+         TabIndex        =   171
          TabStop         =   0   'False
          Top             =   2700
          Width           =   1545
@@ -2109,7 +2260,7 @@ Begin VB.Form frmZekaSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   162
+         TabIndex        =   169
          TabStop         =   0   'False
          Top             =   2340
          Width           =   1545
@@ -2121,7 +2272,7 @@ Begin VB.Form frmZekaSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   159
+         TabIndex        =   166
          TabStop         =   0   'False
          Top             =   270
          Width           =   825
@@ -2130,7 +2281,7 @@ Begin VB.Form frmZekaSetup
          Height          =   5325
          IntegralHeight  =   0   'False
          Left            =   180
-         TabIndex        =   46
+         TabIndex        =   54
          Top             =   270
          Width           =   2265
       End
@@ -2139,14 +2290,14 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   12
          Left            =   4320
-         TabIndex        =   49
+         TabIndex        =   57
          Top             =   5220
          Width           =   1275
       End
       Begin VB.TextBox txtDepName 
          Height          =   285
          Left            =   2610
-         TabIndex        =   48
+         TabIndex        =   56
          Top             =   1260
          Width           =   2985
       End
@@ -2156,7 +2307,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Сума за деня:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   165
+         TabIndex        =   172
          Top             =   2700
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2167,7 +2318,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Количество:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   163
+         TabIndex        =   170
          Top             =   2340
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2178,7 +2329,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Данъчна група:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   161
+         TabIndex        =   168
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2189,7 +2340,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Номер:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   160
+         TabIndex        =   167
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2200,7 +2351,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Наименование:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   158
+         TabIndex        =   165
          Top             =   990
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2210,14 +2361,14 @@ Begin VB.Form frmZekaSetup
       Height          =   5775
       Index           =   7
       Left            =   2250
-      TabIndex        =   167
+      TabIndex        =   174
       Top             =   90
       Width           =   5775
       Begin VB.TextBox txtOperPass2 
          Height          =   285
          Left            =   4050
          MaxLength       =   6
-         TabIndex        =   44
+         TabIndex        =   52
          Top             =   4410
          Width           =   1545
       End
@@ -2225,14 +2376,14 @@ Begin VB.Form frmZekaSetup
          Height          =   285
          Left            =   4050
          MaxLength       =   6
-         TabIndex        =   43
+         TabIndex        =   51
          Top             =   4050
          Width           =   1545
       End
       Begin VB.TextBox txtOperName 
          Height          =   285
          Left            =   2610
-         TabIndex        =   42
+         TabIndex        =   50
          Top             =   900
          Width           =   2985
       End
@@ -2241,7 +2392,7 @@ Begin VB.Form frmZekaSetup
          Height          =   375
          Index           =   11
          Left            =   4320
-         TabIndex        =   45
+         TabIndex        =   53
          Top             =   5220
          Width           =   1275
       End
@@ -2249,7 +2400,7 @@ Begin VB.Form frmZekaSetup
          Height          =   5325
          IntegralHeight  =   0   'False
          Left            =   180
-         TabIndex        =   41
+         TabIndex        =   49
          Top             =   270
          Width           =   2265
       End
@@ -2260,7 +2411,7 @@ Begin VB.Form frmZekaSetup
          Left            =   4050
          Locked          =   -1  'True
          MaxLength       =   40
-         TabIndex        =   168
+         TabIndex        =   175
          TabStop         =   0   'False
          Top             =   270
          Width           =   825
@@ -2271,7 +2422,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Пак парола:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   172
+         TabIndex        =   179
          Top             =   4410
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2282,7 +2433,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Нова парола:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   171
+         TabIndex        =   178
          Top             =   4050
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2293,7 +2444,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Наименование:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   170
+         TabIndex        =   177
          Top             =   630
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2304,7 +2455,7 @@ Begin VB.Form frmZekaSetup
          Caption         =   "Номер:"
          Height          =   195
          Left            =   2610
-         TabIndex        =   169
+         TabIndex        =   176
          Top             =   270
          Width           =   1905
          WordWrap        =   -1  'True
@@ -2315,7 +2466,7 @@ Begin VB.Form frmZekaSetup
       Caption         =   "Cancel"
       Height          =   375
       Left            =   90
-      TabIndex        =   206
+      TabIndex        =   213
       TabStop         =   0   'False
       Top             =   180
       Width           =   1275
@@ -2325,7 +2476,7 @@ Begin VB.Form frmZekaSetup
       IntegralHeight  =   0   'False
       Left            =   90
       TabIndex        =   0
-      Top             =   180
+      Top             =   168
       Width           =   2085
    End
    Begin VB.Label labStatus 
@@ -2333,7 +2484,7 @@ Begin VB.Form frmZekaSetup
       BackStyle       =   0  'Transparent
       Height          =   195
       Left            =   90
-      TabIndex        =   156
+      TabIndex        =   163
       Top             =   5940
       Width           =   7935
       WordWrap        =   -1  'True
@@ -2345,7 +2496,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 14    19.02.19 16:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 15    7.03.19 12:43 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -2354,6 +2505,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 15    7.03.19 12:43 Wqw
+' REF: handle extended list of payment types
+'
 ' 14    19.02.19 16:58 Wqw
 ' REF: uses timer ex
 '
@@ -2437,7 +2591,6 @@ Private Const STR_STATUS_FETCH_OPER As String = "Получаване оператор %1 от " & L
 Private Const STR_STATUS_PRINT      As String = "Отпечатване..."
 Private Const STR_STATUS_RESETTING  As String = "Ресет..."
 Private Const STR_LOGO_DIMENSIONS   As String = "Размер в байтове: %1"
-Private Const STR_PAYMENT_TYPES     As String = "В брой|Карта|Чек"
 Private Const STR_LOGO_ASSIGNED     As String = " - програмиран"
 Private Const STR_FP_STATUSES       As String = "ST0.0 - ФП достъпна само за четене (ако ST3.0, ST3.1 или ST3.2 = 1)|ST0.1 - имало е прекъсване на захранването при отворен фиск. бон|ST0.2 - прегрят принтер|ST0.3 - несверен часовник|ST0.4 - некоректна дата|ST0.5 - грешка в оперативната памет RAM|ST0.6 - хардуерна грешка в часовника|ST1.0 - липсва хартия|ST1.1 - препълване в натрупванията на отчетите|ST1.2 - вътрешен за устройството|ST1.3 - ненулев дневен отчет|ST1.4 - ненулев артикулен отчет|ST1.5 - ненулев операторски отчет|ST1.6 - не е отпечатан дубликат|" & _
                                                 "ST2.0 - отворен служебен бон|ST2.1 - отворен фискален бон|ST2.2 - стандартен касов бон|ST2.3 - с ДДС в бона|ST2.4 - бона е фактура|ST2.5 - резервиран|ST2.6 - резервиран|ST3.0 - липсва ФП|ST3.1 - грешка във ФП|ST3.2 - пълна ФП|ST3.3 - остават 50 или по-малко свободни записи във ФП|ST3.4 - формат на числата: дробни = 1, цели = 0|ST3.5 - фискализиран|ST3.6 - зададени индивидуален номер на ФПр и номер на ФП|" & _
@@ -2673,16 +2826,24 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         txtInvEnd.Text = C_Dbl(At(vResult, 1))
         txtInvCurrent.Text = C_Dbl(At(vResult, 0))
     Case ucsCmdPaymentTypes
-        vResult = Split(STR_PAYMENT_TYPES, "|")
-        For lIdx = 0 To 1
-            txtPmtType(lIdx).Text = At(vResult, lIdx)
-        Next
         vResult = Split(m_oFP.SendCommand(ucsZekCmdInfoPaymentTypes), ";")
         If LenB(m_oFP.LastError) <> 0 Then
             GoTo QH
         End If
-        For lIdx = 2 To 5
+        For lIdx = 0 To Limit(UBound(vResult), , txtPmtType.UBound + 1)
+            If IsNumeric(vResult(lIdx)) Then
+                Exit For
+            End If
             txtPmtType(lIdx).Text = Trim$(vResult(lIdx))
+            txtPmtType(lIdx).Tag = Trim$(vResult(lIdx))
+        Next
+        txtPmtRate.Text = Trim$(vResult(lIdx))
+        txtPmtRate.Tag = Trim$(vResult(lIdx))
+        txtPmtType(lIdx - 1).Width = txtPmtRate.Left - txtPmtType(lIdx - 1).Left - 60
+        txtPmtRate.Top = txtPmtType(lIdx - 1).Top
+        For lIdx = lIdx To txtPmtType.UBound
+            txtPmtType(lIdx).Visible = False
+            labPmtType(lIdx).Visible = False
         Next
     Case ucsCmdOperators
         vResult = m_oFP.SendCommand(ucsZekCmdInfoStatus)
@@ -2907,18 +3068,22 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             GoTo QH
         End If
     Case ucsCmdPaymentTypes
-        m_oFP.SendCommand ucsZekCmdInitPaymentType, "2;" & Pad(txtPmtType(2).Text, 10)
-        If LenB(m_oFP.LastError) <> 0 Then
-            GoTo QH
-        End If
-        m_oFP.SendCommand ucsZekCmdInitPaymentType, "3;" & Pad(txtPmtType(3).Text, 10)
-        If LenB(m_oFP.LastError) <> 0 Then
-            GoTo QH
-        End If
-        m_oFP.SendCommand ucsZekCmdInitPaymentType, "4;" & Pad(txtPmtType(4).Text, 10) & ";" & Format$(C_Dbl(txtPmtType(5).Text), "0000.00000")
-        If LenB(m_oFP.LastError) <> 0 Then
-            GoTo QH
-        End If
+        For lIdx = 2 To 11
+            If txtPmtType(lIdx).Top = txtPmtRate.Top Then
+                If txtPmtType(lIdx).Text <> txtPmtType(lIdx).Tag Or txtPmtRate.Text <> txtPmtRate.Tag Then
+                    m_oFP.SendCommand ucsZekCmdInitPaymentType, lIdx & ";" & Pad(txtPmtType(lIdx).Text, 10) & _
+                        ";" & Format$(C_Dbl(txtPmtRate.Text), "0000.00000")
+                    If LenB(m_oFP.LastError) <> 0 Then
+                        GoTo QH
+                    End If
+                End If
+            ElseIf txtPmtType(lIdx).Text <> txtPmtType(lIdx).Tag Then
+                m_oFP.SendCommand ucsZekCmdInitPaymentType, lIdx & ";" & Pad(txtPmtType(lIdx).Text, 10)
+                If LenB(m_oFP.LastError) <> 0 Then
+                    GoTo QH
+                End If
+            End If
+        Next
     Case ucsCmdOperators
         If txtOperPass.Text <> txtOperPass2.Text Then
             MsgBox MSG_PASSWORDS_MISMATCH, vbExclamation

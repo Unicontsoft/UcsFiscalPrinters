@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 48    19.02.19 16:56 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 49    7.03.19 12:42 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 49    7.03.19 12:42 Wqw
+' REF: handle extended list of payment types
+'
 ' 48    19.02.19 16:56 Wqw
 ' REF: timeout increased to 3 sec, uses timer ex
 '
@@ -756,9 +759,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If .hComm <> 0 Then
-                    If InStr(.Buffer, Chr$(0)) > 0 Then
+                    If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
-                        .Buffer = Left$(.Buffer, InStr(.Buffer, Chr$(0)) - 1)
+                        .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
@@ -1585,27 +1588,50 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Dim lIndex          As Long
     
     On Error GoTo EH
-    If Index < 0 Then
-        '--- custom payment types: 4 & 5
-        Index = 3 - Index
-    ElseIf Index = 4 Then
-        Exit Function
-    ElseIf Index > 4 Then
-        Index = Index - 1
-    End If
-    If Index >= 1 And Index <= 3 Then
-        GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
-    ElseIf Index >= 4 And Index <= 5 Then
-        pvGetCommandConfig CONF_NAME, "InfoPaymentTypes" & Index, eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString, _
-            "Index", lIndex, Index - 1
+    If Index > 0 Then
+        GetPaymentName = pvText(ucsTxtPaymentCash + Index - ucsFscPmtCash)
+    Else
         If LenB(m_sPaymentTypes) = 0 Then
+            pvGetCommandConfig CONF_NAME, "InfoPaymentTypes" & Index, eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString
             m_sPaymentTypes = SendCommand(eCmd, sParam)
         End If
-        GetPaymentName = Trim$(At(Split(m_sPaymentTypes, DEF_DELIM), lIndex))
+        If IsNumeric(At(Split(m_sPaymentTypes, DEF_DELIM), 12)) Then
+            lIndex = pvToDevicePmtType(3 - Index)
+        ElseIf Index = ucsFscPmtCustom1 Or Index = ucsFscPmtCustom2 Then
+            lIndex = pvToDevicePmtType(3 - Index)
+        End If
+        If lIndex > 0 Then
+            pvGetCommandConfig CONF_NAME, "InfoPaymentTypes" & Index, eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString, _
+                "Index", lIndex, lIndex
+            GetPaymentName = Trim$(At(Split(m_sPaymentTypes, DEF_DELIM), lIndex))
+        End If
     End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+Private Function pvToDevicePmtType(ByVal Index As Long) As Long
+    If IsNumeric(At(Split(m_sPaymentTypes, DEF_DELIM), 12)) Then
+        Select Case Index
+        Case ucsFscPmtCard
+            pvToDevicePmtType = 7   ' Card
+        Case ucsFscPmtCheque
+            pvToDevicePmtType = 8   ' Bank
+        Case 4 ' Custom 1
+            pvToDevicePmtType = 2   ' Talon
+        Case 5 ' Custom 2
+            pvToDevicePmtType = 3   ' V.Talon
+        Case 6 ' Custom 3
+            pvToDevicePmtType = 9   ' Prg Name1
+        Case 7 ' Custom 4
+            pvToDevicePmtType = 10  ' Prg Name2
+        Case Else
+            pvToDevicePmtType = Index - 1
+        End Select
+    Else
+        pvToDevicePmtType = Index - 1
+    End If
 End Function
 
 Public Function OpenDrawer() As Boolean
@@ -2508,7 +2534,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     GoTo QH
                 End If
                 If .PmtType <> 0 Then
-                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, (.PmtType - 1) & ";0;%1", _
+                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtType(.PmtType) & ";0;%1", _
                         "FormatAmount", sFormatAmount, "0.00"
                     sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
                 ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
