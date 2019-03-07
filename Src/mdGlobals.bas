@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 43    19.02.19 16:59 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 44    7.03.19 12:33 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 44    7.03.19 12:33 Wqw
+' REF: uses null char const
+'
 ' 43    19.02.19 16:59 Wqw
 ' ADD: Property TimerEx
 '
@@ -573,9 +576,9 @@ Public Function EnumSerialPorts() As Variant
     If IsNT Then
         sBuffer = String$(100000, 1)
         Call QueryDosDevice(0, sBuffer, Len(sBuffer))
-        sBuffer = Chr$(0) & sBuffer
+        sBuffer = vbNullChar & sBuffer
         For lIdx = 1 To 255
-            If InStr(1, sBuffer, Chr$(0) & "COM" & lIdx & Chr$(0), vbTextCompare) > 0 Then
+            If InStr(1, sBuffer, vbNullChar & "COM" & lIdx & vbNullChar, vbTextCompare) > 0 Then
                 vRet(lCount) = "COM" & lIdx
                 lCount = lCount + 1
             End If
@@ -937,11 +940,11 @@ Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
         If lType = REG_SZ Or lType = REG_EXPAND_SZ Then
             sBuffer = String$(lNeeded + 1, 0)
             If RegQueryValueEx(hKey, sValue, 0, lType, ByVal sBuffer, Len(sBuffer)) = 0 Then
-                sBuffer = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+                sBuffer = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
                 If lType = REG_EXPAND_SZ Then
                     RegReadString = String$(ExpandEnvironmentStrings(sBuffer, vbNullString, 0), 0)
                     If ExpandEnvironmentStrings(sBuffer, RegReadString, Len(RegReadString)) > 0 Then
-                        RegReadString = Left$(RegReadString, InStr(RegReadString, Chr$(0)) - 1)
+                        RegReadString = Left$(RegReadString, InStr(RegReadString, vbNullChar) - 1)
                     Else
                         RegReadString = sBuffer
                     End If
@@ -982,7 +985,7 @@ End Sub
 Public Function GetSystemDirectory() As String
     GetSystemDirectory = String$(1000, 0)
     APIGetSystemDirectory GetSystemDirectory, Len(GetSystemDirectory) - 1
-    GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, Chr$(0)) - 1)
+    GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, vbNullChar) - 1)
 End Function
 
 Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String, ByVal sTitle As String, sFile As String) As Boolean
@@ -1010,7 +1013,7 @@ Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String,
     uOFN.nMaxFile = Len(sBuffer)
     If GetOpenFileName(uOFN) <> 0 Then
         sFile = StrConv(sBuffer, vbUnicode)
-        sFile = Left$(sFile, InStr(sFile, Chr$(0)) - 1)
+        sFile = Left$(sFile, InStr(sFile, vbNullChar) - 1)
         '--- success
         OpenSaveDialog = True
     End If

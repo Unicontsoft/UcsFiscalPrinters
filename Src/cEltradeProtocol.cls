@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 43    26.06.18 16:30 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 44    7.03.19 12:33 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+'   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Protocol handler for Eltrade cash registers
 '
 ' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
 ' 
+' 44    7.03.19 12:33 Wqw
+' REF: uses null char const
+'
 ' 43    26.06.18 16:30 Wqw
 ' REF: copy last receipt params
 '
@@ -1793,7 +1796,7 @@ Private Function pvPoke(ByVal cValue As Currency, Optional ByVal lSize As Long =
 End Function
 
 Private Function pvSPeek(sText As String, ByVal lOffset As Long, ByVal lSize As Long) As String
-    pvSPeek = pvFromMik(RTrim$(Replace$(Mid$(sText, lOffset + 1, lSize), Chr$(0), vbNullString)))
+    pvSPeek = pvFromMik(RTrim$(Replace$(Mid$(sText, lOffset + 1, lSize), vbNullChar, vbNullString)))
 End Function
 
 Private Function pvSPoke(ByVal sText As String, ByVal lSize As Long, Optional ByVal eAlign As AlignmentConstants = vbLeftJustify, Optional ByVal lFillChar As Long = 32) As String
@@ -1936,7 +1939,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 '--- setup contragent
                 sData = vbNullString
                 For lIdx = 3 To 7
-                    sData = sData & IIf(LenB(.InitInvData(lIdx)) <> 0, Chr$(&H80), Chr$(0)) & _
+                    sData = sData & IIf(LenB(.InitInvData(lIdx)) <> 0, Chr$(&H80), vbNullChar) & _
                         pvSPoke(.InitInvData(lIdx), pvRowChars)
                 Next
                 sResult = SendCommand(ucsEltCmdInitInvoiceData, sData)

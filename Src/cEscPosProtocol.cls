@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 8     19.02.19 16:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 9     7.03.19 12:34 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
 ' 
+' 9     7.03.19 12:34 Wqw
+' REF: uses null char const
+'
 ' 8     19.02.19 16:58 Wqw
 ' REF: uses timer ex
 '
@@ -341,8 +344,8 @@ Repeat:
         If oConnector.ReadData(baBuffer, 100) Then
             If baBuffer(0) = 95 Then
                 sRetVal = Mid$(StrConv(baBuffer, vbUnicode), 2)
-                If InStr(sRetVal, Chr$(0)) > 0 Then
-                    sRetVal = Left$(sRetVal, InStr(sRetVal, Chr$(0)) - 1)
+                If InStr(sRetVal, vbNullChar) > 0 Then
+                    sRetVal = Left$(sRetVal, InStr(sRetVal, vbNullChar) - 1)
                 End If
             End If
             If LenB(sRetVal) = 0 And lRepeat < 10 Then
@@ -402,7 +405,7 @@ Public Function Connect() As Boolean
     If m_lCodePage = 866 Then
         sCmd = sCmd & STR_ESC & "t" & Chr$(17)  '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
     End If
-    sCmd = sCmd & STR_ESC & "M" & Chr$(0)       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
+    sCmd = sCmd & STR_ESC & "M" & vbNullChar       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, m_sLastError=" & m_sLastError
@@ -653,7 +656,7 @@ Public Function OpenDrawer() As Boolean
     Dim sCmd            As String
     
     '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
-    sCmd = STR_ESC & "p" & Chr$(0) & Chr$(25) & Chr$(250)
+    sCmd = STR_ESC & "p" & vbNullChar & Chr$(25) & Chr$(250)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
         m_sLastError = m_oConnector.GetLastError()
         GoTo QH
@@ -800,7 +803,7 @@ Private Function pvSendPaperCut(Optional ByVal Full As Boolean = True, Optional 
     Dim sCmd            As String
     
     DebugLog FUNC_NAME, "Full=" & Full & ", Lines=" & Lines
-    sCmd = STR_GS & "V" & IIf(Full, "A" & Chr$(0), "0")
+    sCmd = STR_GS & "V" & IIf(Full, "A" & vbNullChar, "0")
     If Lines > 0 Then
         sCmd = sCmd & STR_ESC & "d" & Chr$(Lines)
     End If
