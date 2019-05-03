@@ -2360,7 +2360,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 23    19.02.19 16:58 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 24    3.05.19 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -2369,6 +2369,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 24    3.05.19 16:07 Wqw
+' REF: impl incotex fp
+'
 ' 23    19.02.19 16:58 Wqw
 ' REF: uses timer ex
 '
@@ -2708,10 +2711,10 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
     Case ucsCmdConnect
         pvStatus = labConnectCurrent.Caption
     Case ucsCmdTaxInfo
-        vResult = Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics), ",")
+        vResult = Split(m_oFP.SendCommand(ucsFpcInfoDiagnostics, "0"), ",")
         txtTaxMemModule.Text = At(vResult, 5)
         txtTaxSerNo.Text = At(vResult, 4)
-        If Len(At(vResult, 3)) = 1 Then
+        If Len(At(vResult, 3)) <= 2 Then
             txtTaxCountry.Text = At(Split(STR_COUNTRIES, "|"), C_Lng(At(vResult, 3)) + 1)
             labTaxCountry.Caption = Split(STR_TAXCOUNTRY, "|")(0)
         Else
@@ -2721,9 +2724,15 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsFpcInitDecimals), ",")
         m_oFP.Exceptions = True
-        txtTaxDecimals.Text = C_Lng(At(vResult, 1))
-        txtTaxCurrency.Text = Trim(At(vResult, 2))
-        txtTaxRates.Text = C_Lng(At(vResult, 3))
+        If UBound(vResult) > 0 Then
+            txtTaxDecimals.Text = C_Lng(At(vResult, 1))
+            txtTaxCurrency.Text = Trim(At(vResult, 2))
+            txtTaxRates.Text = C_Lng(At(vResult, 3))
+        Else
+            LockControl(txtTaxDecimals) = True
+            LockControl(txtTaxCurrency) = True
+            LockControl(txtTaxRates) = True
+        End If
         vResult = Split(m_oFP.SendCommand(ucsFpcInfoTaxRates), ",")
         txtTaxGroup1.Text = C_Lng(At(vResult, 0))
         txtTaxGroup2.Text = C_Lng(At(vResult, 1))
@@ -2795,9 +2804,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                 sText = vbNullString
                 If Not IsArray(m_vSettings(lIdx)) Then
                     pvStatus = Printf(STR_STATUS_SETT_FETCH, lIdx)
-                    vResult = Split(m_oFP.SendCommand(ucsFpcInitDaisySetting, "N" & C_Str(lIdx)), vbTab)
+                    vResult = Split(m_oFP.SendCommand(ucsFpcExtendedInitSetting, "N" & C_Str(lIdx)), vbTab)
                     If m_oFP.Status(ucsStbPrintingError) Or LenB(m_oFP.LastError) <> 0 Then
-                        vResult = Split(m_oFP.SendCommand(ucsFpcInitDaisySetting, "R" & C_Str(lIdx)), vbTab)
+                        vResult = Split(m_oFP.SendCommand(ucsFpcExtendedInitSetting, "R" & C_Str(lIdx)), vbTab)
                     End If
                     If m_oFP.Status(ucsStbPrintingError) Or LenB(m_oFP.LastError) <> 0 Then
                         ReDim Preserve m_vSettings(0 To lIdx - 1) As Variant
@@ -2814,6 +2823,16 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             Next
             lstSettings_Click
             pvStatus = vbNullString
+        ElseIf m_oFP.IsIncotex Then
+            vResult = Split(m_oFP.SendCommand(ucsFpcInfoSums), ",")
+            If Val(At(vResult, -1)) <> 0 Then
+                txtInvStart.Text = Val(At(vResult, -1)) - 1
+                txtInvEnd.Text = txtInvStart.Text
+                txtInvCurrent.Text = txtInvStart.Text
+            End If
+            LockControl(txtInvStart) = False
+            LockControl(txtInvEnd) = False
+            LockControl(txtInvCurrent) = False
         Else
             LockControl(lstSettings) = True
             LockControl(txtSettValue) = True
@@ -2823,12 +2842,32 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         m_oFP.Exceptions = False
         If m_oFP.IsDaisy Then
             For lIdx = 0 To 7
-                txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsFpcInitDaisyText, "R" & (60 + lIdx))
-                vResult = Split(m_oFP.SendCommand(ucsFpcInitDaisyCurrencyRate, "R" & (lIdx)), vbTab)
+                txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsFpcExtendedInitText, "R" & (60 + lIdx))
+                vResult = Split(m_oFP.SendCommand(ucsFpcExtendedInitCurrencyRate, "R" & (lIdx)), vbTab)
                 txtPmtRate(lIdx).Text = At(vResult, 1)
                 LockControl(txtPmtType(lIdx)) = lIdx < 1
                 LockControl(txtPmtRate(lIdx)) = lIdx < 1
                 txtPmtRate(lIdx).Visible = lIdx > 0
+            Next
+        ElseIf m_oFP.IsIncotex Then
+            vResult = Split(STR_PAYMENT_TYPES, "|")
+            For lIdx = 0 To 7
+                If lIdx < 4 Then
+                    LockControl(txtPmtType(lIdx)) = True
+                    If lIdx < 1 Then
+                        txtPmtType(lIdx).Text = At(vResult, lIdx)
+                    ElseIf lIdx < 3 Then
+                        txtPmtType(lIdx).Text = At(Split(m_oFP.SendCommand(ucsFpcExtendedInitText, "R" & (9 + lIdx)), ","), 1)
+                    Else
+                        txtPmtType(lIdx).Text = vbNullString
+                    End If
+                ElseIf lIdx < 6 Then
+                    txtPmtType(lIdx).Text = At(Split(m_oFP.SendCommand(ucsFpcExtendedInitText, "R" & (8 + lIdx)), ","), 1)
+                Else
+                    LockControl(txtPmtType(lIdx)) = True
+                    txtPmtType(lIdx).Text = vbNullString
+                End If
+                txtPmtRate(lIdx).Visible = False
             Next
         Else
             vResult = Split(STR_PAYMENT_TYPES, "|")
@@ -2931,8 +2970,8 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         chkLogoPrint.Value = IIf(At(vResult, UBound(vResult)) = "1", vbChecked, vbUnchecked)
         LockControl(chkLogoPrint) = m_oFP.Status(ucsStbPrintingError)
         If Not IsArray(m_vLogo) Then
-            If m_oFP.IsDaisy Then
-                vResult = Split(m_oFP.SendCommand(ucsFpcInfoDaisyConsts), ",")
+            If m_oFP.IsDaisy Or m_oFP.IsIncotex Then
+                vResult = Split(m_oFP.SendCommand(ucsFpcExtendedInfoConsts), ",")
                 lWidth = C_Lng(At(vResult, 0, 64))  '--- P1      Horizonatal size of graphical logo in pixels.
                 lRow = C_Lng(At(vResult, 1, 64))    '--- P2      Vertical size of graphical logo in pixels.
             Else
@@ -2963,7 +3002,9 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                 '--- note: bug in firmware byte to hex routine: 0xA - 1 = "@" instead of "9"
                 m_vLogo(lRow) = Replace(m_vLogo(lRow), "@", "9")
             Next
-            picLogo.Width = Len(m_vLogo(0)) * 4 * Screen.TwipsPerPixelX
+            If UBound(m_vLogo) >= 0 Then
+                picLogo.Width = Len(m_vLogo(0)) * 4 * Screen.TwipsPerPixelX
+            End If
             picLogo.Height = (1 + UBound(m_vLogo)) * Screen.TwipsPerPixelY
             If picLogo.Width > picLogoScroll.Width Then
                 scbLogoHor.Top = picLogo.Height
@@ -3181,10 +3222,14 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         m_vOpers(C_Lng(txtOperNo.Text)) = Empty
     Case ucsCmdInvoiceNo
         If Not LockControl(txtInvStart) Then
-            m_oFP.SendCommand ucsFpcInitInvoiceNo, txtInvStart.Text & "," & txtInvEnd.Text
+            If m_oFP.IsIncotex Then
+                m_oFP.SendCommand ucsFpcExtendedInitInvoiceNo, txtInvStart.Text & vbLf & txtInvEnd.Text
+            Else
+                m_oFP.SendCommand ucsFpcInitInvoiceNo, txtInvStart.Text & "," & txtInvEnd.Text
+            End If
         End If
         If m_oFP.IsDaisy And LenB(txtSettNo.Text) <> 0 Then
-            m_oFP.SendCommand ucsFpcInitDaisySetting, "P" & txtSettNo.Text & "," & txtSettValue
+            m_oFP.SendCommand ucsFpcExtendedInitSetting, "P" & txtSettNo.Text & "," & txtSettValue
             m_vSettings(C_Lng(txtSettNo.Text)) = Empty
         End If
     Case ucsCmdCashOper
@@ -3261,8 +3306,14 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         If m_oFP.IsDaisy Then
             For lIdx = 0 To 7
                 If Not LockControl(txtPmtType(lIdx)) And LenB(txtPmtType(lIdx).Text) <> 0 Then
-                    m_oFP.SendCommand ucsFpcInitDaisyText, "P" & (60 + lIdx) & "," & txtPmtType(lIdx).Text
-                    m_oFP.SendCommand ucsFpcInitDaisyCurrencyRate, "P" & (lIdx) & "," & txtPmtType(lIdx).Text & vbTab & txtPmtRate(lIdx)
+                    m_oFP.SendCommand ucsFpcExtendedInitText, "P" & (60 + lIdx) & "," & txtPmtType(lIdx).Text
+                    m_oFP.SendCommand ucsFpcExtendedInitCurrencyRate, "P" & (lIdx) & "," & txtPmtType(lIdx).Text & vbTab & txtPmtRate(lIdx)
+                End If
+            Next
+        ElseIf m_oFP.IsIncotex Then
+            For lIdx = 4 To 7
+                If Not LockControl(txtPmtType(lIdx)) And LenB(txtPmtType(lIdx).Text) <> 0 Then
+                    m_oFP.SendCommand ucsFpcExtendedInitText, "P" & (8 + lIdx) & "," & txtPmtType(lIdx).Text
                 End If
             Next
         Else

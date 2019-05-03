@@ -17,7 +17,7 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 ' library.
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 9     13.06.18 15:09 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 10    3.05.19 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2018 Unicontsoft
@@ -26,6 +26,9 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
 ' 
+' 10    3.05.19 16:07 Wqw
+' REF: impl incotex fp
+'
 ' 9     13.06.18 15:09 Wqw
 ' REF: esc/pos protocol
 '
@@ -243,7 +246,7 @@ Attribute ShowSetup.VB_Description = "Used to show device's specific configurati
     Select Case UCase$(At(Split(DeviceString, ";"), 0))
     Case STR_PROTOCOL_ELTRADE_ECR
         ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
-    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
         ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_ZEKA_FP
         ShowSetup = oFrmZeka.frInit(DeviceString, Server, OwnerForm)

@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 44    7.03.19 12:33 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 45    3.05.19 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 45    3.05.19 16:07 Wqw
+' REF: impl incotex fp
+'
 ' 44    7.03.19 12:33 Wqw
 ' REF: uses null char const
 '
@@ -377,6 +380,7 @@ Public Const STR_NONE               As String = "(Няма)"
 Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
+Public Const STR_PROTOCOL_INCOTEX_ECR As String = "INCOTEX FP/ECR"
 Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ECR"
 Public Const STR_PROTOCOL_ESP_POS   As String = "ESC/POS"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
@@ -449,6 +453,10 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
     On Error GoTo QH
     At = sDefault
     If IsArray(vData) Then
+        If lIdx < LBound(vData) Then
+            '--- lIdx = -1 for last element
+            lIdx = UBound(vData) + 1 + lIdx
+        End If
         If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
             At = C_Str(vData(lIdx))
         End If

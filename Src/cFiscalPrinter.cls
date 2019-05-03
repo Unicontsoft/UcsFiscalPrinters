@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 45    7.03.19 12:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 46    3.05.19 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 46    3.05.19 16:07 Wqw
+' REF: impl incotex fp
+'
 ' 45    7.03.19 12:34 Wqw
 ' REF: init date/time prowerqwa za delta nad edna minuta
 '
@@ -314,7 +317,7 @@ Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидн
 Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
 Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
-Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|С ДЕБИТНА КАРТА|С ЧЕК|С КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН"
+Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|С ДЕБИТНА КАРТА|С ЧЕК|С КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |ЕИК"
 Private Const STR_ZEKA_FP_INTERNAL      As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора: %1|Липсва символ за начало на отговора: %1|Грешка при WaitCommEvent: %1|Няма започната бележка|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Устройството е недостъпно|Устройството е заето| или невъзможно установяване парола на оператор| или невалидна парола на оператор"
 Private Const STR_ZEKA_FP_STATUSES      As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_ZEKA_FP_ERRORS        As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
@@ -1206,7 +1209,7 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
         Set pvInit = New cEltradeProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ELTRADE_ECR_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ELTRADE_ECR_TEXTS)
-    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
         Set pvInit = New cICLProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)

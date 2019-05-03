@@ -12,15 +12,18 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 96    7.03.19 12:34 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 97    3.05.19 16:07 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
 '
-'   Protocol handler for Datecs & Daisy fiscal printers (ICL protocol)
+'   Protocol handler for Datecs, Daisy and Incotex fiscal printers (ICL protocol)
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 97    3.05.19 16:07 Wqw
+' REF: impl incotex fp
+'
 ' 96    7.03.19 12:34 Wqw
 ' REF: uses null char const
 '
@@ -391,9 +394,10 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInitLogo = 115
     ucsFpcInitOpenDrawer = 106
     ucsFpcInitEcTape = 119
-    ucsFpcInitDaisyText = 149
-    ucsFpcInitDaisySetting = 150
-    ucsFpcInitDaisyCurrencyRate = 151
+    ucsFpcExtendedInitText = 149                '-- command above &H7F
+    ucsFpcExtendedInitSetting = 150             '-- command above &H7F
+    ucsFpcExtendedInitCurrencyRate = 151        '-- command above &H7F
+    ucsFpcExtendedInitInvoiceNo = 180           '-- command above &H7F
     '--- transaction
     ucsFpcNonFiscalOpen = 38
     ucsFpcNonFiscalClose = 39
@@ -409,7 +413,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcFiscalCgInfo = 57
     ucsFpcFiscalCancel = 60
     ucsFpcAdminCashDebitCredit = 70
-    ucsFpcDaisyFiscalCancel = 130
+    ucsFpcExtendedFiscalCancel = 130            '-- command above &H7F
     '--- info
     ucsFpcInfoServiceContract = 34
     ucsFpcInfoNap = 37
@@ -431,7 +435,7 @@ Public Enum UcsIclCommandsEnum
     ucsFpcInfoLastReceipt = 113
     ucsFpcInfoFiscalRecord = 114
     ucsFpcInfoMemoryDump = 116
-    ucsFpcInfoDaisyConsts = 128
+    ucsFpcExtendedInfoConsts = 128              '-- command above &H7F
     '--- print
     ucsFpcPrintReportTaxRates = 50
     ucsFpcPrintDailyReport = 69
@@ -558,7 +562,7 @@ Private Const STR_MEMORY                As String = "Write error|1|No memory mod
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: "
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |EIC"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -648,6 +652,7 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtFooterBuyer
     ucsTxtFooterTaxNo
     ucsTxtFooterVatNo
+    ucsTxtTaxNo
 End Enum
 
 Private Enum UcsRowTypeEnum
@@ -664,6 +669,7 @@ Private Type UcsRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
+    InitUniqueReceiptNumber As String
     InitInvData         As Variant
     InitCashDeskNo      As Long
     PluName             As String
@@ -718,6 +724,7 @@ Private Type UcsConfigValues
     Charset             As UcsCharset
     IsEcr               As VbTriState
     IsDaisy             As Boolean
+    IsIncotex           As Boolean
     RowChars            As Long
     ItemChars           As Long
     AbsoluteDiscount    As Boolean
@@ -855,12 +862,16 @@ Property Get IsDaisy() As Boolean
     IsDaisy = m_uConfig.IsDaisy
 End Property
 
+Property Get IsIncotex() As Boolean
+    IsIncotex = m_uConfig.IsIncotex
+End Property
+
 Property Get DefPmtTypes() As String
     Const FUNC_NAME     As String = "DefPmtTypes [get]"
     
     On Error GoTo EH
     If LenB(m_uConfig.DefPmtTypes) = 0 Then
-        If IsDaisy Then
+        If IsDaisy Or IsIncotex Then
             m_uConfig.DefPmtTypes = "PCNCDBCC"
         ElseIf IsEcr Then
             '--- ToDo: use ucsFpcEcrReadRow to check for swapped [2 - card]<->[3 - cheque] payment types
@@ -879,7 +890,8 @@ Private Property Get pvRowChars() As Long
     Const FUNC_NAME     As String = "pvRowChars"
     Const CONF_NAME     As String = "RowChars"
     Dim bPrevExceptions As Boolean
-    Dim sPrefix         As String
+    Dim sDaisyPrefix    As String
+    Dim sIncotexPrefix  As String
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
@@ -887,10 +899,12 @@ Private Property Get pvRowChars() As Long
     
     On Error GoTo EH
     If m_uConfig.RowChars = 0 Then
-        pvGetCommandConfig CONF_NAME, "InfoDaisyConsts", eCmd, ucsFpcInfoDaisyConsts, sParam, vbNullString, _
+        pvGetCommandConfig CONF_NAME, "ExtendedInfoConsts", eCmd, ucsFpcExtendedInfoConsts, sParam, vbNullString, _
             "Index", lIndex, 9, _
-            "DaisyPrefix", sPrefix, "DY"
-        If Left$(GetSerialNumber(), Len(sPrefix)) = sPrefix Then '--- daisy
+            "DaisyPrefix", sDaisyPrefix, "DY", _
+            "IncotexPrefix", sIncotexPrefix, "IN"
+        If Left$(GetSerialNumber(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Or _
+                Left$(GetSerialNumber(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             bPrevExceptions = pvSetExceptions(False)
             m_uConfig.RowChars = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
             Exceptions = bPrevExceptions
@@ -1020,8 +1034,11 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
+                        '--- remove SYN (&H16)
+                        .Buffer = Replace(.Buffer, Chr$(&H16), vbNullString)
                     End If
                     If LenB(.Buffer) <> 0 Then
+                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
                             If pvGetDeviceInfo(.hComm, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
@@ -1066,6 +1083,7 @@ Public Function Init( _
     Dim sParam          As String
     Dim eHasSwitchesInfo As VbTriState
     Dim sDaisyPrefix    As String
+    Dim sIncotexPrefix  As String
     Dim lSerialIndex    As Long
     Dim lSwitchesIndex  As Long
     Dim sError          As String
@@ -1085,8 +1103,9 @@ Public Function Init( _
         pvSetLastError sError
         GoTo QH
     End If
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, vbNullString, _
+    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, "0", _
         "DaisyPrefix", sDaisyPrefix, "DY", _
+        "IncotexPrefix", sIncotexPrefix, "IN", _
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
     m_vInfoDiagnostics = Split(pvSendCommand(m_hComm, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
@@ -1104,7 +1123,8 @@ Public Function Init( _
     With m_uConfig
         .Charset = ucsCrsAuto
         .IsEcr = vbUseDefault
-        .IsDaisy = Left$(GetSerialNumber(), Len(sDaisyPrefix)) = sDaisyPrefix
+        .IsDaisy = (Left$(GetSerialNumber(), Len(sDaisyPrefix)) = sDaisyPrefix) And LenB(sIncotexPrefix) <> 0
+        .IsIncotex = (Left$(GetSerialNumber(), Len(sIncotexPrefix)) = sIncotexPrefix) And LenB(sIncotexPrefix) <> 0
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
         .RowChars = GetConfigNumber(sSerial, "RowChars", RowChars)
@@ -1248,9 +1268,13 @@ Public Function StartReceipt( _
         .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
-        .InitOperatorPassword = SafeText(OperatorPassword)
-        If LenB(.InitOperatorPassword) = 0 Then
-            .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
+        If Len(OperatorPassword) < 21 Then ' 21 = 8 + 1 + 4 + 1 + 7
+            .InitOperatorPassword = SafeText(OperatorPassword)
+            If LenB(.InitOperatorPassword) = 0 Then
+                .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
+            End If
+        Else
+            .InitUniqueReceiptNumber = SafeText(OperatorPassword)
         End If
         .InitCashDeskNo = m_lCashDeskNo
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
@@ -1543,16 +1567,16 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Case ucsFscRstDailyByItems
         pvGetCommandConfig CONF_NAME, "PrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "2"
     Case ucsFscRstDailyByDepartment
-        If Not IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "2"
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "9"
         Else
-            pvGetCommandConfig CONF_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "9"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "2"
         End If
     Case ucsFscRstDailyByItemsAndDepartment
-        If Not IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "2"
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "9"
         Else
-            pvGetCommandConfig CONF_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "9"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "2"
         End If
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
@@ -1595,19 +1619,19 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         pvGetCommandConfig CONF_NAME, "PrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "0", _
             "EcClear", bEcClear, False
     Case ucsFscRstDailyByDepartment
-        If Not IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "0", _
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "8", _
                 "EcClear", bEcClear, False
         Else
-            pvGetCommandConfig CONF_NAME, "DaisyPrintDailyReport", eCmd, ucsFpcPrintDailyReport, sParam, "8", _
+            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsFpcPrintDailyReportDepartments, sParam, "0", _
                 "EcClear", bEcClear, False
         End If
     Case ucsFscRstDailyByItemsAndDepartment
-        If Not IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "0", _
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "8", _
                 "EcClear", bEcClear, False
         Else
-            pvGetCommandConfig CONF_NAME, "DaisyPrintDailyReportItems", eCmd, ucsFpcPrintDailyReportItems, sParam, "8", _
+            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsFpcPrintDailyReportItemsDepartments, sParam, "0", _
                 "EcClear", bEcClear, False
         End If
     Case Else
@@ -1635,7 +1659,7 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     SendCommand eCmd, sParam
     Exceptions = bPrevExceptions
     If IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "DaisyOperatorsReset", eCmd, ucsFpcInitOperatorReset, sParam, "0,9999"
+        pvGetCommandConfig CONF_NAME, "ExtendedOperatorsReset", eCmd, ucsFpcInitOperatorReset, sParam, "0,9999"
         SendCommand eCmd, sParam
     End If
     '--- success
@@ -1703,18 +1727,26 @@ Public Function GetLastInvoiceNumber() As String
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lOffset         As Long
     
     On Error GoTo EH
-    If Not IsDaisy Then
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "R17", _
+            "Index", lIndex, 1
+    ElseIf IsIncotex Then
+        pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsFpcInfoSums, sParam, vbNullString, _
+            "Index", lIndex, 10, _
+            "Offset", lOffset, -1
+    Else
         pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, vbNullString, _
             "Index", lIndex, 0
-    Else
-        pvGetCommandConfig CONF_NAME, "DaisyInitInvoiceNo", eCmd, ucsFpcInitDaisySetting, sParam, "R17", _
-            "Index", lIndex, 1
     End If
     bPrevExceptions = pvSetExceptions(False)
     GetLastInvoiceNumber = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
     Exceptions = bPrevExceptions
+    If lOffset <> 0 And IsNumeric(GetLastInvoiceNumber) Then
+        GetLastInvoiceNumber = Val(GetLastInvoiceNumber) + lOffset
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1755,12 +1787,14 @@ Public Function GetTaxNumber() As String
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsFpcInfoBulstat, sParam, vbNullString, _
-        "Index", lIndex, 0
+        "Index", lIndex, IIf(IsIncotex, -1, 0)
     bPrevExceptions = pvSetExceptions(False)
-    GetTaxNumber = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+    GetTaxNumber = At(vSplit, lIndex)
     Exceptions = bPrevExceptions
     Exit Function
 EH:
@@ -1776,11 +1810,19 @@ Public Function GetTaxCaption() As String
     Dim lIndex          As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsFpcInfoBulstat, sParam, vbNullString, _
-        "Index", lIndex, 1
+    If IsIncotex Then
+        pvGetCommandConfig CONF_NAME, "ExtendedInitText", eCmd, ucsFpcExtendedInitText, sParam, "R14", _
+            "Index", lIndex, 1
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsFpcInfoBulstat, sParam, vbNullString, _
+            "Index", lIndex, 1
+    End If
     bPrevExceptions = pvSetExceptions(False)
     GetTaxCaption = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
     Exceptions = bPrevExceptions
+    If IsNumeric(GetTaxCaption) Or LenB(GetTaxCaption) = 0 Then
+        GetTaxCaption = pvText(ucsTxtTaxNo)
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1830,6 +1872,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Dim bPrevExceptions As Boolean
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
+    Dim lIndex          As Long
     
     On Error GoTo EH
     If Index < 0 Then
@@ -1838,12 +1881,18 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     End If
     If Index > 4 Then
         bPrevExceptions = pvSetExceptions(False)
-        If Not IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (58 + Index)
+            GetPaymentName = Trim$(pvStripBold(SendCommand(eCmd, sParam)))
+        ElseIf IsIncotex Then
+            If Index < 7 Then
+                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (7 + Index), _
+                    "Index", lIndex, -1
+            End If
         Else
-            pvGetCommandConfig CONF_NAME, "InitDaisyText" & Index, eCmd, ucsFpcInitDaisyText, sParam, "R" & (58 + Index)
+            pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
         End If
-        GetPaymentName = Trim$(pvStripBold(SendCommand(eCmd, sParam)))
+        GetPaymentName = Trim$(pvStripBold(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)))
         Exceptions = bPrevExceptions
         '--- check for failure (returns 'F')
         If Status(ucsStbPrintingError) And GetPaymentName = "F" Then
@@ -1889,8 +1938,12 @@ Public Function CancelReceipt() As Boolean
     bPrevExceptions = pvSetExceptions(False)
     If C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_DELIM), lTransIndex)) <> lTransStatus Then
         If Status(ucsStbFiscalPrinting) Then
-            '--- note: FP-3530 can cancel always, FP-550 sometimes can not
-            pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, IIf(Not IsDaisy, ucsFpcFiscalCancel, ucsFpcDaisyFiscalCancel), sParam, vbNullString
+            If IsDaisy Or IsIncotex Then
+                pvGetCommandConfig CONF_NAME, "ExtendedFiscalCancel", eCmd, ucsFpcExtendedFiscalCancel, sParam, vbNullString
+            Else
+                '--- note: FP-3530 can cancel always, FP-550 sometimes can not
+                pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsFpcFiscalCancel, sParam, vbNullString
+            End If
             SendCommand eCmd, sParam
             If Status(ucsStbFiscalPrinting) Then
                 '--- note: this helps if sum payed is less than total receipt sum
@@ -1976,17 +2029,19 @@ Public Function GetTotalsByPayments() As Variant
     Dim vIdxMap          As Variant
     
     On Error GoTo EH
-    If Not IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByVatPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, vbNullString
-    Else
-        pvGetCommandConfig CONF_NAME, "DaisyInfoTotalsByVatPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, "A"
-    End If
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsFpcInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString)
     bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     Exceptions = bPrevExceptions
     If UBound(vSplit) > 0 Then
         '--- WTF?!#@ happened w/ these indexes!
-        vIdxMap = Split(IIf(Not IsDaisy, "0|3|1|2", "0|2|1|4|5|6|7|-1"), "|")
+        If IsDaisy Then
+            vIdxMap = Split("0|2|1|4|5|6|7|-1", "|")
+        ElseIf IsIncotex Then
+            vIdxMap = Split("0|1|2|4", "|")
+        Else
+            vIdxMap = Split("0|3|1|2", "|")
+        End If
         ReDim vRetVal(0 To 7) As Double
         For lIdx = 0 To UBound(vRetVal)
             lJdx = At(vIdxMap, lIdx, C_Str(lIdx))
@@ -2017,13 +2072,9 @@ Public Function GetTotalsByVatGroups() As Variant
     
     On Error GoTo EH
     bPrevExceptions = pvSetExceptions(False)
-    If Not IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, vbNullString
-    Else
-        pvGetCommandConfig CONF_NAME, "DaisyInfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, "T"
-    End If
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, IIf(IsDaisy, "T", vbNullString)
     vTotals = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups1", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, "1"
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups1", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, IIf(IsIncotex, vbNullString, "1")
     vVatSums = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsFpcInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_DELIM)
@@ -2032,7 +2083,7 @@ Public Function GetTotalsByVatGroups() As Variant
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
             If UBound(vVatSums) >= lIdx + 1 Then
-                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + 1)), C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + 1)))
+                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + 1, At(vVatSums, lIdx + 1))), C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + 1)))
             Else
                 vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + 1)), C_Dbl(At(vTaxRates, lIdx)))
             End If
@@ -2061,7 +2112,7 @@ Public Function GetTotalsStats() As Variant
     On Error GoTo EH
     If Not IsEcr Then
         pvGetCommandConfig CONF_NAME, "InfoDailyStats", eCmd, ucsFpcInfoDailyStats, sParam, vbNullString, _
-            "Index", lIndex, 3
+            "Index", lIndex, -2
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
         Exceptions = bPrevExceptions
@@ -2085,10 +2136,19 @@ Public Function GetTotalsStats() As Variant
         Next
         Exceptions = bPrevExceptions
     End If
-    pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsFpcInfoLastFiscalDateTime, sParam, "T"
-    bPrevExceptions = pvSetExceptions(False)
-    dLastDate = C_Date(SendCommand(eCmd, sParam))
-    Exceptions = bPrevExceptions
+    If IsIncotex Then
+        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsFpcInfoLastFiscalBlock, sParam, vbNullString, _
+            "Index", lIndex, -1
+        bPrevExceptions = pvSetExceptions(False)
+        vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
+        Exceptions = bPrevExceptions
+        dLastDate = pvToDate(At(vSplit, lIndex))
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsFpcInfoLastFiscalDateTime, sParam, "T"
+        bPrevExceptions = pvSetExceptions(False)
+        dLastDate = C_Date(SendCommand(eCmd, sParam))
+        Exceptions = bPrevExceptions
+    End If
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
 EH:
@@ -2202,7 +2262,7 @@ Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional M
 End Sub
 
 Public Function GetDefaultPassword(OperatorCode As String) As String
-    If IsEcr Or IsDaisy Then
+    If IsEcr Or IsDaisy Or IsIncotex Then
         GetDefaultPassword = OperatorCode
     Else
         GetDefaultPassword = DEF_PASSWORD
@@ -2311,7 +2371,7 @@ Private Function pvSendCommand( _
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
     baText = ToAscii(sSend)
-    For lIdx = 1 To Len(sSend) - 1
+    For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
@@ -2622,10 +2682,10 @@ Private Sub pvPrintLine(vText As Variant)
     End Select
     If IsArray(vText) Then
         For Each vElem In vText
-            SendCommand eCmd, Printf(sParam, C_Str(vElem))
+            SendCommand eCmd, Zn(Printf(sParam, C_Str(vElem)), " ")
         Next
     Else
-        SendCommand eCmd, Printf(sParam, C_Str(vText))
+        SendCommand eCmd, Zn(Printf(sParam, C_Str(vText)), " ")
     End If
     Exit Sub
 EH:
@@ -2688,12 +2748,8 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     .InitOperatorName = RTrim$(sData)
                 End If
                 If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
-                    If Not IsDaisy Then
-                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
-                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                        SendCommand eCmd, sParam
-                    Else
-                        pvGetCommandConfig CONF_NAME, "DaisyInitInvoiceNo", eCmd, ucsFpcInitDaisySetting, sParam, "P%1,%2", _
+                    If IsDaisy Then
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "P%1,%2", _
                             "StartIndex", lIndex, 17, _
                             "EndIndex", lEndIndex, 18
                         If lIndex > 0 Then
@@ -2702,11 +2758,23 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         If lEndIndex > 0 Then
                             SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
                         End If
+                    ElseIf IsIncotex Then
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsFpcExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                        SendCommand eCmd, sParam
+                    Else
+                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                        SendCommand eCmd, sParam
                     End If
                 End If
                 pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
                     sParam, "%1,%2,%3" & IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ",I", vbNullString)
-                sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitCashDeskNo)
+                If LenB(.InitUniqueReceiptNumber) <> 0 Then
+                    sParam = Printf(sParam, .InitOperatorCode, .InitUniqueReceiptNumber, "0")
+                Else
+                    sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitCashDeskNo)
+                End If
                 Exceptions = bPrevExceptions
                 bInLogin = True
                 SendCommand eCmd, sParam
@@ -2882,10 +2950,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     sType = Mid$(sParam, .PmtType, 1)
                     If .PmtType > 4 Then
                         bPrevExceptions = pvSetExceptions(False)
-                        If Not IsDaisy Then
-                            pvGetCommandConfig CONF_NAME, "InitPaymentType" & .PmtType, eCmd, ucsFpcInitPaymentType, sParam, sType & ",%1"
+                        If IsDaisy Then
+                            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsFpcExtendedInitText, sParam, "P" & (56 + .PmtType) & ",%1"
+                        ElseIf IsIncotex Then
+                            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsFpcExtendedInitText, sParam, "P" & (7 + .PmtType) & ",%1"
                         Else
-                            pvGetCommandConfig CONF_NAME, "InitDaisyText" & .PmtType, eCmd, ucsFpcInitDaisyText, sParam, "P" & (56 + .PmtType) & ",%1"
+                            pvGetCommandConfig CONF_NAME, "InitPaymentType" & .PmtType, eCmd, ucsFpcInitPaymentType, sParam, sType & ",%1"
                         End If
                         sParam = Printf(sParam, Left$(.PmtName, m_uConfig.MaxPaymentLen))
                         SendCommand eCmd, sParam
@@ -3254,23 +3324,31 @@ Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vR
     Dim eCmd            As UcsIclCommandsEnum
     Dim sParam          As String
     Dim sDaisyPrefix    As String
+    Dim sIncotexPrefix  As String
     Dim lNameIndex      As Long
     Dim lSwitchesIndex  As Long
     Dim lSerialIndex    As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, vbNullString, _
+    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, "0", _
         "DaisyPrefix", sDaisyPrefix, "DY", _
+        "IncotexPrefix", sIncotexPrefix, "IN", _
         "NameIndex", lNameIndex, 0, _
         "SwitchesIndex", lSwitchesIndex, 3, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
         vResult = Split(pvSendCommand(hComm, lTimeout, eCmd, sParam, Error), DEF_DELIM)
+        If LenB(At(vResult, 0)) = 0 Then
+            sParam = vbNullString
+            vResult = Split(pvSendCommand(hComm, lTimeout, eCmd, sParam, Error), DEF_DELIM)
+        End If
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
         '--- check serial
-        If Left$(At(vResult, lSerialIndex), Len(sDaisyPrefix)) = sDaisyPrefix Then
+        If Left$(At(vResult, lSerialIndex), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             sProtocol = STR_PROTOCOL_DAISY_ECR
+        ElseIf Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+            sProtocol = STR_PROTOCOL_INCOTEX_ECR
         ElseIf LenB(At(vResult, lSerialIndex)) <> 0 Then
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
@@ -3323,6 +3401,12 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         Err.Raise vbObjectError, , m_sLastError
     End If
 End Sub
+
+Private Function pvToDate(sText As String) As Date
+    If Len(sText) = 6 And IsNumeric(sText) Then
+        pvToDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
+    End If
+End Function
 
 '=========================================================================
 ' Base class events
