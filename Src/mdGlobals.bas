@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 45    3.05.19 16:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 46    22.05.19 15:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 46    22.05.19 15:05 Wqw
+' REF: timestamp format in debug log
+'
 ' 45    3.05.19 16:07 Wqw
 ' REF: impl incotex fp
 '
@@ -259,6 +262,8 @@ Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As L
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -385,6 +390,8 @@ Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ECR"
 Public Const STR_PROTOCOL_ESP_POS   As String = "ESC/POS"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
+Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
+Private Const FORMAT_BASE_3         As String = "0.000"
 
 Private m_sDecimalSeparator     As String
 Private m_oConfig               As Object
@@ -654,7 +661,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         m_nDebugLogFile = FreeFile
         Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #m_nDebugLogFile, sModule & "." & sFunc & "(" & Now & Right$(Format$(TimerEx, "0.000"), 4) & "): " & sText
+    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): " & sText & "[" & sModule & "." & sFunc & "]"
     If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
@@ -683,9 +690,7 @@ QH:
 End Sub
 
 Public Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double
-    On Error GoTo QH
-    Round = VBA.Round(Value + IIf(Value > 0, 10 ^ -13, -10 ^ -13), NumDigits)
-QH:
+    Round = FormatNumber(Value, NumDigits, vbTrue, vbFalse, vbFalse)
 End Function
 
 Public Function Ceil(ByVal Value As Double) As Long
