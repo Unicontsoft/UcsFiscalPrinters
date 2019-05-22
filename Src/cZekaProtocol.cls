@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 49    7.03.19 12:42 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 50    22.05.19 15:05 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 50    22.05.19 15:05 Wqw
+' REF: get payment name
+'
 ' 49    7.03.19 12:42 Wqw
 ' REF: handle extended list of payment types
 '
@@ -1588,8 +1591,13 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Dim lIndex          As Long
     
     On Error GoTo EH
-    If Index > 0 Then
-        GetPaymentName = pvText(ucsTxtPaymentCash + Index - ucsFscPmtCash)
+    If Index > 4 Then
+        Index = 4 - Index
+    End If
+    If Index >= ucsFscPmtCard Then
+        If Index <= ucsFscPmtCheque Then
+            GetPaymentName = pvText(ucsTxtPaymentCash + Index - ucsFscPmtCash)
+        End If
     Else
         If LenB(m_sPaymentTypes) = 0 Then
             pvGetCommandConfig CONF_NAME, "InfoPaymentTypes" & Index, eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString
