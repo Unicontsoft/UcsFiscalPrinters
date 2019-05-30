@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 97    3.05.19 16:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 98    30.05.19 9:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
 ' 
+' 98    30.05.19 9:35 Wqw
+' REF: impl data dump loggin
+'
 ' 97    3.05.19 16:07 Wqw
 ' REF: impl incotex fp
 '
@@ -761,6 +764,10 @@ Private Sub DebugLog(sFunc As String, sText As String)
     OutputDebugLog MODULE_NAME, sFunc, sText
 End Sub
 
+Private Sub DebugDataDump(sFunc As String, sPrefix As String, sData As String)
+    OutputDebugDataDump MODULE_NAME, sFunc, sPrefix, sData
+End Sub
+
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -1177,7 +1184,7 @@ Public Function Disconnect() As Boolean
     Const FUNC_NAME     As String = "Disconnect"
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", Status=" & Right$("000000" & Hex(m_eStatus), 6) & " " & Right$("00" & Hex(m_eDip), 2) & " " & Right$("0000" & Hex(m_eMemory), 4)
+    DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", Status=" & Right$("000000" & Hex$(m_eStatus), 6) & " " & Right$("00" & Hex$(m_eDip), 2) & " " & Right$("0000" & Hex$(m_eMemory), 4)
     pvSetLastError vbNullString
     If m_hComm = INVALID_HANDLE_VALUE Then
         pvSetLastError pvInternal(ucsErrNotConnected)
@@ -1228,11 +1235,11 @@ Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As S
         GoTo QH
     End If
     If Status(ucsStbPrintingError) Then
-        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus)))
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus)))
         GoTo QH
     End If
     If Memory(ucsFmeMemoryError) Then
-        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory)))
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory)))
         GoTo QH
     End If
 QH:
@@ -2003,9 +2010,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsStbPrintingError) Then
-        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), DontRaise:=True
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), DontRaise:=True
     ElseIf Memory(ucsFmeMemoryError) Then
-        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), DontRaise:=True
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), DontRaise:=True
     End If
     CurrentStatus = m_sLastError
     '--- success
@@ -2381,6 +2388,7 @@ Private Function pvSendCommand( _
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
     Call SetCommMask(hComm, EV_RXCHAR Or EV_ERR)
 RetrySend:
+    DebugDataDump FUNC_NAME, "send ", sSend
     lResult = WriteFile(hComm, baText(0), Len(sSend), lWritten, uOver)
     If lResult = 0 Then
         If Err.LastDllError <> ERROR_IO_PENDING Then
@@ -2415,7 +2423,7 @@ WaitEvent:
                         Select Case lResult
                         Case WAIT_OBJECT_0
                             If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
-                                DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                                DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
                                 lRetryCount = lRetryCount + 1
                                 If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
                                     GoTo TimeoutReached
@@ -2439,7 +2447,7 @@ WaitEvent:
                     Select Case lResult
                     Case WAIT_OBJECT_0
                         If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
-                            DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
                             lRetryCount = lRetryCount + 1
                             If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
                                 GoTo TimeoutReached
@@ -2451,7 +2459,7 @@ WaitEvent:
                 Case ERROR_HANDLE_EOF
                     GoTo WaitEvent
                 Case Else
-                    DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                    DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
                     Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
                     GoTo QH
                 End Select
@@ -2463,6 +2471,7 @@ TimeoutReached:
                 Error = pvInternal(ucsErrTimeoutWaitingForResponse)
                 GoTo QH
             End If
+            DebugDataDump FUNC_NAME, "recv ", Left$(sBuffer, lActual)
             If lActual = 0 Then
                 Exit Do
             End If
@@ -2499,8 +2508,8 @@ RetryParse:
                         End If
                         pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
                         DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
-                            IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex(m_eStatus))), vbNullString) & _
-                            IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex(m_eMemory))), vbNullString)
+                            IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
+                            IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
                         GoTo QH
                     Else
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))

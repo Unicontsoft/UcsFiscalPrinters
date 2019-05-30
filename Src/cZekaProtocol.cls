@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 51    27.05.19 11:47 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 52    30.05.19 9:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 52    30.05.19 9:35 Wqw
+' REF: impl data dump loggin
+'
 ' 51    27.05.19 11:47 Wqw
 ' REF: support extended payment types (up to 12)
 '
@@ -563,6 +566,7 @@ Private Type UcsConfigValues
     MaxInvoiceNo        As Long
     MaxPluName          As Long
     MaxComment          As Long
+    ExtendedPmtTypes    As Boolean
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
@@ -585,6 +589,10 @@ End Sub
 
 Private Sub DebugLog(sFunc As String, sText As String)
     OutputDebugLog MODULE_NAME, sFunc, sText
+End Sub
+
+Private Sub DebugDataDump(sFunc As String, sPrefix As String, sData As String)
+    OutputDebugDataDump MODULE_NAME, sFunc, sPrefix, sData
 End Sub
 
 '=========================================================================
@@ -673,6 +681,10 @@ End Property
 
 Private Property Get pvPingTimeout() As Long
     pvPingTimeout = pvZfplibValue(m_uConfig.PingTimeout, "PingTimeout", DEF_PING_TIMEOUT)
+End Property
+
+Private Property Get DEF_EXTENDED_PMTTYPES() As Boolean
+    DEF_EXTENDED_PMTTYPES = IsNumeric(At(Split(m_sPaymentTypes, DEF_DELIM), 12))
 End Property
 
 '=========================================================================
@@ -863,6 +875,7 @@ Public Function Init( _
         .MaxInvoiceNo = GetConfigNumber(sSerial, "MaxInvoiceNo", DEF_MAX_INVOICENO)
         .MaxPluName = GetConfigNumber(sSerial, "MaxPluName", DEF_MAX_PLUNAME)
         .MaxComment = GetConfigNumber(sSerial, "MaxComment", DEF_MAX_COMMENT)
+        .ExtendedPmtTypes = GetConfigNumber(sSerial, "ExtendedPmtTypes", DEF_EXTENDED_PMTTYPES)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
@@ -1006,7 +1019,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
         Case LNG_STATUS_OVERHEATED
             pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
         Case Else
-            pvSetLastError "Unknown status: " & Hex(Asc(sCurrent))
+            pvSetLastError "Unknown status: " & Hex$(Asc(sCurrent))
         End Select
     Else
         WaitDevice = True
@@ -2001,7 +2014,7 @@ Private Function pvSendCommand( _
     On Error GoTo EH
     bLogging = (eCmd > [_ucsZekCmdFastMax])
     If bLogging Then
-        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
+        DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     End If
     uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
@@ -2025,6 +2038,7 @@ RetrySend:
     End If
     '--- async send
     Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
+    DebugDataDump FUNC_NAME, "send ", sText
     baText = ToAscii(sText)
     lResult = WriteFile(hComm, baText(0), Len(sText), lWritten, uOver)
     If lResult = 0 Then
@@ -2036,7 +2050,7 @@ RetrySend:
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
     If lResult <> WAIT_OBJECT_0 Then
         Call CancelIo(hComm)
-        DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
+        DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", CancelIo after WriteFile, lResult=" & lResult & ", lTimeout=" & lTimeout
         If lResult = WAIT_TIMEOUT Then
             Error = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
@@ -2050,13 +2064,13 @@ RetrySend:
         lResult = WaitCommEvent(hComm, lMask, uOver)
         If lResult = 0 Then
             If Err.LastDllError <> ERROR_IO_PENDING Then
-                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", WaitCommEvent, Err.LastDllError=" & Err.LastDllError
+                DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", WaitCommEvent, Err.LastDllError=" & Err.LastDllError
                 Error = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
                 GoTo QH
             End If
             lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
         Else
-            DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", WaitCommEvent, lResult=" & lResult
+            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", WaitCommEvent, lResult=" & lResult
             lResult = WAIT_OBJECT_0
         End If
         If lResult = WAIT_OBJECT_0 And (lMask And EV_RXCHAR) <> 0 Then
@@ -2070,7 +2084,7 @@ InLoop:
                         lResult = WAIT_OBJECT_0
                     Else
                         If Err.LastDllError <> ERROR_IO_PENDING Then
-                            DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex(eCmd) & ", Err.LastDllError=" & Err.LastDllError
+                            DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
                             Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
                             GoTo QH
                         End If
@@ -2079,6 +2093,7 @@ InLoop:
                 Else
                     lResult = WAIT_OBJECT_0
                 End If
+                DebugDataDump FUNC_NAME, "recv ", Left$(sBuffer, lActual)
                 If lActual = 0 Then
                     Exit Do
                 End If
@@ -2133,7 +2148,7 @@ RetryParse:
                 End If
             Case ZFP_RETRY          ' &HE
                 Call CancelIo(hComm)
-                DebugLog FUNC_NAME, "eCmd=0x" & Hex(eCmd) & ", Retry requested, sText=" & sText
+                DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", Retry requested, sText=" & sText
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
                 Error = Printf(pvInternal(ucsErrInvalidMessageFormatOrChecksum), "0x" & ToHexDump(sText))
@@ -2329,7 +2344,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsZekCmdFiscalOpen, _
                     sParam, "%1;%2;%3;0;%4" & _
                         IIf(.InitReceiptType = ucsFscRetInvoiceFiscal, ";%5;%6;%7;%8;%9" & _
-                                IIf(IsNumeric(At(Split(m_sPaymentTypes, DEF_DELIM), 12)), ";0", vbNullString), vbNullString)
+                                IIf(m_uConfig.ExtendedPmtTypes, ";0", vbNullString), vbNullString)
                 sParam = Printf(sParam, Pad(.InitOperatorCode, -m_uConfig.MaxOperCode), _
                     Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
                     IIf(m_uConfig.DetailedReceipt, 1, 0), _
@@ -2838,7 +2853,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     If PmtType > 4 Then
         PmtType = 4 - PmtType
     End If
-    If IsNumeric(At(Split(m_sPaymentTypes, DEF_DELIM), 12)) Then
+    If m_uConfig.ExtendedPmtTypes Then
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0   ' Cash
