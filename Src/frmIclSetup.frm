@@ -2360,7 +2360,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 24    3.05.19 16:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 25    30.05.19 9:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -2369,6 +2369,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
 ' 
+' 25    30.05.19 9:36 Wqw
+' REF: disp invoke params
+'
 ' 24    3.05.19 16:07 Wqw
 ' REF: impl incotex fp
 '
@@ -2592,7 +2595,7 @@ Private Property Let pvLogoPixel(ByVal lX As Long, ByVal lY As Long, ByVal bValu
     Else
         lValue = lValue And (Not 2 ^ (7 - lX Mod 8))
     End If
-    Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right$("0" & Hex(lValue), 2)
+    Mid$(m_vLogo(lY), 1 + 2 * (lX \ 8), 2) = Right$("0" & Hex$(lValue), 2)
 End Property
 
 '=========================================================================
@@ -2631,7 +2634,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         cobItemGroup.AddItem vElem
     Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", VbGet) Then
             fraCommands(lIdx).Visible = False
         End If
     Next
@@ -3502,14 +3505,14 @@ Private Sub lstCmds_Click()
     End If
 QH:
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", VbGet) Then
             fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
         End If
     Next
     tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
     Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
     For lIdx = cmdSave.LBound To cmdSave.UBound
-        If DispInvoke(cmdSave(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(cmdSave(lIdx), "Index", VbGet) Then
             If cmdSave(lIdx).Visible Then
                 cmdSave(lIdx).Default = True
             End If

@@ -2496,7 +2496,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 15    7.03.19 12:43 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 16    30.05.19 9:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -2505,6 +2505,9 @@ Attribute VB_Exposed = False
 '
 ' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
 ' 
+' 16    30.05.19 9:36 Wqw
+' REF: disp invoke params
+'
 ' 15    7.03.19 12:43 Wqw
 ' REF: handle extended list of payment types
 '
@@ -2701,7 +2704,7 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
         cobHeadBulstatName.AddItem vElem
     Next
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", VbGet) Then
             fraCommands(lIdx).Visible = False
         End If
     Next
@@ -3361,14 +3364,14 @@ Private Sub lstCmds_Click()
     End If
 QH:
     For lIdx = fraCommands.LBound To fraCommands.UBound
-        If DispInvoke(fraCommands(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(fraCommands(lIdx), "Index", VbGet) Then
             fraCommands(lIdx).Visible = (lIdx = lVisibleFrame)
         End If
     Next
     tmrDate.Enabled = (lVisibleFrame = ucsCmdDateTime)
     Call SendMessage(txtLog.hWnd, EM_SCROLLCARET, 0, ByVal 0&)
     For lIdx = cmdSave.LBound To cmdSave.UBound
-        If DispInvoke(cmdSave(lIdx), "Index", ucsIclPropGet) Then
+        If DispInvoke(cmdSave(lIdx), "Index", VbGet) Then
             If cmdSave(lIdx).Visible Then
                 cmdSave(lIdx).Default = True
             End If
