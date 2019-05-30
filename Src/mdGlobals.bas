@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 47    22.05.19 15:54 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 48    30.05.19 9:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 48    30.05.19 9:36 Wqw
+' ADD: Sub OutputDebugDataDump
+'
 ' 47    22.05.19 15:54 Wqw
 ' REF: format in debug log
 '
@@ -167,13 +170,6 @@ Private Const MODULE_NAME As String = "mdGlobals"
 Public Enum UcsRegistryRootsEnum
     HKEY_CLASSES_ROOT = &H80000000
     HKEY_LOCAL_MACHINE = &H80000002
-End Enum
-
-Public Enum UcsInvokeCallEnum
-    ucsIclMethod = 1
-    ucsIclPropGet = 2
-    ucsIclPropLet = 4
-    ucsIclPropSet = 8
 End Enum
 
 '=========================================================================
@@ -637,10 +633,10 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Dim sFile           As String
     Dim sNewFile        As String
     
-    vErr = Array(Err.Number, Err.Description, Err.Source)
     If m_nDebugLogFile = -1 Then
         Exit Sub
     End If
+    vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error Resume Next '--- checked
     If m_nDebugLogFile = 0 Then
         sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
@@ -669,6 +665,46 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
     End If
+QH:
+    On Error GoTo 0
+    Err.Number = vErr(0)
+    Err.Description = vErr(1)
+    Err.Source = vErr(2)
+End Sub
+
+Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As String, sData As String)
+    Static lLogging     As Long
+    Dim vErr            As Variant
+    Dim baData()        As Byte
+    Dim lIdx            As Long
+    Dim sText           As String
+    Dim sHext           As String
+    
+    If m_nDebugLogFile = -1 Then
+        Exit Sub
+    End If
+    If lLogging = 0 Then
+        lLogging = IIf(CBool(Val(Environ$("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
+    End If
+    If lLogging < 0 Then
+        Exit Sub
+    End If
+    vErr = Array(Err.Number, Err.Description, Err.Source)
+    On Error Resume Next '--- checked
+    baData = StrConv(sData, vbFromUnicode)
+    For lIdx = 0 To ((UBound(baData) + 15) \ 16) * 16
+        If lIdx Mod 16 = 0 And LenB(sHext) <> 0 Then
+            OutputDebugLog sModule, sFunc, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
+            sHext = vbNullString
+            sText = vbNullString
+        End If
+        If lIdx <= UBound(baData) Then
+            sHext = sHext & Right$("0" & Hex$(baData(lIdx)), 2) & " "
+            sText = sText & IIf(baData(lIdx) >= 32, Chr$(baData(lIdx)), ".")
+        Else
+            sHext = sHext & "   "
+        End If
+    Next
 QH:
     On Error GoTo 0
     Err.Number = vErr(0)
@@ -1413,7 +1449,7 @@ Public Function ToHexDump(sText As String) As String
     Dim lIdx            As Long
     
     For lIdx = 1 To Len(sText)
-        ToHexDump = ToHexDump & Right$("0" & Hex(Asc(Mid$(sText, lIdx, 1))), 2)
+        ToHexDump = ToHexDump & Right$("0" & Hex$(Asc(Mid$(sText, lIdx, 1))), 2)
     Next
 End Function
 
@@ -1427,14 +1463,14 @@ Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optiona
         Set pVbCol = pCol
         SearchCollection = (pVbCol.Item(Index, RetVal) >= 0)
     Else
-        SearchCollection = DispInvoke(pCol, DISPID_VALUE, ucsIclMethod Or ucsIclPropGet, Args:=Index, RetVal:=RetVal)
+        SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, Args:=Index, RetVal:=RetVal)
     End If
 End Function
 
 Public Function DispInvoke( _
             ByVal pDisp As IVbDispatch, _
             Name As Variant, _
-            Optional ByVal CallType As UcsInvokeCallEnum, _
+            Optional ByVal CallType As VbCallType, _
             Optional Args As Variant, _
             Optional RetVal As Variant) As Boolean
     Const DISPID_PROPERTYPUT As Long = -3
@@ -1465,7 +1501,7 @@ Public Function DispInvoke( _
         End If
     End If
     If CallType = 0 Then
-        CallType = ucsIclMethod Or IIf(Not IsMissing(RetVal), ucsIclPropGet, 0)
+        CallType = VbMethod Or IIf(Not IsMissing(RetVal), VbGet, 0)
     End If
     '--- process params
     If Not IsMissing(Args) Then
@@ -1483,7 +1519,7 @@ Public Function DispInvoke( _
             .cArgs = lParamCount + 1
             .rgPointerToVariantArray = VarPtr(aParams(0))
         End With
-        If (CallType And (ucsIclPropLet Or ucsIclPropSet)) <> 0 Then
+        If (CallType And (VbLet Or VbSet)) <> 0 Then
             lNamedParam = DISPID_PROPERTYPUT
             With uParams
                 .cNamedArgs = 1
@@ -1491,7 +1527,7 @@ Public Function DispInvoke( _
             End With
         End If
     End If
-    If (CallType And ucsIclPropGet) <> 0 Or (CallType And ucsIclMethod) <> 0 And Not IsMissing(RetVal) Then
+    If (CallType And VbGet) <> 0 Or (CallType And VbMethod) <> 0 And Not IsMissing(RetVal) Then
         lPtrResult = VarPtr(RetVal)
         If (PeekInt(lPtrResult) And VT_BYREF) = 0 Then
             If IsObject(RetVal) Then
@@ -1529,7 +1565,7 @@ QH:
 End Function
 
 Public Function DispPropertyGet(pDisp As Object, PropName As String, Optional RetVal As Variant) As Variant
-    If DispInvoke(pDisp, PropName, ucsIclMethod Or ucsIclPropGet, RetVal:=RetVal) Then
+    If DispInvoke(pDisp, PropName, VbMethod Or VbGet, RetVal:=RetVal) Then
         AssignVariant DispPropertyGet, RetVal
     End If
 End Function
@@ -1545,10 +1581,10 @@ Public Property Get LockControl(oCtl As Object) As Boolean
 End Property
 
 Public Property Let LockControl(oCtl As Object, ByVal bValue As Boolean)
-    If DispInvoke(oCtl, "Locked", ucsIclPropLet, Args:=bValue) Or TypeOf oCtl Is ListBox Then
-        DispInvoke oCtl, "BackColor", ucsIclPropLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
+    If DispInvoke(oCtl, "Locked", VbLet, Args:=bValue) Or TypeOf oCtl Is ListBox Then
+        DispInvoke oCtl, "BackColor", VbLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
     Else
-        DispInvoke oCtl, "Enabled", ucsIclPropLet, Args:=Not bValue
+        DispInvoke oCtl, "Enabled", VbLet, Args:=Not bValue
     End If
 End Property
 
