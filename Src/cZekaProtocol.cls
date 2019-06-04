@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 52    30.05.19 9:35 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 53    4.06.19 16:38 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 53    4.06.19 16:38 Wqw
+' REF: continue on wait device failure
+'
 ' 52    30.05.19 9:35 Wqw
 ' REF: impl data dump loggin
 '
@@ -612,7 +615,7 @@ Property Get StatusNo() As Long
 End Property
 
 Property Get StatusText() As String
-    If m_eStatus > 0 Then
+    If m_eStatus <> 0 Then
         StatusText = At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), m_eStatus, At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), 0))
     End If
 End Property
@@ -622,7 +625,7 @@ Property Get ErrorNo() As Long
 End Property
 
 Property Get ErrorText() As String
-    If m_eError > 0 Then
+    If m_eError <> 0 Then
         ErrorText = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), m_eError, At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), 0))
     End If
 End Property
@@ -934,7 +937,9 @@ Public Function SendCommand(ByVal eCmd As UcsZekaCommandsEnum, Optional Data As 
         Exit Function
     End If
     If Not WaitDevice() Then
-        Exit Function
+'        Exit Function
+        DebugLog FUNC_NAME, "Will continue adter WaitDevice failure, m_sLastError=" & m_sLastError
+        pvSetLastError vbNullString
     End If
     SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
@@ -2137,9 +2142,13 @@ RetryParse:
                         m_eError = Asc(Mid$(sText, 1)) - &H30
                         m_eStatus = Asc(Mid$(sText, 2)) - &H30
                         If m_eError <> 0 Then
+                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
                             Error = ErrorText
-                        Else
+                        ElseIf m_eStatus <> 0 Then
+                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", Received=0x" & ToHexDump(sText)
                             Error = StatusText
+                        Else
+                            Error = vbNullString
                         End If
                     Else
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
