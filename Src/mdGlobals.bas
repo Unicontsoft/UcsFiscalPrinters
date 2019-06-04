@@ -1,6 +1,6 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 48    30.05.19 9:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/mdGlobals.bas 49    4.06.19 16:39 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -9,6 +9,9 @@ Attribute VB_Name = "mdGlobals"
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
 ' 
+' 49    4.06.19 16:39 Wqw
+' REF: single byte data dump
+'
 ' 48    30.05.19 9:36 Wqw
 ' ADD: Sub OutputDebugDataDump
 '
@@ -692,7 +695,7 @@ Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As St
     vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error Resume Next '--- checked
     baData = StrConv(sData, vbFromUnicode)
-    For lIdx = 0 To ((UBound(baData) + 15) \ 16) * 16
+    For lIdx = 0 To ((UBound(baData) + 16) \ 16) * 16
         If lIdx Mod 16 = 0 And LenB(sHext) <> 0 Then
             OutputDebugLog sModule, sFunc, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
             sHext = vbNullString
