@@ -12,7 +12,7 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 53    4.06.19 16:38 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 54    10.06.19 11:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -21,6 +21,9 @@ Attribute VB_Exposed = True
 '
 ' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
 ' 
+' 54    10.06.19 11:50 Wqw
+' REF: impl check fast status on wait device
+'
 ' 53    4.06.19 16:38 Wqw
 ' REF: continue on wait device failure
 '
@@ -845,6 +848,10 @@ Public Function Init( _
     If Not WaitDevice(-1) Then
         GoTo QH
     End If
+    If Not WaitDevice(-1, CheckFastStatus:=True) Then
+        Init = True
+        GoTo QH
+    End If
     pvGetCommandConfig CONF_NAME, "InfoPaymentTypes", eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString
     m_sPaymentTypes = SendCommand(eCmd, sParam)
     If LenB(m_sLastError) <> 0 Then
@@ -936,12 +943,9 @@ Public Function SendCommand(ByVal eCmd As UcsZekaCommandsEnum, Optional Data As 
     If eCmd = ucsZekCmdNoop Then
         Exit Function
     End If
-    If Not WaitDevice() Then
-'        Exit Function
-        DebugLog FUNC_NAME, "Will continue adter WaitDevice failure, m_sLastError=" & m_sLastError
-        pvSetLastError vbNullString
+    If WaitDevice() Then
+        SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
     End If
-    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
         m_eLastErrNumber = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
     End If
@@ -952,7 +956,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
+Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastStatus As Boolean) As Boolean
     Const FUNC_NAME     As String = "WaitDevice"
     Const CONF_NAME     As String = FUNC_NAME
     Dim sError          As String
@@ -966,7 +970,38 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     
     On Error GoTo EH
     pvSetLastError vbNullString
-    If Timeout >= 0 Then
+    If Timeout < 0 Then
+        pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
+            "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
+        If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
+            pvSetLastError pvInternal(ucsErrDeviceNotOnline)
+            GoTo QH
+        End If
+        If CheckFastStatus Then
+            pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
+                "ReadyStatus", sStatus, LNG_STATUS_READY
+            sCurrent = pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError)
+            If LenB(sCurrent) <> 0 Then
+                Select Case Asc(sCurrent)
+                Case C_Lng(sStatus) '--- LNG_STATUS_READY
+                    '--- success
+                    WaitDevice = True
+                    If lIter > 2 Then
+                        DebugLog FUNC_NAME, "Ready after " & lIter
+                    End If
+                Case LNG_STATUS_IS_BUSY
+                    pvSetLastError pvInternal(ucsErrDeviceNotOnline)
+                Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+                    pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
+                Case LNG_STATUS_OVERHEATED
+                    pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
+                End Select
+            End If
+        Else
+            '--- success
+            WaitDevice = True
+        End If
+    Else
         Timeout = Znl(Timeout, m_lTimeout)
         dblTimer = TimerEx + Timeout / 1000#
         Do While TimerEx < dblTimer
@@ -982,53 +1017,18 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
                 If LenB(sCurrent) <> 0 Then
                     Select Case Asc(sCurrent)
                     Case C_Lng(sStatus) '--- LNG_STATUS_READY
+                        '--- success
                         WaitDevice = True
                         If lIter > 2 Then
                             DebugLog FUNC_NAME, "Ready after " & lIter
                         End If
-                        GoTo QH
-                    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
-                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
-                        GoTo QH
-                    Case LNG_STATUS_OVERHEATED
-                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
                         GoTo QH
                     End Select
                 End If
                 Call Sleep(C_Lng(sDelay))
             End If
         Loop
-    End If
-    pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
-        "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
-    If pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
-        pvSetLastError pvInternal(ucsErrDeviceNotOnline)
-        GoTo QH
-    End If
-    If Timeout >= 0 Then
-        pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-            "ReadyStatus", sStatus, LNG_STATUS_READY
-        sCurrent = pvSendCommand(m_hComm, pvPingTimeout, eCmd, sParam, sError)
-        If LenB(sCurrent) = 0 Then
-            pvSetLastError pvInternal(ucsErrDeviceNotReady)
-            GoTo QH
-        End If
-        Select Case Asc(sCurrent)
-        Case C_Lng(sStatus) '--- LNG_STATUS_READY
-            WaitDevice = True
-            GoTo QH
-        Case LNG_STATUS_IS_BUSY
-            pvSetLastError pvInternal(ucsErrDeviceNotReady)
-        Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
-            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
-        Case LNG_STATUS_OVERHEATED
-            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
-        Case Else
-            pvSetLastError "Unknown status: " & Hex$(Asc(sCurrent))
-        End Select
-    Else
-        WaitDevice = True
-        GoTo QH
+        m_sLastError = pvInternal(ucsErrDeviceNotReady)
     End If
 QH:
     Exit Function
@@ -1717,7 +1717,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
-    WaitDevice -1
+    WaitDevice -1, CheckFastStatus:=True
     CurrentStatus = m_sLastError
     '--- success
     GetDeviceStatus = True
