@@ -78,7 +78,7 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 46    3.05.19 16:07 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 47    10.06.19 11:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
@@ -87,6 +87,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
 ' 
+' 47    10.06.19 11:50 Wqw
+' REF: allow skip last error on device init
+'
 ' 46    3.05.19 16:07 Wqw
 ' REF: impl incotex fp
 '
@@ -426,8 +429,8 @@ Attribute EnumPorts.VB_Description = "Used for enumeration of available system s
     
     On Error GoTo EH
     vPorts = EnumSerialPorts
-    For Each vElem In Array(pvInit(STR_PROTOCOL_ZEKA_FP), pvInit(STR_PROTOCOL_ESP_POS), _
-                            pvInit(STR_PROTOCOL_DATECS_FP), pvInit(STR_PROTOCOL_ELTRADE_ECR))
+    For Each vElem In Array(pvInit(STR_PROTOCOL_ZEKA_FP, SkipLastError:=True), pvInit(STR_PROTOCOL_ESP_POS, SkipLastError:=True), _
+                            pvInit(STR_PROTOCOL_DATECS_FP, SkipLastError:=True), pvInit(STR_PROTOCOL_ELTRADE_ECR, SkipLastError:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -1166,7 +1169,7 @@ Attribute GetStatus.VB_Description = "Used to retrieve additional device status 
     
     On Error GoTo EH
     LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
+    Set oFP = pvInit(DeviceString, SkipLastError:=True)
     oFP.GetDeviceStatus sStatus
     '--- success
     GetStatus = True
@@ -1197,7 +1200,7 @@ End Sub
 
 '= private ===============================================================
 
-Private Function pvInit(DeviceString As String) As IDeviceProtocol
+Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As Boolean) As IDeviceProtocol
     Dim vSplit          As Variant
     Dim sProtocol       As String
     
@@ -1237,6 +1240,11 @@ Private Function pvInit(DeviceString As String) As IDeviceProtocol
     If LenB(At(vSplit, 1)) <> 0 Then
         If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3)), C_Lng(At(vSplit, 4))) Then
             Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
+        End If
+        If Not SkipLastError Then
+            If LenB(pvInit.GetLastError()) Then
+                Err.Raise vbObjectError, , pvInit.GetLastError()
+            End If
         End If
     End If
 End Function
