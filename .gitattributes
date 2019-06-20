@@ -1,0 +1,10 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=crlf working-tree-encoding=windows-1251
+
+*.dll binary
+*.pdb binary
+*.doc binary
+*.docx binary
+*.pdf binary
+*.zip binary
+*.gz binary
