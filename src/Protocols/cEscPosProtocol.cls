@@ -20,7 +20,7 @@ Attribute VB_Exposed = True
 '   ESP/POS printer protocol
 '
 ' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
-' 
+'
 ' 9     7.03.19 12:34 Wqw
 ' REF: uses null char const
 '
@@ -1111,8 +1111,8 @@ End Function
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
-            eCmd As UcsIclCommandsEnum, _
-            ByVal eCmdDefault As UcsIclCommandsEnum, _
+            eCmd As UcsIslCommandsEnum, _
+            ByVal eCmdDefault As UcsIslCommandsEnum, _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)

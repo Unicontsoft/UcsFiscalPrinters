@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmIclSetup 
+Begin VB.Form frmIslSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки ICL протокол"
    ClientHeight    =   6252
@@ -15,7 +15,7 @@ Begin VB.Form frmIclSetup
       Italic          =   0   'False
       Strikethrough   =   0   'False
    EndProperty
-   Icon            =   "frmIclSetup.frx":0000
+   Icon            =   "frmIslSetup.frx":0000
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
@@ -949,9 +949,9 @@ Begin VB.Form frmIclSetup
       Begin VB.ListBox lstStatus 
          Height          =   4920
          IntegralHeight  =   0   'False
-         ItemData        =   "frmIclSetup.frx":000C
+         ItemData        =   "frmIslSetup.frx":000C
          Left            =   84
-         List            =   "frmIclSetup.frx":000E
+         List            =   "frmIslSetup.frx":000E
          Style           =   1  'Checkbox
          TabIndex        =   100
          Top             =   168
@@ -2354,21 +2354,21 @@ Begin VB.Form frmIclSetup
       WordWrap        =   -1  'True
    End
 End
-Attribute VB_Name = "frmIclSetup"
+Attribute VB_Name = "frmIslSetup"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIclSetup.frm 25    30.05.19 9:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmIslSetup.frm 25    30.05.19 9:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
 '
-'   Nastrojki na FP po ICL protocol
+'   Nastrojki na FP po ISL protocol
 '
-' $Log: /UcsFiscalPrinter/Src/frmIclSetup.frm $
-' 
+' $Log: /UcsFiscalPrinter/Src/frmIslSetup.frm $
+'
 ' 25    30.05.19 9:36 Wqw
 ' REF: disp invoke params
 '
@@ -2447,7 +2447,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "frmIclSetup"
+Private Const MODULE_NAME As String = "frmIslSetup"
 
 '=========================================================================
 ' API
@@ -2464,13 +2464,13 @@ Private Declare Function SetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Lon
 ' Constants and member variables
 '=========================================================================
 
-Private Const CAP_MSG               As String = "Настройки ICL протокол"
+Private Const CAP_MSG               As String = "Настройки ISL протокол"
 Private Const LNG_NUM_DEPS          As Long = 100
 Private Const LNG_NUM_OPERS         As Long = 100
 Private Const LNG_NUM_SETTINGS      As Long = 100
 Private Const FORMAT_CURRENCY       As String = "#0.00######"
 Private Const LNG_LOGO_FORECOLOR    As Long = &H800000
-Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cICLProtocol"
+Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cIslProtocol"
 '--- strings
 Private Const STR_SPEEDS            As String = "9600|19200|38400|57600|115200"
 Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Клишета|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Въвеждане/извеждане|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
@@ -2520,9 +2520,9 @@ Private Const MSG_REQUEST_CANCELLED As String = "Заявката е отказана"
 Private Const MSG_CONFIRM_ITEM_DELETE As String = "Желаете ли да изтриете артикул PLU %1?"
 Private Const MSG_CANNOT_ACCESS_PRINTER_PROXY As String = "Грешка при създаване на компонент за достъп до фискален принтер %1." & vbCrLf & vbCrLf & "%2"
 
-Private m_oFP                   As cICLProtocol
+Private m_oFP                   As cIslProtocol
 Attribute m_oFP.VB_VarHelpID = -1
-Private WithEvents m_oFPSink    As cICLProtocol
+Private WithEvents m_oFPSink    As cIslProtocol
 Attribute m_oFPSink.VB_VarHelpID = -1
 Private m_sLog                  As String
 Private m_vDeps                 As Variant
@@ -2683,7 +2683,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvGetPrinter(sServer As String, sError As String) As cICLProtocol
+Private Function pvGetPrinter(sServer As String, sError As String) As cIslProtocol
     On Error Resume Next '--- checked
     If LenB(sServer) = 0 Then
         With New cFiscalAdmin
@@ -3088,7 +3088,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Dim vResult         As Variant
     Dim sPass           As String
     Dim bCheckPass      As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim lIdx            As Long
     
     On Error GoTo EH

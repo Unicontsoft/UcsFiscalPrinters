@@ -6,21 +6,21 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cZekaProtocol"
+Attribute VB_Name = "cTremolProtocol"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cZekaProtocol.cls 54    10.06.19 11:50 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cTremolProtocol.cls 54    10.06.19 11:50 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Protocol handler for Tremol/Zeka cash registers & FP
 '
-' $Log: /UcsFiscalPrinter/Src/cZekaProtocol.cls $
-' 
+' $Log: /UcsFiscalPrinter/Src/cTremolProtocol.cls $
+'
 ' 54    10.06.19 11:50 Wqw
 ' REF: impl check fast status on wait device
 '
@@ -196,7 +196,7 @@ Attribute VB_Exposed = True
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cZekaProtocol"
+Private Const MODULE_NAME As String = "cTremolProtocol"
 Implements IDeviceProtocol
 
 #If False Then
@@ -214,7 +214,7 @@ Event CommandComplete(ByVal lCmd As Long, sData As String, sResult As String)
 ' Public enums
 '=========================================================================
 
-Public Enum UcsZekaCommandsEnum
+Public Enum UcsTremolCommandsEnum
     ucsZekCmdNoop = -1
     '--- fast status
     ucsZekCmdFastIsOnline = &H4
@@ -660,7 +660,7 @@ End Property
 Property Get IsEcr() As Boolean
     Const FUNC_NAME     As String = "IsEcr [get]"
     Const CONF_NAME     As String = "IsEcr"
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lTimeout        As Long
     Dim lTypeIndex      As Long
@@ -717,11 +717,11 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim vSpeeds         As Variant
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_ZEKA_FP, "ProbeText", Chr$(ucsZekCmdFastIsReady))
-    sReplyText = GetConfigValue(STR_PROTOCOL_ZEKA_FP, "ReplyText", Chr$(ucsZekCmdFastIsReady))
-    lTimeout = GetConfigNumber(STR_PROTOCOL_ZEKA_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
-    lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_ZEKA_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
-    AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_ZEKA_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
+    sProbeText = GetConfigValue(STR_PROTOCOL_TREMOL_FP, "ProbeText", Chr$(ucsZekCmdFastIsReady))
+    sReplyText = GetConfigValue(STR_PROTOCOL_TREMOL_FP, "ReplyText", Chr$(ucsZekCmdFastIsReady))
+    lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
+    lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
+    AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_TREMOL_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
     If IsObject(vSpeeds) Then
         vSpeeds = vSpeeds.Items()
     End If
@@ -827,7 +827,7 @@ Public Function Init( _
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
     Dim sSerial         As String
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lSerialIndex    As Long
     
@@ -935,7 +935,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function SendCommand(ByVal eCmd As UcsZekaCommandsEnum, Optional Data As String) As String
+Public Function SendCommand(ByVal eCmd As UcsTremolCommandsEnum, Optional Data As String) As String
     Const FUNC_NAME     As String = "SendCommand"
     
     On Error GoTo EH
@@ -960,7 +960,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
     Const FUNC_NAME     As String = "WaitDevice"
     Const CONF_NAME     As String = FUNC_NAME
     Dim sError          As String
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sStatus         As String
     Dim dblTimer        As Double
@@ -1280,7 +1280,7 @@ End Function
 Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const FUNC_NAME     As String = "CopyLastReceipt"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sPrevReceiptNo  As String
     Dim sReceiptNo      As String
@@ -1325,7 +1325,7 @@ End Function
 Public Function GetClock() As Date
     Const FUNC_NAME     As String = "GetClock"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1339,7 +1339,7 @@ End Function
 Public Function SetClock(ByVal NewDate As Date) As Boolean
     Const FUNC_NAME     As String = "SetClock"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     Dim lPrintTimeout   As Long
@@ -1362,7 +1362,7 @@ End Function
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunXReport"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lPrintTimeout   As Long
     
@@ -1398,7 +1398,7 @@ End Function
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     Const FUNC_NAME     As String = "RunZReport"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lPrintTimeout   As Long
     
@@ -1434,7 +1434,7 @@ End Function
 Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     Const FUNC_NAME     As String = "RunPeriodReport"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     Dim lPrintTimeout   As Long
@@ -1471,7 +1471,7 @@ End Function
 Public Function GetLastReceiptNumber() As String
     Const FUNC_NAME     As String = "GetLastReceiptNumber"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
@@ -1491,7 +1491,7 @@ End Function
 Public Function GetLastInvoiceNumber() As String
     Const FUNC_NAME     As String = "GetLastInvoiceNumber"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
@@ -1539,7 +1539,7 @@ End Function
 Public Function GetTaxNumber() As String
     Const FUNC_NAME     As String = "GetTaxNumber"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1555,7 +1555,7 @@ End Function
 Public Function GetTaxCaption() As String
     Const FUNC_NAME     As String = "GetTaxCaption"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1572,7 +1572,7 @@ End Function
 Public Function GetHeaderText(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetHeaderText"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1590,7 +1590,7 @@ End Function
 Public Function GetFooterText(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetFooterText"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1626,7 +1626,7 @@ End Function
 Public Function OpenDrawer() As Boolean
     Const FUNC_NAME     As String = "OpenDrawer"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lPrintTimeout   As Long
     
@@ -1646,11 +1646,11 @@ End Function
 Public Function CancelReceipt() As Boolean
     Const FUNC_NAME     As String = "CancelReceipt"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eTransCmd       As UcsZekaCommandsEnum
+    Dim eTransCmd       As UcsTremolCommandsEnum
     Dim sTransParam     As String
     Dim lTransIndex     As Long
     Dim lTransStatus    As Long
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lPrintTimeout   As Long
     
@@ -1730,7 +1730,7 @@ End Function
 Public Function GetTotalsByPayments() As Variant
     Const FUNC_NAME     As String = "GetTotalsByPayments"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim vPayments       As Variant
     Dim vChanges        As Variant
@@ -1767,7 +1767,7 @@ Public Function GetTotalsByVatGroups() As Variant
     Dim vTaxRates       As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1792,7 +1792,7 @@ End Function
 Public Function GetTotalsStats() As Variant
     Const FUNC_NAME     As String = "GetTotalsStats"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
@@ -1826,7 +1826,7 @@ Public Function CashDebitCredit( _
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
     Dim vRetVal         As Variant
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     Dim lIndex          As Long
@@ -1886,7 +1886,7 @@ End Function
 Public Sub SetLocalizedCommand( _
             sFunction As String, _
             sKey As String, _
-            Optional ByVal cmd As UcsZekaCommandsEnum, _
+            Optional ByVal cmd As UcsTremolCommandsEnum, _
             Optional Param As String, _
             Optional More As Variant)
     Dim sMerged         As String
@@ -1999,7 +1999,7 @@ End Function
 Private Function pvSendCommand( _
             ByVal hComm As Long, _
             ByVal lTimeout As Long, _
-            ByVal eCmd As UcsZekaCommandsEnum, _
+            ByVal eCmd As UcsTremolCommandsEnum, _
             Optional Data As String, _
             Optional Error As String) As String
     Const FUNC_NAME     As String = "pvSendCommand"
@@ -2250,7 +2250,7 @@ Private Function pvPrintLine(vText As Variant) As Boolean
     Const FUNC_NAME     As String = "pvPrintLine"
     Const CONF_NAME     As String = "PrintLine"
     Dim vElem           As Variant
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -2291,7 +2291,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim dblDisc         As Double
     Dim vSplit          As Variant
     Dim lIdx            As Long
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim lPassIndex      As Long
@@ -2822,7 +2822,7 @@ Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vR
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim vSplit          As Variant
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lSerialIndex    As Long
     Dim lRegDateIndex   As Long
@@ -2836,7 +2836,7 @@ Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vR
         vResult = Split(pvSendCommand(hComm, lTimeout, eCmd, sParam, Error), DEF_DELIM)
     End If
     If LenB(At(vResult, lSerialIndex)) <> 0 Then
-        sProtocol = STR_PROTOCOL_ZEKA_FP
+        sProtocol = STR_PROTOCOL_TREMOL_FP
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
             "RegDateIndex", lRegDateIndex, 3, _
             "ModelIndex", lModelIndex, 4, _
@@ -2899,8 +2899,8 @@ End Function
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
-            eCmd As UcsZekaCommandsEnum, _
-            ByVal eCmdDefault As UcsZekaCommandsEnum, _
+            eCmd As UcsTremolCommandsEnum, _
+            ByVal eCmdDefault As UcsTremolCommandsEnum, _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)
@@ -2934,7 +2934,7 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
-    Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_ZEKA_FP, "Commands")
+    Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_TREMOL_FP, "Commands")
 End Sub
 
 Private Sub Class_Terminate()

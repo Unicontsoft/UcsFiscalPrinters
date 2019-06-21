@@ -8,7 +8,7 @@ Attribute VB_Name = "mdGlobals"
 '   Global functions, constants and variables
 '
 ' $Log: /UcsFiscalPrinter/Src/mdGlobals.bas $
-' 
+'
 ' 49    4.06.19 16:39 Wqw
 ' REF: single byte data dump
 '
@@ -388,7 +388,7 @@ Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
 Public Const STR_PROTOCOL_INCOTEX_ECR As String = "INCOTEX FP/ECR"
-Public Const STR_PROTOCOL_ZEKA_FP   As String = "TREMOL ECR"
+Public Const STR_PROTOCOL_TREMOL_FP As String = "TREMOL ECR"
 Public Const STR_PROTOCOL_ESP_POS   As String = "ESC/POS"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001

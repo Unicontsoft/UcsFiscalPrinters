@@ -25,7 +25,7 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 '   Administration of fiscal devices and handlers
 '
 ' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
-' 
+'
 ' 10    3.05.19 16:07 Wqw
 ' REF: impl incotex fp
 '
@@ -66,7 +66,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 '=========================================================================
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cICLProtocol|cEltradeProtocol|cZekaProtocol|cEscPosProtocol"
+Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cIslProtocol|cEltradeProtocol|cTremolProtocol|cEscPosProtocol"
 
 '=========================================================================
 ' Error handling
@@ -238,18 +238,18 @@ End Property
 '
 Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
 Attribute ShowSetup.VB_Description = "Used to show device's specific configuration dialog where the end-user can configure operators, departments and other device settings"
-    Dim oFrmIcl         As New frmIclSetup
+    Dim oFrmIsl         As New frmIslSetup
     Dim oFrmEltrade     As New frmEltradeSetup
-    Dim oFrmZeka        As New frmZekaSetup
+    Dim oFrmTremol      As New frmTremolSetup
     
     '--- figure out protocol
     Select Case UCase$(At(Split(DeviceString, ";"), 0))
     Case STR_PROTOCOL_ELTRADE_ECR
         ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
-        ShowSetup = oFrmIcl.frInit(DeviceString, Server, OwnerForm)
-    Case STR_PROTOCOL_ZEKA_FP
-        ShowSetup = oFrmZeka.frInit(DeviceString, Server, OwnerForm)
+        ShowSetup = oFrmIsl.frInit(DeviceString, Server, OwnerForm)
+    Case STR_PROTOCOL_TREMOL_FP
+        ShowSetup = oFrmTremol.frInit(DeviceString, Server, OwnerForm)
     End Select
 End Function
 
@@ -264,12 +264,12 @@ Attribute CreateObject.VB_Description = "Class factory for fiscal printers class
     Select Case LCase$(sProgID)
     Case LCase$(LIB_NAME & ".cFiscalPrinter")
         Set CreateObject = New cFiscalPrinter
-    Case LCase$(LIB_NAME & ".cICLProtocol")
-        Set CreateObject = New cICLProtocol
+    Case LCase$(LIB_NAME & ".cIslProtocol")
+        Set CreateObject = New cIslProtocol
     Case LCase$(LIB_NAME & ".cEltradeProtocol")
         Set CreateObject = New cEltradeProtocol
-    Case LCase$(LIB_NAME & ".cZekaProtocol")
-        Set CreateObject = New cZekaProtocol
+    Case LCase$(LIB_NAME & ".cTremolProtocol")
+        Set CreateObject = New cTremolProtocol
     Case LCase$(LIB_NAME & ".cEscPosProtocol")
         Set CreateObject = New cEscPosProtocol
     End Select

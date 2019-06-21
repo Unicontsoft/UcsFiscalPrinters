@@ -6,21 +6,21 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cICLProtocol"
+Attribute VB_Name = "cIslProtocol"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cICLProtocol.cls 98    30.05.19 9:35 Wqw $
+' $Header: /UcsFiscalPrinter/Src/cIslProtocol.cls 98    30.05.19 9:35 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
 '
-'   Protocol handler for Datecs, Daisy and Incotex fiscal printers (ICL protocol)
+'   Protocol handler for Datecs, Daisy and Incotex fiscal printers (ISL protocol)
 '
-' $Log: /UcsFiscalPrinter/Src/cICLProtocol.cls $
-' 
+' $Log: /UcsFiscalPrinter/Src/cIslProtocol.cls $
+'
 ' 98    30.05.19 9:35 Wqw
 ' REF: impl data dump loggin
 '
@@ -302,7 +302,7 @@ Attribute VB_Exposed = True
 ' REF: impl debug log
 '
 ' 8     1.12.08 0:42 Wqw
-' REF: UcsIclCommandsEnum, STR_ERRORS_ONLY
+' REF: UcsIslCommandsEnum, STR_ERRORS_ONLY
 '
 ' 7     11.11.08 17:20 Wqw
 ' REF: Private pvGetFlagsText -> Friend pvGetFlagsText
@@ -328,7 +328,7 @@ Attribute VB_Exposed = True
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cICLProtocol"
+Private Const MODULE_NAME As String = "cIslProtocol"
 Implements IDeviceProtocol
 
 '=========================================================================
@@ -341,7 +341,7 @@ Event CommandComplete(ByVal lCmd As Long, sData As String, sResult As String)
 ' Public enums
 '=========================================================================
 
-Public Enum UcsIclStatusBitsEnum
+Public Enum UcsIslStatusBitsEnum
     ucsStbSyntaxError = 2 ^ 0
     ucsStbInvalidCommand = 2 ^ 1
     ucsStbClockNotSet = 2 ^ 2
@@ -356,7 +356,7 @@ Public Enum UcsIclStatusBitsEnum
     ucsStbNonFiscalPrinting = 2 ^ (16 + 5)
 End Enum
 
-Public Enum UcsIclDipSwitchesEnum
+Public Enum UcsIslDipSwitchesEnum
     ucsDipCenterHeaderFooter = 2 ^ 0
     ucsDipPrintHeader = 2 ^ 1
     ucsDipSwitch_1_3 = 2 ^ 2
@@ -366,7 +366,7 @@ Public Enum UcsIclDipSwitchesEnum
     ucsDipShowToDisplay = 2 ^ 6
 End Enum
 
-Public Enum UcsIclFiscalMemoryEnum
+Public Enum UcsIslFiscalMemoryEnum
     ucsFmeWriteError = 2 ^ 0
     ucsFmeNoMemoryModule = 2 ^ 2
     ucsFmeLowMemory = 2 ^ 3
@@ -379,7 +379,7 @@ Public Enum UcsIclFiscalMemoryEnum
     ucsFmeIdentNoSet = 2 ^ (8 + 5)
 End Enum
 
-Public Enum UcsIclCommandsEnum
+Public Enum UcsIslCommandsEnum
     ucsFpcNoop = -1
     '--- init
     ucsFpcInitHeaderFooter = 43
@@ -591,9 +591,9 @@ Private m_hComm                     As Long
 Private m_lTimeout                  As Long
 Private m_lCashDeskNo               As Long
 Private m_lSequence                 As Long
-Private m_eStatus                   As UcsIclStatusBitsEnum
-Private m_eDip                      As UcsIclDipSwitchesEnum
-Private m_eMemory                   As UcsIclFiscalMemoryEnum
+Private m_eStatus                   As UcsIslStatusBitsEnum
+Private m_eDip                      As UcsIslDipSwitchesEnum
+Private m_eMemory                   As UcsIslFiscalMemoryEnum
 Private m_eLastErrNumber            As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_bExceptions               As Boolean
@@ -780,7 +780,7 @@ Property Let Timeout(ByVal lValue As Long)
     m_lTimeout = lValue
 End Property
 
-Property Get Status(ByVal eValue As UcsIclStatusBitsEnum) As Boolean
+Property Get Status(ByVal eValue As UcsIslStatusBitsEnum) As Boolean
     Status = (m_eStatus And eValue) <> 0
 End Property
 
@@ -796,7 +796,7 @@ Property Get ErrorText() As String
     End If
 End Property
 
-Property Get Dip(ByVal eValue As UcsIclDipSwitchesEnum) As Boolean
+Property Get Dip(ByVal eValue As UcsIslDipSwitchesEnum) As Boolean
     Dip = (m_eDip And eValue) <> 0
 End Property
 
@@ -806,7 +806,7 @@ Property Get DipText() As String
     End If
 End Property
 
-Property Get Memory(ByVal eValue As UcsIclFiscalMemoryEnum) As Boolean
+Property Get Memory(ByVal eValue As UcsIslFiscalMemoryEnum) As Boolean
     Memory = (m_eMemory And eValue) <> 0
 End Property
 
@@ -850,7 +850,7 @@ Property Get IsEcr() As Boolean
     Const FUNC_NAME     As String = "IsEcr [get]"
     Const CONF_NAME     As String = "IsEcr"
     Dim lTimeout        As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -899,7 +899,7 @@ Private Property Get pvRowChars() As Long
     Dim bPrevExceptions As Boolean
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim sResult         As String
@@ -1086,7 +1086,7 @@ Public Function Init( _
     Dim vSplit          As Variant
     Dim sSerial         As String
     Dim lIdx            As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim eHasSwitchesInfo As VbTriState
     Dim sDaisyPrefix    As String
@@ -1200,12 +1200,12 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function SendCommand(ByVal eCmd As UcsIclCommandsEnum, Optional Data As String) As String
+Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As String) As String
     Const FUNC_NAME     As String = "SendCommand"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vResult         As Variant
     Dim lChar           As Long
-    Dim eDecimalsCmd    As UcsIclCommandsEnum
+    Dim eDecimalsCmd    As UcsIslCommandsEnum
     Dim sDecimalsParam  As String
     Dim lDecimalsIndex  As Long
     Dim sError          As String
@@ -1502,7 +1502,7 @@ End Function
 
 Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const CONF_NAME     As String = "CopyLastReceipt"
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     
@@ -1525,7 +1525,7 @@ Public Function GetClock() As Date
     Const FUNC_NAME     As String = "GetClock"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1541,7 +1541,7 @@ End Function
 Public Function SetClock(ByVal NewDate As Date) As Boolean
     Const FUNC_NAME     As String = "SetClock"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     
@@ -1560,7 +1560,7 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const FUNC_NAME     As String = "RunXReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1605,10 +1605,10 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
     Dim lIdx            As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim bEcClear        As Boolean
-    Dim eEcCmd          As UcsIclCommandsEnum
+    Dim eEcCmd          As UcsIslCommandsEnum
     Dim sEcParam        As String
     Dim lEcIndex        As Long
     Dim lEcCount        As Long
@@ -1680,7 +1680,7 @@ End Function
 Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     Const FUNC_NAME     As String = "RunPeriodReport"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sFormat         As String
     Dim sParam          As String
     
@@ -1714,7 +1714,7 @@ Public Function GetLastReceiptNumber() As String
     Const FUNC_NAME     As String = "GetLastReceiptNumber"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1731,7 +1731,7 @@ Public Function GetLastInvoiceNumber() As String
     Const FUNC_NAME     As String = "GetLastInvoiceNumber"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim lOffset         As Long
@@ -1791,7 +1791,7 @@ Public Function GetTaxNumber() As String
     Const FUNC_NAME     As String = "GetTaxNumber"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
@@ -1812,7 +1812,7 @@ Public Function GetTaxCaption() As String
     Const FUNC_NAME     As String = "GetTaxCaption"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1839,7 +1839,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetHeaderText"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1858,7 +1858,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetFooterText"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -1877,7 +1877,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Const FUNC_NAME     As String = "GetPaymentName"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
@@ -1916,7 +1916,7 @@ End Function
 Public Function OpenDrawer() As Boolean
     Const FUNC_NAME     As String = "OpenDrawer"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH_Cancel
@@ -1931,11 +1931,11 @@ Public Function CancelReceipt() As Boolean
     Const FUNC_NAME     As String = "CancelReceipt"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim eTransCmd       As UcsIclCommandsEnum
+    Dim eTransCmd       As UcsIslCommandsEnum
     Dim sTransParam     As String
     Dim lTransIndex     As Long
     Dim lTransStatus    As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -2001,7 +2001,7 @@ End Function
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -2031,7 +2031,7 @@ Public Function GetTotalsByPayments() As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim lJdx            As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim vIdxMap          As Variant
     
@@ -2074,7 +2074,7 @@ Public Function GetTotalsByVatGroups() As Variant
     Dim vTaxRates       As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
@@ -2107,7 +2107,7 @@ End Function
 Public Function GetTotalsStats() As Variant
     Const FUNC_NAME     As String = "GetTotalsStats"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim vSplit          As Variant
@@ -2168,7 +2168,7 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     Dim vSplit          As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
     Dim bPrevExceptions As Boolean
@@ -2223,7 +2223,7 @@ End Function
 Public Sub SetLocalizedCommand( _
             sFunction As String, _
             sKey As String, _
-            Optional ByVal cmd As UcsIclCommandsEnum, _
+            Optional ByVal cmd As UcsIslCommandsEnum, _
             Optional Param As String, _
             Optional More As Variant)
     Dim sMerged         As String
@@ -2345,7 +2345,7 @@ End Function
 Private Function pvSendCommand( _
             ByVal hComm As Long, _
             ByVal lTimeout As Long, _
-            ByVal eCmd As UcsIclCommandsEnum, _
+            ByVal eCmd As UcsIslCommandsEnum, _
             Optional Data As String, _
             Optional Error As String) As String
     Const FUNC_NAME     As String = "pvSendCommand"
@@ -2679,7 +2679,7 @@ Private Sub pvPrintLine(vText As Variant)
     Const FUNC_NAME     As String = "pvPrintLine"
     Const CONF_NAME     As String = "PrintLine"
     Dim vElem               As Variant
-    Dim eCmd                As UcsIclCommandsEnum
+    Dim eCmd                As UcsIslCommandsEnum
     Dim sParam              As String
     
     On Error GoTo EH
@@ -2713,7 +2713,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim sData           As String
     Dim dblTotal        As Double
     Dim dblDisc         As Double
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim lStatus         As Long
@@ -3330,7 +3330,7 @@ End Sub
 Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
-    Dim eCmd            As UcsIclCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
@@ -3385,8 +3385,8 @@ End Function
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
-            eCmd As UcsIclCommandsEnum, _
-            ByVal eCmdDefault As UcsIclCommandsEnum, _
+            eCmd As UcsIslCommandsEnum, _
+            ByVal eCmdDefault As UcsIslCommandsEnum, _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)

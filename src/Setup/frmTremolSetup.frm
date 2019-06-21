@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin VB.Form frmZekaSetup 
+Begin VB.Form frmTremolSetup 
    BorderStyle     =   3  'Fixed Dialog
    Caption         =   "Настройки Zeka протокол"
    ClientHeight    =   6252
@@ -15,7 +15,7 @@ Begin VB.Form frmZekaSetup
       Italic          =   0   'False
       Strikethrough   =   0   'False
    EndProperty
-   Icon            =   "frmZekaSetup.frx":0000
+   Icon            =   "frmTremolSetup.frx":0000
    LinkTopic       =   "Form1"
    MaxButton       =   0   'False
    MinButton       =   0   'False
@@ -2490,21 +2490,21 @@ Begin VB.Form frmZekaSetup
       WordWrap        =   -1  'True
    End
 End
-Attribute VB_Name = "frmZekaSetup"
+Attribute VB_Name = "frmTremolSetup"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmZekaSetup.frm 16    30.05.19 9:36 Wqw $
+' $Header: /UcsFiscalPrinter/Src/frmTremolSetup.frm 16    30.05.19 9:36 Wqw $
 '
 '   Unicontsoft Fiscal Printers Project
 '   Copyright (c) 2008-2019 Unicontsoft
 '
 '   Nastrojki na FP po Zeka protocol
 '
-' $Log: /UcsFiscalPrinter/Src/frmZekaSetup.frm $
-' 
+' $Log: /UcsFiscalPrinter/Src/frmTremolSetup.frm $
+'
 ' 16    30.05.19 9:36 Wqw
 ' REF: disp invoke params
 '
@@ -2556,7 +2556,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "frmZekaSetup"
+Private Const MODULE_NAME As String = "frmTremolSetup"
 
 '=========================================================================
 ' API
@@ -2571,10 +2571,10 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 ' Constants and member variables
 '=========================================================================
 
-Private Const CAP_MSG               As String = "Настройки Zeka протокол"
+Private Const CAP_MSG               As String = "Настройки Tremol протокол"
 Private Const LNG_NUM_DEPS          As Long = 50
 Private Const LNG_NUM_OPERS         As Long = 50
-Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cZekaProtocol"
+Private Const PROGID_PROTOCOL       As String = LIB_NAME & ".cTremolProtocol"
 '--- strings
 Private Const STR_SPEEDS            As String = "9600|19200"
 Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Клишета|    Номера на фактури|    Типове плащания|    Оператори|    Департаменти|    Артикули|    Графично лого|    Параметри|Операции|    Въвеждане/извеждане|    Печат отчети|Администрация|    Статус|    Журнал комуникация"
@@ -2608,9 +2608,9 @@ Private Const MSG_INVALID_LOGO_NO   As String = "Моля въведете номер на лого за 
 Private Const DEF_PING_TIMEOUT      As Long = 200
 Private Const DEF_COMMENT_LEN       As Long = 30
 
-Private m_oFP                   As cZekaProtocol
+Private m_oFP                   As cTremolProtocol
 Attribute m_oFP.VB_VarHelpID = -1
-Private WithEvents m_oFPSink    As cZekaProtocol
+Private WithEvents m_oFPSink    As cTremolProtocol
 Attribute m_oFPSink.VB_VarHelpID = -1
 Private m_sLog                  As String
 Private m_vDeps                 As Variant
@@ -2753,7 +2753,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvGetPrinter(sServer As String, sError As String) As cZekaProtocol
+Private Function pvGetPrinter(sServer As String, sError As String) As cTremolProtocol
     On Error Resume Next '--- checked
     If LenB(sServer) = 0 Then
         With New cFiscalAdmin
@@ -2996,7 +2996,7 @@ End Function
 Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Const FUNC_NAME     As String = "pvSaveData"
     Dim vResult         As Variant
-    Dim eCmd            As UcsZekaCommandsEnum
+    Dim eCmd            As UcsTremolCommandsEnum
     Dim lIdx            As Long
     Dim sData           As String
     Dim dDate           As Date
