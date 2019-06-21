@@ -12,6 +12,20 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Attribute VB_Description = "cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers and can be used to call methods of the chatty IDeviceProtocol protocol in batches"
+'=========================================================================
+'
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
+'
+'   Fiscal devices management using IDeviceProtocol protocol handlers
+'
+'=========================================================================
 ''
 ' cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers
 ' and can be used to call methods of the chatty IDeviceProtocol protocol in batches.
@@ -77,166 +91,6 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '                      `ReceiptTexts` and `ExtendedErrors`,
 ' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
 '
-'=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalPrinter.cls 47    10.06.19 11:50 Wqw $
-'
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
-'
-'   Fiscal devices management using IDeviceProtocol protocol handlers
-'
-' $Log: /UcsFiscalPrinter/Src/cFiscalPrinter.cls $
-'
-' 47    10.06.19 11:50 Wqw
-' REF: allow skip last error on device init
-'
-' 46    3.05.19 16:07 Wqw
-' REF: impl incotex fp
-'
-' 45    7.03.19 12:34 Wqw
-' REF: init date/time prowerqwa za delta nad edna minuta
-'
-' 44    2.01.19 15:13 Wqw
-' REF: communicate invalid password on methods with operator data
-'
-' 45    4.10.18 15:26 Wqw
-' REF: more invalid password communication
-'
-' 44    2.10.18 17:28 Wqw
-' REF: communicate invalid password on methods with operator data
-'
-' 43    26.06.18 16:31 Wqw
-' REF: copy last receipt params
-'
-' 42    26.06.18 13:21 Wqw
-' REF: debug log last error
-'
-' 41    13.06.18 12:20 Wqw
-' REF: Init params
-'
-' 40    28.05.18 16:37 Wqw
-' ADD: entries in UcsFiscalHeaderIndexesEnum
-'
-' 39    15.05.18 12:29 Wqw
-' REF: esp/pos consts
-'
-' 38    14.05.18 12:38 Wqw
-' REF: auto-detect esp/pos printers
-'
-' 37    25.04.18 10:40 Wqw
-' REF: impl ESC/POS driver support
-'
-' 36    1.02.16 17:21 Wqw
-' REF: impl extended errors for daisy fp/ecr
-'
-' 35    28.01.16 16:01 Wqw
-' REF: daisy/tremol driver name
-'
-' 34    20.11.15 16:40 Wqw
-' REF: add VBDOX documentation and typelib descriptions
-'
-' 33    30.01.15 15:07 Wqw
-' REF: calls flush debug log on terminate
-'
-' 32    28.01.15 15:34 Wqw
-' REF: error messages
-'
-' 31    26.11.14 19:19 Wqw
-' REF: spelling
-'
-' 30    16.09.14 16:10 Wqw
-' REF: error msgs spelling
-'
-' 29    26.06.13 10:13 Wqw
-' REF: zeka internal err msgs
-'
-' 28    20.06.13 12:49 Wqw
-' REF: handle custom payment types
-'
-' 27    18.06.13 17:17 Wqw
-' ADD: Function GetTotalsByPayments, GetTotalsStats
-'
-' 26    14.03.13 16:28 Wqw
-' REF: err handling on PrintReceipt
-'
-' 25    26.02.13 19:39 Wqw
-' REF: language consts
-'
-' 24    8.01.13 15:43 Wqw
-' REF: err handling, returns receipt no as string
-'
-' 23    4.01.13 12:23 Wqw
-' REF: err handling
-'
-' 22    3.01.13 16:41 Wqw
-' ADD: Function GetStatus. REF: handles resume tickets on print receipt
-'
-' 21    16.11.12 18:53 Wqw
-' REF: PrintReceipt err handler returns warning i fiscal payment has been
-' executed
-'
-' 20    19.10.12 0:36 Wqw
-' REF: rename report type enum
-'
-' 19    9.10.12 15:21 Wqw
-' REF: params of CashDebitCredit
-'
-' 18    5.10.12 14:20 Wqw
-' ADD: Function CashDebitCredit
-'
-' 17    29.08.12 15:06 Wqw
-' REF: localized texts can by customized in config
-'
-' 16    6.08.12 18:41 Wqw
-' REF: impl EnumPorts with AutodetectDevices
-'
-' 15    23.03.12 15:30 Wqw
-' ADD: GetTotalsByVatGroups. REF: PrintReceipt checks if receipt already
-' printed
-'
-' 14    8.12.11 15:49 Wqw
-' REF: multi-speed check in EnumPorts
-'
-' 13    9.08.11 23:25 Wqw
-' REF: supports zeka protocol
-'
-' 12    17.06.11 13:23 Wqw
-' REF: enum casing
-'
-' 11    10.05.11 15:15 Wqw
-' REF: guard GetCommandLog in err handlers
-'
-' 10    8.03.11 13:04 Wqw
-' REF: vat group idwa numeric weche
-'
-' 9     23.02.11 17:10 Wqw
-' REF: text const
-'
-' 8     22.02.11 17:38 Wqw
-' REF: text consts
-'
-' 7     22.02.11 13:52 Wqw
-' REF: EnumPorts wryshta doplnitelno speed i protocol
-'
-' 6     22.02.11 10:50 Wqw
-' REF: GetHeaderFooter wryshta array s empty ako ne moje da dostypi FP
-'
-' 5     22.02.11 10:26 Wqw
-' ADD: EnumPorts
-'
-' 4     22.02.11 10:07 Wqw
-' REF: izneseni metodi w otdelen admin class
-'
-' 3     21.02.11 16:28 Wqw
-' ADD: Property IsShared
-'
-' 2     21.02.11 13:46 Wqw
-' REF: impl datecs fp and daisy ecr support
-'
-' 1     14.02.11 18:13 Wqw
-' Initial implementation
-'
-'=========================================================================
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cFiscalPrinter"

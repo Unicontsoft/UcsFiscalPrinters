@@ -12,26 +12,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls 4     19.02.19 16:59 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Network socket connector
-'
-' $Log: /UcsFiscalPrinter/Src/Connectors/cSocketConnector.cls $
-' 
-' 4     19.02.19 16:59 Wqw
-' REF: impl timeout on connect
-'
-' 3     28.05.18 16:37 Wqw
-' REF: timeout on create
-'
-' 2     14.05.18 12:39 Wqw
-' REF: impl w/o ext dep on async socket class
-'
-' 1     25.04.18 10:39 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

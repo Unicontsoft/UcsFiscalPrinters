@@ -12,6 +12,20 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Attribute VB_Description = "IDeviceProtocol is a common interface implemented by all device protocol handlers. It can be used to access a fiscal device independently of the implemented protocol so that the particular protocol selection can be left to be chosen by the end-user or as an application configuration option"
+'=========================================================================
+'
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
+'
+'   Abstract interface for fiscal device protocol handling
+'
+'=========================================================================
 ''
 ' IDeviceProtocol is a common interface implemented by all device protocol handlers. It can be used to access a fiscal
 ' device independently of the implemented protocol so that the particular protocol selection can be left to be chosen
@@ -30,89 +44,6 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 ' Also see `PrintReport` method of `cFiscalPrinter` class for a complete workflow for printing a daily or monthly
 ' fiscal reports.
 '
-'=========================================================================
-' $Header: /UcsFiscalPrinter/Src/IDeviceProtocol.cls 24    21.09.18 14:08 Wqw $
-'
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
-'
-'   Abstract interface for fiscal device protocol handling
-'
-' $Log: /UcsFiscalPrinter/Src/IDeviceProtocol.cls $
-' 
-' 24    21.09.18 14:08 Wqw
-' REF: comments
-'
-' 23    12.09.18 17:24 Wqw
-' REF: comments
-'
-' 22    26.06.18 16:30 Wqw
-' REF: copy last receipt params
-'
-' 21    13.06.18 12:20 Wqw
-' ADD: Init params
-'
-' 20    28.05.18 16:37 Wqw
-' ADD: entries in UcsFiscalPaymentTypeEnum
-'
-' 19    25.04.18 10:42 Wqw
-' REF: StartReceipt params
-'
-' 18    1.02.16 17:17 Wqw
-' ADD: entries in UcsFiscalLocalizedIndexesEnum
-'
-' 17    20.11.15 16:40 Wqw
-' REF: add VBDOX documentation and typelib descriptions
-'
-' 16    20.06.13 12:48 Wqw
-' ADD: custom payment types
-'
-' 15    18.06.13 17:16 Wqw
-' ADD: Function GetTotalsByPayments, GetTotalsStats
-'
-' 14    14.03.13 16:26 Wqw
-' ADD: UcsFiscalErrorsEnum for GetLastError. REF: ByVal numeric params
-'
-' 13    4.01.13 12:21 Wqw
-' REF: set clock returns bool, get last receipt number returns string
-'
-' 12    3.01.13 16:39 Wqw
-' ADD: Function GetResumeTicket, GetDeviceStatus, Property IsConnected
-'
-' 11    9.10.12 15:19 Wqw
-' REF: params of CashDebitCredit
-'
-' 10    5.10.12 14:19 Wqw
-' REF: enum casing
-'
-' 9     5.10.12 14:15 Wqw
-' ADD: Function CashDebitCredit
-'
-' 8     6.08.12 18:36 Wqw
-' ADD: Function AutodetectDevices
-'
-' 7     23.03.12 15:26 Wqw
-' ADD: GetTotalsByVatGroups, CancelReceipt
-'
-' 6     8.12.11 15:48 Wqw
-' REF: params na GetDefaultPassword
-'
-' 5     17.06.11 11:35 Wqw
-' REF: enums
-'
-' 4     22.02.11 13:53 Wqw
-' ADD: Function GetDeviceProtocol
-'
-' 3     22.02.11 10:05 Wqw
-' ADD: Function GetDeviceModel
-'
-' 2     21.02.11 13:44 Wqw
-' REF: rename bon to receipt. ADD: Function RunPeriodReport
-'
-' 1     14.02.11 18:13 Wqw
-' Initial implementation
-'
-'=========================================================================
 Option Explicit
 
 Public Enum UcsFiscalReceiptTypeEnum

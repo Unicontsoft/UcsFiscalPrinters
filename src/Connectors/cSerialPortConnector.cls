@@ -12,29 +12,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls 5     19.02.19 16:59 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   COM port connector
-'
-' $Log: /UcsFiscalPrinter/Src/Connectors/cSerialPortConnector.cls $
-' 
-' 5     19.02.19 16:59 Wqw
-' REF: uses timer ex
-'
-' 4     13.06.18 12:19 Wqw
-' REF: clear persistent on terminate
-'
-' 3     28.05.18 16:37 Wqw
-' REF: impl connector get last error
-'
-' 2     14.05.18 12:39 Wqw
-' REF: read data
-'
-' 1     25.04.18 10:39 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

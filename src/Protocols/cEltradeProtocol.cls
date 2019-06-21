@@ -12,149 +12,17 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEltradeProtocol.cls 44    7.03.19 12:33 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Protocol handler for Eltrade cash registers
-'
-' $Log: /UcsFiscalPrinter/Src/cEltradeProtocol.cls $
-' 
-' 44    7.03.19 12:33 Wqw
-' REF: uses null char const
-'
-' 43    26.06.18 16:30 Wqw
-' REF: copy last receipt params
-'
-' 42    13.06.18 12:20 Wqw
-' REF: Init params
-'
-' 41    15.05.18 12:29 Wqw
-' REF: empty variant array
-'
-' 40    25.04.18 10:41 Wqw
-' REF: start receipt params
-'
-' 39    20.11.15 16:39 Wqw
-' REF: optional param of EndReceipt impl of IDeviceProtocol interface
-'
-' 38    6.04.15 15:16 Wqw
-' REF: non-fiscal invoice total vat rounding
-'
-' 37    17.02.15 19:23 Wqw
-' REF: err hanlding on port open
-'
-' 36    30.01.15 15:07 Wqw
-' REF: uses decimal separator property
-'
-' 35    29.01.15 11:44 Wqw
-' REF: open port on error clears persistent comm handle
-'
-' 34    28.01.15 15:34 Wqw
-' REF: error messages
-'
-' 33    23.01.15 17:57 Wqw
-' REF: uses persistent port global object
-'
-' 32    23.01.15 17:11 Wqw
-' REF: uses persistent com port connection
-'
-' 31    17.12.14 16:09 Wqw
-' REF: uses to ascii for string to byte array conversion, retries on
-' handle eof (RDP serial ports)
-'
-' 30    20.06.13 12:49 Wqw
-' REF: handle custom payment types in AddPayment and GetPaymentName
-'
-' 29    18.06.13 17:17 Wqw
-' ADD: Function GetTotalsByPayments, GetTotalsStats
-'
-' 28    14.03.13 16:28 Wqw
-' REF: FP err handling uses pvSetLastError
-'
-' 27    4.01.13 12:23 Wqw
-' REF: err handling
-'
-' 26    3.01.13 16:42 Wqw
-' REF: impl resume ticket
-'
-' 25    19.10.12 0:36 Wqw
-' REF: wrong public scope of private functions
-'
-' 24    9.10.12 15:20 Wqw
-' REF: parms of IDeviceProtocol_CashDebitCredit
-'
-' 23    5.10.12 14:20 Wqw
-' ADD: Function CashDebitCredit
-'
-' 22    6.08.12 18:39 Wqw
-' REF: impl AutodetectDevices
-'
-' 21    23.03.12 15:28 Wqw
-' ADD: GetTotalsByVatGroups. REF: cancel receipt before printing reports
-'
-' 20    8.12.11 15:49 Wqw
-' REF: params of GetDefaultPassword
-'
-' 19    13.07.11 18:14 Wqw
-' REF: while loop in convert extra rows
-'
-' 18    4.07.11 15:48 Wqw
-' REF: err handling
-'
-' 17    17.06.11 11:35 Wqw
-' REF: impl edge case -- 30th PLU w/ discount
-'
-' 16    10.05.11 15:14 Wqw
-' REF: type mismatch in RunZReport
-'
-' 15    4.05.11 19:48 Wqw
-' ADD: Function RunPeriodReport
-'
-' 14    4.05.11 15:04 Wqw
-' REF: invoice number off by one error
-'
-' 13    11.04.11 14:51 Wqw
-' REF: default timeout, param timeout na send command, retry w wait
-' status
-'
-' 12    29.03.11 14:59 Wqw
-' REF: impl retry na get status w pvWaitStatus
-'
-' 11    18.03.11 16:51 Wqw
-' REF: impl extra checks for first PLU programming
-'
-' 10    8.03.11 13:07 Wqw
-' REF: impl out-of-bounds discounts
-'
-' 9     7.03.11 19:22 Wqw
-' REF: w WaitDevice ako wyrne status busy izchakwa 100 ms
-'
-' 8     7.03.11 18:24 Wqw
-' REF: default time-out
-'
-' 7     23.02.11 17:09 Wqw
-' DEL: dead const
-'
-' 6     22.02.11 17:38 Wqw
-' REF: error handling
-'
-' 5     22.02.11 15:19 Wqw
-' REF: impl debug logging
-'
-' 4     22.02.11 13:51 Wqw
-' ADD: Function GetDeviceProtocol
-'
-' 3     22.02.11 10:05 Wqw
-' ADD: Function GetDeviceModel
-'
-' 2     21.02.11 13:47 Wqw
-' ADD: Function CancelReceipt. REF: impl localization support, rename bon
-' to receipt, SendInput is public
-'
-' 1     14.02.11 18:13 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

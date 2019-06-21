@@ -2360,89 +2360,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmIslSetup.frm 25    30.05.19 9:36 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Nastrojki na FP po ISL protocol
-'
-' $Log: /UcsFiscalPrinter/Src/frmIslSetup.frm $
-'
-' 25    30.05.19 9:36 Wqw
-' REF: disp invoke params
-'
-' 24    3.05.19 16:07 Wqw
-' REF: impl incotex fp
-'
-' 23    19.02.19 16:58 Wqw
-' REF: uses timer ex
-'
-' 22    26.06.18 16:31 Wqw
-' REF: time format
-'
-' 21    15.05.18 12:29 Wqw
-' REF: empty variant array
-'
-' 20    25.04.18 10:41 Wqw
-' REF: UI
-'
-' 19    2.02.16 15:17 Wqw
-' REF: impl daisy settings
-'
-' 18    1.02.16 17:18 Wqw
-' REF: impl daisy payments
-'
-' 17    28.01.16 16:00 Wqw
-' REF: disp invoke params
-'
-' 16    30.01.15 15:32 Wqw
-' REF: format elapsed time in ms
-'
-' 15    6.01.15 17:49 Wqw
-' REF: err check za daisy FP
-'
-' 14    26.11.14 19:19 Wqw
-' REF: spelling
-'
-' 13    27.03.14 17:46 Wqw
-' REF: uses ec tape new command
-'
-' 12    18.06.13 17:19 Wqw
-' REF: break on all errors
-'
-' 11    3.01.13 16:39 Wqw
-' REF: impl statuses with listbox
-'
-' 10    5.10.12 14:15 Wqw
-' REF: cash debit/credit captions
-'
-' 9     6.08.12 18:41 Wqw
-' REF: uses EnumSerialPorts
-'
-' 8     8.12.11 15:51 Wqw
-' REF: impl (partial) ECRs support
-'
-' 7     9.08.11 23:24 Wqw
-' REF: uses OpenSaveDialog
-'
-' 6     4.07.11 15:48 Wqw
-' REF: err handling
-'
-' 5     23.02.11 17:10 Wqw
-' REF: tipowe plashtaniq
-'
-' 4     22.02.11 13:53 Wqw
-' REF: polzwa cFiscalAdmin za class factory na protocol-a
-'
-' 3     22.02.11 10:33 Wqw
-' REF: show s owner moje da fail-ne
-'
-' 2     22.02.11 10:06 Wqw
-' REF: polzwa string functions
-'
-' 1     21.02.11 13:42 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

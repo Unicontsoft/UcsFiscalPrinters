@@ -2282,62 +2282,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmEltradeSetup.frm 16    7.03.19 12:42 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Nastrojka na ECR po Eltrade protocol
-'
-' $Log: /UcsFiscalPrinter/Src/frmEltradeSetup.frm $
-' 
-' 16    7.03.19 12:42 Wqw
-' REF: handle extended list of payment types
-'
-' 15    19.02.19 16:58 Wqw
-' REF: uses timer ex
-'
-' 14    26.06.18 16:31 Wqw
-' REF: time format
-'
-' 13    30.01.15 15:32 Wqw
-' REF: format elapsed time in ms
-'
-' 12    17.12.14 16:09 Wqw
-' REF: uses to ascii
-'
-' 11    26.11.14 19:19 Wqw
-' REF: spelling
-'
-' 10    18.06.13 17:18 Wqw
-' REF: uses global c_lng
-'
-' 9     5.10.12 14:15 Wqw
-' REF: cash debit/credit captions
-'
-' 8     6.08.12 18:41 Wqw
-' REF: uses EnumSerialPorts
-'
-' 7     4.07.11 15:48 Wqw
-' REF: err handling
-'
-' 6     4.05.11 19:48 Wqw
-' REF: fiscal memory report by dates
-'
-' 5     23.02.11 17:10 Wqw
-' REF: po UI
-'
-' 4     22.02.11 13:53 Wqw
-' REF: polzwa cFiscalAdmin za class factory na protocol-a
-'
-' 3     22.02.11 10:33 Wqw
-' REF: show s owner moje da fail-ne
-'
-' 2     22.02.11 10:06 Wqw
-' REF: polzwa string functions
-'
-' 1     21.02.11 13:42 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

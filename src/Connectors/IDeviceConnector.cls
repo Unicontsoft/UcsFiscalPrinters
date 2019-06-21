@@ -12,17 +12,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/Connectors/IDeviceConnector.cls 1     25.04.18 10:39 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Internal device connector interface
-'
-' $Log: /UcsFiscalPrinter/Src/Connectors/IDeviceConnector.cls $
-' 
-' 1     25.04.18 10:39 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

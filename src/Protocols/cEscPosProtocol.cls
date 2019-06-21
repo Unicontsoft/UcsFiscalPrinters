@@ -12,44 +12,17 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cEscPosProtocol.cls 9     7.03.19 12:34 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   ESP/POS printer protocol
-'
-' $Log: /UcsFiscalPrinter/Src/cEscPosProtocol.cls $
-'
-' 9     7.03.19 12:34 Wqw
-' REF: uses null char const
-'
-' 8     19.02.19 16:58 Wqw
-' REF: uses timer ex
-'
-' 7     2.01.19 15:12 Wqw
-' REF: allow code page in port
-'
-' 7     1.10.18 16:45 Wqw
-' REF: allow code page in port
-'
-' 6     21.09.18 14:09 Wqw
-' REF: impl logging
-'
-' 5     26.06.18 16:30 Wqw
-' REF: copy last receipt params
-'
-' 4     13.06.18 12:21 Wqw
-' REF: impl configurable row chars
-'
-' 3     15.05.18 12:29 Wqw
-' REF: handle open drawer and get device model
-'
-' 2     14.05.18 12:38 Wqw
-' REF: impl AutodetectDevices
-'
-' 1     25.04.18 10:38 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

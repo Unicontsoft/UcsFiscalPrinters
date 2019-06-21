@@ -12,23 +12,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cPortWrapper.cls 3     30.01.15 15:07 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2015 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Persistent COM port wrapper
-'
-' $Log: /UcsFiscalPrinter/Src/cPortWrapper.cls $
-' 
-' 3     30.01.15 15:07 Wqw
-' REF: calls flush debug log on terminate
-'
-' 2     29.01.15 11:43 Wqw
-' REF: close debug log file on terminate
-'
-' 1     27.01.15 15:22 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit

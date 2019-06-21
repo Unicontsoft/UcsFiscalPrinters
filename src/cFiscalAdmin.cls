@@ -12,51 +12,24 @@ Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 Attribute VB_Description = "cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the library"
+'=========================================================================
+'
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
+'
+'   Administration of fiscal devices and handlers
+'
+'=========================================================================
 ''
 ' cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the
 ' library.
 '
-'=========================================================================
-' $Header: /UcsFiscalPrinter/Src/cFiscalAdmin.cls 10    3.05.19 16:07 Wqw $
-'
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2018 Unicontsoft
-'
-'   Administration of fiscal devices and handlers
-'
-' $Log: /UcsFiscalPrinter/Src/cFiscalAdmin.cls $
-'
-' 10    3.05.19 16:07 Wqw
-' REF: impl incotex fp
-'
-' 9     13.06.18 15:09 Wqw
-' REF: esc/pos protocol
-'
-' 8     20.11.15 16:40 Wqw
-' REF: add VBDOX documentation and typelib descriptions
-'
-' 7     9.08.11 23:25 Wqw
-' REF: supports zeka protocol
-'
-' 6     4.07.11 15:48 Wqw
-' REF: err handling
-'
-' 5     24.02.11 16:19 Wqw
-' REF: IsShared [let]
-'
-' 4     24.02.11 16:05 Wqw
-' ADD: Property CanShare
-'
-' 3     22.02.11 13:51 Wqw
-' ADD: Function CreateObject
-'
-' 2     22.02.11 10:26 Wqw
-' DEL: EnumPorts
-'
-' 1     22.02.11 10:05 Wqw
-' Initial implementation
-'
-'=========================================================================
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cFiscalAdmin"

@@ -2496,62 +2496,17 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
-' $Header: /UcsFiscalPrinter/Src/frmTremolSetup.frm 16    30.05.19 9:36 Wqw $
 '
-'   Unicontsoft Fiscal Printers Project
-'   Copyright (c) 2008-2019 Unicontsoft
+' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+'
+' Unicontsoft Fiscal Printers Component 2.0
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
 '
 '   Nastrojki na FP po Zeka protocol
-'
-' $Log: /UcsFiscalPrinter/Src/frmTremolSetup.frm $
-'
-' 16    30.05.19 9:36 Wqw
-' REF: disp invoke params
-'
-' 15    7.03.19 12:43 Wqw
-' REF: handle extended list of payment types
-'
-' 14    19.02.19 16:58 Wqw
-' REF: uses timer ex
-'
-' 13    12.09.18 17:24 Wqw
-' REF: payment types modification
-'
-' 12    26.06.18 16:31 Wqw
-' REF: time format
-'
-' 11    28.05.18 16:38 Wqw
-' REF: uses GetErrorTempPath
-'
-' 10    28.01.16 16:00 Wqw
-' REF: disp invoke params
-'
-' 9     30.01.15 15:32 Wqw
-' REF: format elapsed time in ms
-'
-' 8     26.11.14 19:19 Wqw
-' REF: spelling
-'
-' 7     18.06.13 17:19 Wqw
-' REF: break on all errors
-'
-' 6     14.03.13 16:27 Wqw
-' REF: fetch/save parameters
-'
-' 5     3.01.13 16:39 Wqw
-' REF: impl reset button
-'
-' 4     8.10.12 11:17 Wqw
-' REF: correct registers for ucsCmdCashOper
-'
-' 3     5.10.12 14:15 Wqw
-' REF: cash debit/credit captions
-'
-' 2     6.08.12 18:41 Wqw
-' REF: uses EnumSerialPorts
-'
-' 1     9.08.11 23:26 Wqw
-' Initial implementation
 '
 '=========================================================================
 Option Explicit
