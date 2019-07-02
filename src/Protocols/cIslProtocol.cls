@@ -2407,7 +2407,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim bPrevExceptions As Boolean
     Dim lIdx            As Long
     Dim vSplit          As Variant
-    Dim vTemp           As Variant
     Dim sType           As String
     Dim bInLogin        As Boolean
     Dim sData           As String
