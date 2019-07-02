@@ -2460,7 +2460,6 @@ Private m_vLogo                 As Variant
 Private m_vSettings             As Variant
 Private m_picLogo               As StdPicture
 Private m_lTimeout              As Long
-Private m_lCashDeskNo           As Long
 
 Private Enum UcsCommands
     ucsCmdConnect
@@ -2540,7 +2539,6 @@ Friend Function frInit(DeviceString As String, sServer As String, OwnerForm As O
     On Error GoTo EH
     vSplit = Split(DeviceString, ";")
     m_lTimeout = C_Lng(At(vSplit, 2))
-    m_lCashDeskNo = C_Lng(At(vSplit, 3))
     vSplit = Split(At(vSplit, 1), ",")
     Set m_oFP = pvGetPrinter(sServer, sError)
     If m_oFP Is Nothing Then
@@ -3026,7 +3024,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Select Case eCommand
     Case ucsCmdConnect
         pvStatus = STR_STATUS_CONNECTING
-        If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout, m_lCashDeskNo) Then
+        If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout) Then
             On Error Resume Next '--- checked
             m_oFP.SendCommand ucsFpcInfoTransaction
             If pvShowError() Then

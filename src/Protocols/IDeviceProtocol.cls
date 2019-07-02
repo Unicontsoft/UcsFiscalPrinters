@@ -99,16 +99,21 @@ Public Enum UcsFiscalErrorsEnum
     ucsFerPasswordNotSet
 End Enum
 
+Public Enum UcsFiscalStornoReasonEnum
+    ucsFscRsnOperatorError
+    ucsFscRsnRefund
+    ucsFscRsnTaxBaseReduction
+End Enum
+
 ''
 ' Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved
 '
 ' @param `Device`       [input] string formatted as "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]"
 ' @param `Timeout`      [in, optional] COM port open timeout in milliseconds, usually defaults to 3000
-' @param `ChashDeskNo`  [in, optional] cash desk number if supported by the device, defaults to 1
 ' @param `RowChars`     [in, optional] number of caracters per row, according paper width
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
+Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
 Attribute Init.VB_Description = "Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved"
 
 End Function
@@ -169,7 +174,7 @@ End Function
 ' @param `InvAddress`       [in, optional] address of the company that is receiving the document
 ' @param `InvMol`           [in, optional] name of the person that is fiscally responsible for the company (not used)
 ' @param `InvReceiver`      [in, optional] name of the person that is receiving the document
-' @param `OwnData`          [in, optional] optional owner info for header: name, address, eik, dep name, dep address
+' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _

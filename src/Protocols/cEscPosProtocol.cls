@@ -56,7 +56,6 @@ Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
 Private m_lCodePage                 As Long
 Private m_lTimeout                  As Long
-Private m_lCashDeskNo               As Long
 Private m_eLastErrNumber            As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_uRow()                    As UcsRowData
@@ -336,7 +335,6 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long, _
             Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
@@ -354,7 +352,6 @@ Public Function Init( _
     End If
     m_lCodePage = Znl(C_Lng(At(vPort, 1)), 866)
     m_lTimeout = IIf(Timeout <> 0, Timeout, DEF_TIMEOUT)
-    m_lCashDeskNo = CashDeskNo
     m_uConfig.RowChars = RowChars
     '--- success
     Init = Connect()
@@ -439,7 +436,7 @@ Public Function StartReceipt( _
         If LenB(.InitOperatorPassword) = 0 Then
             .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
         End If
-        .InitCashDeskNo = m_lCashDeskNo
+        .InitCashDeskNo = 1
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
@@ -1256,8 +1253,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean
@@ -1288,7 +1285,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String) As Boolean
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String) As Boolean
     IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, TableNo, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, OwnData)
 End Function
 

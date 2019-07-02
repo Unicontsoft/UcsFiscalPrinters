@@ -289,7 +289,6 @@ Private Const ucsFscRetNonfiscal        As Long = ucsFscRetSale + 100
 Private m_sDevice                   As String
 Private m_hComm                     As Long
 Private m_lTimeout                  As Long
-Private m_lCashDeskNo               As Long
 Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIslStatusBitsEnum
 Private m_eDip                      As UcsIslDipSwitchesEnum
@@ -802,7 +801,6 @@ Public Function Init( _
     PortWrapper.CloseComPort m_hComm
     m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(Timeout <= 0, DEF_TIMEOUT, Timeout)
-    m_lCashDeskNo = IIf(CashDeskNo <= 0, 1, CashDeskNo)
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
         IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
@@ -988,7 +986,7 @@ Public Function StartReceipt( _
         Else
             .InitUniqueReceiptNumber = SafeText(OperatorPassword)
         End If
-        .InitCashDeskNo = m_lCashDeskNo
+        .InitCashDeskNo = 1
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
@@ -3139,8 +3137,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

@@ -1009,7 +1009,7 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
     If LenB(At(vSplit, 1)) <> 0 Then
-        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3)), C_Lng(At(vSplit, 4))) Then
+        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
             Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
         End If
         If Not SkipLastError Then
