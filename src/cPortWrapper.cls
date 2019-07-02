@@ -22,7 +22,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Persistent COM port wrapper
+' Persistent COM port wrapper
 '
 '=========================================================================
 Option Explicit

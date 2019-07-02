@@ -10,7 +10,7 @@ Attribute VB_Name = "mdGlobals"
 '
 '=========================================================================
 '
-'   Global functions, constants and variables
+' Global functions, constants and variables
 '
 '=========================================================================
 Option Explicit

@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-'   Protocol handler for Eltrade cash registers
+' Protocol handler for Eltrade cash registers
 '
 '=========================================================================
 Option Explicit

@@ -23,74 +23,9 @@ Attribute VB_Description = "cFiscalPrinter class is used as a high-level device 
 '
 '=========================================================================
 '
-'   Fiscal devices management using IDeviceProtocol protocol handlers
+' Fiscal device operations using IDeviceProtocol handlers
 '
 '=========================================================================
-''
-' cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers
-' and can be used to call methods of the chatty IDeviceProtocol protocol in batches.
-'
-' Each public function returns `True` on success and `False` on error. If present, output parameter `LastError` is
-' populated with the error reported by the native protocol driver that was used to perform the operation and
-' `CommandLog` is populated with debug info from the driver too.
-'
-' @param `DeviceString` Most functions accept `DeviceString` as first input parameter which is formatted as
-'                       "Protocol[;Device[;TimeoutMs [;CashDesk]]]" where:
-'   `Protocol`          - is one of `STR_PROTOCOL_Xxx` string constants in `mdGlobals`
-'   `Device`            - is in "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]" format, defaults to
-'                         "COM1", e.g. "COM1,9600,P,8,N,1"
-'   `TimeoutMs`         - is timeout in milliseconds, defaults to protocol's DEF_TIMEOUT constant (usually 3000)
-'   `CashDesk`          - is the cash desk number if multiple cash desks are supported by the device, defaults to 1
-'
-' @param `OperatorData` Some functions accept `OperatorData` as an array of (OperatorCode, OperatorName, OperatorPass
-'                       [, CashDeskNo[, LastReceipt[, PrevReceipt[, PrevCount[, ResumeTicket]]]]]) where:
-'   `OperatorCode`      - is operator number to be authenticated (usually 1-8)
-'   `OperatorName`      - is operator name to be printed on receipt
-'   `OperatorPass`      - is operator password, can be `Empty` if default for device
-'   `CashDeskNo`        - is cash desk number, defaults to 1
-'   `LastReceipt`       - [output] gets the number of the last printed receipt
-'   `PrevReceipt`       - [output] gets the number of the receipt printed before the current one
-'   `PrevCount`         - not used
-'   `ResumeTicket`      - [in/out] gets resume ticket on print error, can be supplied to resume receipt printing
-'
-' @param `InvoiceData`  Function `PrintReceipt` accepts `InvoiceData` as an array of (InvoiceNo, CgName, CgTaxNo,
-'                       CgVatNo, CgAddress, CgPersonReceiver, OwnPersonSeller, LnkDoc, InvoiceNoPrefix) where:
-'   `InvoiceNo`         - the number of the invoice/credit note to be printed
-'   `CgName`            - name of the company that is receiving the document
-'   `CgTaxNo`           - local identification number of the company (country specific)
-'   `CgVatNo`           - VAT identification number of the company (EU specific)
-'   `CgAddress`         - address of the company that is receiving the document
-'   `CgPersonReceiver`  - name of the person that is receiving the document
-'   `OwnPersonSeller`   - name of the person that is issueing the document (not used)
-'   `LnkDoc`            - for credit notes: document number of the invoice that is being corrected
-'   `InvoiceNoPrefix`   - for non-fiscal receipts: prefix to be printed before `InvoiceNo`
-'
-' @param `Rows`         Function `PrintReceipt` function accept `Rows` as an arrays of rows to be printed on the
-'                       receipt, each element can be one of three types of rows for PLUs, payments and free text
-'                       printing respectively (determined by array size):
-'                       1. array of (ItemName, Price, Group, Quantity, Discount) for PLU row
-'                       2. array of (WayOfPmtName, WayOfPmt, Amount) for payment row, cannot by followed by PLUs rows
-'                       3. array of (Text) for free text row, where:
-'   `ItemName`          - is the name of the PLU to be printed
-'   `Price`             - is a double with PLU price, rounded to 0.00
-'   `Group`             - is the VAT group the row will be accumulated to (1-8)
-'   `Quantity`          - is a double with row quantity, rounded to 0.000
-'   `Discount`          - is optional positive percent for discount and negative for surcharge (-100.00 to 100.00)
-'   `PaymentName`       - is the name of the payment if custom type of payment is used (officially registered vouchers,
-'                         etc.)
-'   `WayOfPmt`          - is the type of payment for the amount. Standard types are 1-3 (cash, card, cheque), custom
-'                         types are 5-8
-'   `Amount`            - is a double with the amount that is paid using `WayOfPmt`, rounded to 0.00
-'
-' @remarks Protocol strings can be localized using `UcsFP01.conf` JSON file. Private `pvInit` function reads protocol
-' specific strings under a section with protocol name (`STR_PROTOCOL_Xxx` constants) which include (by protocol):
-' `ELTRADE ECR`      - reads `InternalErrors` and `ReceiptTexts`
-' `DATECS FP/ECR`    - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`,
-'                      `ReceiptTexts` and `ExtendedErrors`
-' `DAISY FP/ECR`     - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors`, `DipSwitchesTexts`, `MemoryTexts`,
-'                      `ReceiptTexts` and `ExtendedErrors`,
-' `TREMOL ECR`       - reads `InternalErrors`, `PrinterStatuses`, `PrinterErrors` and `ReceiptTexts`
-'
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cFiscalPrinter"

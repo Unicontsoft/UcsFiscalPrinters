@@ -2292,7 +2292,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Nastrojka na ECR po Eltrade protocol
+' Nastrojka na ECR po Eltrade protocol
 '
 '=========================================================================
 Option Explicit

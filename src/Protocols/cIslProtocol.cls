@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-'   Protocol handler for Datecs, Daisy and Incotex fiscal printers (ISL protocol)
+' Protocol handler for Datecs, Daisy and Incotex fiscal printers (ISL protocol)
 '
 '=========================================================================
 Option Explicit

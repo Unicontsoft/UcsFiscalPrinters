@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-'   ESP/POS printer protocol
+' ESP/POS printer protocol
 '
 '=========================================================================
 Option Explicit

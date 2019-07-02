@@ -23,7 +23,7 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 '
 '=========================================================================
 '
-'   Abstract interface for fiscal device protocol handling
+' Abstract interface for fiscal device protocol handling
 '
 '=========================================================================
 ''

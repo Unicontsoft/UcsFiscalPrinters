@@ -2370,7 +2370,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Nastrojki na FP po ISL protocol
+' Nastrojki na FP po ISL protocol
 '
 '=========================================================================
 Option Explicit

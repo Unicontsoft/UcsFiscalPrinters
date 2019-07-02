@@ -10,7 +10,7 @@ Attribute VB_Name = "mdJson"
 '
 '=========================================================================
 '
-'   JSON parsing and dumping functions
+' JSON parsing and dumping functions
 '
 '=========================================================================
 Option Explicit

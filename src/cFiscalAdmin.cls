@@ -23,13 +23,9 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 '
 '=========================================================================
 '
-'   Administration of fiscal devices and handlers
+' Administration of fiscal devices and protocols
 '
 '=========================================================================
-''
-' cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the
-' library.
-'
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cFiscalAdmin"

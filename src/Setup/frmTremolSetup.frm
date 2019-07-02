@@ -2506,7 +2506,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Nastrojki na FP po Zeka protocol
+' Nastrojki na FP po Zeka protocol
 '
 '=========================================================================
 Option Explicit

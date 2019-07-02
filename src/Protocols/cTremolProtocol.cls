@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-'   Protocol handler for Tremol/Zeka cash registers & FP
+' Protocol handler for Tremol/Zeka cash registers & FP
 '
 '=========================================================================
 Option Explicit

@@ -22,7 +22,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Network socket connector
+' Network socket connector
 '
 '=========================================================================
 Option Explicit
