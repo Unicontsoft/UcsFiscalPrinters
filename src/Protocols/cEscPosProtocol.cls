@@ -153,7 +153,8 @@ Private Enum UcsOwnDataIndex
     ucsOwnBulstat
     ucsOwnDepName
     ucsOwnDepAddress
-    ucsOwnFooter
+    ucsOwnFooter1
+    ucsOwnFooter2
 End Enum
 
 Private Type UcsContext
@@ -1018,11 +1019,11 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             pvPrintLine .InitInvData(ucsInvAddress)
                         End With
                     End If
-                    sData = At(uRow(0).InitOwnData, 5)
+                    sData = At(uRow(0).InitOwnData, ucsOwnFooter1)
                     If LenB(sData) <> 0 Then
                         pvPrintLine CenterText(sData, pvRowChars)
                     End If
-                    sData = At(uRow(0).InitOwnData, 6)
+                    sData = At(uRow(0).InitOwnData, ucsOwnFooter2)
                     If LenB(sData) <> 0 Then
                         pvPrintLine CenterText(sData, pvRowChars)
                     End If
