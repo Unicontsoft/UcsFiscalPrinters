@@ -381,7 +381,6 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
     Dim lIdx            As Long
     Dim sPrevReceipt    As String
     Dim sResumeTicket   As String
-    Dim sOwnData        As String
     Dim eLastNum        As UcsFiscalErrorsEnum
     Dim sLastErr        As String
     
@@ -389,7 +388,6 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
     LastError = vbNullString
     sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt)
     sResumeTicket = At(OperatorData, ucsFscPixResumeTicket)
-    sOwnData = At(OperatorData, ucsFscPixOwnData)
     Set oFP = pvInit(DeviceString)
     If LenB(sResumeTicket) = 0 Then
         If Not oFP.CancelReceipt() Then
@@ -427,7 +425,7 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
             At(InvoiceData, ucsFscPixCgAddress), _
             At(InvoiceData, ucsFscPixCgPersonReceiver), _
             vbNullString, _
-            sOwnData
+            At(OperatorData, ucsFscPixOwnData)
         If LenB(At(InvoiceData, ucsFscPixLnkDoc)) <> 0 Then
             oFP.AddLine pvText(ucsTxtHeadCreditNote) & At(InvoiceData, ucsFscPixLnkDoc)
         End If
