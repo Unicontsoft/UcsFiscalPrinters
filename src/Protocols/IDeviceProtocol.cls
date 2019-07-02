@@ -186,7 +186,11 @@ Public Function StartReceipt( _
             Optional InvAddress As String, _
             Optional InvMol As String, _
             Optional InvReceiver As String, _
-            Optional OwnData As String) As Boolean
+            Optional OwnData As String, _
+            Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
+            Optional StornoReceiptNo As String, _
+            Optional StornoReceiptDate As Date, _
+            Optional StornoFiscalMemoryNo As String) As Boolean
             
 End Function
 
