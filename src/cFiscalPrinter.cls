@@ -419,7 +419,7 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
             At(OperatorData, ucsFscPixOperatorName, pvText(ucsTxtCashier)), _
             At(OperatorData, ucsFscPixOperatorPass), _
             At(OperatorData, ucsFscPixTableNo), _
-            IIf(ReceiptType = ucsFscRetInvoiceNonfiscal, At(InvoiceData, ucsFscPixInvoiceNoPrefix), vbNullString) & At(InvoiceData, ucsFscPixInvoiceNo), _
+            At(InvoiceData, ucsFscPixInvoiceNo), _
             At(InvoiceData, ucsFscPixCgTaxNo), _
             At(InvoiceData, ucsFscPixCgVatNo), _
             At(InvoiceData, ucsFscPixCgName), _
@@ -433,8 +433,6 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
         End If
         If PrintDuplicate Then
             oFP.AddLine pvText(ucsTxtDuplicate)
-        ElseIf ReceiptType = ucsFscRetInvoiceNonfiscal Then
-            oFP.AddLine pvText(ucsTxtOriginal)
         End If
         For Each vElem In Rows
             With pvGetRowData(vElem)
@@ -467,24 +465,16 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
         PrintReceipt = True
     End If
     If PrintDuplicate Then
-        Select Case ReceiptType
-        Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
-            If IsEmpty(Rows) Then
-                LastError = pvInternal(ucsErrMissingRows)
-                GoTo QH
+        If Not oFP.CopyLastReceipt(At(InvoiceData, ucsFscPixInvoiceNo)) Then
+            LastError = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
+            If eLastNum = ucsFerInvalidPassword Then
+                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
             End If
-        Case Else
-            If Not oFP.CopyLastReceipt(At(InvoiceData, ucsFscPixInvoiceNo)) Then
-                LastError = oFP.GetLastError(eLastNum)
-                DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
-                If eLastNum = ucsFerInvalidPassword Then
-                    ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-                End If
-                GoTo QH
-            End If
-            '--- success
-            PrintReceipt = True
-        End Select
+            GoTo QH
+        End If
+        '--- success
+        PrintReceipt = True
     End If
     ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
 QH:

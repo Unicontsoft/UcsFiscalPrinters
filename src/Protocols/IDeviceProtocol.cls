@@ -47,10 +47,9 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 Option Explicit
 
 Public Enum UcsFiscalReceiptTypeEnum
-    ucsFscRetNonfiscal = 1
-    ucsFscRetFiscal
-    ucsFscRetInvoiceFiscal
-    ucsFscRetInvoiceNonfiscal
+    ucsFscRetSale = 1
+    ucsFscRetStorno
+    ucsFscRetInvoice
     ucsFscRetOrderList
     [_ucsFscRetMax]
 End Enum
