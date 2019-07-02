@@ -235,7 +235,6 @@ End Type
 
 Public Const LIB_NAME               As String = "UcsFiscalPrinters"
 Public Const STR_NONE               As String = "(Няма)"
-Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
 Public Const STR_PROTOCOL_INCOTEX_ECR As String = "INCOTEX FP/ECR"
