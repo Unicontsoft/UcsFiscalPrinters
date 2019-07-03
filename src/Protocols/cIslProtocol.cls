@@ -371,7 +371,7 @@ Private Type UcsRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
-    InitUniqueSaleNo As String
+    InitUniqueSaleNo    As String
     InitInvData         As Variant
     InitCashDeskNo      As Long
     InitStornoData      As Variant
@@ -399,6 +399,14 @@ Private Enum UcsInvDataIndex
     ucsInvAddress
     ucsInvMol
     ucsInvReceiver
+End Enum
+
+Private Enum UcsStoreDataIndex
+    ucsStoReason
+    ucsStoReceiptNo
+    ucsStoReceiptDate
+    ucsStoFiscalMemoryNo
+    ucsStoInvoiceNo
 End Enum
 
 Private Type UcsContext
@@ -963,7 +971,8 @@ Public Function StartReceipt( _
             Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
             Optional StornoReceiptNo As String, _
             Optional StornoReceiptDate As Date, _
-            Optional StornoFiscalMemoryNo As String) As Boolean
+            Optional StornoFiscalMemoryNo As String, _
+            Optional StornoInvoiceNo As String) As Boolean
     Const FUNC_NAME     As String = "StartReceipt"
     Dim uCtxEmpty       As UcsContext
     Dim sCity           As String
@@ -987,7 +996,8 @@ Public Function StartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
-        .InitStornoData = Array(StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo)
+        .InitStornoData = Array(Switch(StornoReason = ucsFscRsnOperatorError, "R", StornoReason = ucsFscRsnTaxBaseReduction, "V", True, "S"), _
+            SafeText(StornoReceiptNo), Format$(StornoReceiptDate, "dd\-mm\-yy hh\:nn\:ss"), SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
     End With
     '--- success
     StartReceipt = True
@@ -2438,57 +2448,57 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsFpcInfoOperator, sParam, "%1", _
                 "Index", lIndex, 5
             sParam = Printf(sParam, .InitOperatorCode)
-            Select Case .InitReceiptType
-            Case ucsFscRetSale, ucsFscRetInvoice
-                bPrevExceptions = pvSetExceptions(False)
-                sData = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
-                If LenB(.InitOperatorName) <> 0 Then
-                    If .InitOperatorName <> sData Then
-                        pvGetCommandConfig CONF_NAME, "InitOperatorName", eCmd, ucsFpcInitOperatorName, sParam, "%1,%2,%3", _
-                            "MinName", lMinName, 10
-                        sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
-                        sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
-                        SendCommand eCmd, sOperParamMax
-                        If Status(ucsStbPrintingError) And sOperParamMin <> sOperParamMax Then
-                            SendCommand eCmd, sOperParamMin
-                        End If
-                    End If
-                Else
-                    .InitOperatorName = RTrim$(sData)
-                End If
-                If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
-                    If IsDaisy Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "P%1,%2", _
-                            "StartIndex", lIndex, 17, _
-                            "EndIndex", lEndIndex, 18
-                        If lIndex > 0 Then
-                            SendCommand eCmd, Printf(sParam, lIndex, .InitInvData(ucsInvNumber))
-                        End If
-                        If lEndIndex > 0 Then
-                            SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
-                        End If
-                    ElseIf IsIncotex Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsFpcExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
-                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                        SendCommand eCmd, sParam
-                    Else
-                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
-                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                        SendCommand eCmd, sParam
+            bPrevExceptions = pvSetExceptions(False)
+            sData = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+            If LenB(.InitOperatorName) <> 0 Then
+                If .InitOperatorName <> sData Then
+                    pvGetCommandConfig CONF_NAME, "InitOperatorName", eCmd, ucsFpcInitOperatorName, sParam, "%1,%2,%3", _
+                        "MinName", lMinName, 10
+                    sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
+                    sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
+                    SendCommand eCmd, sOperParamMax
+                    If Status(ucsStbPrintingError) And sOperParamMin <> sOperParamMax Then
+                        SendCommand eCmd, sOperParamMin
                     End If
                 End If
-                pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
-                    sParam, "%1,%2,%3" & IIf(.InitReceiptType = ucsFscRetInvoice, ",I", vbNullString)
-                If LenB(.InitUniqueSaleNo) <> 0 Then
-                    sParam = Printf(sParam, .InitOperatorCode, .InitUniqueSaleNo, "0")
+            Else
+                .InitOperatorName = RTrim$(sData)
+            End If
+            If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
+                If IsDaisy Then
+                    pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "P%1,%2", _
+                        "StartIndex", lIndex, 17, _
+                        "EndIndex", lEndIndex, 18
+                    If lIndex > 0 Then
+                        SendCommand eCmd, Printf(sParam, lIndex, .InitInvData(ucsInvNumber))
+                    End If
+                    If lEndIndex > 0 Then
+                        SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
+                    End If
+                ElseIf IsIncotex Then
+                    pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsFpcExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
+                    sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                    SendCommand eCmd, sParam
                 Else
-                    sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitCashDeskNo)
+                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
+                    sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                    SendCommand eCmd, sParam
                 End If
-                Exceptions = bPrevExceptions
-                bInLogin = True
-                SendCommand eCmd, sParam
-                bInLogin = False
-            End Select
+            End If
+            If .InitReceiptType = ucsFscRetStorno Then
+                sParam = "%1,%2,%3,%4%4%5,%6,%7"
+            Else
+                sParam = "%1,%2,0" & IIf(.InitReceiptType = ucsFscRetInvoice, ",I", vbNullString)
+            End If
+            pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
+                sParam, sParam
+            sParam = Printf(sParam, .InitOperatorCode, Zn(.InitUniqueSaleNo, "0"), .InitStornoData(ucsStoReceiptNo), _
+                .InitStornoData(ucsStoReason), Zn(At(.InitStornoData, ucsStoInvoiceNo), "0"), _
+                .InitStornoData(ucsStoReceiptDate), .InitStornoData(ucsStoFiscalMemoryNo))
+            Exceptions = bPrevExceptions
+            bInLogin = True
+            SendCommand eCmd, sParam
+            bInLogin = False
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, 2)
