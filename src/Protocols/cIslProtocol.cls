@@ -371,7 +371,7 @@ Private Type UcsRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
-    InitUniqueReceiptNumber As String
+    InitUniqueSaleNo As String
     InitInvData         As Variant
     InitCashDeskNo      As Long
     InitStornoData      As Variant
@@ -779,7 +779,6 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long, _
             Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Const CONF_NAME     As String = FUNC_NAME
@@ -952,6 +951,7 @@ Public Function StartReceipt( _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
             Optional OperatorPassword As String, _
+            Optional UniqueSaleNo As String, _
             Optional InvNumber As String, _
             Optional InvTaxNumber As String, _
             Optional InvVatNumber As String, _
@@ -978,14 +978,11 @@ Public Function StartReceipt( _
         .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
-        If Len(OperatorPassword) < 21 Then ' 21 = 8 + 1 + 4 + 1 + 7
-            .InitOperatorPassword = SafeText(OperatorPassword)
-            If LenB(.InitOperatorPassword) = 0 Then
-                .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
-            End If
-        Else
-            .InitUniqueReceiptNumber = SafeText(OperatorPassword)
+        .InitOperatorPassword = SafeText(OperatorPassword)
+        If LenB(.InitOperatorPassword) = 0 Then
+            .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
         End If
+        .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         .InitCashDeskNo = 1
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
@@ -2482,8 +2479,8 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 End If
                 pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
                     sParam, "%1,%2,%3" & IIf(.InitReceiptType = ucsFscRetInvoice, ",I", vbNullString)
-                If LenB(.InitUniqueReceiptNumber) <> 0 Then
-                    sParam = Printf(sParam, .InitOperatorCode, .InitUniqueReceiptNumber, "0")
+                If LenB(.InitUniqueSaleNo) <> 0 Then
+                    sParam = Printf(sParam, .InitOperatorCode, .InitUniqueSaleNo, "0")
                 Else
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitCashDeskNo)
                 End If
@@ -3169,7 +3166,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo)
 End Function
 

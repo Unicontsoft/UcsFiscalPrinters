@@ -182,6 +182,7 @@ Public Function StartReceipt( _
             OperatorCode As String, _
             OperatorName As String, _
             OperatorPassword As String, _
+            Optional UniqueSaleNo As String, _
             Optional TableNo As String, _
             Optional InvNumber As String, _
             Optional InvTaxNumber As String, _
