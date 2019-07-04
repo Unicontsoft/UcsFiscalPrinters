@@ -373,7 +373,6 @@ Private Type UcsRowData
     InitOperatorPassword As String
     InitUniqueSaleNo    As String
     InitInvData         As Variant
-    InitCashDeskNo      As Long
     InitStornoData      As Variant
     PluName             As String
     PluPrice            As Double
@@ -992,7 +991,6 @@ Public Function StartReceipt( _
             .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
         End If
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
-        .InitCashDeskNo = 1
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))

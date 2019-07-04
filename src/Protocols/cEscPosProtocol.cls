@@ -118,7 +118,6 @@ Private Type UcsRowData
     InitTableNo         As String
     InitInvData         As Variant
     InitOwnData         As Variant
-    InitCashDeskNo      As Long
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
@@ -430,7 +429,6 @@ Public Function StartReceipt( _
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
         .InitTableNo = TableNo
-        .InitCashDeskNo = 1
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
@@ -840,7 +838,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     "FormatDisc", sFormatDisc, "0.00", _
                     "FormatAmount", sFormatAmount, "0.00"
                 If uCtx.PluCount = 1 Then
-                    pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(uRow(0).InitCashDeskNo, "00"), pvRowChars)
+                    pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(1, "00"), pvRowChars)
                 End If
                 If .PrintRowType = ucsFscRetSale Then
                     vSplit = WrapMultiline(.PluName, pvRowChars - 7)
