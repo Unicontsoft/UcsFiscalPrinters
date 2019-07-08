@@ -170,6 +170,14 @@ Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue A
     m_vLocalizedText(eIdx) = SplitOrReindex(sValue, "|")
 End Property
 
+Property Get hComm() As Long
+    hComm = m_hComm
+End Property
+
+Property Let hComm(ByVal lValue As Long)
+    m_hComm = lValue
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -324,7 +332,7 @@ TimeoutReached:
             End If
         End If
         If lActual > 0 Then
-            ReDim Preserve Result(0 To lActual + 1) As Byte
+            ReDim Preserve Result(0 To lActual - 1) As Byte
             '--- success
             ReadData = True
             Exit Do
@@ -429,6 +437,7 @@ End Function
 Private Sub Class_Initialize()
     m_hComm = INVALID_HANDLE_VALUE
     m_lCommEventTimeout = DEF_COMM_EVENT_TIMEOUT
+    m_lTimeout = DEF_TIMEOUT
 End Sub
 
 Private Sub Class_Terminate()
