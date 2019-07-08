@@ -112,6 +112,7 @@ Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
+Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long) As Long
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
@@ -1461,6 +1462,18 @@ Public Function ToAscii(sSend As String, Optional ByVal CodePage As Long) As Byt
         baText = " "
     End If
     ToAscii = baText
+End Function
+
+Public Function FromAscii(baRecv() As Byte, Optional ByVal CodePage As Long) As String
+    Dim lSize           As Long
+    
+    If UBound(baRecv) >= 0 Then
+        FromAscii = String$(2 * (UBound(baRecv) + 1), 0)
+        lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromAscii), Len(FromAscii) + 1)
+        If lSize <> Len(FromAscii) Then
+            FromAscii = Left$(FromAscii, lSize)
+        End If
+    End If
 End Function
 
 Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
