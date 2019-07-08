@@ -50,6 +50,7 @@ Public Enum UcsFiscalReceiptTypeEnum
     ucsFscRetSale = 1
     ucsFscRetStorno
     ucsFscRetInvoice
+    ucsFscRetCreditNote
     ucsFscRetOrderList
     [_ucsFscRetMax]
 End Enum
