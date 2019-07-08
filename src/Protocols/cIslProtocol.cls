@@ -994,7 +994,7 @@ Public Function StartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
-        .InitStornoData = Array(Switch(StornoReason = ucsFscRsnOperatorError, "R", StornoReason = ucsFscRsnTaxBaseReduction, "V", True, "S"), _
+        .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, "V", StornoReason = ucsFscRsnOperatorError, "R", True, "S"), _
             SafeText(StornoReceiptNo), Format$(StornoReceiptDate, "dd\-mm\-yy hh\:nn\:ss"), SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
     End With
     '--- success
