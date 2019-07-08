@@ -2072,7 +2072,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim sFormatDisc     As String
     Dim sFormatAmount   As String
     Dim lPrintType      As Long
-    Dim lMaxReceiptNo   As Long
     
     On Error GoTo EH
     '--- ring sale
@@ -2113,13 +2112,16 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 End If
             End If
             '--- setup invoice no
-            If .InitReceiptType = ucsFscRetInvoice And LenB(.InitInvData(ucsInvNumber)) <> 0 Then
-                pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsZekCmdInitInvoiceNo, sParam, "%1;%1"
-                sParam = Printf(sParam, Pad(.InitInvData(ucsInvNumber), -m_uConfig.MaxInvoiceNo))
-                SendCommand eCmd, sParam
-                If LenB(m_sLastError) <> 0 Then
-                    GoTo QH
-                End If
+            If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
+                Select Case .InitReceiptType
+                Case ucsFscRetInvoice, ucsFscRetCreditNote
+                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsZekCmdInitInvoiceNo, sParam, "%1;%1"
+                    sParam = Printf(sParam, Pad(.InitInvData(ucsInvNumber), -m_uConfig.MaxInvoiceNo))
+                    SendCommand eCmd, sParam
+                    If LenB(m_sLastError) <> 0 Then
+                        GoTo QH
+                    End If
+                End Select
             End If
             '--- setup fiscal receipt
             Select Case .InitReceiptType
@@ -2132,15 +2134,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Case ucsFscRetStorno
                 sParam = "%1;%2;%3;0;%4;%7"
                 lPrintType = 64
-                lMaxReceiptNo = -6
             Case ucsFscRetCreditNote
-                sParam = "%1;%2;%3;0;%4;%5;%7"
+                sParam = "%1;%2;%3;0;%4;%5;%8"
                 lPrintType = 65
-                lMaxReceiptNo = -10
             End Select
             pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsZekCmdFiscalOpen, sParam, sParam, _
-                "PrintType", lPrintType, lPrintType, _
-                "MaxReceiptNo", lMaxReceiptNo, lMaxReceiptNo
+                "PrintType", lPrintType, lPrintType
             sParam = Printf(sParam, Pad(.InitOperatorCode, -m_uConfig.MaxOperCode), _
                 Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
                 IIf(m_uConfig.DetailedReceipt, 1, 0), _
@@ -2153,8 +2152,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     ";" & .InitInvData(ucsInvTaxNumberType), vbNullString), _
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
                 .InitStornoData(ucsStoReason) & _
-                    ";" & Pad(.InitStornoData(ucsStoReceiptNo), lMaxReceiptNo) & _
+                    ";" & .InitStornoData(ucsStoReceiptNo) & _
                     ";" & .InitStornoData(ucsStoReceiptDate) & _
+                    ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
+                    IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
+                .InitStornoData(ucsStoReason) & _
+                    ";" & Pad(.InitStornoData(ucsStoInvoiceNo), -m_uConfig.MaxInvoiceNo) & _
+                    ";" & .InitStornoData(ucsStoReceiptDate) & _
+                    ";" & .InitStornoData(ucsStoReceiptNo) & _
                     ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString))
             SendCommand eCmd, sParam
@@ -2166,15 +2171,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             dblTotal = Round(.PluPrice * .PluQuantity, 2)
             dblDisc = Round(dblTotal * IIf(.DiscType = ucsFscDstPlu, .DiscValue, 0) / 100#, 2)
             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
-            '--- on invoices print empty line before first PLU
-            If uCtx.PluCount = 1 Then
-                Select Case .PrintRowType
-                Case ucsFscRetInvoice
-                    If Not pvPrintLine(vbNullString) Then
-                        GoTo QH
-                    End If
-                End Select
-            End If
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .InitReceiptType, eCmd, ucsZekCmdFiscalSell, sParam, "%1", _
                 "FormatPrice", sFormatPrice, "0.00", _
                 "FormatQty", sFormatQty, "0.000", _
