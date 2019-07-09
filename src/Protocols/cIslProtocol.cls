@@ -177,15 +177,8 @@ End Enum
 '--- for CreateFile
 Private Const INVALID_HANDLE_VALUE          As Long = -1
 Private Const ERROR_ACCESS_DENIED           As Long = 5
-'--- for WaitCommEvent
-Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
-Private Const EV_ERR                        As Long = &H80
-'--- for WaitForMultipleObjects
-Private Const WAIT_OBJECT_0                 As Long = 0
-Private Const WAIT_TIMEOUT                  As Long = 258
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
-Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
 Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
 Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
@@ -197,11 +190,8 @@ Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lp
 Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
 Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
-Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
-Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As OVERLAPPED) As Long
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
-Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
 Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
@@ -287,7 +277,7 @@ Private Const ucsFscDstSubtotalAbs      As Long = ucsFscDstSubtotal + 100
 Private Const ucsFscRetNonfiscal        As Long = ucsFscRetSale + 100
 
 Private m_sDevice                   As String
-Private m_hComm                     As Long
+Private m_oConnector                As IDeviceConnector
 Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIslStatusBitsEnum
@@ -542,11 +532,13 @@ Property Get Device() As String
 End Property
 
 Property Get IsConnected() As Boolean
-    IsConnected = (m_hComm <> INVALID_HANDLE_VALUE)
+    IsConnected = Not m_oConnector Is Nothing
 End Property
 
 Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
-    LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    If IsArray(m_uConfig.LocalizedText(eIdx)) Then
+        LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    End If
 End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
@@ -564,7 +556,7 @@ Property Get IsEcr() As Boolean
     If m_uConfig.IsEcr = vbUseDefault Then
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsFpcEcrReadRow, sParam, "2;1;", _
             "Timeout", lTimeout, 100
-        m_uConfig.IsEcr = IIf(LenB(pvSendCommand(m_hComm, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
+        m_uConfig.IsEcr = IIf(LenB(pvSendCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
     End If
     IsEcr = (m_uConfig.IsEcr = vbTrue)
     Exit Property
@@ -672,6 +664,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sError          As String
     Dim vSpeeds         As Variant
     Dim baText()        As Byte
+    Dim oConnector      As cSerialPortConnector
     
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", STR_CHR1 & Chr$(&H24) & Chr$(&H20) & Chr$(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
@@ -754,9 +747,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If LenB(.Buffer) <> 0 Then
                         Debug.Print lIdx, ToHexDump(.Buffer), Timer
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
-                            If pvGetDeviceInfo(.hComm, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
+                            Set oConnector = New cSerialPortConnector
+                            oConnector.hComm = .hComm
+                            If pvGetDeviceInfo(oConnector, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
                             End If
+                            oConnector.hComm = INVALID_HANDLE_VALUE
+                            Set oConnector = Nothing
                         Else
                             DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
                         End If
@@ -804,15 +801,11 @@ Public Function Init( _
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
     pvSetLastError vbNullString
-    PortWrapper.CloseComPort m_hComm
-    m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(Timeout <= 0, DEF_TIMEOUT, Timeout)
     vSplit = Split(sDevice, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
         IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
-    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, sError)
-    If LenB(sError) <> 0 Then
-        pvSetLastError sError
+    If Not Connect() Then
         GoTo QH
     End If
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsFpcInfoDiagnostics, sParam, "0", _
@@ -820,7 +813,7 @@ Public Function Init( _
         "IncotexPrefix", sIncotexPrefix, "IN", _
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
-    m_vInfoDiagnostics = Split(pvSendCommand(m_hComm, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
+    m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
@@ -863,18 +856,12 @@ End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
-    Dim sError          As String
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_hComm=" & m_hComm
-    pvSetLastError vbNullString
-    If m_hComm <> INVALID_HANDLE_VALUE Then
-        pvSetLastError pvInternal(ucsErrAlreadyConnected)
-        GoTo QH
-    End If
-    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, sError)
-    If LenB(sError) <> 0 Then
-        pvSetLastError sError
+    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout
+    Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_sLastError)
+    If m_oConnector Is Nothing Then
+        DebugLog FUNC_NAME, "InitDeviceConnector failed, m_sLastError=" & m_sLastError
         GoTo QH
     End If
     '--- success
@@ -889,14 +876,8 @@ Public Function Disconnect() As Boolean
     Const FUNC_NAME     As String = "Disconnect"
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_hComm=" & m_hComm & ", Status=" & Right$("000000" & Hex$(m_eStatus), 6) & " " & Right$("00" & Hex$(m_eDip), 2) & " " & Right$("0000" & Hex$(m_eMemory), 4)
-    pvSetLastError vbNullString
-    If m_hComm = INVALID_HANDLE_VALUE Then
-        pvSetLastError pvInternal(ucsErrNotConnected)
-        GoTo QH
-    End If
-    PortWrapper.CloseComPort m_hComm
-    m_hComm = INVALID_HANDLE_VALUE
+    DebugLog FUNC_NAME, "TypeOf m_oConnector=" & TypeName(m_oConnector)
+    Set m_oConnector = Nothing
     '--- success
     Disconnect = True
 QH:
@@ -924,7 +905,7 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
     If m_uConfig.Charset = ucsCrsAuto Then
         pvGetCommandConfig CONF_NAME, "InitDecimals", eDecimalsCmd, ucsFpcInitDecimals, sDecimalsParam, vbNullString, _
             "Index", lDecimalsIndex, 2
-        vResult = Split(pvSendCommand(m_hComm, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_DELIM)
+        vResult = Split(pvSendCommand(m_oConnector, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_DELIM)
         If LenB(sError) <> 0 Then
             pvSetLastError sError
             GoTo QH
@@ -933,7 +914,7 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
         lChar = Asc(Zn(Trim$(At(vResult, lDecimalsIndex)), " "))
         m_uConfig.Charset = IIf(lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40, ucsCrsMik, ucsCrsWindows)
     End If
-    SendCommand = pvSendCommand(m_hComm, m_lTimeout, eCmd, Data, sError)
+    SendCommand = pvSendCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
@@ -1691,7 +1672,7 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_hComm, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1701,7 +1682,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_hComm, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1715,7 +1696,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsFpcInfoStatus, sParam, "X"
-    pvSendCommand m_hComm, m_lTimeout, eCmd, sParam, m_sLastError
+    pvSendCommand m_oConnector, m_lTimeout, eCmd, sParam, m_sLastError
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsStbPrintingError) Then
@@ -2052,7 +2033,7 @@ EH:
 End Function
 
 Private Function pvSendCommand( _
-            ByVal hComm As Long, _
+            oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
             ByVal eCmd As UcsIslCommandsEnum, _
             Optional Data As String, _
@@ -2063,19 +2044,11 @@ Private Function pvSendCommand( _
     Dim baText()        As Byte
     Dim lIdx            As Long
     Dim lSum            As Long
-    Dim lWritten        As Long
-    Dim uOver           As OVERLAPPED
     Dim lSize           As Long
-    Dim lResult         As Long
     Dim sBuffer         As String
-    Dim lMask           As Long
-    Dim lActual         As Long
-    Dim lRetryCount     As Long
-    Dim lIterTimeout    As Long
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
-    uOver.hEvent = CreateEvent(0, 1, 0, 0)
     '--- prepare command and transcode cyrillic
     sSend = pvTranscode(Data, True)
     Do While eCmd >= &H100
@@ -2092,156 +2065,73 @@ Private Function pvSendCommand( _
     Next
     '--- append checksum and terminator
     sSend = sSend & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
-    baText = ToAscii(sSend)
-    '--- async send
-    Call PurgeComm(hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    Call SetCommMask(hComm, EV_RXCHAR Or EV_ERR)
+    '--- send request
 RetrySend:
     DebugDataDump FUNC_NAME, "send ", sSend
-    lResult = WriteFile(hComm, baText(0), Len(sSend), lWritten, uOver)
-    If lResult = 0 Then
-        If Err.LastDllError <> ERROR_IO_PENDING Then
-            Error = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(Err.LastDllError))
-            GoTo QH
-        End If
-    End If
-    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lTimeout)
-    If lResult <> WAIT_OBJECT_0 Then
-        Call CancelIo(hComm)
-        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
-        If lResult = WAIT_TIMEOUT Then
-            Error = pvInternal(ucsErrTimeoutWaitingForResponse)
-        End If
+    baText = ToAscii(sSend)
+    If Not oConnector.WriteData(baText, lTimeout) Then
+        Error = oConnector.GetLastError()
+        DebugLog FUNC_NAME, "WriteData failed, Error=" & Error
         GoTo QH
     End If
-    '--- async read response
+    '--- read response
     sText = vbNullString
-    Do
-        Do While Right$(sText, 1) <> Chr$(3)
-            lIterTimeout = LimitLong(m_uConfig.CommEventTimeout, , lTimeout - lRetryCount * m_uConfig.CommEventTimeout)
-            sBuffer = String$(1000, 0)
-            lActual = 0
-            lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
-            If lResult <> 0 And lActual = 0 Then
-WaitEvent:
-                lResult = WaitCommEvent(hComm, lMask, uOver)
-                If lResult = 0 Then
-                    Select Case Err.LastDllError
-                    Case ERROR_IO_PENDING
-                        lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-                        Select Case lResult
-                        Case WAIT_OBJECT_0
-                            If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
-                                DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                                lRetryCount = lRetryCount + 1
-                                If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
-                                    GoTo TimeoutReached
-                                End If
-                            End If
-                        Case WAIT_TIMEOUT
-                            lRetryCount = lRetryCount + 1
-                        End Select
-                    Case Else
-                        DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & Err.LastDllError
-                        Error = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(Err.LastDllError))
-                        GoTo QH
-                    End Select
-                End If
-                lResult = ReadFile(hComm, ByVal sBuffer, Len(sBuffer), lActual, uOver)
-            End If
-            If lResult = 0 Then
-                Select Case Err.LastDllError
-                Case ERROR_IO_PENDING
-                    lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-                    Select Case lResult
-                    Case WAIT_OBJECT_0
-                        If GetOverlappedResult(hComm, uOver, lActual, 0) = 0 Then
-                            DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                            lRetryCount = lRetryCount + 1
-                            If lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
-                                GoTo TimeoutReached
-                            End If
-                        End If
-                    Case WAIT_TIMEOUT
-                        lRetryCount = lRetryCount + 1
-                    End Select
-                Case ERROR_HANDLE_EOF
-                    GoTo WaitEvent
-                Case Else
-                    DebugLog FUNC_NAME, "ReadFile, eCmd=0x" & Hex$(eCmd) & ", Err.LastDllError=" & Err.LastDllError
-                    Error = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(Err.LastDllError))
-                    GoTo QH
-                End Select
-            End If
-            If lResult <> 0 And lRetryCount * m_uConfig.CommEventTimeout >= lTimeout Then
-TimeoutReached:
-                Call CancelIo(hComm)
-                DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_uConfig.CommEventTimeout=" & m_uConfig.CommEventTimeout & ", lTimeout=" & lTimeout
-                Error = pvInternal(ucsErrTimeoutWaitingForResponse)
-                GoTo QH
-            End If
-            DebugDataDump FUNC_NAME, "recv ", Left$(sBuffer, lActual)
-            If lActual = 0 Then
-                Exit Do
-            End If
-            sBuffer = Left$(sBuffer, lActual)
-            '--- check for NAK (&H15)
-            If InStr(sBuffer, Chr$(&H15)) > 0 Then
-                lRetryCount = lRetryCount + 1
-                If lRetryCount * m_uConfig.CommEventTimeout < lTimeout Then
-                    DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
-                    GoTo RetrySend
-                End If
-                Error = pvInternal(ucsErrInvalidMessageFormatOrChecksum)
-                GoTo QH
-            End If
-            '--- remove SYN (&H16)
-            sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
-        Loop
-RetryParse:
-        '--- check if response complete (3 = Terminator)
-        If Right$(sText, 1) = Chr$(3) Then
-            If Left$(sText, 1) = STR_CHR1 Then
-                lIdx = InStr(sText, Chr$(5))
-                If lIdx > 2 Then
-                    lSize = Asc(Mid$(sText, 2, 1)) - &H20
-                    '--- check message length
-                    If lSize >= 4 And lSize < lIdx Then
-                        '--- check for status info
-                        lIdx = InStrRev(sText, Chr$(4), lIdx)
-                        If lIdx > 4 Then
-                            pvSetStatus Mid$(sText, lIdx + 1, 6)
-                            lSize = lIdx - 1
-                        Else
-                            pvSetStatus vbNullString '--- clear
-                        End If
-                        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
-                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
-                            IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
-                            IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
-                        GoTo QH
-                    Else
-                        Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
-                    End If
-                Else
-                    Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
-                End If
-            Else
-                '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
-                lIdx = InStr(sText, STR_CHR1)
-                If lIdx > 1 Then
-                    DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
-                    sText = Mid$(sText, lIdx)
-                    GoTo RetryParse
-                End If
-                Error = Printf(pvInternal(ucsErrResponseMissingPreamble), "0x" & ToHexDump(sText))
-            End If
-            pvSetStatus vbNullString '--- clear
+    Do While Right$(sText, 1) <> Chr$(3)
+        If Not oConnector.ReadData(baText, lTimeout) Then
+            Error = oConnector.GetLastError()
+            DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
             GoTo QH
         End If
+        sBuffer = FromAscii(baText)
+        DebugDataDump FUNC_NAME, "recv ", sBuffer
+        '--- check for NAK (&H15)
+        If InStr(sBuffer, Chr$(&H15)) > 0 Then
+            DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
+            GoTo RetrySend
+        End If
+        '--- remove SYN (&H16)
+        sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
     Loop
+RetryParse:
+    '--- response complete w/ 3 = Terminator
+    Debug.Assert Right$(sText, 1) = Chr$(3)
+    If Left$(sText, 1) = STR_CHR1 Then
+        lIdx = InStr(sText, Chr$(5))
+        If lIdx > 2 Then
+            lSize = Asc(Mid$(sText, 2, 1)) - &H20
+            '--- check message length
+            If lSize >= 4 And lSize < lIdx Then
+                '--- check for status info
+                lIdx = InStrRev(sText, Chr$(4), lIdx)
+                If lIdx > 4 Then
+                    pvSetStatus Mid$(sText, lIdx + 1, 6)
+                    lSize = lIdx - 1
+                Else
+                    pvSetStatus vbNullString '--- clear
+                End If
+                pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
+                DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
+                    IIf(Status(ucsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
+                    IIf(Memory(ucsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
+                GoTo QH
+            Else
+                Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
+            End If
+        Else
+            Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
+        End If
+    Else
+        '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
+        lIdx = InStr(sText, STR_CHR1)
+        If lIdx > 1 Then
+            DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
+            sText = Mid$(sText, lIdx)
+            GoTo RetryParse
+        End If
+        Error = Printf(pvInternal(ucsErrResponseMissingPreamble), "0x" & ToHexDump(sText))
+    End If
+    pvSetStatus vbNullString '--- clear
 QH:
-    Call CloseHandle(uOver.hEvent)
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -2463,31 +2353,35 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 .InitOperatorName = RTrim$(sData)
             End If
             If LenB(.InitInvData(ucsInvNumber)) <> 0 Then
-                If IsDaisy Then
-                    pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "P%1,%2", _
-                        "StartIndex", lIndex, 17, _
-                        "EndIndex", lEndIndex, 18
-                    If lIndex > 0 Then
-                        SendCommand eCmd, Printf(sParam, lIndex, .InitInvData(ucsInvNumber))
+                Select Case .InitReceiptType
+                Case ucsFscRetInvoice, ucsFscRetCreditNote
+                    If IsDaisy Then
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsFpcExtendedInitSetting, sParam, "P%1,%2", _
+                            "StartIndex", lIndex, 17, _
+                            "EndIndex", lEndIndex, 18
+                        If lIndex > 0 Then
+                            SendCommand eCmd, Printf(sParam, lIndex, .InitInvData(ucsInvNumber))
+                        End If
+                        If lEndIndex > 0 Then
+                            SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
+                        End If
+                    ElseIf IsIncotex Then
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsFpcExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                        SendCommand eCmd, sParam
+                    Else
+                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvNumber))
+                        SendCommand eCmd, sParam
                     End If
-                    If lEndIndex > 0 Then
-                        SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvNumber))
-                    End If
-                ElseIf IsIncotex Then
-                    pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsFpcExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
-                    sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                    SendCommand eCmd, sParam
-                Else
-                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsFpcInitInvoiceNo, sParam, "%1,%1"
-                    sParam = Printf(sParam, .InitInvData(ucsInvNumber))
-                    SendCommand eCmd, sParam
-                End If
+                End Select
             End If
-            If .InitReceiptType = ucsFscRetStorno Then
+            Select Case .InitReceiptType
+            Case ucsFscRetStorno, ucsFscRetCreditNote
                 sParam = "%1,%2,%3,%4%4%5,%6,%7"
-            Else
+            Case Else
                 sParam = "%1,%2,0" & IIf(.InitReceiptType = ucsFscRetInvoice, ",I", vbNullString)
-            End If
+            End Select
             pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsFpcFiscalOpen, _
                 sParam, sParam
             sParam = Printf(sParam, .InitOperatorCode, Zn(.InitUniqueSaleNo, "0"), .InitStornoData(ucsStoReceiptNo), _
@@ -2895,7 +2789,7 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, Optional Error As String) As Boolean
+Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim eCmd            As UcsIslCommandsEnum
@@ -2914,10 +2808,10 @@ Private Function pvGetDeviceInfo(ByVal hComm As Long, ByVal lTimeout As Long, vR
         "SwitchesIndex", lSwitchesIndex, 3, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
-        vResult = Split(pvSendCommand(hComm, lTimeout, eCmd, sParam, Error), DEF_DELIM)
+        vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_DELIM)
         If LenB(At(vResult, 0)) = 0 Then
             sParam = vbNullString
-            vResult = Split(pvSendCommand(hComm, lTimeout, eCmd, sParam, Error), DEF_DELIM)
+            vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_DELIM)
         End If
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
@@ -2990,7 +2884,6 @@ End Function
 '=========================================================================
 
 Private Sub Class_Initialize()
-    m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = DEF_TIMEOUT
     m_lSequence = &H20
     m_bExceptions = True
@@ -3002,11 +2895,6 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciExtendedErrors) = STR_EXT_ERRORS
     m_uConfig.CommEventTimeout = DEF_COMM_EVENT_TIMEOUT * 2
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
-End Sub
-
-Private Sub Class_Terminate()
-    PortWrapper.CloseComPort m_hComm
-    m_hComm = INVALID_HANDLE_VALUE
 End Sub
 
 '=========================================================================
