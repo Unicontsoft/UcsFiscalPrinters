@@ -1988,7 +1988,7 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         lLastErr = Err.LastDllError
         Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
         If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
-            dblTimer = TimerEx + lTimeout / 1000#
+            dblTimer = TimerEx + lTimeout / 1000
             Do While TimerEx < dblTimer
                 Call Sleep(100)
                 hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
@@ -2046,6 +2046,7 @@ Private Function pvSendCommand( _
     Dim lSum            As Long
     Dim lSize           As Long
     Dim sBuffer         As String
+    Dim dblTimer        As Double
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
@@ -2066,6 +2067,7 @@ Private Function pvSendCommand( _
     '--- append checksum and terminator
     sSend = sSend & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
     '--- send request
+    dblTimer = TimerEx + lTimeout / 1000
 RetrySend:
     DebugDataDump FUNC_NAME, "send ", sSend
     baText = ToAscii(sSend)
@@ -2077,6 +2079,11 @@ RetrySend:
     '--- read response
     sText = vbNullString
     Do While Right$(sText, 1) <> Chr$(3)
+        If TimerEx > dblTimer Then
+            Error = pvInternal(ucsErrTimeoutWaitingForResponse)
+            DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
+            GoTo QH
+        End If
         If Not oConnector.ReadData(baText, lTimeout) Then
             Error = oConnector.GetLastError()
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
