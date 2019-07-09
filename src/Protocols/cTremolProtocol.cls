@@ -1317,7 +1317,7 @@ Public Function GetLastReceiptNumber() As String
         "Index", lIndex, 0
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     If LenB(m_sLastError) = 0 Then
-        GetLastReceiptNumber = At(vSplit, lIndex)
+        GetLastReceiptNumber = RTrim$(At(vSplit, lIndex))
     End If
     Exit Function
 EH:
@@ -1352,7 +1352,7 @@ Public Function GetSerialNumber() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", 0, 0, vbNullString, vbNullString, _
         "Index", lIndex, 0
-    GetSerialNumber = At(m_vInfoDiagnostics, lIndex)
+    GetSerialNumber = RTrim$(At(m_vInfoDiagnostics, lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1366,7 +1366,7 @@ Public Function GetFiscalNumber() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", 0, 0, vbNullString, vbNullString, _
         "Index", lIndex, 1
-    GetFiscalNumber = At(m_vInfoDiagnostics, lIndex)
+    GetFiscalNumber = RTrim$(At(m_vInfoDiagnostics, lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1382,7 +1382,7 @@ Public Function GetTaxNumber() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsZekCmdInfoBulstat, sParam, vbNullString, _
         "Index", lIndex, 0
-    GetTaxNumber = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+    GetTaxNumber = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1399,7 +1399,7 @@ Public Function GetTaxCaption() As String
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsZekCmdInfoBulstat, sParam, vbNullString, _
         "Index", lIndex, 1
     lIndex = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
-    GetTaxCaption = At(Split(pvText(ucsTxtBulstatCaption), DEF_DELIM), lIndex)
+    GetTaxCaption = RTrim$(At(Split(pvText(ucsTxtBulstatCaption), DEF_DELIM), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1416,7 +1416,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     If Index >= 1 And Index <= 6 Then
         pvGetCommandConfig CONF_NAME, "InfoHeaderFooter" & Index, eCmd, ucsZekCmdInfoHeaderFooter, sParam, C_Str(Index), _
             "Index", lIndex, 1
-        GetHeaderText = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+        GetHeaderText = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     End If
     Exit Function
 EH:
@@ -1434,7 +1434,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     If Index >= 1 And Index <= 1 Then
         pvGetCommandConfig CONF_NAME, "InfoHeaderFooter" & Index, eCmd, ucsZekCmdInfoHeaderFooter, sParam, C_Str(7 + Index), _
             "Index", lIndex, 1
-        GetFooterText = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+        GetFooterText = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     End If
     Exit Function
 EH:
@@ -1451,7 +1451,7 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Else
         lPmtIndex = pvToDevicePmtIndex(PmtType)
         If lPmtIndex >= 0 Then
-            GetPaymentName = Trim$(At(Split(m_sPaymentTypes, DEF_DELIM), lPmtIndex))
+            GetPaymentName = RTrim$(At(Split(m_sPaymentTypes, DEF_DELIM), lPmtIndex))
         End If
     End If
     Exit Function
