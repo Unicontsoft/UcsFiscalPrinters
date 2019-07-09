@@ -121,25 +121,6 @@ Private Enum UcsFiscalParamIndexesEnum
     ucsFscPixDiscount
     ucsFscPixWayOfPmt = ucsFscPixPrice
     ucsFscPixAmount
-    ucsFscPixInvoiceNo = 0
-    ucsFscPixCgName
-    ucsFscPixCgTaxNo
-    ucsFscPixCgVatNo
-    ucsFscPixCgAddress
-    ucsFscPixCgPersonReceiver
-    ucsFscPixOwnPersonSeller
-    ucsFscPixLnkDoc
-    ucsFscPixInvoiceNoPrefix
-    ucsFscPixOperatorCode = 0
-    ucsFscPixOperatorName
-    ucsFscPixOperatorPass
-    ucsFscPixCashDeskNo
-    ucsFscPixTableNo
-    ucsFscPixLastReceipt
-    ucsFscPixPrevReceipt
-    ucsFscPixPrevCount
-    ucsFscPixResumeTicket
-    ucsFscPixOwnData
 End Enum
 
 '=========================================================================
