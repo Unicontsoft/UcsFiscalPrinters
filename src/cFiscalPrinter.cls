@@ -101,15 +101,15 @@ End Type
 
 Private Enum UcsInternalErrors
     ucsErrInitProtocol
-    ucsErrMissingRows
+    [__ucsErrMissingRows]
     ucsErrNotImplemented
     ucsErrInvalidJsonRequest
 End Enum
 
 Private Enum UcsReceiptTextsEnum
-    ucsTxtDuplicate
-    ucsTxtOriginal
-    ucsTxtHeadCreditNote
+    [__ucsTxtDuplicate]
+    [__ucsTxtOriginal]
+    [__ucsTxtHeadCreditNote]
     ucsTxtCashier
 End Enum
 
