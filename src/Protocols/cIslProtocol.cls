@@ -300,7 +300,7 @@ Private Enum UcsInternalErrors
     ucsErrBuildCommDCBFailed
     ucsErrSetCommStateFailed
     [__ucsErrWriteFileFailure]
-    [__ucsErrTimeoutWaitingForResponse]
+    ucsErrTimeoutWaitingForResponse
     [__ucsErrReadFileFailed]
     [__ucsErrInvalidMessageFormatOrChecksum]
     [__ucsErrAlreadyConnected]
@@ -745,7 +745,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Replace(.Buffer, Chr$(&H16), vbNullString)
                     End If
                     If LenB(.Buffer) <> 0 Then
-                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
+'                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
                             Set oConnector = New cSerialPortConnector
                             oConnector.hComm = .hComm
@@ -1581,11 +1581,13 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         If IsDaisy Then
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (58 + Index)
             GetPaymentName = Trim$(pvStripBold(SendCommand(eCmd, sParam)))
+            GoTo QH
         ElseIf IsIncotex Then
-            If Index < 7 Then
-                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (7 + Index), _
-                    "Index", lIndex, -1
+            If Index >= 7 Then
+                GoTo QH
             End If
+            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (7 + Index), _
+                "Index", lIndex, -1
         Else
             pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
         End If
@@ -1598,6 +1600,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
