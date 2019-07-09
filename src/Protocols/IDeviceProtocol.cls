@@ -196,7 +196,7 @@ Public Function StartReceipt( _
             Optional OwnData As String, _
             Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
             Optional StornoReceiptNo As String, _
-            Optional StornoReceiptDate As Date, _
+            Optional ByVal StornoReceiptDate As Date, _
             Optional StornoFiscalMemoryNo As String, _
             Optional StornoInvoiceNo As String) As Boolean
             
