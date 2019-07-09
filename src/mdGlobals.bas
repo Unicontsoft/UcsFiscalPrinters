@@ -384,6 +384,16 @@ Public Function C_Date(Value As Variant) As Date
     End If
 End Function
 
+Public Function C_Obj(Value As Variant) As Object
+    Dim vDest       As Variant
+
+    If VarType(Value) = vbObject Then
+        Set C_Obj = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbObject) = 0 Then
+        Set C_Obj = vDest
+    End If
+End Function
+
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
     Zn = IIf(LenB(sText) = 0, IfEmptyString, sText)
 End Function
@@ -1125,16 +1135,14 @@ End Function
 
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
     Const FUNC_NAME     As String = "GetConfigValue"
+    Dim oItem           As Object
     
     On Error GoTo EH
     If LenB(sSerial) <> 0 Then
-        If m_oConfig.Exists(sSerial) Then
-            If IsObject(m_oConfig(sSerial)) Then
-                If m_oConfig(sSerial).Exists(sKey) Then
-                    AssignVariant GetConfigValue, m_oConfig(sSerial).Item(sKey)
-                    Exit Function
-                End If
-            End If
+        Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
+        If Not oItem Is Nothing Then
+            AssignVariant GetConfigValue, JsonItem(oItem, sKey)
+            Exit Function
         End If
     End If
     If IsMissing(vDefault) Then
