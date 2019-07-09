@@ -114,9 +114,6 @@ End Enum
 ' API
 '=========================================================================
 
-'--- for CreateFile
-Private Const INVALID_HANDLE_VALUE          As Long = -1
-Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
 '--- for PurgeComm
@@ -126,51 +123,10 @@ Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeah
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
-Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lpCommTimeouts As COMMTIMEOUTS) As Long
-Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
-Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
-
-Private Type COMMTIMEOUTS
-    ReadIntervalTimeout         As Long
-    ReadTotalTimeoutMultiplier  As Long
-    ReadTotalTimeoutConstant    As Long
-    WriteTotalTimeoutMultiplier As Long
-    WriteTotalTimeoutConstant   As Long
-End Type
-
-Private Type DCB
-    DCBlength                   As Long
-    BaudRate                    As Long
-    fBinary                     As Long
-    fParity                     As Long
-    fOutxCtsFlow                As Long
-    fOutxDsrFlow                As Long
-    fDtrControl                 As Long
-    fDsrSensitivity             As Long
-    fTXContinueOnXoff           As Long
-    fOutX                       As Long
-    fInX                        As Long
-    fErrorChar                  As Long
-    fNull                       As Long
-    fRtsControl                 As Long
-    fAbortOnError               As Long
-    fDummy2                     As Long
-    wReserved                   As Integer
-    XonLim                      As Integer
-    XoffLim                     As Integer
-    ByteSize                    As Byte
-    Parity                      As Byte
-    StopBits                    As Byte
-    XonChar                     As Byte
-    XoffChar                    As Byte
-    ErrorChar                   As Byte
-    EofChar                     As Byte
-    EvtChar                     As Byte
-End Type
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -375,7 +331,7 @@ Private Type UcsContext
 End Type
 
 Private Type UcsAutodetect
-    hComm               As Long
+    Connector           As cSerialPortConnector
     WriteOver           As OVERLAPPED
     ReadOver            As OVERLAPPED
     Buffer              As String
@@ -546,9 +502,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lActual         As Long
     Dim sProtocol       As String
     Dim sModel          As String
-    Dim sError          As String
     Dim vSpeeds         As Variant
-    Dim oConnector      As cSerialPortConnector
     
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_TREMOL_FP, "ProbeText", Chr$(ucsZekCmdFastIsReady))
@@ -567,23 +521,21 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
-                    sError = vbNullString
-                    .hComm = pvOpenPort(At(vPorts, lIdx) & "," & vSpeed, 0, Error:=sError)
-                    If .hComm <> INVALID_HANDLE_VALUE And LenB(sError) = 0 Then
+                    Set .Connector = New cSerialPortConnector
+                    If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed) Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
                         .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
                     Else
-                        PortWrapper.CloseComPort .hComm
-                        .hComm = 0
+                        Set .Connector = Nothing
                     End If
                 End If
             End With
         Next
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                If .hComm <> 0 Then
-                    Call PurgeComm(.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-                    lResult = WriteFile(.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
+                If Not .Connector Is Nothing Then
+                    Call PurgeComm(.Connector.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
+                    lResult = WriteFile(.Connector.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .WriteOver.hEvent
                         lEventsCount = lEventsCount + 1
@@ -598,9 +550,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         End If
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                If .hComm <> 0 Then
+                If Not .Connector Is Nothing Then
                     .Buffer = String$(1000, 0)
-                    lResult = ReadFile(.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
+                    lResult = ReadFile(.Connector.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .ReadOver.hEvent
                         lEventsCount = lEventsCount + 1
@@ -616,20 +568,16 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         End If
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                If .hComm <> 0 Then
+                If Not .Connector Is Nothing Then
                     If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
-                            Set oConnector = New cSerialPortConnector
-                            oConnector.hComm = .hComm
-                            If pvGetDeviceInfo(oConnector, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
+                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
                             End If
-                            oConnector.hComm = INVALID_HANDLE_VALUE
-                            Set oConnector = Nothing
                         Else
                             DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
                         End If
@@ -639,8 +587,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         Next
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                PortWrapper.CloseComPort .hComm
-                .hComm = 0
+                Set .Connector = Nothing
                 If .WriteOver.hEvent <> 0 Then
                     Call CloseHandle(.WriteOver.hEvent)
                 End If
@@ -1769,69 +1716,6 @@ End Sub
 
 '= private ===============================================================
 
-Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional Error As String) As Long
-    Const FUNC_NAME     As String = "pvOpenPort"
-    Dim vSplit          As Variant
-    Dim hComm           As Long
-    Dim uTimeout        As COMMTIMEOUTS
-    Dim uDCB            As DCB
-    Dim lLastErr        As Long
-    Dim dblTimer        As Double
-    
-    On Error GoTo EH
-    vSplit = Split(sDevice, ",")
-    If LenB(At(vSplit, 0)) = 0 Then
-        Error = pvInternal(ucsErrNoDeviceInfoSet)
-        GoTo QH
-    End If
-    hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
-    If hComm = INVALID_HANDLE_VALUE Then
-        lLastErr = Err.LastDllError
-        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
-        If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
-            dblTimer = TimerEx + lTimeout / 1000#
-            Do While TimerEx < dblTimer
-                Call Sleep(100)
-                hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
-                If hComm <> INVALID_HANDLE_VALUE Then
-                    Error = vbNullString
-                    Exit Do
-                End If
-            Loop
-        End If
-        If LenB(Error) <> 0 Then
-            GoTo QH
-        End If
-    End If
-    With uTimeout
-        .ReadIntervalTimeout = -1
-        .ReadTotalTimeoutConstant = 0
-        .ReadTotalTimeoutMultiplier = 0
-        .WriteTotalTimeoutConstant = 500
-        .WriteTotalTimeoutMultiplier = 1
-    End With
-    If SetCommTimeouts(hComm, uTimeout) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
-        PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        GoTo QH
-    End If
-    If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
-        PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        GoTo QH
-    End If
-    If SetCommState(hComm, uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
-        PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        GoTo QH
-    End If
-    pvOpenPort = hComm
-QH:
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
 Private Function pvSendCommand( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
@@ -1851,7 +1735,6 @@ Private Function pvSendCommand( _
     If bLogging Then
         DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     End If
-'    uOver.hEvent = CreateEvent(0, 1, 0, 0)
 RetrySend:
     '--- prepare command
     If eCmd <= [_ucsZekCmdFastMax] Then
