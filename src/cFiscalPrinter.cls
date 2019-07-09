@@ -41,67 +41,13 @@ Public Enum UcsFiscalPrintReportTypeEnum
     ucsFscRptOperator
 End Enum
 
-Public Enum UcsFiscalParamIndexesEnum
-    ucsFscPixItem = 0
-    ucsFscPixPrice
-    ucsFscPixGroup
-    ucsFscPixQuantity
-    ucsFscPixDiscount
-    ucsFscPixWayOfPmt = ucsFscPixPrice
-    ucsFscPixAmount
-    ucsFscPixInvoiceNo = 0
-    ucsFscPixCgName
-    ucsFscPixCgTaxNo
-    ucsFscPixCgVatNo
-    ucsFscPixCgAddress
-    ucsFscPixCgPersonReceiver
-    ucsFscPixOwnPersonSeller
-    ucsFscPixLnkDoc
-    ucsFscPixInvoiceNoPrefix
-    ucsFscPixOperatorCode = 0
-    ucsFscPixOperatorName
-    ucsFscPixOperatorPass
-    ucsFscPixCashDeskNo
-    ucsFscPixTableNo
-    ucsFscPixLastReceipt
-    ucsFscPixPrevReceipt
-    ucsFscPixPrevCount
-    ucsFscPixResumeTicket
-    ucsFscPixOwnData
-End Enum
-
-Public Enum UcsFiscalHeaderIndexesEnum
-    ucsFscHdrHeader1 = 0
-    ucsFscHdrHeader2
-    ucsFscHdrBulstat
-    ucsFscHdrHeader3
-    ucsFscHdrHeader4
-    ucsFscHdrHeader5
-    ucsFscHdrHeader6
-    ucsFscHdrFooter1
-    ucsFscHdrFooter2
-    ucsFscHdrOperatorInfo
-    ucsFscHdrDateTime
-    ucsFscHdrLastReceipt
-    ucsFscHdrWop1
-    ucsFscHdrWop2
-    ucsFscHdrWop3
-    ucsFscHdrWopCustom1
-    ucsFscHdrWopCustom2
-    ucsFscHdrWopCustom3
-    ucsFscHdrWopCustom4
-    ucsFscHdrCharsPerLine
-    ucsFscHdrDefOperPassword
-    [_ucsFscHdrLast]
-End Enum
-
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
 '--- strings
 Private Const STR_TEXTS                 As String = "ДУБЛИКАТ|ОРИГИНАЛ|към ф-ра |Касиер"
-Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Липсват редове за печат|Командата не се поддържа от протокола"
+Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Липсват редове за печат|Командата не се поддържа от протокола|Невалидна JSON заявка"
 Private Const STR_DATECS_FP_INTERNAL    As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Невалиден формат на съобщение или сума за проверка (NAK)|Вече има отворена връзка|Няма отворена връзка|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Грешка при WaitCommEvent: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
 Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
 Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
@@ -130,6 +76,7 @@ Private Const CFG_EXTENDED_ERRORS       As String = "ExtendedErrors"
 Private Const CFG_CONNECTOR_ERRORS      As String = "ConnectorErrors"
 
 Private m_uConfig                   As UcsConfigValues
+Private m_sCommandLog               As String
 
 Private Enum UcsRowTypeEnum
     ucsRwtSell = 1
@@ -156,6 +103,7 @@ Private Enum UcsInternalErrors
     ucsErrInitProtocol
     ucsErrMissingRows
     ucsErrNotImplemented
+    ucsErrInvalidJsonRequest
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -163,6 +111,35 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtOriginal
     ucsTxtHeadCreditNote
     ucsTxtCashier
+End Enum
+
+Private Enum UcsFiscalParamIndexesEnum
+    ucsFscPixItem = 0
+    ucsFscPixPrice
+    ucsFscPixGroup
+    ucsFscPixQuantity
+    ucsFscPixDiscount
+    ucsFscPixWayOfPmt = ucsFscPixPrice
+    ucsFscPixAmount
+    ucsFscPixInvoiceNo = 0
+    ucsFscPixCgName
+    ucsFscPixCgTaxNo
+    ucsFscPixCgVatNo
+    ucsFscPixCgAddress
+    ucsFscPixCgPersonReceiver
+    ucsFscPixOwnPersonSeller
+    ucsFscPixLnkDoc
+    ucsFscPixInvoiceNoPrefix
+    ucsFscPixOperatorCode = 0
+    ucsFscPixOperatorName
+    ucsFscPixOperatorPass
+    ucsFscPixCashDeskNo
+    ucsFscPixTableNo
+    ucsFscPixLastReceipt
+    ucsFscPixPrevReceipt
+    ucsFscPixPrevCount
+    ucsFscPixResumeTicket
+    ucsFscPixOwnData
 End Enum
 
 '=========================================================================
@@ -200,22 +177,17 @@ End Property
 ' Methods
 '=========================================================================
 
-''
-' Used for enumeration of available system serial COM ports and auto-detection of connected fiscal devices
-'
-' @return An array with available COM ports including info for auto-detected devices. Each element of the returned
-'         array is an array of (port, auto-detected baud rate, auto-detected FP protocol, auto-detected FP model).
-'         Auto-detected elements can be `Empty` if no device is found on the specified COM port.
-'
-Public Function EnumPorts() As Variant
-Attribute EnumPorts.VB_Description = "Used for enumeration of available system serial COM ports and auto-detection of connected fiscal devices"
+Public Function EnumPorts(sResponse As String) As Boolean
     Const FUNC_NAME     As String = "EnumPorts"
     Dim vPorts          As Variant
     Dim vElem           As Variant
     Dim oFP             As IDeviceProtocol
     Dim lIdx            As Long
+    Dim oItem           As Object
+    Dim oRetVal         As Object
     
     On Error GoTo EH
+    JsonItem(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
     For Each vElem In Array(pvInit(STR_PROTOCOL_TREMOL_FP, SkipLastError:=True), _
                             pvInit(STR_PROTOCOL_ESP_POS, SkipLastError:=True), _
@@ -224,11 +196,21 @@ Attribute EnumPorts.VB_Description = "Used for enumeration of available system s
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
     For lIdx = 0 To UBound(vPorts)
-        If Not IsArray(vPorts(lIdx)) Then
-            vPorts(lIdx) = Array(vPorts(lIdx), vbNullString, vbNullString, vbNullString)
+        Set oItem = Nothing
+        If IsArray(vPorts(lIdx)) Then
+            JsonItem(oItem, "Port") = vPorts(lIdx)(0)
+            JsonItem(oItem, "Speed") = vPorts(lIdx)(1)
+            JsonItem(oItem, "Protocol") = vPorts(lIdx)(2)
+            JsonItem(oItem, "Model") = vPorts(lIdx)(3)
+        Else
+            JsonItem(oItem, "Port") = vPorts(lIdx)
         End If
+        JsonItem(oRetVal, "SerialPorts/-1") = oItem
     Next
-    EnumPorts = vPorts
+QH:
+    sResponse = JsonDump(oRetVal, Minimize:=True)
+    '--- success
+    EnumPorts = True
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -239,201 +221,118 @@ End Function
 ' Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current
 ' date/time, last receipt number, names of payment types, max characters on a row and operator's default password
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `OperatorData` [input]  see `OperatorData` description in class header
-' @param `RetVal`       [in/out] param with the array with requested strings which get populated on return. Look at
-'                                `UcsFiscalHeaderIndexesEnum` enum for proper indexes meaning
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-'
-Public Function GetHeaderFooter( _
-            DeviceString As String, _
-            Optional OperatorData As Variant, _
-            Optional RetVal As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute GetHeaderFooter.VB_Description = "Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current date/time, last receipt number, names of payment types, max characters on a row and operator's default password"
+Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "GetHeaderFooter"
     Dim oFP             As IDeviceProtocol
-    Dim vInput          As Variant
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim oJson           As Object
+    Dim oRetVal         As Object
     Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim lIdx            As Long
     
     On Error GoTo EH
-    LastError = vbNullString
-    vInput = RetVal
-    ReDim RetVal(0 To [_ucsFscHdrLast] - 1) As Variant
-    Set oFP = pvInit(DeviceString)
-    If LenB(At(vInput, ucsFscHdrHeader1, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader1) = Trim$(oFP.GetHeaderText(1))
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
     End If
-    If LenB(At(vInput, ucsFscHdrHeader2, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader2) = Trim$(oFP.GetHeaderText(2))
+    For lIdx = 1 To 6
+        JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
+    Next
+    For lIdx = 1 To 2
+        JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
+    Next
+    JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNumber()
+    JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
+    JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
+    JsonItem(oRetVal, "LastReceipt") = oFP.GetLastReceiptNumber()
+    For lIdx = 1 To 3
+        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+    Next
+    For lIdx = -1 To -4 Step -1
+        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+    Next
+    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
+    If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
+        JsonItem(oRetVal, "DefOperPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
     End If
-    If LenB(At(vInput, ucsFscHdrBulstat, "1")) <> 0 Then
-        RetVal(ucsFscHdrBulstat) = oFP.GetTaxNumber() & "," & Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
-    End If
-    If LenB(At(vInput, ucsFscHdrHeader3, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader3) = Trim$(oFP.GetHeaderText(3))
-    End If
-    If LenB(At(vInput, ucsFscHdrHeader4, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader4) = Trim$(oFP.GetHeaderText(4))
-    End If
-    If LenB(At(vInput, ucsFscHdrHeader5, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader5) = Trim$(oFP.GetHeaderText(5))
-    End If
-    If LenB(At(vInput, ucsFscHdrHeader6, "1")) <> 0 Then
-        RetVal(ucsFscHdrHeader6) = Trim$(oFP.GetHeaderText(6))
-    End If
-    If LenB(At(vInput, ucsFscHdrFooter1, "1")) <> 0 Then
-        RetVal(ucsFscHdrFooter1) = Trim$(oFP.GetFooterText(1))
-    End If
-    If LenB(At(vInput, ucsFscHdrFooter2, "1")) <> 0 Then
-        RetVal(ucsFscHdrFooter2) = Trim$(oFP.GetFooterText(2))
-    End If
-    If LenB(At(vInput, ucsFscHdrOperatorInfo, "1")) <> 0 Then
-        RetVal(ucsFscHdrOperatorInfo) = At(OperatorData, 0)
-    End If
-    If LenB(At(vInput, ucsFscHdrDateTime, "1")) <> 0 Then
-        RetVal(ucsFscHdrDateTime) = oFP.GetClock()
-    End If
-    If LenB(At(vInput, ucsFscHdrLastReceipt, "1")) <> 0 Then
-        RetVal(ucsFscHdrLastReceipt) = oFP.GetLastReceiptNumber()
-    End If
-    If LenB(At(vInput, ucsFscHdrWop1, "1")) <> 0 Then
-        RetVal(ucsFscHdrWop1) = oFP.GetPaymentName(1)
-    End If
-    If LenB(At(vInput, ucsFscHdrWop2, "1")) <> 0 Then
-        RetVal(ucsFscHdrWop2) = oFP.GetPaymentName(2)
-    End If
-    If LenB(At(vInput, ucsFscHdrWop3, "1")) <> 0 Then
-        RetVal(ucsFscHdrWop3) = oFP.GetPaymentName(3)
-    End If
-    If LenB(At(vInput, ucsFscHdrWopCustom1, "1")) <> 0 Then
-        RetVal(ucsFscHdrWopCustom1) = oFP.GetPaymentName(-1)
-    End If
-    If LenB(At(vInput, ucsFscHdrWopCustom2, "1")) <> 0 Then
-        RetVal(ucsFscHdrWopCustom2) = oFP.GetPaymentName(-2)
-    End If
-    If LenB(At(vInput, ucsFscHdrWopCustom3, "1")) <> 0 Then
-        RetVal(ucsFscHdrWopCustom3) = oFP.GetPaymentName(-3)
-    End If
-    If LenB(At(vInput, ucsFscHdrWopCustom4, "1")) <> 0 Then
-        RetVal(ucsFscHdrWopCustom4) = oFP.GetPaymentName(-4)
-    End If
-    If LenB(At(vInput, ucsFscHdrCharsPerLine, "1")) <> 0 Then
-        RetVal(ucsFscHdrCharsPerLine) = oFP.GetCharsPerLine()
-    End If
-    If LenB(At(vInput, ucsFscHdrDefOperPassword, "1")) <> 0 Then
-        RetVal(ucsFscHdrDefOperPassword) = oFP.GetDefaultPassword(At(OperatorData, 0))
-    End If
-    '--- success
-    GetHeaderFooter = True
+    JsonItem(oRetVal, "SerialNo") = oFP.GetSerialNumber()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalNumber()
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
-' Used to batch print a fiscal or non-fiscal receipt or invoice
+' Used to batch print a fiscal receipt or invoice
 '
-' @param `DeviceString`   [input]  see `DeviceString` description in class header
-' @param `ReceiptType`    [input]  designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
-'                                  regular sales receipt
-' @param `Rows`           [input]  see `Rows` description in class header
-' @param `OperatorData`   [in/out] see `OperatorData` description in class header
-' @param `InvoiceData`    [input]  see `InvoiceData` description in class header
-' @param `PrintDuplicate` [input]  a flag to request receipt duplicate to be printed if the fiscal device supports
-'                                  this operation
-' @param `LastError`      [output] see `LastError` description in class header
-' @param `CommandLog`     [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function PrintReceipt( _
-            DeviceString As String, _
-            ByVal ReceiptType As UcsFiscalReceiptTypeEnum, _
-            Rows As Variant, _
-            Optional OperatorData As Variant, _
-            Optional InvoiceData As Variant, _
-            Optional PrintDuplicate As Boolean, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fiscal receipt or invoice"
+Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "PrintReceipt"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
     Dim vElem           As Variant
     Dim lIdx            As Long
-    Dim sPrevReceipt    As String
     Dim sResumeTicket   As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
-    Dim sLastErr        As String
+    Dim sPrevReceipt    As String
     
     On Error GoTo EH
-    LastError = vbNullString
-    sPrevReceipt = At(OperatorData, ucsFscPixPrevReceipt)
-    sResumeTicket = At(OperatorData, ucsFscPixResumeTicket)
-    Set oFP = pvInit(DeviceString)
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
+    sResumeTicket = JsonItem(oJson, "ResumeTicket")
     If LenB(sResumeTicket) = 0 Then
         If Not oFP.CancelReceipt() Then
-            LastError = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
             GoTo QH
         End If
     End If
+    sPrevReceipt = JsonItem(oJson, "PrevReceipt")
     If LenB(sPrevReceipt) <> 0 Then
-        ValueAt(OperatorData, ucsFscPixPrevReceipt) = oFP.GetLastReceiptNumber()
+        JsonItem(oRetVal, "PrevReceipt") = oFP.GetLastReceiptNumber()
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceipt)) <> 0 Then
-            If Pad(sPrevReceipt, -Len(At(OperatorData, ucsFscPixPrevReceipt))) <> At(OperatorData, ucsFscPixPrevReceipt) And C_Lng(At(OperatorData, ucsFscPixPrevCount)) <> 0 Then
-                If C_Str(At(OperatorData, ucsFscPixPrevCount)) <> At(oFP.GetTotalsStats(), 0) Then
-                    ValueAt(OperatorData, ucsFscPixLastReceipt) = At(OperatorData, ucsFscPixPrevReceipt)
-                    ValueAt(OperatorData, ucsFscPixPrevReceipt) = Empty
+            If Pad(sPrevReceipt, -Len(JsonItem(oRetVal, "PrevReceipt"))) <> JsonItem(oRetVal, "PrevReceipt") And C_Lng(JsonItem(oRetVal, "PrevCount")) <> 0 Then
+                If C_Str(JsonItem(oRetVal, "PrevCount")) <> At(oFP.GetTotalsStats(), 0) Then
+                    JsonItem(oRetVal, "LastReceipt") = JsonItem(oRetVal, "PrevReceipt")
+                    JsonItem(oRetVal, "PrevReceipt") = Empty
                     GoTo QH
                 End If
             End If
         End If
     End If
-    If IsArray(Rows) Then
-        oFP.StartReceipt ReceiptType, At(OperatorData, ucsFscPixOperatorCode), _
-            At(OperatorData, ucsFscPixOperatorName, pvText(ucsTxtCashier)), _
-            At(OperatorData, ucsFscPixOperatorPass), _
-            At(OperatorData, ucsFscPixTableNo), _
-            At(InvoiceData, ucsFscPixInvoiceNo), _
-            At(InvoiceData, ucsFscPixCgTaxNo), _
-            At(InvoiceData, ucsFscPixCgVatNo), _
-            At(InvoiceData, ucsFscPixCgName), _
-            vbNullString, _
-            At(InvoiceData, ucsFscPixCgAddress), _
-            At(InvoiceData, ucsFscPixCgPersonReceiver), _
-            vbNullString, _
-            At(OperatorData, ucsFscPixOwnData)
-        If LenB(At(InvoiceData, ucsFscPixLnkDoc)) <> 0 Then
-            oFP.AddLine pvText(ucsTxtHeadCreditNote) & At(InvoiceData, ucsFscPixLnkDoc)
+    If IsObject(JsonItem(oJson, "Rows")) Then
+        If Not oFP.StartReceipt(C_Lng(JsonItem(oJson, "ReceiptType")), _
+                JsonItem(oJson, "Operator/Code"), _
+                Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
+                JsonItem(oJson, "Operator/Pass"), _
+                JsonItem(oJson, "UniqueSaleNo"), _
+                JsonItem(oJson, "TableNo"), _
+                JsonItem(oJson, "Invoice/InvoiceNo"), _
+                JsonItem(oJson, "Invoice/CgTaxNo"), _
+                JsonItem(oJson, "Invoice/CgVatNo"), _
+                JsonItem(oJson, "Invoice/CgName"), _
+                vbNullString, _
+                JsonItem(oJson, "Invoice/CgAddress"), _
+                JsonItem(oJson, "Invoice/CgPersonReceiver"), _
+                vbNullString, _
+                JsonItem(oJson, "OwnData"), _
+                C_Lng(JsonItem(oJson, "Storno/Reason")), _
+                JsonItem(oJson, "Storno/ReceiptNo"), _
+                C_Date(JsonItem(oJson, "Storno/ReceiptDate")), _
+                JsonItem(oJson, "Storno/FiscalMemoryNo"), _
+                JsonItem(oJson, "Storno/InvoiceNo")) Then
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            GoTo QH
         End If
-        If PrintDuplicate Then
-            oFP.AddLine pvText(ucsTxtDuplicate)
-        End If
-        For Each vElem In Rows
-            With pvGetRowData(vElem)
+        For Each vElem In JsonKeys(oJson, "Rows")
+            With pvGetRowData(JsonItem(oJson, "Rows/" & vElem & "/*"))
                 Select Case .Type
                 Case ucsRwtSell
                     oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetVatGroup(.Group)
@@ -454,151 +353,96 @@ Attribute PrintReceipt.VB_Description = "Used to batch print a fiscal or non-fis
             End With
         Next
         If Not oFP.EndReceipt(sResumeTicket) Then
-            If LenB(oFP.GetLastError()) <> 0 Then
-                Err.Raise vbObjectError, , oFP.GetLastError()
-            End If
-        End If
-        oFP.OpenDrawer
-        '--- success
-        PrintReceipt = True
-    End If
-    If PrintDuplicate Then
-        If Not oFP.CopyLastReceipt(At(InvoiceData, ucsFscPixInvoiceNo)) Then
-            LastError = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), LastError=" & LastError & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
             GoTo QH
         End If
-        '--- success
-        PrintReceipt = True
+        oFP.OpenDrawer
     End If
-    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
+    If C_Bool(JsonItem(oJson, "PrintDuplicate")) Then
+        If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/InvoiceNo")) Then
+            sLastErr = oFP.GetLastError(eLastNum)
+            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            GoTo QH
+        End If
+    End If
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "ReceiptDateTime") = C_Str(oFP.GetClock())
+    JsonItem(oRetVal, "SerialNo") = oFP.GetSerialNumber()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalNumber()
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
-            ValueAt(OperatorData, ucsFscPixResumeTicket) = oFP.GetResumeTicket()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
 ' Used to print a fiscal report as supported by the fiscal device
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `ReportType`   [input]  designates the type of report to be printed. Only daily x-report or z-report and
-'                                report by date range are supported
-' @param `ReportData`   [input]  an array of (IsClear, IsItems, IsDepartments) for daily report and array of
-'                                (FromDate, ToDate, IsDetailed) for date range report, where:
-'   `IsClear`           - a boolean, when `True` clears fiscal memory (z-report)
-'   `IsItems`           - a boolean, when `True` prints detailed report by items
-'   `IsDepartments`     - a boolean, when `True` prints detailed report by department
-'   `FromDate`-`ToDate` - specify the date range to print
-'   `IsDetailed`        - a boolean, when `True` date range report is detailed by date
-' @param `OperatorData` [input]  see `OperatorData` description in class header
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function PrintReport( _
-            DeviceString As String, _
-            ByVal ReportType As UcsFiscalPrintReportTypeEnum, _
-            Optional ReportData As Variant, _
-            Optional OperatorData As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute PrintReport.VB_Description = "Used to print a fiscal report as supported by the fiscal device"
+Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "PrintReport"
     Dim oFP             As IDeviceProtocol
-    Dim bResult         As Boolean
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim oJson           As Object
+    Dim oRetVal         As Object
     Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim bResult         As Boolean
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
-    Select Case ReportType
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
+    Select Case JsonItem(oJson, "ReportType")
     Case ucsFscRptDaily
-        '-- ReportData = { IsClear, IsItems, IsDepartments }
-        If C_Bool(At(ReportData, 1)) And C_Bool(At(ReportData, 2)) Then
-            If C_Bool(At(ReportData, 0)) Then
+        If C_Bool(JsonItem(oJson, "IsItems")) And C_Bool(JsonItem(oJson, "IsDepartments")) Then
+            If C_Bool(JsonItem(oJson, "IsClear")) Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByItemsAndDepartment)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByItemsAndDepartment)
             End If
-        ElseIf C_Bool(At(ReportData, 1)) Then
-            If C_Bool(At(ReportData, 0)) Then
+        ElseIf C_Bool(JsonItem(oJson, "IsItems")) Then
+            If C_Bool(JsonItem(oJson, "IsClear")) Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByItems)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByItems)
             End If
-        ElseIf C_Bool(At(ReportData, 2)) Then
-            If C_Bool(At(ReportData, 0)) Then
+        ElseIf C_Bool(JsonItem(oJson, "IsDepartments")) Then
+            If C_Bool(JsonItem(oJson, "IsClear")) Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByDepartment)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByDepartment)
             End If
         Else
-            If C_Bool(At(ReportData, 0)) Then
+            If C_Bool(JsonItem(oJson, "IsClear")) Then
                 bResult = oFP.RunZReport(ucsFscRstDaily)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDaily)
             End If
         End If
     Case ucsFscRptNumber
-        '-- ReportData = { FromNum, ToNum, IsDetailed }
+        '--- ToDo: impl
     Case ucsFscRptDate
-        '-- ReportData = { FromDate, ToDate, IsDetailed }
-        If C_Date(At(ReportData, 0)) <> 0 And C_Date(At(ReportData, 1)) <> 0 Then
-            bResult = oFP.RunPeriodReport(IIf(C_Bool(At(ReportData, 2)), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(At(ReportData, 0)), C_Date(At(ReportData, 1)))
+        If C_Date(JsonItem(oJson, "FromDate")) <> 0 And C_Date(JsonItem(oJson, "ToDate")) <> 0 Then
+            bResult = oFP.RunPeriodReport(IIf(C_Bool(JsonItem(oJson, "IsDetailed")), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
         End If
     Case ucsFscRptOperator
-        '-- ReportData = Empty
+        '--- ToDo: impl
     End Select
     If Not bResult Then
-        LastError = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError & ", eLastNum=" & eLastNum
-        If eLastNum = ucsFerInvalidPassword Then
-            ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-        End If
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
-    '--- success
-    PrintReport = True
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
@@ -606,254 +450,189 @@ End Function
 ' Used to send an impulse to the drawer opener. The fiscal device has to be connected with a compatible cash
 ' drawer for this command to work
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function OpenDrawer( _
-            DeviceString As String, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute OpenDrawer.VB_Description = "Used to send an impulse to the drawer opener. The fiscal device has to be connected with a compatible cash drawer for this command to work"
+Public Function OpenDrawer(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "OpenDrawer"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
-    If Not oFP.OpenDrawer() Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), LastError=" & LastError
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    '--- success
-    OpenDrawer = True
-QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
+    If Not oFP.OpenDrawer() Then
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        GoTo QH
     End If
-    CommandLog = oFP.GetCommandLog()
+QH:
+    OpenDrawer = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
 ' Used to adjust the date and time of the fiscal device clock
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `sDateTime`    [input]  a date and time to be set or `Empty` for current date and time
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function InitDateTime( _
-            DeviceString As String, _
-            sDateTime As String, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute InitDateTime.VB_Description = "Used to adjust the date and time of the fiscal device clock"
+Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "InitDateTime"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim dDateTime       As Date
     Dim bResult         As Boolean
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
-    If C_Date(sDateTime) = 0 Then
-        sDateTime = Now
-    End If
-    If Abs(DateDiff("m", oFP.GetClock(), C_Date(sDateTime))) > 0 Then
-        bResult = oFP.SetClock(C_Date(sDateTime))
-    End If
-    If Not bResult Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "Not bResult, LastError=" & LastError
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    sDateTime = oFP.GetClock()
-    '--- success
-    InitDateTime = True
-QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
+    dDateTime = C_Date(JsonItem(oJson, "DateTime"))
+    If dDateTime = 0 Then
+        dDateTime = Now
     End If
-    CommandLog = oFP.GetCommandLog()
+    If Abs(DateDiff("m", oFP.GetClock(), dDateTime)) > 0 Then
+        bResult = oFP.SetClock(dDateTime)
+    End If
+    If Not bResult Then
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        GoTo QH
+    End If
+    JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
+QH:
+    InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
 ' Used to retrieve accumulated totals by payment types since last z-report
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `vPayments`    [output] array indexed by 1-3 for standard payment types and 5-8 for custom. Each element is
-'                                an array of (Amount, PaymentName) where `Amount` is a double total sum and
-'                                `PaymentName` is a localised string for standard or custom payment name as returned
-'                                by the fiscal device
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function GetTotalsByPayments( _
-            DeviceString As String, _
-            vPayments As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute GetTotalsByPayments.VB_Description = "Used to retrieve accumulated totals by payment types since last z-report"
+Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "GetTotalsByPayments"
     Dim oFP             As IDeviceProtocol
-    Dim lIdx            As Long
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
-
+    Dim lIdx            As Long
+    Dim oItem           As Object
+    
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
     vTotals = oFP.GetTotalsByPayments()
     If Not IsArray(vTotals) Then
-        LastError = pvInternal(ucsErrNotImplemented)
+        sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    ReDim vPayments(0 To UBound(vTotals)) As Variant
     For lIdx = 0 To UBound(vTotals)
-        vPayments(lIdx) = Array(vTotals(lIdx), oFP.GetPaymentName(lIdx + 1))
+        Set oItem = Nothing
+        JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
+        JsonItem(oItem, "TotalSum") = vTotals(lIdx)
+        JsonItem(oRetVal, "Totals/-1") = oItem
     Next
-    '--- success
-    GetTotalsByPayments = True
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    GetTotalsByPayments = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
 ' Used to retrieve accumulated totals by VAT groups (1-8) since last z-report
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `vTotals`      [output] array of doubles (TotalByVat1, TotalByVat2, ..., TotalByVat8) where each total is
-'                                indexed by VAT group
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function GetTotalsByVatGroups( _
-            DeviceString As String, _
-            vTotals As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute GetTotalsByVatGroups.VB_Description = "Used to retrieve accumulated totals by VAT groups (1-8) since last z-report"
+Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "GetTotalsByVatGroups"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim vTotals         As Variant
+    Dim lIdx            As Long
+    Dim oItem           As Object
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
     vTotals = oFP.GetTotalsByVatGroups()
     If Not IsArray(vTotals) Then
-        LastError = pvInternal(ucsErrNotImplemented)
+        sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    '--- success
-    GetTotalsByVatGroups = True
+    For lIdx = 0 To UBound(vTotals)
+        Set oItem = Nothing
+        JsonItem(oItem, "TaxGroup") = lIdx + 1
+        JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
+        JsonItem(oItem, "TotalSum") = vTotals(lIdx)(0)
+        JsonItem(oRetVal, "Totals/-1") = oItem
+    Next
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    GetTotalsByVatGroups = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
 ''
 ' Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `vStats`       [output] array of (ReceiptsCount, LastReceiptTime) where `LastReceiptTime` can be `Empty`
-'                                if no receipt is printed after last z-report
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function GetTotalsStats( _
-            DeviceString As String, _
-            vStats As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute GetTotalsStats.VB_Description = "Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed"
+Public Function GetTotalsStats(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "GetTotalsStats"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim vStats          As Variant
 
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
     vStats = oFP.GetTotalsStats()
     If Not IsArray(vStats) Then
-        LastError = pvInternal(ucsErrNotImplemented)
+        sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vStats) < 0 Then
-        LastError = oFP.GetLastError()
-        DebugLog FUNC_NAME, "UBound(vStats) < 0, LastError=" & LastError
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "UBound(vStats) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    '--- success
-    GetTotalsStats = True
+    JsonItem(oRetVal, "NumReceipts") = vStats(0)
+    JsonItem(oRetVal, "LastZReportDateTime") = vStats(1)
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    GetTotalsStats = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
@@ -861,67 +640,38 @@ End Function
 ' Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales,
 ' e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `dblValue`     [input]  positive amount to be debitted and negative for credit. When 0.00 is passed no
-'                                operation is performed, only `vTotals` is populated
-' @param `vTotals`      [output] total debit/credit operations since last z-report as an array of doubles with
-'                                (TotalAvailable, TotalDebit, TotalCredit) where:
-'   `TotalAvailable`    - total available cash, including regular sales
-'   `TotalDebit`        - total inbound debit, outside regular sales
-'   `TotalCredit`       - total outbound credit, outside regular sales
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function CashDebitCredit( _
-            DeviceString As String, _
-            dblValue As Double, _
-            vTotals As Variant, _
-            Optional OperatorData As Variant, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute CashDebitCredit.VB_Description = "Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales, e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too"
+Public Function CashDebitCredit(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "CashDebitCredit"
     Dim oFP             As IDeviceProtocol
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim oJson           As Object
+    Dim oRetVal         As Object
     Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim vTotals         As Variant
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString)
-    vTotals = oFP.CashDebitCredit(At(OperatorData, ucsFscPixOperatorCode), At(OperatorData, ucsFscPixOperatorPass), dblValue)
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
+    End If
+    vTotals = oFP.CashDebitCredit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Value")))
     If Not IsArray(vTotals) Then
-        LastError = pvInternal(ucsErrNotImplemented)
+        sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        LastError = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, LastError=" & LastError & ", eLastNum=" & eLastNum
-        If eLastNum = ucsFerInvalidPassword Then
-            ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-        End If
+        sLastErr = oFP.GetLastError(eLastNum)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    ValueAt(OperatorData, ucsFscPixLastReceipt) = oFP.GetLastReceiptNumber()
-    '--- success
-    CashDebitCredit = True
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "TotalSum") = vTotals(0)
+    JsonItem(oRetVal, "TotalCredit") = vTotals(1)
+    JsonItem(oRetVal, "TotalDebit") = vTotals(2)
 QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
-    End If
-    CommandLog = oFP.GetCommandLog()
+    CashDebitCredit = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
-            If eLastNum = ucsFerInvalidPassword Then
-                ValueAt(OperatorData, ucsFscPixOperatorPass) = Empty
-            End If
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
@@ -929,41 +679,27 @@ End Function
 ' Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the
 ' device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing
 '
-' @param `DeviceString` [input]  see `DeviceString` description in class header
-' @param `sStatus`      [output] current device status. Empty string when the device is ready to print
-' @param `LastError`    [output] see `LastError` description in class header
-' @param `CommandLog`   [output] see `CommandLog` description in class header
-' @return `True` on success, `False` on error and populates `LastError` and `CommandLog`
-'
-Public Function GetStatus( _
-            DeviceString As String, _
-            sStatus As String, _
-            Optional LastError As String, _
-            Optional CommandLog As String) As Boolean
-Attribute GetStatus.VB_Description = "Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing"
+Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "GetStatus"
     Dim oFP             As IDeviceProtocol
+    Dim oJson           As Object
+    Dim oRetVal         As Object
+    Dim sLastErr        As String
+    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim sStatus         As String
     
     On Error GoTo EH
-    LastError = vbNullString
-    Set oFP = pvInit(DeviceString, SkipLastError:=True)
-    oFP.GetDeviceStatus sStatus
-    '--- success
-    GetStatus = True
-QH:
-    If oFP.IsConnected Then
-        oFP.Disconnect
+    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
+        GoTo QH
     End If
-    CommandLog = oFP.GetCommandLog()
+    oFP.GetDeviceStatus sStatus
+    JsonItem(oRetVal, "Status") = sStatus
+QH:
+    GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
-    If LenB(LastError) = 0 Then
-        LastError = Err.Description
-        DebugLog FUNC_NAME, "LastError=" & LastError
-        If Not oFP Is Nothing Then
-            DebugLog FUNC_NAME, "oFP.GetLastError=" & oFP.GetLastError()
-            Resume QH
-        End If
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+        Resume QH
     End If
 End Function
 
@@ -971,7 +707,6 @@ End Function
 ' Used to set localized strings used for non-fiscal receipt texts and component internal errors
 '
 Public Sub SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
-Attribute SetLocalizedText.VB_Description = "Used to set localized strings used for non-fiscal receipt texts and component internal errors"
     LocalizedText(Index) = Text
 End Sub
 
@@ -1081,6 +816,50 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Private Function pvCommonProlog(sRequest As String, oJson As Object, sLastErr As String, oFP As IDeviceProtocol, oRetVal As Object) As Boolean
+    JsonItem(oRetVal, "Ok") = True
+    If Not JsonParse(sRequest, oJson, Error:=sLastErr) Or oJson Is Nothing Then
+        sLastErr = Zn(sLastErr, pvInternal(ucsErrInvalidJsonRequest))
+        GoTo QH
+    End If
+    Set oFP = pvInit(JsonItem(oJson, "DeviceString"))
+    '--- success
+    pvCommonProlog = True
+QH:
+End Function
+
+Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVal eLastNum As UcsFiscalErrorsEnum, oRetVal As Object, sResponse As String) As Boolean
+    If Not oFP Is Nothing Then
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
+        m_sCommandLog = oFP.GetCommandLog()
+    End If
+    If LenB(sLastErr) <> 0 Then
+        JsonItem(oRetVal, "Ok") = False
+        JsonItem(oRetVal, "ErrorText") = sLastErr
+    End If
+    If eLastNum = ucsFerInvalidPassword Then
+        JsonItem(oRetVal, "Ok") = False
+        JsonItem(oRetVal, "ErrorCode") = "InvalidPassword"
+    End If
+    sResponse = JsonDump(oRetVal, Minimize:=True)
+    '--- success
+    pvCommonEpilog = True
+End Function
+
+Private Function pvCommonErrHandler(sFunction As String, oFP As IDeviceProtocol, sLastErr As String, eLastNum As UcsFiscalErrorsEnum) As Boolean
+    If Not oFP Is Nothing Then
+        sLastErr = Zn(oFP.GetLastError(eLastNum), Err.Description)
+        DebugLog sFunction, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+    Else
+        sLastErr = Err.Description
+        DebugLog sFunction, "sLastErr=" & sLastErr
+    End If
+    '--- success
+    pvCommonErrHandler = True
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -1093,3 +872,5 @@ End Sub
 Private Sub Class_Terminate()
     FlushDebugLog
 End Sub
+
+
