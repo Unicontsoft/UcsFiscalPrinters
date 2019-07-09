@@ -245,23 +245,23 @@ Private Enum UcsInternalErrors
     ucsErrSetCommTimeoutsFailed
     ucsErrBuildCommDCBFailed
     ucsErrSetCommStateFailed
-    ucsErrWriteFileFailure
-    ucsErrTimeoutWaitingForResponse
-    ucsErrReadFileFailed
+    [__ucsErrWriteFileFailure]
+    [__ucsErrTimeoutWaitingForResponse]
+    [__ucsErrReadFileFailed]
     ucsErrInvalidMessageFormatOrChecksum
-    ucsErrAlreadyConnected
-    ucsErrNotConnected
+    [__ucsErrAlreadyConnected]
+    [__ucsErrNotConnected]
     ucsErrInvalidResponseLength
     ucsErrResponseMissingPreamble
-    ucsErrWaitCommEventFailed
+    [__ucsErrWaitCommEventFailed]
     ucsErrNoReceiptStarted
     ucsErrErrorInLine
-    ucsErrCannotCancelReceipt
+    [__ucsErrCannotCancelReceipt]
     ucsErrInvalidReportType
     ucsErrDeviceNotOnline
     ucsErrDeviceNotReady
     ucsErrPasswordNotSet
-    ucsErrInvalidPassword
+    [__ucsErrInvalidPassword]
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -279,27 +279,27 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCheque
     ucsTxtSurcharge
     ucsTxtDiscount
-    ucsTxtTotal
+    [__ucsTxtTotal]
     ucsTxtSubTotal
-    ucsTxtHeaderInvoiceNo
+    [__ucsTxtHeaderInvoiceNo]
     ucsTxtPluSales
-    ucsTxtPluPrice
-    ucsTxtPluQuantity
-    ucsTxtPluTotal
-    ucsTxtGroupTotal
-    ucsTxtGroupVat
-    ucsTxtGroupNetto
-    ucsTxtFooterTotal
-    ucsTxtFooterArticles
-    ucsTxtFooterArticleSingle
-    ucsTxtFooterChange
-    ucsTxtFooterSeller
-    ucsTxtFooterReceiver
-    ucsTxtFooterBuyer
-    ucsTxtFooterTaxNo
-    ucsTxtFooterVatNo
+    [__ucsTxtPluPrice]
+    [__ucsTxtPluQuantity]
+    [__ucsTxtPluTotal]
+    [__ucsTxtGroupTotal]
+    [__ucsTxtGroupVat]
+    [__ucsTxtGroupNetto]
+    [__ucsTxtFooterTotal]
+    [__ucsTxtFooterArticles]
+    [__ucsTxtFooterArticleSingle]
+    [__ucsTxtFooterChange]
+    [__ucsTxtFooterSeller]
+    [__ucsTxtFooterReceiver]
+    [__ucsTxtFooterBuyer]
+    [__ucsTxtFooterTaxNo]
+    [__ucsTxtFooterVatNo]
     ucsTxtBulstatCaption
-    ucsTxtPluVoid
+    [__ucsTxtPluVoid]
 End Enum
 
 Private Enum UcsProtocolMarkers

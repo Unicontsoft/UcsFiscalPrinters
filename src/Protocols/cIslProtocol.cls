@@ -299,16 +299,16 @@ Private Enum UcsInternalErrors
     ucsErrSetCommTimeoutsFailed
     ucsErrBuildCommDCBFailed
     ucsErrSetCommStateFailed
-    ucsErrWriteFileFailure
-    ucsErrTimeoutWaitingForResponse
-    ucsErrReadFileFailed
-    ucsErrInvalidMessageFormatOrChecksum
-    ucsErrAlreadyConnected
-    ucsErrNotConnected
+    [__ucsErrWriteFileFailure]
+    [__ucsErrTimeoutWaitingForResponse]
+    [__ucsErrReadFileFailed]
+    [__ucsErrInvalidMessageFormatOrChecksum]
+    [__ucsErrAlreadyConnected]
+    [__ucsErrNotConnected]
     ucsErrInvalidResponseLength
     ucsErrResponseMissingPostamble
     ucsErrResponseMissingPreamble
-    ucsErrWaitCommEventFailed
+    [__ucsErrWaitCommEventFailed]
     ucsErrNoReceiptStarted
     ucsErrInvalidOperatorPassword
     ucsErrErrorInLine
@@ -325,25 +325,25 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCredit
     ucsTxtSurcharge
     ucsTxtDiscount
-    ucsTxtTotal
-    ucsTxtSubTotal
-    ucsTxtHeaderInvoiceNo
+    [__ucsTxtTotal]
+    [__ucsTxtSubTotal]
+    [__ucsTxtHeaderInvoiceNo]
     ucsTxtPluSales
-    ucsTxtPluPrice
-    ucsTxtPluQuantity
-    ucsTxtPluTotal
-    ucsTxtGroupTotal
-    ucsTxtGroupVat
-    ucsTxtGroupNetto
-    ucsTxtFooterTotal
-    ucsTxtFooterArticles
-    ucsTxtFooterArticleSingle
-    ucsTxtFooterChange
-    ucsTxtFooterSeller
-    ucsTxtFooterReceiver
-    ucsTxtFooterBuyer
-    ucsTxtFooterTaxNo
-    ucsTxtFooterVatNo
+    [__ucsTxtPluPrice]
+    [__ucsTxtPluQuantity]
+    [__ucsTxtPluTotal]
+    [__ucsTxtGroupTotal]
+    [__ucsTxtGroupVat]
+    [__ucsTxtGroupNetto]
+    [__ucsTxtFooterTotal]
+    [__ucsTxtFooterArticles]
+    [__ucsTxtFooterArticleSingle]
+    [__ucsTxtFooterChange]
+    [__ucsTxtFooterSeller]
+    [__ucsTxtFooterReceiver]
+    [__ucsTxtFooterBuyer]
+    [__ucsTxtFooterTaxNo]
+    [__ucsTxtFooterVatNo]
     ucsTxtTaxNo
 End Enum
 
