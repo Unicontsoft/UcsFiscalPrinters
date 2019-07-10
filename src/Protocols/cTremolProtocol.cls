@@ -161,9 +161,9 @@ Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
 Private Const DEF_MAX_OPERPASSWORD      As Long = 4
 Private Const DEF_MAX_COMPANY           As Long = 26
-Private Const DEF_MAX_MOL               As Long = 16
-Private Const DEF_MAX_VATNUMBER         As Long = 13
-Private Const DEF_MAX_TAXNUMBER         As Long = 13
+Private Const DEF_MAX_PRSRECEIVE        As Long = 16
+Private Const DEF_MAX_VATNO             As Long = 13
+Private Const DEF_MAX_TAXNO             As Long = 13
 Private Const DEF_MAX_CITY              As Long = 30
 Private Const DEF_MAX_INVOICENO         As Long = 10
 Private Const DEF_MAX_PLUNAME           As Long = 36
@@ -183,7 +183,7 @@ Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
 Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
-Private m_eLastErrNumber            As UcsFiscalErrorsEnum
+Private m_eLastErrNo                As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_uRow()                    As UcsRowData
 Private m_lRowCount                 As Long
@@ -308,8 +308,7 @@ Private Enum UcsInvDataIndex
     ucsInvCgName
     ucsInvCgCity
     ucsInvCgAddress
-    ucsInvCgMol
-    ucsInvCgReceiver
+    ucsInvCgPrsReceive
     ucsInvCgTaxNoType
 End Enum
 
@@ -350,9 +349,9 @@ Private Type UcsConfigValues
     MaxOperName         As Long
     MaxOperPassword     As Long
     MaxCompany          As Long
-    MaxMol              As Long
-    MaxVatNumber        As Long
-    MaxTaxNumber        As Long
+    MaxPrsReceive       As Long
+    MaxVatNo        As Long
+    MaxTaxNo        As Long
     MaxCity             As Long
     MaxInvoiceNo        As Long
     MaxPluName          As Long
@@ -420,8 +419,8 @@ Property Get ErrorText() As String
     End If
 End Property
 
-Property Get LastErrNumber() As UcsFiscalErrorsEnum
-    LastErrNumber = m_eLastErrNumber
+Property Get LastErrNo() As UcsFiscalErrorsEnum
+    LastErrNo = m_eLastErrNo
 End Property
 
 Property Get LastError() As String
@@ -658,9 +657,9 @@ Public Function Init( _
         .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", DEF_MAX_OPERNAME)
         .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", DEF_MAX_OPERPASSWORD)
         .MaxCompany = GetConfigNumber(sSerial, "MaxCompany", DEF_MAX_COMPANY)
-        .MaxMol = GetConfigNumber(sSerial, "MaxMol", DEF_MAX_MOL)
-        .MaxVatNumber = GetConfigNumber(sSerial, "MaxVatNumber", DEF_MAX_VATNUMBER)
-        .MaxTaxNumber = GetConfigNumber(sSerial, "MaxTaxNumber", DEF_MAX_TAXNUMBER)
+        .MaxPrsReceive = GetConfigNumber(sSerial, "MaxPrsReceive", DEF_MAX_PRSRECEIVE)
+        .MaxVatNo = GetConfigNumber(sSerial, "MaxVatNo", DEF_MAX_VATNO)
+        .MaxTaxNo = GetConfigNumber(sSerial, "MaxTaxNo", DEF_MAX_TAXNO)
         .MaxCity = GetConfigNumber(sSerial, "MaxCity", DEF_MAX_CITY)
         .MaxInvoiceNo = GetConfigNumber(sSerial, "MaxInvoiceNo", DEF_MAX_INVOICENO)
         .MaxPluName = GetConfigNumber(sSerial, "MaxPluName", DEF_MAX_PLUNAME)
@@ -722,7 +721,7 @@ Public Function SendCommand(ByVal eCmd As UcsTremolCommandsEnum, Optional Data A
         SendCommand = pvSendCommand(m_oConnector, m_lTimeout, eCmd, Data, m_sLastError)
     End If
     If LenB(m_sLastError) <> 0 Then
-        m_eLastErrNumber = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
+        m_eLastErrNo = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
     End If
     '--- raise event
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
@@ -823,8 +822,7 @@ Public Function StartReceipt( _
             Optional InvCgName As String, _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
-            Optional InvCgMol As String, _
-            Optional InvCgReceiver As String, _
+            Optional InvCgPrsReceive As String, _
             Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
             Optional StornoReceiptNo As String, _
             Optional StornoReceiptDate As Date, _
@@ -852,7 +850,7 @@ Public Function StartReceipt( _
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, 30
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
-            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgMol), SafeText(InvCgReceiver), InvCgTaxNoType)
+            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, 2, StornoReason = ucsFscRsnOperatorError, 0, True, 1), _
             SafeText(StornoReceiptNo), Format$(StornoReceiptDate, "dd\-mm\-yy hh\:nn\:ss"), SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
     End With
@@ -1060,7 +1058,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
+Public Function CopyLastReceipt(Optional ReceiptNo As String) As Boolean
     Const FUNC_NAME     As String = "CopyLastReceipt"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
@@ -1070,7 +1068,7 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Dim lPrintTimeout   As Long
     
     On Error GoTo EH
-    If LenB(ReceiptNumber) = 0 Then
+    If LenB(ReceiptNo) = 0 Then
         sPrevReceiptNo = GetLastReceiptNo()
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString, _
             "PrintTimeout", lPrintTimeout, 0
@@ -1089,7 +1087,7 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Else
         pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1;N;%1;%1", _
             "PrintTimeout", lPrintTimeout, 0
-        SendCommand eCmd, Printf(sParam, Pad(ReceiptNumber, 5))
+        SendCommand eCmd, Printf(sParam, Pad(ReceiptNo, 5))
         If Not LenB(m_sLastError) = 0 Then
             GoTo QH
         End If
@@ -1319,8 +1317,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetTaxNumber() As String
-    Const FUNC_NAME     As String = "GetTaxNumber"
+Public Function GetTaxNo() As String
+    Const FUNC_NAME     As String = "GetTaxNo"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -1329,7 +1327,7 @@ Public Function GetTaxNumber() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsZekCmdInfoBulstat, sParam, vbNullString, _
         "Index", lIndex, 0
-    GetTaxNumber = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
+    GetTaxNo = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2028,9 +2026,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 IIf(m_uConfig.DetailedReceipt, 1, 0), _
                 Chr$(IIf(m_uConfig.DelayPrint, 2, 0) Or lPrintType), _
                 Pad(.InitInvData(ucsInvCgName), m_uConfig.MaxCompany) & _
-                    ";" & Pad(.InitInvData(ucsInvCgMol), m_uConfig.MaxMol) & _
-                    ";" & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNumber) & _
-                    ";" & Pad(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxTaxNumber) & _
+                    ";" & Pad(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxPrsReceive) & _
+                    ";" & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNo) & _
+                    ";" & Pad(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxTaxNo) & _
                     ";" & Pad(.InitInvData(ucsInvCgCity), m_uConfig.MaxCity) & IIf(m_uConfig.ExtendedPmtTypes, _
                     ";" & .InitInvData(ucsInvCgTaxNoType), vbNullString), _
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
@@ -2153,7 +2151,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     pvPrintReceipt = True
 QH:
     If LenB(m_sLastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
-        pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError), m_eLastErrNumber
+        pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_sLastError), m_eLastErrNo
     End If
     Exit Function
 EH:
@@ -2431,9 +2429,9 @@ End Sub
 
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
     If ErrNum < 0 Then
-        m_eLastErrNumber = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
+        m_eLastErrNo = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
     Else
-        m_eLastErrNumber = ErrNum
+        m_eLastErrNo = ErrNum
     End If
     m_sLastError = sError
 End Sub
@@ -2552,8 +2550,8 @@ Private Function IDeviceProtocol_GetLastReceiptNo() As String
     IDeviceProtocol_GetLastReceiptNo = GetLastReceiptNo()
 End Function
 
-Private Function IDeviceProtocol_GetLastError(Optional ErrCategory As UcsFiscalErrorsEnum) As String
-    ErrCategory = LastErrNumber
+Private Function IDeviceProtocol_GetLastError(Optional ErrNo As UcsFiscalErrorsEnum) As String
+    ErrNo = LastErrNo
     IDeviceProtocol_GetLastError = LastError
 End Function
 
@@ -2577,8 +2575,8 @@ Private Function IDeviceProtocol_GetTaxCaption() As String
     IDeviceProtocol_GetTaxCaption = GetTaxCaption()
 End Function
 
-Private Function IDeviceProtocol_GetTaxNumber() As String
-    IDeviceProtocol_GetTaxNumber = GetTaxNumber()
+Private Function IDeviceProtocol_GetTaxNo() As String
+    IDeviceProtocol_GetTaxNo = GetTaxNo()
 End Function
 
 Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
@@ -2625,7 +2623,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgMol As String, Optional InvCgReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgMol, InvCgReceiver, StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo, StornoInvoiceNo)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo, StornoInvoiceNo)
 End Function
 

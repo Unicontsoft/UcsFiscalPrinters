@@ -153,7 +153,7 @@ End Property
 ' @param `ErrNumber` [out, optional] Error category of the last error
 ' @return Text description of the last error
 '
-Public Function GetLastError(Optional ErrCategory As UcsFiscalErrorsEnum) As String
+Public Function GetLastError(Optional ErrNo As UcsFiscalErrorsEnum) As String
 Attribute GetLastError.VB_Description = "Used to retrieve details about last error that occurred during protocol operations"
 
 End Function
@@ -174,7 +174,7 @@ End Function
 ' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
 ' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
 ' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvCgReceiver`    [in, optional] name of the person that is receiving the document
+' @param `InvCgPrsReceive`    [in, optional] name of the person that is receiving the document
 ' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
@@ -191,8 +191,7 @@ Public Function StartReceipt( _
             Optional InvCgName As String, _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
-            Optional InvCgMol As String, _
-            Optional InvCgReceiver As String, _
+            Optional InvCgPrsReceive As String, _
             Optional OwnData As String, _
             Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
             Optional StornoReceiptNo As String, _
@@ -407,8 +406,8 @@ End Sub
 '
 ' @return Company's tax number as string
 '
-Public Function GetTaxNumber() As String
-Attribute GetTaxNumber.VB_Description = "Used to retrieve tax number of the company that the fiscal device belongs to"
+Public Function GetTaxNo() As String
+Attribute GetTaxNo.VB_Description = "Used to retrieve tax number of the company that the fiscal device belongs to"
 
 End Function
 

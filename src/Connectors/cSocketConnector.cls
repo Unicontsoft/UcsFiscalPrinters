@@ -602,7 +602,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function IDeviceConnector_GetLastError(Optional ErrCategory As UcsConnectorErrorsEnum) As String
+Private Function IDeviceConnector_GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String
     IDeviceConnector_GetLastError = GetErrorDescription(m_lLastError)
 End Function
 

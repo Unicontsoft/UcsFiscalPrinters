@@ -449,7 +449,7 @@ End Sub
 ' IDeviceConnector interface
 '=========================================================================
 
-Private Function IDeviceConnector_GetLastError(Optional ErrCategory As UcsConnectorErrorsEnum) As String
+Private Function IDeviceConnector_GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String
     IDeviceConnector_GetLastError = GetLastError()
 End Function
 

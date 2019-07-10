@@ -31,7 +31,7 @@ Public Enum UcsConnectorErrorsEnum
     ucsFscCerNone
 End Enum
 
-Public Function GetLastError(Optional ErrCategory As UcsConnectorErrorsEnum) As String
+Public Function GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String
 
 End Function
 

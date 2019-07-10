@@ -227,7 +227,7 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     For lIdx = 1 To 2
         JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
     Next
-    JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNumber()
+    JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
     JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
     JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastReceiptNo()
@@ -305,8 +305,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Invoice/CgName"), _
                 vbNullString, _
                 JsonItem(oJson, "Invoice/CgAddress"), _
-                JsonItem(oJson, "Invoice/CgPersonReceiver"), _
-                vbNullString, _
+                JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 JsonItem(oJson, "OwnData"), _
                 C_Lng(JsonItem(oJson, "Storno/Reason")), _
                 JsonItem(oJson, "Storno/ReceiptNo"), _

@@ -56,7 +56,7 @@ Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
 Private m_lCodePage                 As Long
 Private m_lTimeout                  As Long
-Private m_eLastErrNumber            As UcsFiscalErrorsEnum
+Private m_eLastErrNo                As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_uRow()                    As UcsRowData
 Private m_lRowCount                 As Long
@@ -140,8 +140,7 @@ Private Enum UcsInvDataIndex
     ucsInvCgName
     ucsInvCgCity
     ucsInvCgAddress
-    ucsInvCgMol
-    ucsInvCgReceiver
+    ucsInvCgPrsReceive
 End Enum
 
 Private Enum UcsOwnDataIndex
@@ -202,8 +201,8 @@ Property Let Timeout(ByVal lValue As Long)
     m_lTimeout = lValue
 End Property
 
-Property Get LastErrNumber() As UcsFiscalErrorsEnum
-    LastErrNumber = m_eLastErrNumber
+Property Get LastErrNo() As UcsFiscalErrorsEnum
+    LastErrNo = m_eLastErrNo
 End Property
 
 Property Get LastError() As String
@@ -412,8 +411,7 @@ Public Function StartReceipt( _
             Optional InvCgName As String, _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
-            Optional InvCgMol As String, _
-            Optional InvCgReceiver As String, _
+            Optional InvCgPrsReceive As String, _
             Optional OwnData As String) As Boolean
     Const FUNC_NAME     As String = "StartReceipt"
     Dim sCity           As String
@@ -431,7 +429,7 @@ Public Function StartReceipt( _
         .InitTableNo = TableNo
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
-            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgMol), SafeText(InvCgReceiver))
+            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive))
         .InitOwnData = Split(OwnData, STR_CHR1)
     End With
     '--- success
@@ -1005,7 +1003,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
                             pvPrintLine String$(pvRowChars, "-")
                             pvPrintLine AlignText(pvText(ucsTxtFooterReceiver), STR_CHR1 & ".", pvRowChars)
-                            pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvCgReceiver)), .InitInvData(ucsInvCgMol)) & "/", pvRowChars)
+                            pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvCgPrsReceive)), .InitInvData(ucsInvCgPrsReceive)) & "/", pvRowChars)
                             pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCgName)
                             pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvCgTaxNo)
                             If LenB(.InitInvData(ucsInvCgVatNo)) <> 0 Then
@@ -1201,8 +1199,8 @@ Private Function IDeviceProtocol_GetLastReceiptNo() As String
 
 End Function
 
-Private Function IDeviceProtocol_GetLastError(Optional ErrCategory As UcsFiscalErrorsEnum) As String
-    ErrCategory = LastErrNumber
+Private Function IDeviceProtocol_GetLastError(Optional ErrNo As UcsFiscalErrorsEnum) As String
+    ErrNo = LastErrNo
     IDeviceProtocol_GetLastError = LastError
 End Function
 
@@ -1226,7 +1224,7 @@ Private Function IDeviceProtocol_GetTaxCaption() As String
 
 End Function
 
-Private Function IDeviceProtocol_GetTaxNumber() As String
+Private Function IDeviceProtocol_GetTaxNo() As String
 
 End Function
 
@@ -1274,7 +1272,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgMol As String, Optional InvCgReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, TableNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgMol, InvCgReceiver, OwnData)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, TableNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, OwnData)
 End Function
 
