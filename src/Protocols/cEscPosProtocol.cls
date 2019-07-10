@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-'   ESP/POS printer protocol
+' ESP/POS printer protocol
 '
 '=========================================================================
 Option Explicit
@@ -56,7 +56,6 @@ Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
 Private m_lCodePage                 As Long
 Private m_lTimeout                  As Long
-Private m_lCashDeskNo               As Long
 Private m_eLastErrNumber            As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_uRow()                    As UcsRowData
@@ -116,11 +115,9 @@ Private Type UcsRowData
     InitReceiptType     As UcsFiscalReceiptTypeEnum
     InitOperatorCode    As String
     InitOperatorName    As String
-    InitOperatorPassword As String
     InitTableNo         As String
     InitInvData         As Variant
     InitOwnData         As Variant
-    InitCashDeskNo      As Long
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
@@ -153,7 +150,8 @@ Private Enum UcsOwnDataIndex
     ucsOwnBulstat
     ucsOwnDepName
     ucsOwnDepAddress
-    ucsOwnFooter
+    ucsOwnFooter1
+    ucsOwnFooter2
 End Enum
 
 Private Type UcsContext
@@ -335,7 +333,6 @@ End Function
 Public Function Init( _
             sDevice As String, _
             Optional ByVal Timeout As Long, _
-            Optional ByVal CashDeskNo As Long, _
             Optional ByVal RowChars As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
@@ -353,7 +350,6 @@ Public Function Init( _
     End If
     m_lCodePage = Znl(C_Lng(At(vPort, 1)), 866)
     m_lTimeout = IIf(Timeout <> 0, Timeout, DEF_TIMEOUT)
-    m_lCashDeskNo = CashDeskNo
     m_uConfig.RowChars = RowChars
     '--- success
     Init = Connect()
@@ -409,7 +405,6 @@ Public Function StartReceipt( _
             ByVal ReceiptType As UcsFiscalReceiptTypeEnum, _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
-            Optional OperatorPassword As String, _
             Optional TableNo As String, _
             Optional InvNumber As String, _
             Optional InvTaxNumber As String, _
@@ -430,21 +425,10 @@ Public Function StartReceipt( _
     With m_uRow(pvAddRow())
         .RowType = ucsRowInit
         .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
-        Select Case .InitReceiptType
-        Case ucsFscRetFiscal
-            .InitReceiptType = ucsFscRetNonfiscal
-        Case ucsFscRetInvoiceFiscal
-            .InitReceiptType = ucsFscRetInvoiceNonfiscal
-        End Select
         .InitReceiptType = ucsFscRetOrderList
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
-        .InitOperatorPassword = SafeText(OperatorPassword)
         .InitTableNo = TableNo
-        If LenB(.InitOperatorPassword) = 0 Then
-            .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
-        End If
-        .InitCashDeskNo = m_lCashDeskNo
         SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
         .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
             SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
@@ -810,7 +794,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
         Select Case .RowType
         Case ucsRowInit
             Select Case .InitReceiptType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetOrderList
+                pvPrintLine CenterText(pvText(ucsTxtOrderList), pvRowChars)
+                pvPrintLine vbNullString
+                pvPrintLine Printf(pvText(ucsTxtHeaderDate), Now())
+                pvPrintLine Printf(pvText(ucsTxtHeaderOper), .InitOperatorName)
+                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitTableNo)
+                pvPrintLine String(pvRowChars, "-")
+            Case Else
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnName), pvRowChars)
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnAddress), pvRowChars)
                 pvPrintLine CenterText(Printf(pvText(ucsTxtHeaderEic), At(.InitOwnData, ucsOwnBulstat)), pvRowChars)
@@ -820,20 +811,13 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 If LenB(At(.InitOwnData, ucsOwnDepAddress)) <> 0 Then
                     pvPrintLine CenterText(At(.InitOwnData, ucsOwnDepAddress), pvRowChars)
                 End If
-                If .InitReceiptType = ucsFscRetInvoiceNonfiscal Then
+                If .InitReceiptType = ucsFscRetInvoice Or .InitReceiptType = ucsFscRetCreditNote Then
                     sData = .InitInvData(ucsInvNumber)
                     If Len(sData) <= 10 Then
                         sData = Printf(pvText(ucsTxtHeaderInvoiceNo), sData)
                     End If
                     pvPrintLine CenterText(sData, pvRowChars)
                 End If
-            Case ucsFscRetOrderList
-                pvPrintLine CenterText(pvText(ucsTxtOrderList), pvRowChars)
-                pvPrintLine vbNullString
-                pvPrintLine Printf(pvText(ucsTxtHeaderDate), Now())
-                pvPrintLine Printf(pvText(ucsTxtHeaderOper), .InitOperatorName)
-                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitTableNo)
-                pvPrintLine String(pvRowChars, "-")
             End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
@@ -847,16 +831,32 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End If
             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
             Select Case .PrintRowType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetOrderList
+                pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
+                    "FormatQty", sFormatQty, "0.000"
+                vSplit = WrapMultiline(.PluName, pvRowChars - 7)
+                If UBound(vSplit) = 0 Then
+                    ReDim Preserve vSplit(0 To 1) As Variant
+                End If
+                sData = " " & IIf(.PluPrice < -DBL_EPSILON, "-", vbNullString) & SafeFormat(.PluQuantity, sFormatQty)
+                lIdx = UBound(vSplit) - 1
+                If Len(vSplit(lIdx)) + Len(sData) > pvRowChars - 2 Then
+                    vTemp = WrapMultiline(vSplit(lIdx), pvRowChars - Len(sData) - 3)
+                    vSplit(lIdx) = Trim$(At(vTemp, 0))
+                    vSplit(UBound(vSplit)) = Trim$(At(vTemp, 1) & " " & vSplit(UBound(vSplit)))
+                End If
+                vSplit(lIdx) = AlignText(vSplit(lIdx), sData, pvRowChars)
+                pvPrintLine vSplit
+            Case Else
                 pvGetCommandConfig CONF_NAME, "NonFiscalSell" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
                     "FormatPrice", sFormatPrice, "0.00", _
                     "FormatQty", sFormatQty, "0.000", _
                     "FormatDisc", sFormatDisc, "0.00", _
                     "FormatAmount", sFormatAmount, "0.00"
                 If uCtx.PluCount = 1 Then
-                    pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(uRow(0).InitCashDeskNo, "00"), pvRowChars)
+                    pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(1, "00"), pvRowChars)
                 End If
-                If .PrintRowType = ucsFscRetNonfiscal Then
+                If .PrintRowType = ucsFscRetSale Then
                     vSplit = WrapMultiline(.PluName, pvRowChars - 7)
                     If .PluQuantity <> 1 Then
                         If UBound(vSplit) = 0 Then
@@ -890,42 +890,23 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         SafeFormat(dblDisc, sFormatAmount) & " " & Chr$(191 + .PluVatGroup), pvRowChars)
                     pvPrintLine sData
                 End Select
-            Case ucsFscRetOrderList
-                pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
-                    "FormatQty", sFormatQty, "0.000"
-                vSplit = WrapMultiline(.PluName, pvRowChars - 7)
-                If UBound(vSplit) = 0 Then
-                    ReDim Preserve vSplit(0 To 1) As Variant
-                End If
-                sData = " " & IIf(.PluPrice < -DBL_EPSILON, "-", vbNullString) & SafeFormat(.PluQuantity, sFormatQty)
-                lIdx = UBound(vSplit) - 1
-                If Len(vSplit(lIdx)) + Len(sData) > pvRowChars - 2 Then
-                    vTemp = WrapMultiline(vSplit(lIdx), pvRowChars - Len(sData) - 3)
-                    vSplit(lIdx) = Trim$(At(vTemp, 0))
-                    vSplit(UBound(vSplit)) = Trim$(At(vTemp, 1) & " " & vSplit(UBound(vSplit)))
-                End If
-                vSplit(lIdx) = AlignText(vSplit(lIdx), sData, pvRowChars)
-                pvPrintLine vSplit
             End Select
         Case ucsRowDiscount
-            Select Case .PrintRowType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
-                pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal", 0, 0, vbNullString, vbNullString, _
-                    "FormatDisc", sFormatDisc, "0.00", _
-                    "FormatAmount", sFormatAmount, "0.00"
-                Select Case .DiscType
-                Case ucsFscDstSubtotal
-                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvRowChars - 2)
-                    For lIdx = 1 To UBound(uCtx.GrpTotal)
-                        If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                            dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                            pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(.DiscValue), sFormatDisc) & " %"), _
-                                SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + lIdx), pvRowChars)
-                        End If
-                    Next
-                Case ucsFscDstSubtotalAbs
-                    '--- ToDo: impl absolute subtotal discount
-                End Select
+            pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal", 0, 0, vbNullString, vbNullString, _
+                "FormatDisc", sFormatDisc, "0.00", _
+                "FormatAmount", sFormatAmount, "0.00"
+            Select Case .DiscType
+            Case ucsFscDstSubtotal
+                pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvRowChars - 2)
+                For lIdx = 1 To UBound(uCtx.GrpTotal)
+                    If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
+                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
+                        pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(.DiscValue), sFormatDisc) & " %"), _
+                            SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + lIdx), pvRowChars)
+                    End If
+                Next
+            Case ucsFscDstSubtotalAbs
+                '--- ToDo: impl absolute subtotal discount
             End Select
             Select Case .DiscType
             Case ucsFscDstSubtotal
@@ -965,14 +946,24 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End Select
         Case ucsRowPayment
             Select Case .PrintRowType
-            Case ucsFscRetNonfiscal, ucsFscRetInvoiceNonfiscal
+            Case ucsFscRetOrderList
+                If .PmtType = 0 Then
+                    pvPrintLine String(pvRowChars, "-")
+                    If Not pvSendPaperFeed(Lines:=3) Then
+                        GoTo QH
+                    End If
+                    If Not pvSendPaperCut() Then
+                        GoTo QH
+                    End If
+                End If
+            Case Else
                 pvGetCommandConfig CONF_NAME, "NonFiscalFooter", 0, 0, vbNullString, vbNullString, _
                     "FormatAmount", sFormatAmount, "0.00"
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
                         pvPrintLine String$(pvRowChars, "-")
                         pvPrintLine AlignText(pvText(ucsTxtFooterTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvRowChars - 2)
-                        If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
+                        If .PrintRowType = ucsFscRetInvoice Or .PrintRowType = ucsFscRetCreditNote Then
                             '--- print invoice totals by VAT groups
                             vSplit = Split("0,20,20,9", DEF_DELIM)
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -1008,7 +999,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         End If
                         uCtx.ChangePrinted = True
                     End If
-                    If .PrintRowType = ucsFscRetInvoiceNonfiscal Then
+                    If .PrintRowType = ucsFscRetInvoice Or .PrintRowType = ucsFscRetCreditNote Then
                         With uRow(0)
                             pvPrintLine AlignText(pvText(ucsTxtFooterSeller), STR_CHR1 & ".", pvRowChars)
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
@@ -1024,11 +1015,11 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             pvPrintLine .InitInvData(ucsInvAddress)
                         End With
                     End If
-                    sData = At(uRow(0).InitOwnData, 5)
+                    sData = At(uRow(0).InitOwnData, ucsOwnFooter1)
                     If LenB(sData) <> 0 Then
                         pvPrintLine CenterText(sData, pvRowChars)
                     End If
-                    sData = At(uRow(0).InitOwnData, 6)
+                    sData = At(uRow(0).InitOwnData, ucsOwnFooter2)
                     If LenB(sData) <> 0 Then
                         pvPrintLine CenterText(sData, pvRowChars)
                     End If
@@ -1041,16 +1032,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvPrintLine sData
                     sData = CenterText(pvText(ucsTxtNonfiscalReceipt), pvRowChars)
                     pvPrintLine sData
-                    If Not pvSendPaperFeed(Lines:=3) Then
-                        GoTo QH
-                    End If
-                    If Not pvSendPaperCut() Then
-                        GoTo QH
-                    End If
-                End If
-            Case ucsFscRetOrderList
-                If .PmtType = 0 Then
-                    pvPrintLine String(pvRowChars, "-")
                     If Not pvSendPaperFeed(Lines:=3) Then
                         GoTo QH
                     End If
@@ -1261,8 +1242,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal CashDeskNo As Long, Optional ByVal RowChars As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, CashDeskNo, RowChars)
+Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
+    IDeviceProtocol_Init = Init(Device, Timeout, RowChars)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean
@@ -1293,7 +1274,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, TableNo, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, OwnData)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, TableNo, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, OwnData)
 End Function
 

@@ -23,13 +23,9 @@ Attribute VB_Description = "cFiscalAdmin class is used for library administratio
 '
 '=========================================================================
 '
-'   Administration of fiscal devices and handlers
+' Administration of fiscal devices and protocols
 '
 '=========================================================================
-''
-' cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the
-' library.
-'
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cFiscalAdmin"
@@ -39,7 +35,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 '=========================================================================
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
-Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cIslProtocol|cEltradeProtocol|cTremolProtocol|cEscPosProtocol"
+Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cIslProtocol|cTremolProtocol|cEscPosProtocol"
 
 '=========================================================================
 ' Error handling
@@ -212,13 +208,10 @@ End Property
 Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
 Attribute ShowSetup.VB_Description = "Used to show device's specific configuration dialog where the end-user can configure operators, departments and other device settings"
     Dim oFrmIsl         As New frmIslSetup
-    Dim oFrmEltrade     As New frmEltradeSetup
     Dim oFrmTremol      As New frmTremolSetup
     
     '--- figure out protocol
     Select Case UCase$(At(Split(DeviceString, ";"), 0))
-    Case STR_PROTOCOL_ELTRADE_ECR
-        ShowSetup = oFrmEltrade.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
         ShowSetup = oFrmIsl.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_TREMOL_FP
@@ -239,8 +232,6 @@ Attribute CreateObject.VB_Description = "Class factory for fiscal printers class
         Set CreateObject = New cFiscalPrinter
     Case LCase$(LIB_NAME & ".cIslProtocol")
         Set CreateObject = New cIslProtocol
-    Case LCase$(LIB_NAME & ".cEltradeProtocol")
-        Set CreateObject = New cEltradeProtocol
     Case LCase$(LIB_NAME & ".cTremolProtocol")
         Set CreateObject = New cTremolProtocol
     Case LCase$(LIB_NAME & ".cEscPosProtocol")

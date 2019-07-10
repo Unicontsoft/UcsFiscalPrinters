@@ -22,7 +22,7 @@ Attribute VB_Exposed = False
 '
 '=========================================================================
 '
-'   Internal device connector interface
+' Internal device connector interface
 '
 '=========================================================================
 Option Explicit

@@ -10,7 +10,7 @@ Attribute VB_Name = "mdGlobals"
 '
 '=========================================================================
 '
-'   Global functions, constants and variables
+' Global functions, constants and variables
 '
 '=========================================================================
 Option Explicit
@@ -63,13 +63,6 @@ Private Const OFN_ENABLESIZING              As Long = &H800000
 '--- for CreateDIBSection
 Private Const DIB_RGB_COLORS                As Long = 0
 '--- for VariantChangeType
-Private Const VT_I4                         As Long = 3
-Private Const VT_R8                         As Long = 5
-'Private Const VT_CY                         As Long = 6
-Private Const VT_DATE                       As Long = 7
-Private Const VT_BSTR                       As Long = 8
-Private Const VT_BOOL                       As Long = 11
-'Private Const VT_UI1                        As Long = 17
 Private Const VARIANT_ALPHABOOL             As Long = 2
 
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
@@ -110,8 +103,9 @@ Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal Brush As Long) As 
 Private Declare Function ApiEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
-Private Declare Function VariantChangeType Lib "oleaut32" (dest As Variant, src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
+Private Declare Function VariantChangeType Lib "oleaut32" (vDest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
 Private Declare Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpDefaultChar As Long, ByVal lpUsedDefaultChar As Long) As Long
+Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long) As Long
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
@@ -235,7 +229,6 @@ End Type
 
 Public Const LIB_NAME               As String = "UcsFiscalPrinters"
 Public Const STR_NONE               As String = "(Няма)"
-Public Const STR_PROTOCOL_ELTRADE_ECR As String = "ELTRADE ECR"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
 Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
 Public Const STR_PROTOCOL_INCOTEX_ECR As String = "INCOTEX FP/ECR"
@@ -339,7 +332,7 @@ Public Function C_Lng(Value As Variant) As Long
     
     If VarType(Value) = vbLong Then
         C_Lng = Value
-    ElseIf VariantChangeType(vDest, Value, 0, VT_I4) = 0 Then
+    ElseIf VariantChangeType(vDest, Value, 0, vbLong) = 0 Then
         C_Lng = vDest
     End If
 End Function
@@ -349,7 +342,7 @@ Public Function C_Str(Value As Variant) As String
     
     If VarType(Value) = vbString Then
         C_Str = Value
-    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, VT_BSTR) = 0 Then
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbString) = 0 Then
         C_Str = vDest
     End If
 End Function
@@ -359,7 +352,7 @@ Public Function C_Bool(Value As Variant) As Boolean
     
     If VarType(Value) = vbBoolean Then
         C_Bool = Value
-    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, VT_BOOL) = 0 Then
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbBoolean) = 0 Then
         C_Bool = vDest
     End If
 End Function
@@ -369,7 +362,7 @@ Public Function C_Dbl(Value As Variant) As Double
     
     If VarType(Value) = vbDouble Then
         C_Dbl = Value
-    ElseIf VariantChangeType(vDest, Replace(C_Str(Value), ".", m_sDecimalSeparator), 0, VT_R8) = 0 Then
+    ElseIf VariantChangeType(vDest, Replace(C_Str(Value), ".", m_sDecimalSeparator), 0, vbDouble) = 0 Then
         C_Dbl = vDest
     End If
 End Function
@@ -379,8 +372,18 @@ Public Function C_Date(Value As Variant) As Date
     
     If VarType(Value) = vbDate Then
         C_Date = Value
-    ElseIf VariantChangeType(vDest, Value, 0, VT_DATE) = 0 Then
+    ElseIf VariantChangeType(vDest, Value, 0, vbDate) = 0 Then
         C_Date = vDest
+    End If
+End Function
+
+Public Function C_Obj(Value As Variant) As Object
+    Dim vDest       As Variant
+
+    If VarType(Value) = vbObject Then
+        Set C_Obj = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbObject) = 0 Then
+        Set C_Obj = vDest
     End If
 End Function
 
@@ -1125,16 +1128,14 @@ End Function
 
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
     Const FUNC_NAME     As String = "GetConfigValue"
+    Dim oItem           As Object
     
     On Error GoTo EH
     If LenB(sSerial) <> 0 Then
-        If m_oConfig.Exists(sSerial) Then
-            If IsObject(m_oConfig(sSerial)) Then
-                If m_oConfig(sSerial).Exists(sKey) Then
-                    AssignVariant GetConfigValue, m_oConfig(sSerial).Item(sKey)
-                    Exit Function
-                End If
-            End If
+        Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
+        If Not oItem Is Nothing Then
+            AssignVariant GetConfigValue, JsonItem(oItem, sKey)
+            Exit Function
         End If
     End If
     If IsMissing(vDefault) Then
@@ -1462,6 +1463,18 @@ Public Function ToAscii(sSend As String, Optional ByVal CodePage As Long) As Byt
         baText = " "
     End If
     ToAscii = baText
+End Function
+
+Public Function FromAscii(baRecv() As Byte, Optional ByVal CodePage As Long) As String
+    Dim lSize           As Long
+    
+    If UBound(baRecv) >= 0 Then
+        FromAscii = String$(2 * (UBound(baRecv) + 1), 0)
+        lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromAscii), Len(FromAscii) + 1)
+        If lSize <> Len(FromAscii) Then
+            FromAscii = Left$(FromAscii, lSize)
+        End If
+    End If
 End Function
 
 Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
