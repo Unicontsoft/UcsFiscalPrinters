@@ -230,7 +230,7 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNumber()
     JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
-    JsonItem(oRetVal, "LastReceipt") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "LastReceipt") = oFP.GetLastReceiptNo()
     For lIdx = 1 To 3
         JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
     Next
@@ -241,8 +241,8 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
         JsonItem(oRetVal, "DefOperPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
     End If
-    JsonItem(oRetVal, "SerialNo") = oFP.GetSerialNumber()
-    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalNumber()
+    JsonItem(oRetVal, "SerialNo") = oFP.GetDeviceSerialNo()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
     GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
@@ -281,7 +281,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
     sPrevReceipt = JsonItem(oJson, "PrevReceipt")
     If LenB(sPrevReceipt) <> 0 Then
-        JsonItem(oRetVal, "PrevReceipt") = oFP.GetLastReceiptNumber()
+        JsonItem(oRetVal, "PrevReceipt") = oFP.GetLastReceiptNo()
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceipt)) <> 0 Then
             If Pad(sPrevReceipt, -Len(JsonItem(oRetVal, "PrevReceipt"))) <> JsonItem(oRetVal, "PrevReceipt") And C_Lng(JsonItem(oRetVal, "PrevCount")) <> 0 Then
@@ -353,10 +353,10 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             GoTo QH
         End If
     End If
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
     JsonItem(oRetVal, "ReceiptDateTime") = C_Str(oFP.GetClock())
-    JsonItem(oRetVal, "SerialNo") = oFP.GetSerialNumber()
-    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalNumber()
+    JsonItem(oRetVal, "SerialNo") = oFP.GetDeviceSerialNo()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
     PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
@@ -426,7 +426,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
 QH:
     PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
@@ -652,7 +652,7 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
         DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
         GoTo QH
     End If
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNumber()
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
     JsonItem(oRetVal, "TotalSum") = vTotals(0)
     JsonItem(oRetVal, "TotalCredit") = vTotals(1)
     JsonItem(oRetVal, "TotalDebit") = vTotals(2)

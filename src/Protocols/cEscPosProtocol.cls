@@ -134,14 +134,14 @@ Private Type UcsRowData
 End Type
 
 Private Enum UcsInvDataIndex
-    ucsInvNumber
-    ucsInvTaxNumber
-    ucsInvVatNumber
-    ucsInvCompany
-    ucsInvCity
-    ucsInvAddress
-    ucsInvMol
-    ucsInvReceiver
+    ucsInvDocNo
+    ucsInvCgTaxNo
+    ucsInvCgVatNo
+    ucsInvCgName
+    ucsInvCgCity
+    ucsInvCgAddress
+    ucsInvCgMol
+    ucsInvCgReceiver
 End Enum
 
 Private Enum UcsOwnDataIndex
@@ -406,14 +406,14 @@ Public Function StartReceipt( _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
             Optional TableNo As String, _
-            Optional InvNumber As String, _
-            Optional InvTaxNumber As String, _
-            Optional InvVatNumber As String, _
-            Optional InvCompany As String, _
-            Optional InvCity As String, _
-            Optional InvAddress As String, _
-            Optional InvMol As String, _
-            Optional InvReceiver As String, _
+            Optional InvDocNo As String, _
+            Optional InvCgTaxNo As String, _
+            Optional InvCgVatNo As String, _
+            Optional InvCgName As String, _
+            Optional InvCgCity As String, _
+            Optional InvCgAddress As String, _
+            Optional InvCgMol As String, _
+            Optional InvCgReceiver As String, _
             Optional OwnData As String) As Boolean
     Const FUNC_NAME     As String = "StartReceipt"
     Dim sCity           As String
@@ -429,9 +429,9 @@ Public Function StartReceipt( _
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
         .InitTableNo = TableNo
-        SplitCgAddress Trim$(SafeText(InvCity)) & vbCrLf & Trim$(SafeText(InvAddress)), sCity, sAddress, pvRowChars - 2
-        .InitInvData = Array(SafeText(InvNumber), SafeText(InvTaxNumber), SafeText(InvVatNumber), _
-            SafeText(InvCompany), sCity, sAddress, SafeText(InvMol), SafeText(InvReceiver))
+        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvRowChars - 2
+        .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
+            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgMol), SafeText(InvCgReceiver))
         .InitOwnData = Split(OwnData, STR_CHR1)
     End With
     '--- success
@@ -812,7 +812,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvPrintLine CenterText(At(.InitOwnData, ucsOwnDepAddress), pvRowChars)
                 End If
                 If .InitReceiptType = ucsFscRetInvoice Or .InitReceiptType = ucsFscRetCreditNote Then
-                    sData = .InitInvData(ucsInvNumber)
+                    sData = .InitInvData(ucsInvDocNo)
                     If Len(sData) <= 10 Then
                         sData = Printf(pvText(ucsTxtHeaderInvoiceNo), sData)
                     End If
@@ -1005,14 +1005,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                             pvPrintLine AlignText(vbNullString, "/" & .InitOperatorName & "/", pvRowChars)
                             pvPrintLine String$(pvRowChars, "-")
                             pvPrintLine AlignText(pvText(ucsTxtFooterReceiver), STR_CHR1 & ".", pvRowChars)
-                            pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvReceiver)), .InitInvData(ucsInvMol)) & "/", pvRowChars)
-                            pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCompany)
-                            pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvTaxNumber)
-                            If LenB(.InitInvData(ucsInvVatNumber)) <> 0 Then
-                                pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvVatNumber)
+                            pvPrintLine AlignText(vbNullString, "/" & Zn(C_Str(.InitInvData(ucsInvCgReceiver)), .InitInvData(ucsInvCgMol)) & "/", pvRowChars)
+                            pvPrintLine pvText(ucsTxtFooterBuyer) & .InitInvData(ucsInvCgName)
+                            pvPrintLine pvText(ucsTxtFooterTaxNo) & .InitInvData(ucsInvCgTaxNo)
+                            If LenB(.InitInvData(ucsInvCgVatNo)) <> 0 Then
+                                pvPrintLine pvText(ucsTxtFooterVatNo) & .InitInvData(ucsInvCgVatNo)
                             End If
-                            pvPrintLine .InitInvData(ucsInvCity)
-                            pvPrintLine .InitInvData(ucsInvAddress)
+                            pvPrintLine .InitInvData(ucsInvCgCity)
+                            pvPrintLine .InitInvData(ucsInvCgAddress)
                         End With
                     End If
                     sData = At(uRow(0).InitOwnData, ucsOwnFooter1)
@@ -1181,7 +1181,7 @@ Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boo
     IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(CurrentStatus)
 End Function
 
-Private Function IDeviceProtocol_GetFiscalNumber() As String
+Private Function IDeviceProtocol_GetFiscalMemoryNo() As String
 
 End Function
 
@@ -1197,7 +1197,7 @@ Private Function IDeviceProtocol_GetHeaderText(ByVal Index As Long) As String
     End If
 End Function
 
-Private Function IDeviceProtocol_GetLastReceiptNumber() As String
+Private Function IDeviceProtocol_GetLastReceiptNo() As String
 
 End Function
 
@@ -1206,7 +1206,7 @@ Private Function IDeviceProtocol_GetLastError(Optional ErrCategory As UcsFiscalE
     IDeviceProtocol_GetLastError = LastError
 End Function
 
-Private Function IDeviceProtocol_GetLastInvoiceNumber() As String
+Private Function IDeviceProtocol_GetLastInvoiceNo() As String
 
 End Function
 
@@ -1218,7 +1218,7 @@ Private Function IDeviceProtocol_GetResumeTicket() As String
     
 End Function
 
-Private Function IDeviceProtocol_GetSerialNumber() As String
+Private Function IDeviceProtocol_GetDeviceSerialNo() As String
 
 End Function
 
@@ -1274,7 +1274,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvNumber As String, Optional InvTaxNumber As String, Optional InvVatNumber As String, Optional InvCompany As String, Optional InvCity As String, Optional InvAddress As String, Optional InvMol As String, Optional InvReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, TableNo, InvNumber, InvTaxNumber, InvVatNumber, InvCompany, InvCity, InvAddress, InvMol, InvReceiver, OwnData)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgMol As String, Optional InvCgReceiver As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, TableNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgMol, InvCgReceiver, OwnData)
 End Function
 

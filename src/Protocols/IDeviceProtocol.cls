@@ -167,14 +167,14 @@ End Function
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorName`     [input] operator name to be printed on receipt
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `InvNumber`        [in, optional] the number of the invoice/credit note to be printed
-' @param `InvTaxNumber`     [in, optional] local identification number of the company (country specific)
-' @param `InvVatNumber`     [in, optional] VAT identification number of the company (EU specific)
-' @param `InvCompany`       [in, optional] name of the company that is receiving the document
-' @param `InvCity`          [in, optional] city of the company that is receiving the document, can be empty string
-' @param `InvAddress`       [in, optional] address of the company that is receiving the document
-' @param `InvMol`           [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvReceiver`      [in, optional] name of the person that is receiving the document
+' @param `InvDocNo`         [in, optional] the number of the invoice/credit note to be printed
+' @param `InvCgTaxNo`       [in, optional] local identification number of the company (country specific)
+' @param `InvCgVatNo`       [in, optional] VAT identification number of the company (EU specific)
+' @param `InvCgName`        [in, optional] name of the company that is receiving the document
+' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
+' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
+' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
+' @param `InvCgReceiver`    [in, optional] name of the person that is receiving the document
 ' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
@@ -185,14 +185,14 @@ Public Function StartReceipt( _
             OperatorPassword As String, _
             Optional UniqueSaleNo As String, _
             Optional TableNo As String, _
-            Optional InvNumber As String, _
-            Optional InvTaxNumber As String, _
-            Optional InvVatNumber As String, _
-            Optional InvCompany As String, _
-            Optional InvCity As String, _
-            Optional InvAddress As String, _
-            Optional InvMol As String, _
-            Optional InvReceiver As String, _
+            Optional InvDocNo As String, _
+            Optional InvCgTaxNo As String, _
+            Optional InvCgVatNo As String, _
+            Optional InvCgName As String, _
+            Optional InvCgCity As String, _
+            Optional InvCgAddress As String, _
+            Optional InvCgMol As String, _
+            Optional InvCgReceiver As String, _
             Optional OwnData As String, _
             Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
             Optional StornoReceiptNo As String, _
@@ -361,8 +361,7 @@ End Function
 '
 ' @return Last receipt number as string
 '
-Public Function GetLastReceiptNumber() As String
-Attribute GetLastReceiptNumber.VB_Description = "Used to retrieve the fiscal number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal reports and credit/debit slips"
+Public Function GetLastReceiptNo() As String
 
 End Function
 
@@ -371,8 +370,7 @@ End Function
 '
 ' @return Last invoice number as string
 '
-Public Function GetLastInvoiceNumber() As String
-Attribute GetLastInvoiceNumber.VB_Description = "Used to retrieve last invoice number printed which has come from current fiscal device invoices range"
+Public Function GetLastInvoiceNo() As String
 
 End Function
 
@@ -381,8 +379,7 @@ End Function
 '
 ' @return Serial number as string
 '
-Public Function GetSerialNumber() As String
-Attribute GetSerialNumber.VB_Description = "Used to retrieve fiscal device serial number as reported by firmware"
+Public Function GetDeviceSerialNo() As String
 
 End Function
 
@@ -391,8 +388,7 @@ End Function
 '
 ' @return Fiscal number as string
 '
-Public Function GetFiscalNumber() As String
-Attribute GetFiscalNumber.VB_Description = "Used to retrieve fiscal number of the registered fiscal memory"
+Public Function GetFiscalMemoryNo() As String
 
 End Function
 
