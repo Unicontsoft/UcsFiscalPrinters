@@ -214,7 +214,7 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim lIdx            As Long
     
     On Error GoTo EH
@@ -244,10 +244,10 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
-    GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -261,7 +261,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vElem           As Variant
     Dim lIdx            As Long
     Dim sResumeTicket   As String
@@ -274,8 +274,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     sResumeTicket = JsonItem(oJson, "ResumeTicket")
     If LenB(sResumeTicket) = 0 Then
         If Not oFP.CancelReceipt() Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            sLastErr = oFP.GetLastError(eLastNo)
+            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
     End If
@@ -312,8 +312,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 C_Date(JsonItem(oJson, "Storno/ReceiptDate")), _
                 JsonItem(oJson, "Storno/FiscalMemoryNo"), _
                 JsonItem(oJson, "Storno/InvoiceNo")) Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            sLastErr = oFP.GetLastError(eLastNo)
+            DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
         For Each vElem In JsonKeys(oJson, "Rows")
@@ -338,16 +338,16 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             End With
         Next
         If Not oFP.EndReceipt(sResumeTicket) Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            sLastErr = oFP.GetLastError(eLastNo)
+            DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
         oFP.OpenDrawer
     End If
     If C_Bool(JsonItem(oJson, "PrintDuplicate")) Then
         If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/DocNo")) Then
-            sLastErr = oFP.GetLastError(eLastNum)
-            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+            sLastErr = oFP.GetLastError(eLastNo)
+            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
     End If
@@ -357,13 +357,13 @@ ReturnReceiptInfo:
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
-    PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If Not oFP Is Nothing Then
         JsonItem(oRetVal, "ResumeTicket") = Zn(oFP.GetResumeTicket(), Empty)
     End If
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -377,7 +377,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim bResult         As Boolean
     
     On Error GoTo EH
@@ -421,16 +421,16 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         '--- ToDo: impl
     End Select
     If Not bResult Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
 QH:
-    PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -445,22 +445,22 @@ Public Function OpenDrawer(sRequest As String, sResponse As String) As Boolean
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
     If Not oFP.OpenDrawer() Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
 QH:
-    OpenDrawer = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    OpenDrawer = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -474,7 +474,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim dDateTime       As Date
     Dim bResult         As Boolean
     
@@ -490,16 +490,16 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
         bResult = oFP.SetClock(dDateTime)
     End If
     If Not bResult Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
 QH:
-    InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -513,7 +513,7 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
     Dim lIdx            As Long
     Dim oItem           As Object
@@ -527,8 +527,8 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     For lIdx = 0 To UBound(vTotals)
@@ -538,10 +538,10 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
         JsonItem(oRetVal, "Totals/-1") = oItem
     Next
 QH:
-    GetTotalsByPayments = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    GetTotalsByPayments = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -555,7 +555,7 @@ Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
     Dim lIdx            As Long
     Dim oItem           As Object
@@ -569,8 +569,8 @@ Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     For lIdx = 0 To UBound(vTotals)
@@ -581,10 +581,10 @@ Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As
         JsonItem(oRetVal, "Totals/-1") = oItem
     Next
 QH:
-    GetTotalsByVatGroups = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    GetTotalsByVatGroups = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -598,7 +598,7 @@ Public Function GetTotalsStats(sRequest As String, sResponse As String) As Boole
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vStats          As Variant
 
     On Error GoTo EH
@@ -610,17 +610,17 @@ Public Function GetTotalsStats(sRequest As String, sResponse As String) As Boole
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vStats) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "UBound(vStats) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "UBound(vStats) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     JsonItem(oRetVal, "NumReceipts") = vStats(0)
     JsonItem(oRetVal, "LastZReportDateTime") = vStats(1)
 QH:
-    GetTotalsStats = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    GetTotalsStats = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -635,7 +635,7 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
     
     On Error GoTo EH
@@ -647,8 +647,8 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNum)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = oFP.GetLastError(eLastNo)
+        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
@@ -656,10 +656,10 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
     JsonItem(oRetVal, "TotalCredit") = vTotals(1)
     JsonItem(oRetVal, "TotalDebit") = vTotals(2)
 QH:
-    CashDebitCredit = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    CashDebitCredit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -674,7 +674,7 @@ Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
-    Dim eLastNum        As UcsFiscalErrorsEnum
+    Dim eLastNo         As UcsFiscalErrorsEnum
     Dim sStatus         As String
     
     On Error GoTo EH
@@ -684,10 +684,10 @@ Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     oFP.GetDeviceStatus sStatus
     JsonItem(oRetVal, "Status") = sStatus
 QH:
-    GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
+    GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
+    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH
     End If
 End Function
@@ -817,7 +817,7 @@ Private Function pvCommonProlog(sRequest As String, oJson As Object, sLastErr As
 QH:
 End Function
 
-Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVal eLastNum As UcsFiscalErrorsEnum, oRetVal As Object, sResponse As String) As Boolean
+Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVal eLastNo As UcsFiscalErrorsEnum, oRetVal As Object, sResponse As String) As Boolean
     If Not oFP Is Nothing Then
         If oFP.IsConnected Then
             oFP.Disconnect
@@ -828,7 +828,7 @@ Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVa
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorText") = sLastErr
     End If
-    If eLastNum = ucsFerInvalidPassword Then
+    If eLastNo = ucsFerInvalidPassword Then
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorCode") = "InvalidPassword"
     End If
@@ -837,10 +837,10 @@ Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVa
     pvCommonEpilog = True
 End Function
 
-Private Function pvCommonErrHandler(sFunction As String, oFP As IDeviceProtocol, sLastErr As String, eLastNum As UcsFiscalErrorsEnum) As Boolean
+Private Function pvCommonErrHandler(sFunction As String, oFP As IDeviceProtocol, sLastErr As String, eLastNo As UcsFiscalErrorsEnum) As Boolean
     If Not oFP Is Nothing Then
-        sLastErr = Zn(oFP.GetLastError(eLastNum), Err.Description)
-        DebugLog sFunction, "sLastErr=" & sLastErr & ", eLastNum=" & eLastNum
+        sLastErr = Zn(oFP.GetLastError(eLastNo), Err.Description)
+        DebugLog sFunction, "sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
     Else
         sLastErr = Err.Description
         DebugLog sFunction, "sLastErr=" & sLastErr
