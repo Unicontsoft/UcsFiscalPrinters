@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the library"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '

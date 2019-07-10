@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "IDeviceProtocol is a common interface implemented by all device protocol handlers. It can be used to access a fiscal device independently of the implemented protocol so that the particular protocol selection can be left to be chosen by the end-user or as an application configuration option"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -174,7 +174,7 @@ End Function
 ' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
 ' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
 ' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvCgPrsReceive`    [in, optional] name of the person that is receiving the document
+' @param `InvCgPrsReceive`  [in, optional] name of the person that is receiving the document
 ' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
