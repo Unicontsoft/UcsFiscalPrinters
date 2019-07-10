@@ -146,8 +146,14 @@ End Sub
 ' Properties
 '=========================================================================
 
+Public Property Get LastCommandLog() As String
+    LastCommandLog = m_sCommandLog
+End Property
+
 Private Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
-    LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    If IsArray(m_uConfig.LocalizedText(eIdx)) Then
+        LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+    End If
 End Property
 
 Private Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
@@ -355,6 +361,9 @@ QH:
     PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNum, oRetVal, sResponse)
     Exit Function
 EH:
+    If Not oFP Is Nothing Then
+        JsonItem(oRetVal, "ResumeTicket") = Zn(oFP.GetResumeTicket(), Empty)
+    End If
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNum) Then
         Resume QH
     End If
