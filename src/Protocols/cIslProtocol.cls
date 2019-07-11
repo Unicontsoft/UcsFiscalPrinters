@@ -2327,6 +2327,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         IIf(LenB(.InitUniqueSaleNo) <> 0, "," & .InitUniqueSaleNo, vbNullString))
                 End Select
             Else
+                sStornoReason = Switch( _
+                    .InitStornoData(ucsStoReason) = ucsFscRsnTaxBaseReduction, "T", _
+                    .InitStornoData(ucsStoReason) = ucsFscRsnOperatorError, "E", _
+                    True, "R")
                 Select Case .InitReceiptType
                 Case ucsFscRetStorno, ucsFscRetCreditNote
                     '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StTipe><DocNo>)%5=([,<StUNP>,<StDT>,<StFMIN>])[#<StornoReason>]
@@ -2335,7 +2339,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                         .InitStornoData(ucsStoInvoiceNo), _
-                        .InitStornoData(ucsStoReason) & .InitStornoData(ucsStoReceiptNo), _
+                        sStornoReason & .InitStornoData(ucsStoReceiptNo), _
                         IIf(LenB(.InitUniqueSaleNo) <> 0, _
                             "," & .InitUniqueSaleNo & _
                             "," & Format$(.InitStornoData(ucsStoReceiptDate), sFormatDate) & _
