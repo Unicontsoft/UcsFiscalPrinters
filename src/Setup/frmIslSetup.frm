@@ -3813,7 +3813,7 @@ Private Sub cmdStatusReset_Click()
 '    If Left$(m_oFP.SendCommand(ucsFpcInfoTransaction), 1) = "1" Then
 '        If m_oFP.Status(ucsStbFiscalPrinting) Then
             '--- note: when printing invoice, if no contragent info set then cancel fails!
-            m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000"
+            m_oFP.SendCommand ucsFpcFiscalCgInfo, "0000000000" & vbTab & "0"
             '--- note: FP3530 moje da anulira winagi, FP550F ne moje
             m_oFP.SendCommand ucsFpcFiscalCancel
             '--- zaradi FP550F
