@@ -757,12 +757,17 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
-        "," & JsonItem(oOptions, "Persistent") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
-        "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    If LenB(C_Str(JsonItem(oOptions, "IP"))) <> 0 Then
+        m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
+    Else
+        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+            "," & JsonItem(oOptions, "Persistent") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+            "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    End If
     If Not Connect() Then
         GoTo QH
     End If
@@ -791,16 +796,16 @@ Public Function Init(sDeviceString As String) As Boolean
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .ItemChars = GetConfigNumber(sSerial, "ItemChars", 0)
-        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
-        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
-        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
-        .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", DEF_MAX_PAYMENT_LEN)
+        .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
+        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
-        .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", DEF_MAX_OPERATOR_NAME)
+        .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
         .CommEventTimeout = GetConfigNumber(sSerial, "CommEventTimeout", DEF_COMM_EVENT_TIMEOUT)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With

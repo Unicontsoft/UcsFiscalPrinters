@@ -352,8 +352,8 @@ Private Type UcsConfigValues
     MaxOperPassword     As Long
     MaxCompany          As Long
     MaxPrsReceive       As Long
-    MaxVatNo        As Long
-    MaxTaxNo        As Long
+    MaxVatNo            As Long
+    MaxTaxNo            As Long
     MaxCity             As Long
     MaxInvoiceNo        As Long
     MaxPluName          As Long
@@ -621,12 +621,17 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
-        "," & JsonItem(oOptions, "Persistent") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
-        "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
-        "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    If LenB(C_Str(JsonItem(oOptions, "IP"))) <> 0 Then
+        m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
+    Else
+        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+            "," & JsonItem(oOptions, "Persistent") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+            "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    End If
     If Not Connect() Then
         GoTo QH
     End If
@@ -653,25 +658,25 @@ Public Function Init(sDeviceString As String) As Boolean
     With m_uConfig
         .IsEcr = vbUseDefault
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
-        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
-        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
-        .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", 0)
-        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", False))
-        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", True))
-        .MaxOperCode = GetConfigNumber(sSerial, "MaxOperCode", DEF_MAX_OPERCODE)
-        .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", DEF_MAX_OPERNAME)
-        .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", DEF_MAX_OPERPASSWORD)
-        .MaxCompany = GetConfigNumber(sSerial, "MaxCompany", DEF_MAX_COMPANY)
-        .MaxPrsReceive = GetConfigNumber(sSerial, "MaxPrsReceive", DEF_MAX_PRSRECEIVE)
-        .MaxVatNo = GetConfigNumber(sSerial, "MaxVatNo", DEF_MAX_VATNO)
-        .MaxTaxNo = GetConfigNumber(sSerial, "MaxTaxNo", DEF_MAX_TAXNO)
-        .MaxCity = GetConfigNumber(sSerial, "MaxCity", DEF_MAX_CITY)
-        .MaxInvoiceNo = GetConfigNumber(sSerial, "MaxInvoiceNo", DEF_MAX_INVOICENO)
-        .MaxPluName = GetConfigNumber(sSerial, "MaxPluName", DEF_MAX_PLUNAME)
-        .MaxComment = GetConfigNumber(sSerial, "MaxComment", DEF_MAX_COMMENT)
-        .MaxFiscalMemoryNo = GetConfigNumber(sSerial, "MaxFiscalMemoryNo", DEF_MAX_FISCALMEMORYNO)
-        .MaxUniqueSaleNo = GetConfigNumber(sSerial, "MaxUniqueSaleNo", DEF_MAX_UNIQUESALENO)
+        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", C_Lng(JsonItem(oOptions, "PingTimeout")))
+        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", C_Str(JsonItem(oOptions, "DetailedReceipt")) = "Y"))
+        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", C_Str(JsonItem(oOptions, "DelayPrint")) <> "N"))
+        .MaxOperCode = GetConfigNumber(sSerial, "MaxOperCode", Znl(C_Lng(JsonItem(oOptions, "MaxOperCode")), DEF_MAX_OPERCODE))
+        .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", Znl(C_Lng(JsonItem(oOptions, "MaxOperName")), DEF_MAX_OPERNAME))
+        .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", Znl(C_Lng(JsonItem(oOptions, "MaxOperPassword")), DEF_MAX_OPERPASSWORD))
+        .MaxCompany = GetConfigNumber(sSerial, "MaxCompany", Znl(C_Lng(JsonItem(oOptions, "MaxCompany")), DEF_MAX_COMPANY))
+        .MaxPrsReceive = GetConfigNumber(sSerial, "MaxPrsReceive", Znl(C_Lng(JsonItem(oOptions, "MaxPrsReceive")), DEF_MAX_PRSRECEIVE))
+        .MaxVatNo = GetConfigNumber(sSerial, "MaxVatNo", Znl(C_Lng(JsonItem(oOptions, "MaxVatNo")), DEF_MAX_VATNO))
+        .MaxTaxNo = GetConfigNumber(sSerial, "MaxTaxNo", Znl(C_Lng(JsonItem(oOptions, "MaxTaxNo")), DEF_MAX_TAXNO))
+        .MaxCity = GetConfigNumber(sSerial, "MaxCity", Znl(C_Lng(JsonItem(oOptions, "MaxCity")), DEF_MAX_CITY))
+        .MaxInvoiceNo = GetConfigNumber(sSerial, "MaxInvoiceNo", Znl(C_Lng(JsonItem(oOptions, "MaxInvoiceNo")), DEF_MAX_INVOICENO))
+        .MaxPluName = GetConfigNumber(sSerial, "MaxPluName", Znl(C_Lng(JsonItem(oOptions, "MaxPluName")), DEF_MAX_PLUNAME))
+        .MaxComment = GetConfigNumber(sSerial, "MaxComment", Znl(C_Lng(JsonItem(oOptions, "MaxComment")), DEF_MAX_COMMENT))
+        .MaxFiscalMemoryNo = GetConfigNumber(sSerial, "MaxFiscalMemoryNo", Znl(C_Lng(JsonItem(oOptions, "MaxFiscalMemoryNo")), DEF_MAX_FISCALMEMORYNO))
+        .MaxUniqueSaleNo = GetConfigNumber(sSerial, "MaxUniqueSaleNo", Znl(C_Lng(JsonItem(oOptions, "MaxUniqueSaleNo")), DEF_MAX_UNIQUESALENO))
         .ExtendedPmtTypes = GetConfigNumber(sSerial, "ExtendedPmtTypes", DEF_EXTENDED_PMTTYPES)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
