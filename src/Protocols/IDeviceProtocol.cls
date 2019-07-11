@@ -100,10 +100,17 @@ Public Enum UcsFiscalErrorsEnum
     ucsFerPasswordNotSet
 End Enum
 
-Public Enum UcsFiscalStornoReasonEnum
+Public Enum UcsFiscalStornoTypeEnum
     ucsFscRsnOperatorError
     ucsFscRsnRefund
     ucsFscRsnTaxBaseReduction
+End Enum
+
+Public Enum UcsFiscalTaxNoTypeEnum
+    ucsFscTntBulstat
+    ucsFscTntEGN
+    ucsFscTntForeigner
+    ucsFscTntCustom
 End Enum
 
 ''
@@ -162,20 +169,27 @@ End Function
 ' Used to begin printing of a new receipt. The actual printing of the receipt is usually postponed until `EndReceipt`
 ' is called
 '
-' @param `ReceiptType`      [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
-'                                   regular sales receipt
-' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
-' @param `OperatorName`     [input] operator name to be printed on receipt
-' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `InvDocNo`         [in, optional] the number of the invoice/credit note to be printed
-' @param `InvCgTaxNo`       [in, optional] local identification number of the company (country specific)
-' @param `InvCgVatNo`       [in, optional] VAT identification number of the company (EU specific)
-' @param `InvCgName`        [in, optional] name of the company that is receiving the document
-' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
-' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
-' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvCgPrsReceive`  [in, optional] name of the person that is receiving the document
-' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
+' @param `ReceiptType`          [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
+'                                       regular sales receipt
+' @param `OperatorCode`         [input] operator number to be authenticated (usually 1-8)
+' @param `OperatorName`         [input] operator name to be printed on receipt
+' @param `OperatorPassword`     [input] operator password, can be `Empty` if default for device
+' @param `InvDocNo`             [in, optional] the number of the invoice/credit note to be printed
+' @param `InvCgTaxNo`           [in, optional] local identification number of the company (country specific)
+' @param `InvCgTaxNoType`       [in, optional]
+' @param `InvCgVatNo`           [in, optional] VAT identification number of the company (EU specific)
+' @param `InvCgName`            [in, optional] name of the company that is receiving the document
+' @param `InvCgCity`            [in, optional] city of the company that is receiving the document, can be empty string
+' @param `InvCgAddress`         [in, optional] address of the company that is receiving the document
+' @param `InvCgMol`             [in, optional] name of the person that is fiscally responsible for the company (not used)
+' @param `InvCgPrsReceive`      [in, optional] name of the person that is receiving the document
+' @param `OwnData`              [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
+' @param `StornoType`           [in, optional]
+' @param `StornoReceiptNo`      [in, optional]
+' @param `StornoReceiptDate`    [in, optional]
+' @param `StornoFiscalMemoryNo` [in, optional]
+' @param `StornoInvoiceNo`      [in, optional]
+' @param `StornoReason`         [in, optional]
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _
@@ -187,17 +201,19 @@ Public Function StartReceipt( _
             Optional TableNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
+            Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
             Optional InvCgVatNo As String, _
             Optional InvCgName As String, _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
             Optional InvCgPrsReceive As String, _
             Optional OwnData As String, _
-            Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
+            Optional ByVal StornoType As UcsFiscalStornoTypeEnum, _
             Optional StornoReceiptNo As String, _
             Optional ByVal StornoReceiptDate As Date, _
             Optional StornoFiscalMemoryNo As String, _
-            Optional StornoInvoiceNo As String) As Boolean
+            Optional StornoInvoiceNo As String, _
+            Optional StornoReason As String) As Boolean
             
 End Function
 

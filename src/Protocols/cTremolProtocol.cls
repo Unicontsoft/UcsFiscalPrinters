@@ -314,11 +314,12 @@ Private Enum UcsInvDataIndex
 End Enum
 
 Private Enum UcsStoreDataIndex
-    ucsStoReason
+    ucsStoType
     ucsStoReceiptNo
     ucsStoReceiptDate
     ucsStoFiscalMemoryNo
     ucsStoInvoiceNo
+    ucsStoReason
 End Enum
 
 Private Type UcsContext
@@ -819,18 +820,19 @@ Public Function StartReceipt( _
             Optional UniqueSaleNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
+            Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
             Optional InvCgVatNo As String, _
             Optional InvCgName As String, _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
             Optional InvCgPrsReceive As String, _
-            Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
+            Optional ByVal StornoType As UcsFiscalStornoTypeEnum, _
             Optional StornoReceiptNo As String, _
             Optional StornoReceiptDate As Date, _
             Optional StornoFiscalMemoryNo As String, _
-            Optional StornoInvoiceNo As String) As Boolean
+            Optional StornoInvoiceNo As String, _
+            Optional StornoReason As String) As Boolean
     Const FUNC_NAME     As String = "StartReceipt"
-    Const InvCgTaxNoType As Long = 0
     Dim uCtxEmpty       As UcsContext
     Dim sCity           As String
     Dim sAddress        As String
@@ -852,8 +854,8 @@ Public Function StartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, 30
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
-        .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, 2, StornoReason = ucsFscRsnOperatorError, 0, True, 1), _
-            SafeText(StornoReceiptNo), StornoReceiptDate, SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
+        .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, 2, StornoType = ucsFscRsnOperatorError, 0, True, 1), _
+            SafeText(StornoReceiptNo), StornoReceiptDate, SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo), SafeText(StornoReason))
     End With
     '--- success
     StartReceipt = True
@@ -2033,12 +2035,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     ";" & Pad(.InitInvData(ucsInvCgCity), m_uConfig.MaxCity) & IIf(m_uConfig.ExtendedPmtTypes, _
                     ";" & .InitInvData(ucsInvCgTaxNoType), vbNullString), _
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
-                .InitStornoData(ucsStoReason) & _
+                .InitStornoData(ucsStoType) & _
                     ";" & .InitStornoData(ucsStoReceiptNo) & _
                     ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
                     ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
-                .InitStornoData(ucsStoReason) & _
+                .InitStornoData(ucsStoType) & _
                     ";" & Pad(.InitStornoData(ucsStoInvoiceNo), -m_uConfig.MaxInvoiceNo) & _
                     ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
                     ";" & .InitStornoData(ucsStoReceiptNo) & _
@@ -2624,7 +2626,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, StornoReason, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo, StornoInvoiceNo)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal StornoType As UcsFiscalStornoTypeEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String, Optional StornoReason As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, StornoType, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo, StornoInvoiceNo, StornoReason)
 End Function
 
