@@ -340,7 +340,7 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    If LenB(C_Str(JsonItem(oOptions, "IP"))) <> 0 Then
+    If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
             ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
     Else

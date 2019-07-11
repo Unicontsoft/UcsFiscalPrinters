@@ -621,7 +621,7 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    If LenB(C_Str(JsonItem(oOptions, "IP"))) <> 0 Then
+    If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
             ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
     Else
@@ -662,8 +662,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", C_Lng(JsonItem(oOptions, "PingTimeout")))
-        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", C_Str(JsonItem(oOptions, "DetailedReceipt")) = "Y"))
-        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", C_Str(JsonItem(oOptions, "DelayPrint")) <> "N"))
+        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", JsonItem(oOptions, "DetailedReceipt") = "Y"))
+        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", JsonItem(oOptions, "DelayPrint") <> "N"))
         .MaxOperCode = GetConfigNumber(sSerial, "MaxOperCode", Znl(C_Lng(JsonItem(oOptions, "MaxOperCode")), DEF_MAX_OPERCODE))
         .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", Znl(C_Lng(JsonItem(oOptions, "MaxOperName")), DEF_MAX_OPERNAME))
         .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", Znl(C_Lng(JsonItem(oOptions, "MaxOperPassword")), DEF_MAX_OPERPASSWORD))
