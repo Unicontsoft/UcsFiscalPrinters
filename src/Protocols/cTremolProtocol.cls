@@ -604,25 +604,29 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function Init( _
-            sDevice As String, _
-            Optional ByVal Timeout As Long, _
-            Optional ByVal RowChars As Long) As Boolean
+Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim vSplit          As Variant
+    Dim oOptions        As Object
     Dim sSerial         As String
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lSerialIndex    As Long
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
+    DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
     pvSetLastError vbNullString
-    m_lTimeout = IIf(Timeout <= 0, DEF_TIMEOUT, Timeout)
-    vSplit = Split(sDevice, ",")
-    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
-        IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
+    Set oOptions = ParseDeviceString(sDeviceString)
+    m_lTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    If m_lTimeout <= 0 Then
+        m_lTimeout = DEF_TIMEOUT
+    End If
+    m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
+        "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+        "," & JsonItem(oOptions, "Persistent") & _
+        "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+        "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
+        "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
     If Not Connect() Then
         GoTo QH
     End If
@@ -648,7 +652,7 @@ Public Function Init( _
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uConfig
         .IsEcr = vbUseDefault
-        .RowChars = GetConfigNumber(sSerial, "RowChars", RowChars)
+        .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", DEF_MAX_RECEIPT_ROWS)
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", DEF_MIN_DISCOUNT)
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", DEF_MAX_DISCOUNT)
@@ -2594,8 +2598,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, RowChars)
+Private Function IDeviceProtocol_Init(DeviceString As String) As Boolean
+    IDeviceProtocol_Init = Init(DeviceString)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

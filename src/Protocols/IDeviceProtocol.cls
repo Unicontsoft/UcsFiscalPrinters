@@ -116,12 +116,11 @@ End Enum
 ''
 ' Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved
 '
-' @param `Device`       [input] string formatted as "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]"
-' @param `Timeout`      [in, optional] COM port open timeout in milliseconds, usually defaults to 3000
-' @param `RowChars`     [in, optional] number of caracters per row, according paper width
+' @param `DeviceString` [input] semi-colon delimited key=value pairs as "Port=COM1;Speed=9600[;BaudRate=num][;Persistent=bool][;DataBits=num]
+'                                                                        [;Parity=bool][;StopBits=num][;Timeout=num][;RowChars=num]"
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
+Public Function Init(DeviceString As String) As Boolean
 Attribute Init.VB_Description = "Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved"
 
 End Function

@@ -3024,7 +3024,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Select Case eCommand
     Case ucsCmdConnect
         pvStatus = STR_STATUS_CONNECTING
-        If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout) Then
+        If m_oFP.Init("Port=" & cobConnectPort.Text & ";Speed=" & C_Lng(cobConnectSpeed.Text) & ";Timeout=" & m_lTimeout) Then
             On Error Resume Next '--- checked
             m_oFP.SendCommand ucsFpcInfoTransaction
             If pvShowError() Then

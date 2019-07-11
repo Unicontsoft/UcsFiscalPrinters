@@ -329,27 +329,30 @@ Repeat:
     End If
 End Function
 
-Public Function Init( _
-            sDevice As String, _
-            Optional ByVal Timeout As Long, _
-            Optional ByVal RowChars As Long) As Boolean
+Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
-    Dim vSplit          As Variant
-    Dim vPort           As Variant
+    Dim oOptions        As Object
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "sDevice=" & sDevice & ", Timeout=" & Timeout
-    vSplit = Split(sDevice, ",")
-    vPort = Split(vSplit(0), "/")
-    vSplit(0) = At(vPort, 0)
-    If LCase$(Left$(At(vSplit, 0), 3)) = "com" Then
-        m_sDevice = Join(vSplit, ",")
-    Else
-        m_sDevice = vSplit(0) & IIf(InStr(At(vSplit, 0), ":") = 0, ":9100", vbNullString)
+    DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
+    Set oOptions = ParseDeviceString(sDeviceString)
+    m_lTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    If m_lTimeout <= 0 Then
+        m_lTimeout = DEF_TIMEOUT
     End If
-    m_lCodePage = Znl(C_Lng(At(vPort, 1)), 866)
-    m_lTimeout = IIf(Timeout <> 0, Timeout, DEF_TIMEOUT)
-    m_uConfig.RowChars = RowChars
+    If LenB(C_Str(JsonItem(oOptions, "IP"))) <> 0 Then
+        m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
+    Else
+        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+            "," & JsonItem(oOptions, "Persistent") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+            "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    End If
+    m_lCodePage = Znl(C_Lng(JsonItem(oOptions, "CodePage")), 866)
+    m_uConfig.RowChars = C_Lng(JsonItem(oOptions, "RowChars"))
     '--- success
     Init = Connect()
 QH:
@@ -1240,8 +1243,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     
 End Function
 
-Private Function IDeviceProtocol_Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
-    IDeviceProtocol_Init = Init(Device, Timeout, RowChars)
+Private Function IDeviceProtocol_Init(DeviceString As String) As Boolean
+    IDeviceProtocol_Init = Init(DeviceString)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

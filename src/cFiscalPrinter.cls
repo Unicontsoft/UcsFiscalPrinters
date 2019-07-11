@@ -176,9 +176,9 @@ Public Function EnumPorts(sResponse As String) As Boolean
     On Error GoTo EH
     JsonItem(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
-    For Each vElem In Array(pvInit(STR_PROTOCOL_TREMOL_FP, SkipLastError:=True), _
-                            pvInit(STR_PROTOCOL_ESP_POS, SkipLastError:=True), _
-                            pvInit(STR_PROTOCOL_DATECS_FP, SkipLastError:=True))
+    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL_FP, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_ESP_POS, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipLastError:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -702,11 +702,11 @@ End Sub
 '= private ===============================================================
 
 Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As Boolean) As IDeviceProtocol
-    Dim vSplit          As Variant
+    Dim oOptions        As Object
     Dim sProtocol       As String
     
-    vSplit = Split(DeviceString, ";")
-    sProtocol = UCase$(At(vSplit, 0))
+    Set oOptions = ParseDeviceString(DeviceString)
+    sProtocol = UCase$(JsonItem(oOptions, "Protocol"))
     '--- figure out model
     Select Case sProtocol
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
@@ -734,9 +734,9 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
-    If LenB(At(vSplit, 1)) <> 0 Then
-        If Not pvInit.Init(At(vSplit, 1, "COM1"), C_Lng(At(vSplit, 2)), C_Lng(At(vSplit, 3))) Then
-            Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), At(vSplit, 0, STR_NONE)))
+    If UBound(JsonKeys(oOptions)) > 0 Then
+        If Not pvInit.Init(DeviceString) Then
+            Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), Zn(sProtocol, STR_NONE)))
         End If
         If Not SkipLastError Then
             If LenB(pvInit.GetLastError()) Then
