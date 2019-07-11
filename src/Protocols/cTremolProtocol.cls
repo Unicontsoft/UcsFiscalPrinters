@@ -178,6 +178,7 @@ Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
 Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
 Private Const LNG_STATUS_OVERHEATED     As Long = &H44
 Private Const ucsFscRetNonfiscal        As Long = ucsFscRetSale + 100
+Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -852,7 +853,7 @@ Public Function StartReceipt( _
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, 2, StornoReason = ucsFscRsnOperatorError, 0, True, 1), _
-            SafeText(StornoReceiptNo), Format$(StornoReceiptDate, "dd\-mm\-yy hh\:nn\:ss"), SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
+            SafeText(StornoReceiptNo), StornoReceiptDate, SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo))
     End With
     '--- success
     StartReceipt = True
@@ -1127,7 +1128,7 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsZekCmdInitDateTime, sParam, "%1", _
-        "Format", sFormat, "dd\-MM\-yy hh\:nn\:ss", _
+        "Format", sFormat, FORMAT_DATE_EXTENDED, _
         "PrintTimeout", lPrintTimeout, 0
     sParam = Printf(sParam, Format$(NewDate, sFormat))
     SendCommand eCmd, sParam
@@ -2034,12 +2035,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
                 .InitStornoData(ucsStoReason) & _
                     ";" & .InitStornoData(ucsStoReceiptNo) & _
-                    ";" & .InitStornoData(ucsStoReceiptDate) & _
+                    ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
                     ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
                 .InitStornoData(ucsStoReason) & _
                     ";" & Pad(.InitStornoData(ucsStoInvoiceNo), -m_uConfig.MaxInvoiceNo) & _
-                    ";" & .InitStornoData(ucsStoReceiptDate) & _
+                    ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
                     ";" & .InitStornoData(ucsStoReceiptNo) & _
                     ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString))
