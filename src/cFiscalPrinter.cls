@@ -84,14 +84,14 @@ Private Enum UcsRowTypeEnum
     ucsRwtText
 End Enum
 
-Private Type UcsRow
-    Type            As UcsRowTypeEnum
+Private Type UcsRowData
+    RowType         As UcsRowTypeEnum
     Item            As String
     Price           As String
     Discount        As String
     TaxGroup        As String
     Quantity        As String
-    WayOfPayment    As String
+    PmtType         As String
     Amount          As String
 End Type
 
@@ -319,8 +319,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             GoTo QH
         End If
         For Each vElem In JsonKeys(oJson, "Rows")
-            With pvGetRowData(JsonItem(oJson, "Rows/" & vElem & "/*"))
-                Select Case .Type
+            With pvGetRowData(JsonItem(oJson, "Rows/" & vElem))
+                Select Case .RowType
                 Case ucsRwtSell
                     oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup)
                     If C_Dbl(.Discount) <> 0 Then
@@ -329,7 +329,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtText
                     oFP.AddLine .Item
                 Case ucsRwtPayment
-                    lIdx = C_Lng(.WayOfPayment)
+                    lIdx = C_Lng(.PmtType)
                     If lIdx < 0 Then
                         lIdx = LimitLong(lIdx, -3, -1)
                     Else
@@ -644,7 +644,7 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.CashDebitCredit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Value")))
+    vTotals = oFP.CashDebitCredit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
@@ -748,26 +748,52 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
     End If
 End Function
 
-Private Function pvGetRowData(vRow As Variant) As UcsRow
+Private Function pvGetRowData(oRow As Object) As UcsRowData
     Const FUNC_NAME     As String = "pvGetRowData"
+    Dim vRow            As Variant
     
     On Error GoTo EH
-    If UBound(vRow) = ucsFscPixItem Then
-        pvGetRowData.Type = ucsRwtText
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-    ElseIf UBound(vRow) = ucsFscPixAmount Then
-        pvGetRowData.Type = ucsRwtPayment
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-        pvGetRowData.WayOfPayment = C_Str(vRow(ucsFscPixWayOfPmt))
-        pvGetRowData.Amount = C_Str(vRow(ucsFscPixAmount))
-    Else
-        pvGetRowData.Type = ucsRwtSell
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-        pvGetRowData.Price = C_Str(vRow(ucsFscPixPrice))
-        pvGetRowData.TaxGroup = C_Str(vRow(ucsFscPixTaxGroup))
-        pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
-        pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
+    pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
+    If LenB(pvGetRowData.Price) <> 0 Then
+        pvGetRowData.RowType = ucsRwtSell
+        pvGetRowData.Item = C_Str(JsonItem(oRow, "ItemName"))
+        pvGetRowData.TaxGroup = C_Str(JsonItem(oRow, "TaxGroup"))
+        pvGetRowData.Quantity = C_Str(JsonItem(oRow, "Quantity"))
+        pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
+        GoTo QH
     End If
+    pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
+    If LenB(pvGetRowData.Amount) <> 0 Then
+        pvGetRowData.RowType = ucsRwtPayment
+        pvGetRowData.PmtType = C_Str(JsonItem(oRow, "PaymentType"))
+        pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
+        GoTo QH
+    End If
+    pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
+    If LenB(pvGetRowData.Item) <> 0 Then
+        pvGetRowData.RowType = ucsRwtText
+        GoTo QH
+    End If
+    vRow = JsonItem(oRow, "*")
+    If UBound(vRow) = ucsFscPixItem Then
+        pvGetRowData.RowType = ucsRwtText
+        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
+        GoTo QH
+    End If
+    If UBound(vRow) = ucsFscPixAmount Then
+        pvGetRowData.RowType = ucsRwtPayment
+        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
+        pvGetRowData.PmtType = C_Str(vRow(ucsFscPixWayOfPmt))
+        pvGetRowData.Amount = C_Str(vRow(ucsFscPixAmount))
+        GoTo QH
+    End If
+    pvGetRowData.RowType = ucsRwtSell
+    pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
+    pvGetRowData.Price = C_Str(vRow(ucsFscPixPrice))
+    pvGetRowData.TaxGroup = C_Str(vRow(ucsFscPixTaxGroup))
+    pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
+    pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -775,7 +801,7 @@ EH:
 End Function
 
 Private Function pvGetTaxGroup(sTaxGroup As String) As Long
-    pvGetTaxGroup = (Asc(sTaxGroup) - "À" + 1)
+    pvGetTaxGroup = Asc(sTaxGroup & " ") - 191 '--- 191 = Asc("À") - 1
     If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
         pvGetTaxGroup = C_Lng(sTaxGroup)
         If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
