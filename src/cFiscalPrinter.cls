@@ -230,7 +230,7 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     Next
     JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
     JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
-    JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
+    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
     JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastReceiptNo()
     For lIdx = 1 To 3
         JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
@@ -308,11 +308,12 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Invoice/CgAddress"), _
                 JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 JsonItem(oJson, "OwnData"), _
-                C_Lng(JsonItem(oJson, "Reversal/Reason")), _
+                C_Lng(JsonItem(oJson, "Reversal/Type")), _
                 JsonItem(oJson, "Reversal/ReceiptNo"), _
                 C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
                 JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
-                JsonItem(oJson, "Reversal/InvoiceNo")) Then
+                JsonItem(oJson, "Reversal/InvoiceNo"), _
+                JsonItem(oJson, "Reversal/Reason")) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -354,7 +355,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
 ReturnReceiptInfo:
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-    JsonItem(oRetVal, "ReceiptDateTime") = C_Str(oFP.GetClock())
+    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
@@ -495,7 +496,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    JsonItem(oRetVal, "DateTime") = C_Str(oFP.GetClock())
+    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
 QH:
     InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function

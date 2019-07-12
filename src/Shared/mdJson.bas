@@ -590,6 +590,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
         JsonDump = "Null"
     Case vbEmpty
         JsonDump = "Empty"
+    Case vbDate
+        JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
     Case vbString
         '--- one-time initialization of transcoding array
         If IsEmpty(vTranscode) Then
