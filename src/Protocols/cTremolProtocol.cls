@@ -1578,8 +1578,6 @@ Public Function GetTotalsStats() As Variant
         "Index", lIndex, 1
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     lReceipts = C_Lng(At(vSplit, lIndex))
-'    pvGetCommandConfig CONF_NAME, "InfoReportLastDate", eCmd, ucsZekCmdInfoReportLastDate, sParam, vbNullString, _
-'        "Index", lIndex, 0
     pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
         "Index", lIndex, 4
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
