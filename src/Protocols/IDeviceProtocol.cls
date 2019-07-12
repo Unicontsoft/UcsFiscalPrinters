@@ -539,6 +539,7 @@ End Function
 ' @return Device firmware version
 '
 Public Function GetDeviceFirmware() As String
+Attribute GetDeviceFirmware.VB_Description = "Device firmware version"
 
 End Function
 
@@ -611,7 +612,7 @@ Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
             ByVal Amount As Double) As Variant
-Attribute PrintServiceDeposit.VB_Description = "Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear"
+Attribute PrintServiceDeposit.VB_Description = "Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear"
     
 End Function
 
