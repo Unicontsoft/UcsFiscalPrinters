@@ -177,7 +177,7 @@ Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
 Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
 Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
 Private Const LNG_STATUS_OVERHEATED     As Long = &H44
-Private Const ucsFscRetNonfiscal        As Long = ucsFscRetSale + 100
+Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 
 Private m_sDevice                   As String
@@ -286,7 +286,7 @@ Private Type UcsRowData
     InitOperatorPassword As String
     InitUniqueSaleNo    As String
     InitInvData         As Variant
-    InitStornoData      As Variant
+    InitRevData         As Variant
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
@@ -313,13 +313,13 @@ Private Enum UcsInvDataIndex
     ucsInvCgTaxNoType
 End Enum
 
-Private Enum UcsStoreDataIndex
-    ucsStoType
-    ucsStoReceiptNo
-    ucsStoReceiptDate
-    ucsStoFiscalMemoryNo
-    ucsStoInvoiceNo
-    ucsStoReason
+Private Enum UcsRevDataIndex
+    ucsRevType
+    ucsRevReceiptNo
+    ucsRevReceiptDate
+    ucsRevFiscalMemoryNo
+    ucsRevInvoiceNo
+    ucsRevReason
 End Enum
 
 Private Type UcsContext
@@ -836,12 +836,12 @@ Public Function StartReceipt( _
             Optional InvCgCity As String, _
             Optional InvCgAddress As String, _
             Optional InvCgPrsReceive As String, _
-            Optional ByVal StornoType As UcsFiscalStornoTypeEnum, _
-            Optional StornoReceiptNo As String, _
-            Optional StornoReceiptDate As Date, _
-            Optional StornoFiscalMemoryNo As String, _
-            Optional StornoInvoiceNo As String, _
-            Optional StornoReason As String) As Boolean
+            Optional ByVal RevType As UcsFiscalReversalTypeEnum, _
+            Optional RevReceiptNo As String, _
+            Optional RevReceiptDate As Date, _
+            Optional RevFiscalMemoryNo As String, _
+            Optional RevInvoiceNo As String, _
+            Optional RevReason As String) As Boolean
     Const FUNC_NAME     As String = "StartReceipt"
     Dim uCtxEmpty       As UcsContext
     Dim sCity           As String
@@ -853,7 +853,7 @@ Public Function StartReceipt( _
     m_lRowCount = 0
     With m_uRow(pvAddRow())
         .RowType = ucsRowInit
-        .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRetMax] - 1)
+        .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRcpMax] - 1)
         .InitOperatorCode = Zn(SafeText(OperatorCode), DEF_OPERNO)
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
@@ -864,8 +864,8 @@ Public Function StartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, 30
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
-        .InitStornoData = Array(Switch(.InitReceiptType = ucsFscRetCreditNote, 2, StornoType = ucsFscRsnOperatorError, 0, True, 1), _
-            SafeText(StornoReceiptNo), StornoReceiptDate, SafeText(StornoFiscalMemoryNo), SafeText(StornoInvoiceNo), SafeText(StornoReason))
+        .InitRevData = Array(Switch(.InitReceiptType = ucsFscRcpCreditNote, 2, RevType = ucsFscRevOperatorError, 0, True, 1), _
+            SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), SafeText(RevInvoiceNo), SafeText(RevReason))
     End With
     '--- success
     StartReceipt = True
@@ -895,7 +895,7 @@ Public Function AddPLU( _
         .PluName = RTrim$(SafeText(Name))
         bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         Select Case m_uRow(0).InitReceiptType
-        Case ucsFscRetStorno, ucsFscRetCreditNote
+        Case ucsFscRcpReversal, ucsFscRcpCreditNote
             bNegative = Not bNegative
         End Select
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
@@ -953,9 +953,9 @@ Public Function AddDiscount( _
         GoTo QH
     End If
     Select Case DiscType
-    Case ucsFscDstTotal
+    Case ucsFscDscTotal
         AddPLU Printf(IIf(Value > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), vbNullString), Value
-    Case ucsFscDstPlu
+    Case ucsFscDscPlu
         For lIdx = m_lRowCount - 1 To 0 Step -1
             With m_uRow(lIdx)
                 If .RowType = ucsRowPlu Then
@@ -968,7 +968,7 @@ Public Function AddDiscount( _
     Case Else
         With m_uRow(pvAddRow())
             .RowType = ucsRowDiscount
-            .DiscType = LimitLong(DiscType, 1, [_ucsFscDstMax] - 1)
+            .DiscType = LimitLong(DiscType, 1, [_ucsFscDscMax] - 1)
             .DiscValue = Round(Value, 2)
             .PrintRowType = m_uRow(0).InitReceiptType
         End With
@@ -2018,7 +2018,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             '--- setup invoice no
             If LenB(.InitInvData(ucsInvDocNo)) <> 0 Then
                 Select Case .InitReceiptType
-                Case ucsFscRetInvoice, ucsFscRetCreditNote
+                Case ucsFscRcpInvoice, ucsFscRcpCreditNote
                     pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsZekCmdInitInvoiceNo, sParam, "%1;%1"
                     sParam = Printf(sParam, Pad(.InitInvData(ucsInvDocNo), -m_uConfig.MaxInvoiceNo))
                     SendCommand eCmd, sParam
@@ -2029,16 +2029,16 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End If
             '--- setup fiscal receipt
             Select Case .InitReceiptType
-            Case ucsFscRetSale
+            Case ucsFscRcpSale
                 sParam = "%1;%2;%3;0;%4%6"
                 lPrintType = 0
-            Case ucsFscRetInvoice
+            Case ucsFscRcpInvoice
                 sParam = "%1;%2;%3;0;%4;%5%6"
                 lPrintType = 1
-            Case ucsFscRetStorno
+            Case ucsFscRcpReversal
                 sParam = "%1;%2;%3;0;%4;%7"
                 lPrintType = 64
-            Case ucsFscRetCreditNote
+            Case ucsFscRcpCreditNote
                 sParam = "%1;%2;%3;0;%4;%5;%8"
                 lPrintType = 65
             End Select
@@ -2055,16 +2055,16 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     ";" & Pad(.InitInvData(ucsInvCgCity), m_uConfig.MaxCity) & IIf(m_uConfig.ExtendedPmtTypes, _
                     ";" & .InitInvData(ucsInvCgTaxNoType), vbNullString), _
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
-                .InitStornoData(ucsStoType) & _
-                    ";" & .InitStornoData(ucsStoReceiptNo) & _
-                    ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
-                    ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
+                .InitRevData(ucsRevType) & _
+                    ";" & .InitRevData(ucsRevReceiptNo) & _
+                    ";" & Format$(.InitRevData(ucsRevReceiptDate), FORMAT_DATE_EXTENDED) & _
+                    ";" & Pad(.InitRevData(ucsRevFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
-                .InitStornoData(ucsStoType) & _
-                    ";" & Pad(.InitStornoData(ucsStoInvoiceNo), -m_uConfig.MaxInvoiceNo) & _
-                    ";" & Format$(.InitStornoData(ucsStoReceiptDate), FORMAT_DATE_EXTENDED) & _
-                    ";" & .InitStornoData(ucsStoReceiptNo) & _
-                    ";" & Pad(.InitStornoData(ucsStoFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
+                .InitRevData(ucsRevType) & _
+                    ";" & Pad(.InitRevData(ucsRevInvoiceNo), -m_uConfig.MaxInvoiceNo) & _
+                    ";" & Format$(.InitRevData(ucsRevReceiptDate), FORMAT_DATE_EXTENDED) & _
+                    ";" & .InitRevData(ucsRevReceiptNo) & _
+                    ";" & Pad(.InitRevData(ucsRevFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, ";" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString))
             SendCommand eCmd, sParam
             If LenB(m_sLastError) <> 0 Then
@@ -2073,7 +2073,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, 2)
-            dblDisc = Round(dblTotal * IIf(.DiscType = ucsFscDstPlu, .DiscValue, 0) / 100#, 2)
+            dblDisc = Round(dblTotal * IIf(.DiscType = ucsFscDscPlu, .DiscValue, 0) / 100#, 2)
             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .InitReceiptType, eCmd, ucsZekCmdFiscalSell, sParam, "%1", _
                 "FormatPrice", sFormatPrice, "0.00", _
@@ -2092,7 +2092,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 If .PluQuantity <> 1 Then
                     sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
                 End If
-                If .DiscType = ucsFscDstPlu And Abs(.PluPrice) > DBL_EPSILON Then
+                If .DiscType = ucsFscDscPlu And Abs(.PluPrice) > DBL_EPSILON Then
                     sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
                 End If
             Else
@@ -2102,8 +2102,8 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             SendCommand eCmd, sParam
         Case ucsRowDiscount
             Select Case .PrintRowType
-            Case ucsFscRetNonfiscal
-                If .DiscType = ucsFscDstSubtotal Then
+            Case ucsFscRcpNonfiscal
+                If .DiscType = ucsFscDscSubtotal Then
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, "0.00", _
                         "FormatAmount", sFormatAmount, "0.00"
@@ -2117,14 +2117,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     Next
                 End If
             Case Else
-                If .DiscType = ucsFscDstSubtotal Then
+                If .DiscType = ucsFscDscSubtotal Then
                     pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsZekCmdFiscalSubtotal, sParam, "1;0,%1", _
                         "FormatDisc", sFormatDisc, "0.00"
                     sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
                     SendCommand eCmd, sParam
                 End If
             End Select
-            If .DiscType = ucsFscDstSubtotal Then
+            If .DiscType = ucsFscDscSubtotal Then
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                         dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
@@ -2211,7 +2211,7 @@ Private Sub pvConvertExtraRows()
                         AddPLU Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + m_uRow(lRow).PluVatGroup) & "  " & SafeFormat(Abs(dblDiscount), "0.00") & "%"), _
                             Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                     End If
-                ElseIf m_uRow(lRow).DiscType = ucsFscDstPlu And m_uRow(lRow).PluPrice < -DBL_EPSILON Then
+                ElseIf m_uRow(lRow).DiscType = ucsFscDscPlu And m_uRow(lRow).PluPrice < -DBL_EPSILON Then
                     '--- convert PLU discount on void rows
                     dblTotal = Round(m_uRow(lRow).PluQuantity * m_uRow(lRow).PluPrice, 2)
                     dblDiscount = m_uRow(lRow).DiscValue
@@ -2221,7 +2221,7 @@ Private Sub pvConvertExtraRows()
                             Round(dblTotal * dblDiscount / 100#, 2), 1, m_uRow(lRow).PluVatGroup, lRow + 1
                 End If
             ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
-                If (m_uRow(lRow).DiscValue < m_uConfig.MinDiscount Or m_uRow(lRow).DiscValue > m_uConfig.MaxDiscount) And m_uRow(lRow).DiscType = ucsFscDstSubtotal Then
+                If (m_uRow(lRow).DiscValue < m_uConfig.MinDiscount Or m_uRow(lRow).DiscValue > m_uConfig.MaxDiscount) And m_uRow(lRow).DiscType = ucsFscDscSubtotal Then
                     pvGetSubtotals lRow, uSum
                     dblDiscount = Limit(m_uRow(lRow).DiscValue, m_uConfig.MinDiscount, m_uConfig.MaxDiscount)
                     lCount = 0
@@ -2272,18 +2272,18 @@ Private Sub pvConvertExtraRows()
                 If .RowType = ucsRowPlu Then
                     lCount = lCount + 1
                     If lCount > m_uConfig.MaxReceiptRows - lTotal Then
-                        .PrintRowType = ucsFscRetNonfiscal
+                        .PrintRowType = ucsFscRcpNonfiscal
                         dblTotal = Round(.PluQuantity * .PluPrice, 2)
-                        If .DiscType = ucsFscDstPlu Then
+                        If .DiscType = ucsFscDscPlu Then
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
                         End If
                         If .PluVatGroup > 0 Then
                             uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
                         End If
                     End If
-                ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDstSubtotal Then
+                ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDscSubtotal Then
                     If lCount > m_uConfig.MaxReceiptRows - lTotal Then
-                        .PrintRowType = ucsFscRetNonfiscal
+                        .PrintRowType = ucsFscRcpNonfiscal
                         pvGetSubtotals lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
@@ -2324,14 +2324,14 @@ Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
         With m_uRow(lIdx)
         If .RowType = ucsRowPlu Then
             dblTotal = Round(.PluQuantity * .PluPrice, 2)
-            If .DiscType = ucsFscDstPlu Then
+            If .DiscType = ucsFscDscPlu Then
                 dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
             End If
             If .PluVatGroup > 0 Then
                 uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
             End If
         ElseIf .RowType = ucsRowDiscount Then
-            If .DiscType = ucsFscDstSubtotal Then
+            If .DiscType = ucsFscDscSubtotal Then
                 For lJdx = 1 To UBound(uCtx.GrpTotal)
                     dblTotal = Round(uCtx.GrpTotal(lJdx) * .DiscValue / 100#, 2)
                     uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) + dblTotal, 2)
@@ -2648,7 +2648,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal StornoType As UcsFiscalStornoTypeEnum, Optional StornoReceiptNo As String, Optional ByVal StornoReceiptDate As Date, Optional StornoFiscalMemoryNo As String, Optional StornoInvoiceNo As String, Optional StornoReason As String) As Boolean
-    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, StornoType, StornoReceiptNo, StornoReceiptDate, StornoFiscalMemoryNo, StornoInvoiceNo, StornoReason)
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
+    IDeviceProtocol_StartReceipt = StartReceipt(ReceiptType, OperatorCode, OperatorName, OperatorPassword, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason)
 End Function
 

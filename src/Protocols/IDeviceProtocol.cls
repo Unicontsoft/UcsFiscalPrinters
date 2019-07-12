@@ -47,19 +47,19 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 Option Explicit
 
 Public Enum UcsFiscalReceiptTypeEnum
-    ucsFscRetSale = 1
-    ucsFscRetStorno
-    ucsFscRetInvoice
-    ucsFscRetCreditNote
-    ucsFscRetOrderList
-    [_ucsFscRetMax]
+    ucsFscRcpSale = 1
+    ucsFscRcpReversal
+    ucsFscRcpInvoice
+    ucsFscRcpCreditNote
+    ucsFscRcpOrderList
+    [_ucsFscRcpMax]
 End Enum
 
 Public Enum UcsFiscalDiscountTypeEnum
-    ucsFscDstPlu = 1
-    ucsFscDstSubtotal
-    ucsFscDstTotal
-    [_ucsFscDstMax]
+    ucsFscDscPlu = 1
+    ucsFscDscSubtotal
+    ucsFscDscTotal
+    [_ucsFscDscMax]
 End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
@@ -100,17 +100,17 @@ Public Enum UcsFiscalErrorsEnum
     ucsFerPasswordNotSet
 End Enum
 
-Public Enum UcsFiscalStornoTypeEnum
-    ucsFscRsnOperatorError
-    ucsFscRsnRefund
-    ucsFscRsnTaxBaseReduction
+Public Enum UcsFiscalReversalTypeEnum
+    ucsFscRevOperatorError
+    ucsFscRevRefund
+    ucsFscRevTaxBaseReduction
 End Enum
 
 Public Enum UcsFiscalTaxNoTypeEnum
-    ucsFscTntBulstat
-    ucsFscTntEGN
-    ucsFscTntForeigner
-    ucsFscTntCustom
+    ucsFscTxnBulstat
+    ucsFscTxnEGN
+    ucsFscTxnForeigner
+    ucsFscTxnCustom
 End Enum
 
 ''
@@ -168,27 +168,27 @@ End Function
 ' Used to begin printing of a new receipt. The actual printing of the receipt is usually postponed until `EndReceipt`
 ' is called
 '
-' @param `ReceiptType`          [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
-'                                       regular sales receipt
-' @param `OperatorCode`         [input] operator number to be authenticated (usually 1-8)
-' @param `OperatorName`         [input] operator name to be printed on receipt
-' @param `OperatorPassword`     [input] operator password, can be `Empty` if default for device
-' @param `InvDocNo`             [in, optional] the number of the invoice/credit note to be printed
-' @param `InvCgTaxNo`           [in, optional] local identification number of the company (country specific)
-' @param `InvCgTaxNoType`       [in, optional]
-' @param `InvCgVatNo`           [in, optional] VAT identification number of the company (EU specific)
-' @param `InvCgName`            [in, optional] name of the company that is receiving the document
-' @param `InvCgCity`            [in, optional] city of the company that is receiving the document, can be empty string
-' @param `InvCgAddress`         [in, optional] address of the company that is receiving the document
-' @param `InvCgMol`             [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvCgPrsReceive`      [in, optional] name of the person that is receiving the document
-' @param `OwnData`              [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
-' @param `StornoType`           [in, optional]
-' @param `StornoReceiptNo`      [in, optional]
-' @param `StornoReceiptDate`    [in, optional]
-' @param `StornoFiscalMemoryNo` [in, optional]
-' @param `StornoInvoiceNo`      [in, optional]
-' @param `StornoReason`         [in, optional]
+' @param `ReceiptType`       [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
+'                                    regular sales receipt
+' @param `OperatorCode`      [input] operator number to be authenticated (usually 1-8)
+' @param `OperatorName`      [input] operator name to be printed on receipt
+' @param `OperatorPassword`  [input] operator password, can be `Empty` if default for device
+' @param `InvDocNo`          [in, optional] number of the invoice/credit note to be printed
+' @param `InvCgTaxNo`        [in, optional] identification number of the company (country specific)
+' @param `InvCgTaxNoType`    [in, optional] type of identification number supplied: bulstat, EGN, foreigner or custom
+' @param `InvCgVatNo`        [in, optional] VAT identification number of the company (EU specific)
+' @param `InvCgName`         [in, optional] name of the company that is receiving the document
+' @param `InvCgCity`         [in, optional] city of the company that is receiving the document, can be empty string
+' @param `InvCgAddress`      [in, optional] address of the company that is receiving the document
+' @param `InvCgMol`          [in, optional] name of the person that is fiscally responsible for the company (not used)
+' @param `InvCgPrsReceive`   [in, optional] name of the person that is receiving the document
+' @param `OwnData`           [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
+' @param `RevType`           [in, optional] operator error, refund or tax-base deduction
+' @param `RevReceiptNo`      [in, optional] number of reversed receipt
+' @param `RevReceiptDate`    [in, optional] date/time of reversed receipt
+' @param `RevFiscalMemoryNo` [in, optional] fiscal memeory of reversed receipt
+' @param `RevInvoiceNo`      [in, optional] number of credited invoice
+' @param `RevReason`         [in, optional] credit note reason as free text (quantity or price adjustment)
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _
@@ -207,12 +207,12 @@ Public Function StartReceipt( _
             Optional InvCgAddress As String, _
             Optional InvCgPrsReceive As String, _
             Optional OwnData As String, _
-            Optional ByVal StornoType As UcsFiscalStornoTypeEnum, _
-            Optional StornoReceiptNo As String, _
-            Optional ByVal StornoReceiptDate As Date, _
-            Optional StornoFiscalMemoryNo As String, _
-            Optional StornoInvoiceNo As String, _
-            Optional StornoReason As String) As Boolean
+            Optional ByVal RevType As UcsFiscalReversalTypeEnum, _
+            Optional RevReceiptNo As String, _
+            Optional ByVal RevReceiptDate As Date, _
+            Optional RevFiscalMemoryNo As String, _
+            Optional RevInvoiceNo As String, _
+            Optional RevReason As String) As Boolean
             
 End Function
 

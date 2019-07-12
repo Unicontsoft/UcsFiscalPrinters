@@ -308,11 +308,11 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Invoice/CgAddress"), _
                 JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 JsonItem(oJson, "OwnData"), _
-                C_Lng(JsonItem(oJson, "Storno/Reason")), _
-                JsonItem(oJson, "Storno/ReceiptNo"), _
-                C_Date(JsonItem(oJson, "Storno/ReceiptDate")), _
-                JsonItem(oJson, "Storno/FiscalMemoryNo"), _
-                JsonItem(oJson, "Storno/InvoiceNo")) Then
+                C_Lng(JsonItem(oJson, "Reversal/Reason")), _
+                JsonItem(oJson, "Reversal/ReceiptNo"), _
+                C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
+                JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
+                JsonItem(oJson, "Reversal/InvoiceNo")) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -323,7 +323,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtSell
                     oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetVatGroup(.Group)
                     If C_Dbl(.Discount) <> 0 Then
-                        oFP.AddDiscount ucsFscDstPlu, -C_Dbl(.Discount)
+                        oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
                 Case ucsRwtText
                     oFP.AddLine .Item
