@@ -778,6 +778,10 @@ Public Function Init(sDeviceString As String) As Boolean
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
     m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
+    If LenB(At(m_vInfoDiagnostics, 0)) = 0 Then
+        sParam = vbNullString
+        m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_DELIM)
+    End If
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
@@ -792,7 +796,7 @@ Public Function Init(sDeviceString As String) As Boolean
     With m_uConfig
         .Charset = ucsCrsAuto
         .IsEcr = vbUseDefault
-        .IsDaisy = (Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix) And LenB(sIncotexPrefix) <> 0
+        .IsDaisy = (Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix) And LenB(sDaisyPrefix) <> 0
         .IsIncotex = (Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix) And LenB(sIncotexPrefix) <> 0
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
@@ -1460,7 +1464,7 @@ Public Function GetTaxNo() As String
         "Index", lIndex, IIf(IsIncotex, -1, 0)
     bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    GetTaxNo = At(vSplit, lIndex)
+    GetTaxNo = RTrim$(At(vSplit, lIndex))
     Exceptions = bPrevExceptions
     Exit Function
 EH:
@@ -1484,7 +1488,7 @@ Public Function GetTaxCaption() As String
             "Index", lIndex, 1
     End If
     bPrevExceptions = pvSetExceptions(False)
-    GetTaxCaption = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+    GetTaxCaption = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     Exceptions = bPrevExceptions
     If IsNumeric(GetTaxCaption) Or LenB(GetTaxCaption) = 0 Then
         GetTaxCaption = pvText(ucsTxtTaxNo)
@@ -1505,7 +1509,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     If Index >= 1 And Index <= 6 Then
         pvGetCommandConfig CONF_NAME, "InitHeaderFooter" & Index, eCmd, ucsFpcInitHeaderFooter, sParam, "I" & (Index - 1)
         bPrevExceptions = pvSetExceptions(False)
-        GetHeaderText = pvStripBold(SendCommand(eCmd, sParam))
+        GetHeaderText = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
         Exceptions = bPrevExceptions
     End If
     Exit Function
@@ -1524,7 +1528,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     If Index >= 1 And Index <= 2 Then
         pvGetCommandConfig CONF_NAME, "InitHeaderFooter" & Index, eCmd, ucsFpcInitHeaderFooter, sParam, "I" & (Index + 5)
         bPrevExceptions = pvSetExceptions(False)
-        GetFooterText = pvStripBold(SendCommand(eCmd, sParam))
+        GetFooterText = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
         Exceptions = bPrevExceptions
     End If
     Exit Function
@@ -1549,7 +1553,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         bPrevExceptions = pvSetExceptions(False)
         If IsDaisy Then
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (58 + Index)
-            GetPaymentName = Trim$(pvStripBold(SendCommand(eCmd, sParam)))
+            GetPaymentName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
             GoTo QH
         ElseIf IsIncotex Then
             If Index >= 7 Then
@@ -1560,7 +1564,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         Else
             pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
         End If
-        GetPaymentName = Trim$(pvStripBold(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)))
+        GetPaymentName = RTrim$(pvStripBold(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)))
         Exceptions = bPrevExceptions
         '--- check for failure (returns 'F')
         If Status(ucsStbPrintingError) And GetPaymentName = "F" Then
