@@ -2362,10 +2362,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lSerialIndex    As Long
-    Dim lRegDateIndex   As Long
     Dim lModelIndex     As Long
-    Dim sSuffixBg       As String
-    Dim sSuffixEn       As String
+    Dim lFirmwareIndex  As Long
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsZekCmdInfoDiagnostics, sParam, vbNullString, _
@@ -2376,11 +2374,11 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     If LenB(At(vResult, lSerialIndex)) <> 0 Then
         sProtocol = STR_PROTOCOL_TREMOL_FP
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
-            "RegDateIndex", lRegDateIndex, 3, _
-            "ModelIndex", lModelIndex, 4
+            "ModelIndex", lModelIndex, 3, _
+            "FirmwareIndex", lFirmwareIndex, 4
         vSplit = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam), DEF_DELIM)
-        sModel = Trim$(At(vSplit, lRegDateIndex))
-        sFirmware = Trim$(At(vSplit, lModelIndex))
+        sModel = Trim$(At(vSplit, lModelIndex))
+        sFirmware = Trim$(At(vSplit, lFirmwareIndex))
         '--- success
         pvGetDeviceInfo = True
     End If
