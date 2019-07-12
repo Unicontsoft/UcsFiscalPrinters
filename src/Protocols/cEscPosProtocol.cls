@@ -628,13 +628,13 @@ Public Function CancelReceipt() As Boolean
     CancelReceipt = True
 End Function
 
+Public Function GetDeviceProtocol() As String
+    GetDeviceProtocol = STR_PROTOCOL_ESP_POS
+End Function
+
 Public Function GetDeviceModel() As String
     GetDeviceModel = pvGetAutodetectInfo(m_oConnector, 67) & pvGetAutodetectInfo(m_oConnector, 66) & _
                      pvGetAutodetectInfo(m_oConnector, 68) & pvGetAutodetectInfo(m_oConnector, 65)
-End Function
-
-Public Function GetDeviceProtocol() As String
-    GetDeviceProtocol = STR_PROTOCOL_ESP_POS
 End Function
 
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
@@ -1170,12 +1170,16 @@ Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As S
     
 End Function
 
+Private Function IDeviceProtocol_GetDeviceProtocol() As String
+    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+End Function
+
 Private Function IDeviceProtocol_GetDeviceModel() As String
     IDeviceProtocol_GetDeviceModel = GetDeviceModel()
 End Function
 
-Private Function IDeviceProtocol_GetDeviceProtocol() As String
-    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+Private Function IDeviceProtocol_GetDeviceFirmware() As String
+    
 End Function
 
 Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean

@@ -534,6 +534,15 @@ Attribute GetDeviceModel.VB_Description = "Used to retrieve device model name as
 End Function
 
 ''
+' Used to retrieve device firmware version
+'
+' @return Device firmware version
+'
+Public Function GetDeviceFirmware() As String
+
+End Function
+
+''
 ' Used to retrieve totals by VAT groups since last z-report
 '
 ' @return Array of totals for each VAT group (1-8)

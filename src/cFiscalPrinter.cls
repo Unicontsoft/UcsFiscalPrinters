@@ -189,6 +189,7 @@ Public Function EnumPorts(sResponse As String) As Boolean
             JsonItem(oItem, "Speed") = vPorts(lIdx)(1)
             JsonItem(oItem, "Protocol") = vPorts(lIdx)(2)
             JsonItem(oItem, "Model") = vPorts(lIdx)(3)
+            JsonItem(oItem, "Firmware") = vPorts(lIdx)(4)
         Else
             JsonItem(oItem, "Port") = vPorts(lIdx)
         End If

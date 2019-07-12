@@ -621,6 +621,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lActual         As Long
     Dim sProtocol       As String
     Dim sModel          As String
+    Dim sFirmware       As String
     Dim sError          As String
     Dim vSpeeds         As Variant
     Dim baText()        As Byte
@@ -705,8 +706,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If LenB(.Buffer) <> 0 Then
 '                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
-                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
                         Else
                             DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
@@ -1639,21 +1640,31 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceModel() As String
-    Const FUNC_NAME     As String = "GetDeviceModel"
+Public Function GetDeviceProtocol() As String
+    Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceProtocol() As String
-    Const FUNC_NAME     As String = "GetDeviceProtocol"
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceFirmware() As String
+    Const FUNC_NAME     As String = "GetDeviceFirmware"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, vbNullString, GetDeviceFirmware
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2728,7 +2739,7 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, Optional Error As String) As Boolean
+Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, sFirmware As String, Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim eCmd            As UcsIslCommandsEnum
@@ -2765,7 +2776,11 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         sModel = At(vResult, lNameIndex)
         '-- lSwitchesIndex in older models -> country index (6 = BG)
         If Len(At(vResult, lSwitchesIndex)) > 2 Then
-            sModel = sModel & " " & At(vResult, lNameIndex + 1)
+            sModel = Trim$(At(vResult, lNameIndex))
+            sFirmware = Trim$(At(vResult, lNameIndex + 1))
+        Else
+            sModel = "Стар"
+            sFirmware = Trim$(At(vResult, lNameIndex))
         End If
         '--- success
         pvGetDeviceInfo = True
@@ -2902,6 +2917,10 @@ End Function
 
 Private Function IDeviceProtocol_GetDeviceModel() As String
     IDeviceProtocol_GetDeviceModel = GetDeviceModel()
+End Function
+
+Private Function IDeviceProtocol_GetDeviceFirmware() As String
+    IDeviceProtocol_GetDeviceFirmware = GetDeviceFirmware()
 End Function
 
 Private Function IDeviceProtocol_GetDeviceProtocol() As String

@@ -503,6 +503,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lActual         As Long
     Dim sProtocol       As String
     Dim sModel          As String
+    Dim sFirmware       As String
     Dim vSpeeds         As Variant
     
     On Error GoTo EH
@@ -576,8 +577,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
-                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel) Then
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel)
+                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
                         Else
                             DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
@@ -1490,7 +1491,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1500,7 +1501,17 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceFirmware() As String
+    Const FUNC_NAME     As String = "GetDeviceFirmware"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, vbNullString, GetDeviceFirmware
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2344,7 +2355,7 @@ Private Function pvZfplibValue(lValue As Long, sRegValue As String, ByVal lDefVa
     pvZfplibValue = lValue
 End Function
 
-Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, Optional Error As String) As Boolean
+Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, sFirmware As String, Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim vSplit          As Variant
@@ -2353,7 +2364,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     Dim lSerialIndex    As Long
     Dim lRegDateIndex   As Long
     Dim lModelIndex     As Long
-    Dim sSuffix         As String
+    Dim sSuffixBg       As String
+    Dim sSuffixEn       As String
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsZekCmdInfoDiagnostics, sParam, vbNullString, _
@@ -2365,13 +2377,10 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         sProtocol = STR_PROTOCOL_TREMOL_FP
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
             "RegDateIndex", lRegDateIndex, 3, _
-            "ModelIndex", lModelIndex, 4, _
-            "Suffix", sSuffix, "Ê.Ñ."
+            "ModelIndex", lModelIndex, 4
         vSplit = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam), DEF_DELIM)
-        sModel = Trim$(At(vSplit, lRegDateIndex) & " " & At(vSplit, lModelIndex))
-        If InStr(sModel, sSuffix) > 0 Then
-            sModel = Trim$(Left$(sModel, InStr(sModel, sSuffix) - 1))
-        End If
+        sModel = Trim$(At(vSplit, lRegDateIndex))
+        sFirmware = Trim$(At(vSplit, lModelIndex))
         '--- success
         pvGetDeviceInfo = True
     End If
@@ -2534,12 +2543,16 @@ Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As S
     End If
 End Function
 
+Private Function IDeviceProtocol_GetDeviceProtocol() As String
+    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+End Function
+
 Private Function IDeviceProtocol_GetDeviceModel() As String
     IDeviceProtocol_GetDeviceModel = GetDeviceModel()
 End Function
 
-Private Function IDeviceProtocol_GetDeviceProtocol() As String
-    IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
+Private Function IDeviceProtocol_GetDeviceFirmware() As String
+    IDeviceProtocol_GetDeviceFirmware = GetDeviceFirmware()
 End Function
 
 Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean
