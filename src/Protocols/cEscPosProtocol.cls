@@ -121,7 +121,7 @@ Private Type UcsRowData
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
-    PluVatGroup         As Long
+    PluTaxGroup         As Long
     LineText            As String
     LineCommand         As String
     LineWordWrap        As Boolean
@@ -446,7 +446,7 @@ Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
             Optional ByVal Quantity As Double = 1, _
-            Optional ByVal VatGroup As Long = 2, _
+            Optional ByVal TaxGroup As Long = 2, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "AddPLU"
     Dim uRow            As UcsRowData
@@ -464,7 +464,7 @@ Public Function AddPLU( _
         bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(IIf(bNegative, Abs(Quantity), Quantity), 3)
-        .PluVatGroup = LimitLong(VatGroup, 1, 8)
+        .PluTaxGroup = LimitLong(TaxGroup, 1, 8)
         .PrintRowType = m_uRow(0).InitReceiptType
     End With
     pvInsertRow BeforeIndex, uRow
@@ -830,7 +830,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Else
                 dblDisc = 0
             End If
-            uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
+            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, 2)
             Select Case .PrintRowType
             Case ucsFscRcpOrderList
                 pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
@@ -874,7 +874,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         End If
                         vSplit(lIdx) = AlignText(vSplit(lIdx), sData, pvRowChars - 2)
                     End If
-                    vSplit(UBound(vSplit)) = AlignText(vSplit(UBound(vSplit)), " " & SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluVatGroup), pvRowChars)
+                    vSplit(UBound(vSplit)) = AlignText(vSplit(UBound(vSplit)), " " & SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvRowChars)
                     pvPrintLine vSplit
                 Else
                     vSplit = WrapMultiline(.PluName, pvRowChars - 2)
@@ -883,12 +883,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     Next
                     pvPrintLine AlignText(pvText(ucsTxtPluPrice), SafeFormat(.PluPrice, sFormatPrice), pvRowChars - 2)
                     pvPrintLine AlignText(pvText(ucsTxtPluQuantity), SafeFormat(.PluQuantity, sFormatQty), pvRowChars - 2)
-                    pvPrintLine AlignText(pvText(ucsTxtPluTotal), SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluVatGroup), pvRowChars)
+                    pvPrintLine AlignText(pvText(ucsTxtPluTotal), SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvRowChars)
                 End If
                 Select Case .DiscType
                 Case ucsFscDscPlu, ucsFscDscPluAbs
                     sData = AlignText(Printf(IIf(dblDisc > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), IIf(.DiscType = ucsFscDscPlu, SafeFormat(Abs(.DiscValue), sFormatDisc) & " %", vbNullString)), _
-                        SafeFormat(dblDisc, sFormatAmount) & " " & Chr$(191 + .PluVatGroup), pvRowChars)
+                        SafeFormat(dblDisc, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvRowChars)
                     pvPrintLine sData
                 End Select
             End Select
@@ -1122,8 +1122,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentType
     IDeviceProtocol_AddPayment = AddPayment(Number, Name, Amount)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal VatGroup As Long) As Boolean
-    IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long) As Boolean
+    IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, TaxGroup)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
@@ -1239,7 +1239,7 @@ Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
     
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
+Private Function IDeviceProtocol_GetTotalsByTaxGroups() As Variant
     
 End Function
 

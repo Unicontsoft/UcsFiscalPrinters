@@ -89,7 +89,7 @@ Private Type UcsRow
     Item            As String
     Price           As String
     Discount        As String
-    Group           As String
+    TaxGroup        As String
     Quantity        As String
     WayOfPayment    As String
     Amount          As String
@@ -116,7 +116,7 @@ End Enum
 Private Enum UcsFiscalParamIndexesEnum
     ucsFscPixItem = 0
     ucsFscPixPrice
-    ucsFscPixGroup
+    ucsFscPixTaxGroup
     ucsFscPixQuantity
     ucsFscPixDiscount
     ucsFscPixWayOfPmt = ucsFscPixPrice
@@ -322,7 +322,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             With pvGetRowData(JsonItem(oJson, "Rows/" & vElem & "/*"))
                 Select Case .Type
                 Case ucsRwtSell
-                    oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetVatGroup(.Group)
+                    oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup)
                     If C_Dbl(.Discount) <> 0 Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
@@ -551,8 +551,8 @@ End Function
 ''
 ' Used to retrieve accumulated totals by VAT groups (1-8) since last z-report
 '
-Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+Public Function GetTotalsByTaxGroups(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
@@ -566,7 +566,7 @@ Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.GetTotalsByVatGroups()
+    vTotals = oFP.GetTotalsByTaxGroups()
     If Not IsArray(vTotals) Then
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
@@ -583,7 +583,7 @@ Public Function GetTotalsByVatGroups(sRequest As String, sResponse As String) As
         JsonItem(oRetVal, "Totals/-1") = oItem
     Next
 QH:
-    GetTotalsByVatGroups = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetTotalsByTaxGroups = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
@@ -764,7 +764,7 @@ Private Function pvGetRowData(vRow As Variant) As UcsRow
         pvGetRowData.Type = ucsRwtSell
         pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
         pvGetRowData.Price = C_Str(vRow(ucsFscPixPrice))
-        pvGetRowData.Group = C_Str(vRow(ucsFscPixGroup))
+        pvGetRowData.TaxGroup = C_Str(vRow(ucsFscPixTaxGroup))
         pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
         pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
     End If
@@ -774,10 +774,13 @@ EH:
     Resume Next
 End Function
 
-Private Function pvGetVatGroup(sVatGroup As String) As Long
-    pvGetVatGroup = C_Lng(sVatGroup)
-    If pvGetVatGroup < 1 Or pvGetVatGroup > 8 Then
-        pvGetVatGroup = 2
+Private Function pvGetTaxGroup(sTaxGroup As String) As Long
+    pvGetTaxGroup = (Asc(sTaxGroup) - "À" + 1)
+    If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
+        pvGetTaxGroup = C_Lng(sTaxGroup)
+        If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
+            pvGetTaxGroup = 2
+        End If
     End If
 End Function
 

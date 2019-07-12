@@ -122,7 +122,7 @@ Public Enum UcsIslCommandsEnum
     ucsFpcInfoNap = 37
     ucsFpcInfoDateTime = 62
     ucsFpcInfoLastFiscalBlock = 64
-    ucsFpcInfoTotalsByVatGroups = 65
+    ucsFpcInfoTotalsByTaxGroups = 65
     ucsFpcInfoDailyStats = 67
     ucsFpcInfoFreeMemoryRecords = 68
     ucsFpcInfoStatus = 74
@@ -326,7 +326,7 @@ Private Type UcsRowData
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
-    PluVatGroup         As Long
+    PluTaxGroup         As Long
     LineText            As String
     LineCommand         As String
     LineWordWrap        As Boolean
@@ -958,7 +958,7 @@ Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
             Optional ByVal Quantity As Double = 1, _
-            Optional ByVal VatGroup As Long = 2, _
+            Optional ByVal TaxGroup As Long = 2, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "AddPLU"
     Dim uRow            As UcsRowData
@@ -980,7 +980,7 @@ Public Function AddPLU( _
         End Select
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(IIf(bNegative Or m_uConfig.NegativePrices, Abs(Quantity), Quantity), 3)
-        .PluVatGroup = LimitLong(VatGroup, 1, 8)
+        .PluTaxGroup = LimitLong(TaxGroup, 1, 8)
         .PrintRowType = m_uRow(0).InitReceiptType
     End With
     pvInsertRow BeforeIndex, uRow
@@ -1741,8 +1741,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetTotalsByVatGroups() As Variant
-    Const FUNC_NAME     As String = "GetTotalsByVatGroups"
+Public Function GetTotalsByTaxGroups() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
     Dim vTotals         As Variant
@@ -1755,9 +1755,9 @@ Public Function GetTotalsByVatGroups() As Variant
     
     On Error GoTo EH
     bPrevExceptions = pvSetExceptions(False)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups0", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, IIf(IsDaisy, "T", vbNullString)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsFpcInfoTotalsByTaxGroups, sParam, IIf(IsDaisy, "T", vbNullString)
     vTotals = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByVatGroups1", eCmd, ucsFpcInfoTotalsByVatGroups, sParam, IIf(IsIncotex, vbNullString, "1")
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups1", eCmd, ucsFpcInfoTotalsByTaxGroups, sParam, IIf(IsIncotex, vbNullString, "1")
     vVatSums = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsFpcInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_DELIM)
@@ -1771,9 +1771,9 @@ Public Function GetTotalsByVatGroups() As Variant
                 vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + 1)), C_Dbl(At(vTaxRates, lIdx)))
             End If
         Next
-        GetTotalsByVatGroups = vRetVal
+        GetTotalsByTaxGroups = vRetVal
     Else
-        GetTotalsByVatGroups = Array()
+        GetTotalsByTaxGroups = Array()
     End If
     Exit Function
 EH:
@@ -2396,7 +2396,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             Else
                 dblDisc = 0
             End If
-            uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal + dblDisc, 2)
+            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, 2)
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsFpcFiscalSell, sParam, "%1", _
                 "FormatPrice", sFormatPrice, "0.00", _
                 "FormatQty", sFormatQty, "0.000", _
@@ -2409,7 +2409,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             If UBound(vSplit) > 0 Then
                 sData = At(vSplit, UBound(vSplit) - 1) & vbLf & sData
             End If
-            sData = sData & vbTab & Chr$(191 + .PluVatGroup) & SafeFormat(.PluPrice, sFormatPrice)
+            sData = sData & vbTab & Chr$(191 + .PluTaxGroup) & SafeFormat(.PluPrice, sFormatPrice)
             If .PluQuantity <> 1 Then
                 sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
             End If
@@ -2566,7 +2566,7 @@ Private Sub pvConvertExtraRows()
                 If Not m_uConfig.NegativePrices And dblPrice <= 0 Then
                     vSplit = WrapText(m_uRow(lRow).PluName, pvItemChars)
                     lIdx = LimitLong(UBound(vSplit), , 1)
-                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + m_uRow(lRow).PluVatGroup), pvRowChars)
+                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + m_uRow(lRow).PluTaxGroup), pvRowChars)
                     m_uRow(lRow).RowType = ucsRowLine
                     m_uRow(lRow).LineText = vSplit(0)
                     If lIdx > 0 Then
@@ -2590,7 +2590,7 @@ Private Sub pvConvertExtraRows()
                         m_uRow(lRow).DiscType = 0
                         m_uRow(lRow).DiscValue = 0
                         AddPLU Printf(IIf(dblDiscTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                            dblDiscTotal, 1, m_uRow(lRow).PluVatGroup, lRow + 1
+                            dblDiscTotal, 1, m_uRow(lRow).PluTaxGroup, lRow + 1
                     End If
                 ElseIf m_uRow(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
                     '--- convert PLU discount on void rows
@@ -2602,7 +2602,7 @@ Private Sub pvConvertExtraRows()
                         m_uRow(lRow).DiscType = 0
                         m_uRow(lRow).DiscValue = 0
                         AddPLU Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                                dblDiscTotal, 1, m_uRow(lRow).PluVatGroup, lRow + 1
+                                dblDiscTotal, 1, m_uRow(lRow).PluTaxGroup, lRow + 1
                     End If
                 End If
             ElseIf m_uRow(lRow).RowType = ucsRowDiscount Then
@@ -2638,7 +2638,7 @@ Private Sub pvConvertExtraRows()
         With m_uRow(lRow)
             If .RowType = ucsRowPlu Then
                 lCount = lCount + 1
-                uCtx.GrpTotal(.PluVatGroup) = 1
+                uCtx.GrpTotal(.PluTaxGroup) = 1
             End If
         End With
     Next
@@ -2664,8 +2664,8 @@ Private Sub pvConvertExtraRows()
                         ElseIf .DiscType = ucsFscDscPluAbs Then
                             dblTotal = Round(dblTotal + .DiscValue, 2)
                         End If
-                        If .PluVatGroup > 0 Then
-                            uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
+                        If .PluTaxGroup > 0 Then
+                            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, 2)
                         End If
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDscSubtotal Then
@@ -2717,8 +2717,8 @@ Private Sub pvGetSubtotals(ByVal lRow As Long, uCtx As UcsContext)
             Case ucsFscDscPluAbs
                 dblTotal = Round(dblTotal + .DiscValue, 2)
             End Select
-            If .PluVatGroup > 0 Then
-                uCtx.GrpTotal(.PluVatGroup) = Round(uCtx.GrpTotal(.PluVatGroup) + dblTotal, 2)
+            If .PluTaxGroup > 0 Then
+                uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, 2)
             End If
         ElseIf .RowType = ucsRowDiscount Then
             Select Case .DiscType
@@ -2871,8 +2871,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentType
     IDeviceProtocol_AddPayment = AddPayment(Number, Name, Amount)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal VatGroup As Long) As Boolean
-    IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, VatGroup)
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long) As Boolean
+    IDeviceProtocol_AddPLU = AddPLU(Name, Price, Quantity, TaxGroup)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
@@ -2984,8 +2984,8 @@ Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
     IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByVatGroups() As Variant
-    IDeviceProtocol_GetTotalsByVatGroups = GetTotalsByVatGroups()
+Private Function IDeviceProtocol_GetTotalsByTaxGroups() As Variant
+    IDeviceProtocol_GetTotalsByTaxGroups = GetTotalsByTaxGroups()
 End Function
 
 Private Function IDeviceProtocol_GetTotalsStats() As Variant

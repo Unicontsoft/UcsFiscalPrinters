@@ -222,7 +222,7 @@ End Function
 ' @param `Name`     [input] full product name or description
 ' @param `Price`    [input] final sale price (incl. VAT) rounded to 0.00, can be negative for voids
 ' @param `Quantity` [input] quantity rounded to 0.000
-' @param `VatGroup` [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
+' @param `TaxGroup` [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark When printing negative rows currently reached receipt subtotal cannot become negative or the protocol handler
 ' will reorder receipt rows to prevent fiscal device from rejecting the whole receipt.
@@ -231,7 +231,7 @@ Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
             ByVal Quantity As Double, _
-            ByVal VatGroup As Long) As Boolean
+            ByVal TaxGroup As Long) As Boolean
 Attribute AddPLU.VB_Description = "Used to print a row on the final receipt with product description, price and quantity"
             
 End Function
@@ -547,8 +547,8 @@ End Function
 '
 ' @return Array of totals for each VAT group (1-8)
 '
-Public Function GetTotalsByVatGroups() As Variant
-Attribute GetTotalsByVatGroups.VB_Description = "Used to retrieve totals by VAT groups since last z-report"
+Public Function GetTotalsByTaxGroups() As Variant
+Attribute GetTotalsByTaxGroups.VB_Description = "Used to retrieve totals by VAT groups since last z-report"
 
 End Function
 
