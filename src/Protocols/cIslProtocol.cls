@@ -254,7 +254,7 @@ Private m_uCtxPrint                 As UcsContext
 
 Private Enum UcsInternalErrors
     ucsErrTimeoutWaitingForResponse
-    ucsErrInvalidMessageFormatOrChecksum
+    [__ucsErrInvalidMessageFormatOrChecksum]
     ucsErrInvalidResponseLength
     ucsErrResponseMissingPostamble
     ucsErrResponseMissingPreamble
@@ -1534,7 +1534,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (7 + Index), _
                 "Index", lIndex, -1
         Else
-            pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Chr$(68 + Index)
+            pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsFpcInitPaymentType, sParam, Mid$(DefPmtTypes, Index, 1)
         End If
         GetPaymentName = RTrim$(pvStripBold(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)))
         Exceptions = bPrevExceptions
