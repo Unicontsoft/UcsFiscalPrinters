@@ -197,11 +197,11 @@ Private m_uConfig                   As UcsConfigValues
 Private m_uCtxPrint                 As UcsContext
 
 Private Enum UcsInternalErrors
-    ucsErrNoDeviceInfoSet
-    ucsErrCreateFileFailed
-    ucsErrSetCommTimeoutsFailed
-    ucsErrBuildCommDCBFailed
-    ucsErrSetCommStateFailed
+    [__ucsErrNoDeviceInfoSet]
+    [__ucsErrCreateFileFailed]
+    [__ucsErrSetCommTimeoutsFailed]
+    [__ucsErrBuildCommDCBFailed]
+    [__ucsErrSetCommStateFailed]
     [__ucsErrWriteFileFailure]
     [__ucsErrTimeoutWaitingForResponse]
     [__ucsErrReadFileFailed]
