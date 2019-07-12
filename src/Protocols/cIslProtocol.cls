@@ -203,7 +203,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|Invalid message format or checksum (NAK)|Already connected|Not connected|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|WaitCommEvent failed: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1"
 Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
@@ -211,7 +211,7 @@ Private Const STR_MEMORY                As String = "Write error|1|No memory mod
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |EIC"
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|Sales %1|EIC"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -242,7 +242,7 @@ Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIslStatusBitsEnum
 Private m_eDip                      As UcsIslDipSwitchesEnum
 Private m_eMemory                   As UcsIslFiscalMemoryEnum
-Private m_eLastErrNo            As UcsFiscalErrorsEnum
+Private m_eLastErrNo                As UcsFiscalErrorsEnum
 Private m_sLastError                As String
 Private m_bExceptions               As Boolean
 Private m_uRow()                    As UcsRowData
@@ -253,21 +253,11 @@ Private m_uConfig                   As UcsConfigValues
 Private m_uCtxPrint                 As UcsContext
 
 Private Enum UcsInternalErrors
-    [__ucsErrNoDeviceInfoSet]
-    [__ucsErrCreateFileFailed]
-    [__ucsErrSetCommTimeoutsFailed]
-    [__ucsErrBuildCommDCBFailed]
-    [__ucsErrSetCommStateFailed]
-    [__ucsErrWriteFileFailure]
     ucsErrTimeoutWaitingForResponse
-    [__ucsErrReadFileFailed]
-    [__ucsErrInvalidMessageFormatOrChecksum]
-    [__ucsErrAlreadyConnected]
-    [__ucsErrNotConnected]
+    ucsErrInvalidMessageFormatOrChecksum
     ucsErrInvalidResponseLength
     ucsErrResponseMissingPostamble
     ucsErrResponseMissingPreamble
-    [__ucsErrWaitCommEventFailed]
     ucsErrNoReceiptStarted
     ucsErrInvalidOperatorPassword
     ucsErrErrorInLine
@@ -284,25 +274,7 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCredit
     ucsTxtSurcharge
     ucsTxtDiscount
-    [__ucsTxtTotal]
-    [__ucsTxtSubTotal]
-    [__ucsTxtHeaderInvoiceNo]
     ucsTxtPluSales
-    [__ucsTxtPluPrice]
-    [__ucsTxtPluQuantity]
-    [__ucsTxtPluTotal]
-    [__ucsTxtGroupTotal]
-    [__ucsTxtGroupVat]
-    [__ucsTxtGroupNetto]
-    [__ucsTxtFooterTotal]
-    [__ucsTxtFooterArticles]
-    [__ucsTxtFooterArticleSingle]
-    [__ucsTxtFooterChange]
-    [__ucsTxtFooterSeller]
-    [__ucsTxtFooterReceiver]
-    [__ucsTxtFooterBuyer]
-    [__ucsTxtFooterTaxNo]
-    [__ucsTxtFooterVatNo]
     ucsTxtTaxNo
 End Enum
 

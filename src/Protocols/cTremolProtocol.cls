@@ -140,10 +140,10 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|Invalid message format or checksum (NACK)|Already connected|Not connected|Invalid response length: %1|Response missing preamble: %1|WaitCommEvent failed: %1|No receipt started|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Device not online|Device not ready| or cannot set operator password| or invalid operator password"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
-Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Total|Subtotal|Invoice No %1|Sales %1|Unit Price|Quantity|Value*%1|Sum Group %1|VAT*%1=%2|Netto Sum|Total sum|%1 items|1 item|Change|Seller: |Receiver: |Buyer: |Tax No: |VAT No: |EIC;Citizen #;Foreigner #;Official #|VOID"
+Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -197,28 +197,16 @@ Private m_uConfig                   As UcsConfigValues
 Private m_uCtxPrint                 As UcsContext
 
 Private Enum UcsInternalErrors
-    [__ucsErrNoDeviceInfoSet]
-    [__ucsErrCreateFileFailed]
-    [__ucsErrSetCommTimeoutsFailed]
-    [__ucsErrBuildCommDCBFailed]
-    [__ucsErrSetCommStateFailed]
-    [__ucsErrWriteFileFailure]
     [__ucsErrTimeoutWaitingForResponse]
-    [__ucsErrReadFileFailed]
     ucsErrInvalidMessageFormatOrChecksum
-    [__ucsErrAlreadyConnected]
-    [__ucsErrNotConnected]
     ucsErrInvalidResponseLength
     ucsErrResponseMissingPreamble
-    [__ucsErrWaitCommEventFailed]
     ucsErrNoReceiptStarted
     ucsErrErrorInLine
-    [__ucsErrCannotCancelReceipt]
     ucsErrInvalidReportType
     ucsErrDeviceNotOnline
     ucsErrDeviceNotReady
     ucsErrPasswordNotSet
-    [__ucsErrInvalidPassword]
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -236,27 +224,9 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCheque
     ucsTxtSurcharge
     ucsTxtDiscount
-    [__ucsTxtTotal]
     ucsTxtSubTotal
-    [__ucsTxtHeaderInvoiceNo]
     ucsTxtPluSales
-    [__ucsTxtPluPrice]
-    [__ucsTxtPluQuantity]
-    [__ucsTxtPluTotal]
-    [__ucsTxtGroupTotal]
-    [__ucsTxtGroupVat]
-    [__ucsTxtGroupNetto]
-    [__ucsTxtFooterTotal]
-    [__ucsTxtFooterArticles]
-    [__ucsTxtFooterArticleSingle]
-    [__ucsTxtFooterChange]
-    [__ucsTxtFooterSeller]
-    [__ucsTxtFooterReceiver]
-    [__ucsTxtFooterBuyer]
-    [__ucsTxtFooterTaxNo]
-    [__ucsTxtFooterVatNo]
-    ucsTxtBulstatCaption
-    [__ucsTxtPluVoid]
+    ucsTxtTaxNoCaption
 End Enum
 
 Private Enum UcsProtocolMarkers
@@ -1357,7 +1327,7 @@ Public Function GetTaxCaption() As String
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsZekCmdInfoBulstat, sParam, vbNullString, _
         "Index", lIndex, 1
     lIndex = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
-    GetTaxCaption = RTrim$(At(Split(pvText(ucsTxtBulstatCaption), DEF_DELIM), lIndex))
+    GetTaxCaption = RTrim$(At(Split(pvText(ucsTxtTaxNoCaption), DEF_DELIM), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
