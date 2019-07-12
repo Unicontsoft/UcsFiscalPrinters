@@ -74,7 +74,7 @@ Public Enum UcsTremolCommandsEnum
     ucsZekCmdFiscalClose = &H38
     ucsZekCmdFiscalCancel = &H39
     ucsZekCmdPrintDuplicate = &H3A
-    ucsZekCmdAdminCashDebitCredit = &H3B
+    ucsZekCmdFiscalServiceDeposit = &H3B
     '--- info
     ucsZekCmdInfoStatus = &H20
     ucsZekCmdInfoVersion = &H21
@@ -1620,13 +1620,13 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CashDebitCredit( _
+Public Function PrintServiceDeposit( _
         Optional ByVal OperatorCode As String, _
         Optional ByVal OperatorPassword As String, _
         Optional ByVal PmtType As UcsFiscalPaymentTypeEnum, _
-        Optional ByVal Value As Double, _
+        Optional ByVal Amount As Double, _
         Optional Comment As String) As Variant
-    Const FUNC_NAME     As String = "CashDebitCredit"
+    Const FUNC_NAME     As String = "PrintServiceDeposit"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
     Dim vRetVal         As Variant
@@ -1639,7 +1639,7 @@ Public Function CashDebitCredit( _
     
     On Error GoTo EH
     lPmtIndex = pvToDevicePmtIndex(PmtType)
-    If Abs(Value) > DBL_EPSILON Then
+    If Abs(Amount) > DBL_EPSILON Then
         pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
             "Index", lIndex, 9
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
@@ -1648,13 +1648,13 @@ Public Function CashDebitCredit( _
             OperatorCode = DEF_OPERNO
             OperatorPassword = IDeviceProtocol_GetDefaultPassword(DEF_OPERNO)
         End If
-        pvGetCommandConfig CONF_NAME, "AdminCashDebitCredit", eCmd, ucsZekCmdAdminCashDebitCredit, sParam, "%1;%2;%3;%4@%5", _
+        pvGetCommandConfig CONF_NAME, "AdminPrintServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1;%2;%3;%4@%5", _
             "Format", sFormat, "0.00", _
             "PrintTimeout", lPrintTimeout, 0
         sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
             Pad(Zn(OperatorPassword, IDeviceProtocol_GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
             lPmtIndex, _
-            SafeFormat(Value, sFormat), _
+            SafeFormat(Amount, sFormat), _
             Left$(Comment, m_uConfig.MaxComment))
         SendCommand eCmd, sParam
         If LenB(m_sLastError) <> 0 Then
@@ -1681,7 +1681,7 @@ Public Function CashDebitCredit( _
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
 QH:
-    CashDebitCredit = vRetVal
+    PrintServiceDeposit = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2499,8 +2499,8 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Value As Double) As Variant
-    IDeviceProtocol_CashDebitCredit = CashDebitCredit(OperatorCode, OperatorPassword, ucsFscPmtCash, Value)
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, ucsFscPmtCash, Amount)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean

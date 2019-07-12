@@ -115,7 +115,7 @@ Public Enum UcsIslCommandsEnum
     ucsFpcFiscalClose = 56
     ucsFpcFiscalCgInfo = 57
     ucsFpcFiscalCancel = 60
-    ucsFpcAdminCashDebitCredit = 70
+    ucsFpcFiscalServiceDeposit = 70
     ucsFpcExtendedFiscalCancel = 130            '-- command above &H7F
     '--- info
     ucsFpcInfoServiceContract = 34
@@ -1838,8 +1838,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
-    Const FUNC_NAME     As String = "CashDebitCredit"
+Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
+    Const FUNC_NAME     As String = "PrintServiceDeposit"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
     Dim vRetVal         As Variant
@@ -1853,10 +1853,10 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
     Dim lOffset         As Long
     
     On Error GoTo EH
-    sFormat = IIf(Abs(dblValue) > DBL_EPSILON, "0.00", "\")
-    pvGetCommandConfig CONF_NAME, "AdminCashDebitCredit" & -(Abs(dblValue) > DBL_EPSILON), eCmd, ucsFpcAdminCashDebitCredit, sParam, "%1", _
+    sFormat = IIf(Abs(Amount) > DBL_EPSILON, "0.00", "\")
+    pvGetCommandConfig CONF_NAME, "AdminPrintServiceDeposit" & -(Abs(Amount) > DBL_EPSILON), eCmd, ucsFpcFiscalServiceDeposit, sParam, "%1", _
         "Format", sFormat, sFormat
-    sParam = Printf(sParam, SafeFormat(dblValue, sFormat))
+    sParam = Printf(sParam, SafeFormat(Amount, sFormat))
     bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
     Exceptions = bPrevExceptions
@@ -1887,9 +1887,9 @@ Public Function CashDebitCredit(ByVal dblValue As Double) As Variant
                 lIdx = lIdx + 1
             Next
         End If
-        CashDebitCredit = vRetVal
+        PrintServiceDeposit = vRetVal
     Else
-        CashDebitCredit = EmptyDoubleArray
+        PrintServiceDeposit = EmptyDoubleArray
     End If
     Exit Function
 EH:
@@ -2883,8 +2883,8 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_CashDebitCredit(OperatorCode As String, OperatorPassword As String, ByVal Value As Double) As Variant
-    IDeviceProtocol_CashDebitCredit = CashDebitCredit(Value)
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(Amount)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean

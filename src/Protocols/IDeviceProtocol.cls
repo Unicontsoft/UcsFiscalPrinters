@@ -600,18 +600,18 @@ Attribute AutodetectDevices.VB_Description = "Used to auto-detect devices that i
 End Function
 
 ''
-' Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear
+' Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
 ' @param `Value`            [input] positive for debit, negative for credit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
-Public Function CashDebitCredit( _
+Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
-            ByVal Value As Double) As Variant
-Attribute CashDebitCredit.VB_Description = "Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear"
+            ByVal Amount As Double) As Variant
+Attribute PrintServiceDeposit.VB_Description = "Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear"
     
 End Function
 

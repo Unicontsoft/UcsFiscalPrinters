@@ -628,11 +628,11 @@ EH:
 End Function
 
 ''
-' Used to debit/credit the fiscal device with cash total that is collected or loaded outside of regular client sales,
-' e.g. debitting with initial daily change. Can be used to retrieve debit/credit totals too
+' Used to debit (and credit) the fiscal device with cash total that is deposited (or withdrew) outside of regular client
+' sales, e.g. depositing initial daily change. Can be used to retrieve total daily deposits/withdraws too
 '
-Public Function CashDebitCredit(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "CashDebitCredit"
+Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "PrintServiceDeposit"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
@@ -644,7 +644,7 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.CashDebitCredit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Amount")))
+    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
@@ -658,7 +658,7 @@ Public Function CashDebitCredit(sRequest As String, sResponse As String) As Bool
     JsonItem(oRetVal, "TotalCredit") = vTotals(1)
     JsonItem(oRetVal, "TotalDebit") = vTotals(2)
 QH:
-    CashDebitCredit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    PrintServiceDeposit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then

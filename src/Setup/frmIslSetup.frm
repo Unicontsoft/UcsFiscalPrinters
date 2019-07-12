@@ -2957,7 +2957,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         m_oFP.Exceptions = True
     Case ucsCmdCashOper
         m_oFP.Exceptions = False
-        vResult = Split(m_oFP.SendCommand(ucsFpcAdminCashDebitCredit), ",")
+        vResult = Split(m_oFP.SendCommand(ucsFpcFiscalServiceDeposit), ",")
         txtCashTotal.Text = Format$(C_Dbl(At(vResult, 1)) / 100, FORMAT_CURRENCY)
         txtCashIn.Text = Format$(C_Dbl(At(vResult, 2)) / 100, FORMAT_CURRENCY)
         txtCashOut.Text = Format$(C_Dbl(At(vResult, 3)) / 100, FORMAT_CURRENCY)
@@ -3163,7 +3163,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         End If
     Case ucsCmdCashOper
         If Not LockControl(txtCashSum) And C_Dbl(txtCashSum.Text) <> 0 Then
-            vResult = Split(m_oFP.SendCommand(ucsFpcAdminCashDebitCredit, IIf(optCashOut.Value, -1, 1) * Abs(C_Dbl(txtCashSum.Text))), ",")
+            vResult = Split(m_oFP.SendCommand(ucsFpcFiscalServiceDeposit, IIf(optCashOut.Value, -1, 1) * Abs(C_Dbl(txtCashSum.Text))), ",")
             If At(vResult, 0) <> "P" Then
                 MsgBox MSG_REQUEST_CANCELLED, vbExclamation
                 pvStatus = MSG_REQUEST_CANCELLED

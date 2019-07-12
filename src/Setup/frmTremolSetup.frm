@@ -3098,7 +3098,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         End If
     Case ucsCmdCashOper
         sData = txtCashOperNo.Text & ";" & Pad(txtCashOperPass.Text, 4) & ";" & cobCashPayment.ListIndex & ";" & IIf(optCashOut.Value, "-", vbNullString) & txtCashSum.Text & "@" & Left$(txtCashComment.Text, 34)
-        m_oFP.SendCommand ucsZekCmdAdminCashDebitCredit, sData
+        m_oFP.SendCommand ucsZekCmdFiscalServiceDeposit, sData
         If LenB(m_oFP.LastError) Then
             GoTo QH
         End If
