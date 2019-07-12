@@ -536,7 +536,7 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
     For lIdx = 0 To UBound(vTotals)
         Set oItem = Nothing
         JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
-        JsonItem(oItem, "TotalSum") = vTotals(lIdx)
+        JsonItem(oItem, "Amount") = vTotals(lIdx)
         JsonItem(oRetVal, "Totals/-1") = oItem
     Next
 QH:
@@ -579,7 +579,7 @@ Public Function GetTotalsByTaxGroups(sRequest As String, sResponse As String) As
         Set oItem = Nothing
         JsonItem(oItem, "TaxGroup") = lIdx + 1
         JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
-        JsonItem(oItem, "TotalSum") = vTotals(lIdx)(0)
+        JsonItem(oItem, "Amount") = vTotals(lIdx)(0)
         JsonItem(oRetVal, "Totals/-1") = oItem
     Next
 QH:
@@ -628,7 +628,7 @@ EH:
 End Function
 
 ''
-' Used to debit (and credit) the fiscal device with cash total that is deposited (or withdrew) outside of regular client
+' Used to debit (and credit) the fiscal device with cash total that is deposited (or withdrawn) outside of regular client
 ' sales, e.g. depositing initial daily change. Can be used to retrieve total daily deposits/withdraws too
 '
 Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As Boolean
@@ -654,9 +654,9 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-    JsonItem(oRetVal, "TotalSum") = vTotals(0)
-    JsonItem(oRetVal, "TotalCredit") = vTotals(1)
-    JsonItem(oRetVal, "TotalDebit") = vTotals(2)
+    JsonItem(oRetVal, "Available") = vTotals(0)
+    JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
+    JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
 QH:
     PrintServiceDeposit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
