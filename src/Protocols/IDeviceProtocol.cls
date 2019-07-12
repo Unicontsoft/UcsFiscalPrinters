@@ -107,10 +107,10 @@ Public Enum UcsFiscalReversalTypeEnum
 End Enum
 
 Public Enum UcsFiscalTaxNoTypeEnum
-    ucsFscTxnBulstat
-    ucsFscTxnEGN
-    ucsFscTxnForeigner
-    ucsFscTxnCustom
+    ucsFscTxnEIC                        ' (default) a.k.a. Bulstat
+    ucsFscTxnCitizenNo
+    ucsFscTxnForeignerNo
+    ucsFscTxnOfficialNo
 End Enum
 
 ''
