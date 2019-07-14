@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -590,6 +590,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
         JsonDump = "Null"
     Case vbEmpty
         JsonDump = "Empty"
+    Case vbDate
+        JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
     Case vbString
         '--- one-time initialization of transcoding array
         If IsEmpty(vTranscode) Then

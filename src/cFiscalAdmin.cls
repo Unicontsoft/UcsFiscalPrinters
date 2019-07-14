@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "cFiscalAdmin class is used for library administration and as a class factory for fiscal printers components of the library"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -36,6 +36,7 @@ Private Const MODULE_NAME As String = "cFiscalAdmin"
 
 Private Const STR_COMPLUS_APP_NAME      As String = "Unicontsoft Fiscal Printers Component"
 Private Const STR_COMPLUS_IMPORT_PROGID As String = "cFiscalPrinter|cIslProtocol|cTremolProtocol|cEscPosProtocol"
+Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 
 '=========================================================================
 ' Error handling
@@ -116,10 +117,6 @@ Public Property Let IsShared(ByVal bValue As Boolean)
                     Set oApp = .Add
                     With oApp
                         .Value("Name") = STR_COMPLUS_APP_NAME
-    '                    If Len(sUser) <> 0 Then
-    '                        .Value("Identity") = sUser
-    '                        .Value("Password") = sPass
-    '                    End If
                         .Value("Authentication") = 2 '--- "Connect". for win98 clients
                     End With
                     .SaveChanges
@@ -200,29 +197,35 @@ End Property
 ' Used to show device's specific configuration dialog where the end-user can configure operators, departments
 ' and other device settings
 '
-' @param `DeviceString` see `cFiscalPrinter` class documentation
-' @param `Server`       network address of DCOM server to be used for device communication. Empty for local machine
-' @param `OwnerForm`    reference to owner VB form
+' @param `DeviceString` [input] see `cFiscalPrinter` class documentation
+' @param `Server`       [input] (optional) network address of DCOM server to be used for device communication
+' @param `OwnerForm`    [input] (optional) reference to owner VB form
 ' @return `True` if form is confirmed, `False` if cancelled
 '
-Public Function ShowSetup(DeviceString As String, Server As String, OwnerForm As Object) As Boolean
+Public Function ShowSetup(DeviceString As String, Optional Server As String, Optional OwnerForm As Object) As Boolean
 Attribute ShowSetup.VB_Description = "Used to show device's specific configuration dialog where the end-user can configure operators, departments and other device settings"
-    Dim oFrmIsl         As New frmIslSetup
+    Dim sProtocol       As String
     Dim oFrmTremol      As New frmTremolSetup
+    Dim oFrmIsl         As New frmIslSetup
     
     '--- figure out protocol
-    Select Case UCase$(At(Split(DeviceString, ";"), 0))
+    sProtocol = UCase$(JsonItem(ParseDeviceString(DeviceString), "Protocol"))
+    Select Case sProtocol
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
         ShowSetup = oFrmIsl.frInit(DeviceString, Server, OwnerForm)
     Case STR_PROTOCOL_TREMOL_FP
         ShowSetup = oFrmTremol.frInit(DeviceString, Server, OwnerForm)
+    Case STR_PROTOCOL_ESP_POS
+        '--- do nothing
+    Case Else
+        Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
 End Function
 
 ''
 ' Class factory for fiscal printers classes. Can be used for reg-free COM instantiation
 '
-' @param `sProgID` ProgID of FP class
+' @param `sProgID`      [input] ProgID of FP class
 ' @return Object reference to FP class instance or `Nothing` is unknown `ProgID`
 '
 Public Function CreateObject(sProgID As String) As Object

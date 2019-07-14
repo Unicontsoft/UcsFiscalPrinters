@@ -2497,7 +2497,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -2962,7 +2962,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Select Case eCommand
     Case ucsCmdConnect
         pvStatus = STR_STATUS_CONNECTING
-        If m_oFP.Init(cobConnectPort.Text & "," & C_Lng(cobConnectSpeed.Text), m_lTimeout) Then
+        If m_oFP.Init("Port=" & cobConnectPort.Text & ";Speed=" & C_Lng(cobConnectSpeed.Text) & ";Timeout=" & m_lTimeout) Then
             On Error Resume Next '--- checked
             m_oFP.SendCommand ucsZekCmdInfoTransaction
             If pvShowError() Then
@@ -3098,7 +3098,7 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         End If
     Case ucsCmdCashOper
         sData = txtCashOperNo.Text & ";" & Pad(txtCashOperPass.Text, 4) & ";" & cobCashPayment.ListIndex & ";" & IIf(optCashOut.Value, "-", vbNullString) & txtCashSum.Text & "@" & Left$(txtCashComment.Text, 34)
-        m_oFP.SendCommand ucsZekCmdAdminCashDebitCredit, sData
+        m_oFP.SendCommand ucsZekCmdFiscalServiceDeposit, sData
         If LenB(m_oFP.LastError) Then
             GoTo QH
         End If

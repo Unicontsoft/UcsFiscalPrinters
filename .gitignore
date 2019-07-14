@@ -1,6 +1,7 @@
 ## VB6 workspace
 
 *.vbw
+*.vbg
 *.bak
 *.log
 *.scc

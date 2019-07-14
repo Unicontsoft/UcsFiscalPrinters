@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "IDeviceProtocol is a common interface implemented by all device protocol handlers. It can be used to access a fiscal device independently of the implemented protocol so that the particular protocol selection can be left to be chosen by the end-user or as an application configuration option"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -47,19 +47,19 @@ Attribute VB_Description = "IDeviceProtocol is a common interface implemented by
 Option Explicit
 
 Public Enum UcsFiscalReceiptTypeEnum
-    ucsFscRetSale = 1
-    ucsFscRetStorno
-    ucsFscRetInvoice
-    ucsFscRetCreditNote
-    ucsFscRetOrderList
-    [_ucsFscRetMax]
+    ucsFscRcpSale = 1
+    ucsFscRcpReversal
+    ucsFscRcpInvoice
+    ucsFscRcpCreditNote
+    ucsFscRcpOrderList
+    [_ucsFscRcpMax]
 End Enum
 
 Public Enum UcsFiscalDiscountTypeEnum
-    ucsFscDstPlu = 1
-    ucsFscDstSubtotal
-    ucsFscDstTotal
-    [_ucsFscDstMax]
+    ucsFscDscPlu = 1
+    ucsFscDscSubtotal
+    ucsFscDscTotal
+    [_ucsFscDscMax]
 End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
@@ -100,21 +100,27 @@ Public Enum UcsFiscalErrorsEnum
     ucsFerPasswordNotSet
 End Enum
 
-Public Enum UcsFiscalStornoReasonEnum
-    ucsFscRsnOperatorError
-    ucsFscRsnRefund
-    ucsFscRsnTaxBaseReduction
+Public Enum UcsFiscalReversalTypeEnum
+    ucsFscRevOperatorError
+    ucsFscRevRefund
+    ucsFscRevTaxBaseReduction
+End Enum
+
+Public Enum UcsFiscalTaxNoTypeEnum
+    ucsFscTxnEIC                        ' (default) a.k.a. Bulstat
+    ucsFscTxnCitizenNo
+    ucsFscTxnForeignerNo
+    ucsFscTxnOfficialNo
 End Enum
 
 ''
 ' Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved
 '
-' @param `Device`       [input] string formatted as "ComPort[,BaudRate[,Persistent[,DataBits[,Parity[,StopBits]]]]]"
-' @param `Timeout`      [in, optional] COM port open timeout in milliseconds, usually defaults to 3000
-' @param `RowChars`     [in, optional] number of caracters per row, according paper width
+' @param `DeviceString`     [input] semi-colon delimited key=value pairs as "Port=COM1;Speed=9600[;BaudRate=num][;Persistent=bool]
+'                                   [;DataBits=num] [;Parity=bool][;StopBits=num][;Timeout=num][;RowChars=num]"
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function Init(Device As String, Optional ByVal Timeout As Long, Optional ByVal RowChars As Long) As Boolean
+Public Function Init(DeviceString As String) As Boolean
 Attribute Init.VB_Description = "Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved"
 
 End Function
@@ -150,10 +156,10 @@ End Property
 ''
 ' Used to retrieve details about last error that occurred during protocol operations
 '
-' @param `ErrNumber` [out, optional] Error category of the last error
+' @param `ErrNumber`        [out, optional] Error category of the last error
 ' @return Text description of the last error
 '
-Public Function GetLastError(Optional ErrCategory As UcsFiscalErrorsEnum) As String
+Public Function GetLastError(Optional ErrNo As UcsFiscalErrorsEnum) As String
 Attribute GetLastError.VB_Description = "Used to retrieve details about last error that occurred during protocol operations"
 
 End Function
@@ -163,19 +169,26 @@ End Function
 ' is called
 '
 ' @param `ReceiptType`      [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
-'                                   regular sales receipt
+'                                    regular sales receipt
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorName`     [input] operator name to be printed on receipt
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `InvNumber`        [in, optional] the number of the invoice/credit note to be printed
-' @param `InvTaxNumber`     [in, optional] local identification number of the company (country specific)
-' @param `InvVatNumber`     [in, optional] VAT identification number of the company (EU specific)
-' @param `InvCompany`       [in, optional] name of the company that is receiving the document
-' @param `InvCity`          [in, optional] city of the company that is receiving the document, can be empty string
-' @param `InvAddress`       [in, optional] address of the company that is receiving the document
-' @param `InvMol`           [in, optional] name of the person that is fiscally responsible for the company (not used)
-' @param `InvReceiver`      [in, optional] name of the person that is receiving the document
+' @param `InvDocNo`         [in, optional] number of the invoice/credit note to be printed
+' @param `InvCgTaxNo`       [in, optional] identification number of the company (country specific)
+' @param `InvCgTaxNoType`   [in, optional] type of identification number supplied: bulstat, EGN, foreigner or custom
+' @param `InvCgVatNo`       [in, optional] VAT identification number of the company (EU specific)
+' @param `InvCgName`        [in, optional] name of the company that is receiving the document
+' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
+' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
+' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
+' @param `InvCgPrsReceive`  [in, optional] name of the person that is receiving the document
 ' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
+' @param `RevType`          [in, optional] operator error, refund or tax-base deduction
+' @param `RevReceiptNo`     [in, optional] number of reversed receipt
+' @param `RevReceiptDate`   [in, optional] date/time of reversed receipt
+' @param `RevFiscalMemoryNo` [in, optional] fiscal memeory of reversed receipt
+' @param `RevInvoiceNo`     [in, optional] number of credited invoice
+' @param `RevReason`        [in, optional] credit note reason as free text (quantity or price adjustment)
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _
@@ -185,30 +198,31 @@ Public Function StartReceipt( _
             OperatorPassword As String, _
             Optional UniqueSaleNo As String, _
             Optional TableNo As String, _
-            Optional InvNumber As String, _
-            Optional InvTaxNumber As String, _
-            Optional InvVatNumber As String, _
-            Optional InvCompany As String, _
-            Optional InvCity As String, _
-            Optional InvAddress As String, _
-            Optional InvMol As String, _
-            Optional InvReceiver As String, _
+            Optional InvDocNo As String, _
+            Optional InvCgTaxNo As String, _
+            Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
+            Optional InvCgVatNo As String, _
+            Optional InvCgName As String, _
+            Optional InvCgCity As String, _
+            Optional InvCgAddress As String, _
+            Optional InvCgPrsReceive As String, _
             Optional OwnData As String, _
-            Optional ByVal StornoReason As UcsFiscalStornoReasonEnum, _
-            Optional StornoReceiptNo As String, _
-            Optional ByVal StornoReceiptDate As Date, _
-            Optional StornoFiscalMemoryNo As String, _
-            Optional StornoInvoiceNo As String) As Boolean
+            Optional ByVal RevType As UcsFiscalReversalTypeEnum, _
+            Optional RevReceiptNo As String, _
+            Optional ByVal RevReceiptDate As Date, _
+            Optional RevFiscalMemoryNo As String, _
+            Optional RevInvoiceNo As String, _
+            Optional RevReason As String) As Boolean
             
 End Function
 
 ''
 ' Used to print a row on the final receipt with product description, price and quantity
 '
-' @param `Name`     [input] full product name or description
-' @param `Price`    [input] final sale price (incl. VAT) rounded to 0.00, can be negative for voids
-' @param `Quantity` [input] quantity rounded to 0.000
-' @param `VatGroup` [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
+' @param `Name`             [input] full product name or description
+' @param `Price`            [input] final sale price (incl. VAT) rounded to 0.00, can be negative for voids
+' @param `Quantity`         [input] quantity rounded to 0.000
+' @param `TaxGroup`         [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark When printing negative rows currently reached receipt subtotal cannot become negative or the protocol handler
 ' will reorder receipt rows to prevent fiscal device from rejecting the whole receipt.
@@ -217,7 +231,7 @@ Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
             ByVal Quantity As Double, _
-            ByVal VatGroup As Long) As Boolean
+            ByVal TaxGroup As Long) As Boolean
 Attribute AddPLU.VB_Description = "Used to print a row on the final receipt with product description, price and quantity"
             
 End Function
@@ -225,9 +239,9 @@ End Function
 ''
 ' Used to print a row with free text that does not get stored in fiscal memory
 '
-' @param `Line`     [input] row text
-' @param `Command`  [input] text format. One of "DBWIDTH" or "CONDENSED". Not all devices support this param
-' @param `WordWrap` [input] if `True` text will be wrapped and can be printed on multiple rows
+' @param `Line`             [input] row text
+' @param `Command`          [input] text format. One of "DBWIDTH" or "CONDENSED". Not all devices support this param
+' @param `WordWrap`         [input] if `True` text will be wrapped and can be printed on multiple rows
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function AddLine( _
@@ -241,8 +255,8 @@ End Function
 ''
 ' Used to discount/surcharge previous PLU row, or to print discount/surcharge on current subtotal or receipt total
 '
-' @param `DiscType` [input] type of discount/surcharge. See `UcsFiscalDiscountTypeEnum`
-' @param `Value`    [input] discount/srcharge percent in range -100.00 to 100.00 (positive for discount)
+' @param `DiscType`         [input] type of discount/surcharge. See `UcsFiscalDiscountTypeEnum`
+' @param `Value`            [input] discount/srcharge percent in range -100.00 to 100.00 (positive for discount)
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function AddDiscount( _
@@ -255,9 +269,9 @@ End Function
 ''
 ' Used to finalize PLU rows and print payment information
 '
-' @param `Number`   [input] payment type. See `UcsFiscalPaymentTypeEnum`
-' @param `Name      [input] payment name if `Number` is one of custom payment types
-' @param `Amount`   [input] payment amount rounded to 0.00. Cannot be negative
+' @param `Number`           [input] payment type. See `UcsFiscalPaymentTypeEnum`
+' @param `Name              [input] payment name if `Number` is one of custom payment types
+' @param `Amount`           [input] payment amount rounded to 0.00. Cannot be negative
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark After adding a payment no more PLUs can be printed. Several payments can be accumulated on a single receipt
 ' e.g. 10.00 by card and 50.00 in cash, etc. are able to pay out a 35.00 total receipt
@@ -274,7 +288,7 @@ End Function
 ''
 ' Used to finalize receipt payments and batch print the complete receipt
 '
-' @param `ResumeTicket` [in, optional] if previous invocation failed can be used to resume printing on the same line
+' @param `ResumeTicket`     [in, optional] if previous invocation failed can be used to resume printing on the same line
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
@@ -309,7 +323,7 @@ End Function
 ''
 ' Used to set current date/time of the clock on the fiscal device
 '
-' @param `NewDate` [input] new date/time to set to the clock
+' @param `NewDate`          [input] new date/time to set to the clock
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function SetClock(ByVal NewDate As Date) As Boolean
@@ -320,7 +334,7 @@ End Function
 ''
 ' Used to print fiscal x-report
 '
-' @param `ReportType` [input] type of detailed report to print: by items, by departments, by both
+' @param `ReportType`       [input] type of detailed report to print: by items, by departments, by both
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
@@ -331,7 +345,7 @@ End Function
 ''
 ' Used to print fiscal z-report and clear fiscal memory for the day
 '
-' @param `ReportType` [input] type of detailed report to print: by items, by departments, by both
+' @param `ReportType`       [input] type of detailed report to print: by items, by departments, by both
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
@@ -342,9 +356,9 @@ End Function
 ''
 ' Used to print monthly fiscal report by date range
 '
-' @param `ReportType` [input] type of report to print: short or details
-' @param `StartDate`  [input] start of date range
-' @param `EndDate`    [input] end of date range
+' @param `ReportType`       [input] type of report to print: short or details
+' @param `StartDate`        [input] start of date range
+' @param `EndDate`          [input] end of date range
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function RunPeriodReport( _
@@ -361,8 +375,7 @@ End Function
 '
 ' @return Last receipt number as string
 '
-Public Function GetLastReceiptNumber() As String
-Attribute GetLastReceiptNumber.VB_Description = "Used to retrieve the fiscal number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal reports and credit/debit slips"
+Public Function GetLastReceiptNo() As String
 
 End Function
 
@@ -371,8 +384,7 @@ End Function
 '
 ' @return Last invoice number as string
 '
-Public Function GetLastInvoiceNumber() As String
-Attribute GetLastInvoiceNumber.VB_Description = "Used to retrieve last invoice number printed which has come from current fiscal device invoices range"
+Public Function GetLastInvoiceNo() As String
 
 End Function
 
@@ -381,8 +393,7 @@ End Function
 '
 ' @return Serial number as string
 '
-Public Function GetSerialNumber() As String
-Attribute GetSerialNumber.VB_Description = "Used to retrieve fiscal device serial number as reported by firmware"
+Public Function GetDeviceSerialNo() As String
 
 End Function
 
@@ -391,15 +402,14 @@ End Function
 '
 ' @return Fiscal number as string
 '
-Public Function GetFiscalNumber() As String
-Attribute GetFiscalNumber.VB_Description = "Used to retrieve fiscal number of the registered fiscal memory"
+Public Function GetFiscalMemoryNo() As String
 
 End Function
 
 ''
 ' Used to set localized strings used for non-fiscal receipt texts and component internal errors
 '
-' @param `Index` [input] type of localized strings. See `UcsFiscalLocalizedIndexesEnum`
+' @param `Index`            [input] type of localized strings. See `UcsFiscalLocalizedIndexesEnum`
 '
 Public Sub SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
 Attribute SetLocalizedText.VB_Description = "Used to set localized strings used for non-fiscal receipt texts and component internal errors"
@@ -411,8 +421,8 @@ End Sub
 '
 ' @return Company's tax number as string
 '
-Public Function GetTaxNumber() As String
-Attribute GetTaxNumber.VB_Description = "Used to retrieve tax number of the company that the fiscal device belongs to"
+Public Function GetTaxNo() As String
+Attribute GetTaxNo.VB_Description = "Used to retrieve tax number of the company that the fiscal device belongs to"
 
 End Function
 
@@ -429,7 +439,7 @@ End Function
 ''
 ' Used to retrieve template text for the header rows printed on receipts
 '
-' @param `Index` [input] index of the header row to be retrieved
+' @param `Index`            [input] index of the header row to be retrieved
 ' @return Template text
 '
 Public Function GetHeaderText(ByVal Index As Long) As String
@@ -440,7 +450,7 @@ End Function
 ''
 ' Used to retrieve template text for the footer rows printed on receipts
 '
-' @param `Index` [input] index of the footer row to be retrieved
+' @param `Index`            [input] index of the footer row to be retrieved
 ' @return Template text
 '
 Public Function GetFooterText(ByVal Index As Long) As String
@@ -461,7 +471,7 @@ End Function
 ''
 ' Used to retrieve standard and custom payment names
 '
-' @param `Index` [input] type of payment to be retrieved
+' @param `Index`            [input] type of payment to be retrieved
 ' @return Localized payment name
 '
 Public Function GetPaymentName(ByVal Index As Long) As String
@@ -494,7 +504,7 @@ End Function
 ''
 ' Used to retrieve default operator password as specified in fiscal device documentation
 '
-' @param `OperatorCode` [input] operator number to be authenticated (usually 1-8)
+' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @return Default operator password in plain-text
 ' @remark Might not match current operator password if device is manually configured.
 '
@@ -524,12 +534,22 @@ Attribute GetDeviceModel.VB_Description = "Used to retrieve device model name as
 End Function
 
 ''
+' Used to retrieve device firmware version
+'
+' @return Device firmware version
+'
+Public Function GetDeviceFirmware() As String
+Attribute GetDeviceFirmware.VB_Description = "Device firmware version"
+
+End Function
+
+''
 ' Used to retrieve totals by VAT groups since last z-report
 '
 ' @return Array of totals for each VAT group (1-8)
 '
-Public Function GetTotalsByVatGroups() As Variant
-Attribute GetTotalsByVatGroups.VB_Description = "Used to retrieve totals by VAT groups since last z-report"
+Public Function GetTotalsByTaxGroups() As Variant
+Attribute GetTotalsByTaxGroups.VB_Description = "Used to retrieve totals by VAT groups since last z-report"
 
 End Function
 
@@ -572,7 +592,7 @@ End Function
 ''
 ' Used to auto-detect devices that implemented current protocol on the selected COM ports
 '
-' @param `Ports` [intput] Array of strings with COM ports to check
+' @param `Ports`            [input] Array of strings with COM ports to check
 ' @return Array of arrays with COM ports and auto-detected devices info.
 '
 Public Function AutodetectDevices(Ports As Variant) As Variant
@@ -581,18 +601,18 @@ Attribute AutodetectDevices.VB_Description = "Used to auto-detect devices that i
 End Function
 
 ''
-' Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear
+' Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `Value`            [input] positive for debit, negative for credit, 0.00 for info only
+' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
-Public Function CashDebitCredit( _
+Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
-            ByVal Value As Double) As Variant
-Attribute CashDebitCredit.VB_Description = "Used to credit/debit cash desk outside of regular sales and daily z-report with memory clear"
+            ByVal Amount As Double) As Variant
+Attribute PrintServiceDeposit.VB_Description = "Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear"
     
 End Function
 
@@ -612,7 +632,7 @@ End Function
 ''
 ' Used to retrieve current device status without performing any other operation
 '
-' @param `CurrentStatus` [output] device error or empty string for ready
+' @param `CurrentStatus`    [output] device error or empty string for ready
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark Can be used to poll device while displaying "Out of paper" error message.
 '

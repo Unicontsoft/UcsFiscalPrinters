@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by wqweto@gmail.com
+' UcsFP20 (c) 2008-2019 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -1544,3 +1544,38 @@ Public Function GetErrorTempPath() As String
     End If
 End Function
 
+Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+    Dim oCol            As Object
+    
+    Set oCol = pvInitRegExp(sPattern).Execute(sText)
+    If oCol.Count > 0 Then
+        pvParseTokenByRegExp = oCol.Item(0).SubMatches(0)
+        sText = Mid$(sText, oCol.Item(0).FirstIndex + oCol.Item(0).Length + 1)
+    End If
+End Function
+
+Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=]+)="
+    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
+    Dim sKey            As String
+    Dim sValue          As String
+    Dim oRetVal         As Object
+    
+    Do
+        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        If Len(sValue) >= 2 Then
+            If Left$(sValue, 1) = Right$(sValue, 1) Then
+                Select Case Asc(sValue)
+                Case 34, 39 '--- ' and "
+                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
+                End Select
+            End If
+        End If
+        JsonItem(oRetVal, sKey) = sValue
+    Loop
+    Set ParseDeviceString = oRetVal
+End Function
