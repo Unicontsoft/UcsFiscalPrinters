@@ -1214,6 +1214,7 @@ EH:
         #Else
             Call CopyMemory(pvJsonCompareMode, ByVal ObjPtr(oJson) + o_pvUnk5, 4)
         #End If
+        pvJsonCompareMode = -(pvJsonCompareMode = vbTextCompare)
     End Function
 
     Private Property Get pvJsonItem(oParam As VBA.Collection, vKey As Variant) As Variant
