@@ -150,13 +150,9 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
 QH:
 End Function
 
-Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null, Optional EmptyString As String) As Variant
-    Zn = IIf(sText = EmptyString, IfEmptyString, sText)
-End Function
-
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
     Dim pVbCol          As IVbCollection
-    
+
     If pCol Is Nothing Then
         '--- do nothing
     ElseIf TypeOf pCol Is IVbCollection Then
@@ -164,6 +160,16 @@ Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optiona
         SearchCollection = (pVbCol.Item(Index, RetVal) >= 0)
     Else
         Err.Raise vbObjectError, , "Not implemented"
+    End If
+End Function
+
+Public Function C_Lng(Value As Variant) As Long
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbLong Then
+        C_Lng = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbLong) = 0 Then
+        C_Lng = vDest
     End If
 End Function
 
@@ -176,3 +182,12 @@ Public Function C_Str(Value As Variant) As String
         C_Str = vDest
     End If
 End Function
+
+Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null, Optional EmptyString As String) As Variant
+    Zn = IIf(sText = EmptyString, IfEmptyString, sText)
+End Function
+
+Public Function Znl(ByVal lValue As Long, Optional IfEmptyLong As Variant = Null, Optional ByVal EmptyLong As Long = 0) As Variant
+    Znl = IIf(lValue = EmptyLong, IfEmptyLong, lValue)
+End Function
+

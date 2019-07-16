@@ -11,6 +11,7 @@ Attribute VB_Name = "mdStartup"
 '=========================================================================
 Option Explicit
 DefObj A-Z
+Private Const MODULE_NAME As String = "mdStartup"
 
 '=========================================================================
 ' API
@@ -27,10 +28,21 @@ Private Const STR_ERROR_CONFIG_NOT_FOUND As String = "Грешка: Конфигурационен фа
 Private Const STR_ERROR_PARSING_CONFIG As String = "Грешка: Невалиден %1: %2"
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери..."
 Private Const STR_INFO_ERROR_ACCESSING As String = "Информация: Принтер %1: %2"
-Private Const STR_PRINTERS_FOUND As String = "Намерени %1 принтера"
+Private Const STR_ERROR_ENUM_PORTS  As String = "Грешка: Енумериране на серийни портове: %1"
+Private Const STR_PRINTERS_FOUND    As String = "Намерени %1 принтера"
+Private Const STR_PRESS_CTRLC       As String = "Натиснете Ctrl+C за изход"
 
 Private m_oOpt                  As Object
 Private m_oPrinters             As Object
+Private m_cEndpoints            As Collection
+
+'=========================================================================
+' Error handling
+'=========================================================================
+
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+End Sub
 
 '=========================================================================
 ' Functions
@@ -46,6 +58,7 @@ Private Sub Main()
 End Sub
 
 Private Function Process(vArgs As Variant) As Long
+    Const FUNC_NAME     As String = "Process"
     Dim sFile           As String
     Dim sError          As String
     Dim oConfig         As Object
@@ -64,12 +77,12 @@ Private Function Process(vArgs As Variant) As Long
     End If
     If LenB(sFile) <> 0 Then
         If Not FileExists(sFile) Then
-            ConsoleError STR_ERROR_CONFIG_NOT_FOUND & vbCrLf, sFile
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_CONFIG_NOT_FOUND & vbCrLf, sFile
             Process = 1
             GoTo QH
         End If
         If Not JsonParse(FromUtf8Array(ReadBinaryFile(sFile)), oConfig, Error:=sError) Then
-            ConsoleError STR_ERROR_PARSING_CONFIG & vbCrLf, sFile, sError
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_PARSING_CONFIG & vbCrLf, sFile, sError
             Process = 1
             GoTo QH
         End If
@@ -81,14 +94,25 @@ Private Function Process(vArgs As Variant) As Long
     Set m_oPrinters = pvCollectPrinters(oConfig)
     ConsolePrint STR_PRINTERS_FOUND & vbCrLf, JsonItem(m_oPrinters, "Count")
     ConsolePrint JsonDump(m_oPrinters) & vbCrLf
+    Set m_cEndpoints = pvCreateEndpoints(oConfig, m_oPrinters)
+    ConsolePrint STR_PRESS_CTRLC & vbCrLf
+    If InIde Then
+        frmIcon.Show vbModal
+    Else
+        Do
+            ConsoleRead
+            DoEvents
+        Loop
+    End If
 QH:
     Exit Function
 EH:
-    ConsoleError "Critical error: " & Err.Description & vbCrLf
+    PrintError FUNC_NAME
     Process = 100
 End Function
 
 Private Function pvCollectPrinters(oConfig As Object) As Object
+    Const FUNC_NAME     As String = "pvCollectPrinters"
     Dim oFP             As cFiscalPrinter
     Dim sResponse       As String
     Dim oJson           As Object
@@ -105,22 +129,26 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
     If JsonItem(oConfig, "Printers/Autodetect") Then
         ConsolePrint STR_AUTODETECTING_PRINTERS & vbCrLf
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
-            For Each vKey In JsonKeys(oJson, "SerialPorts")
-                If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
-                    sDeviceString = "Protocol=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol") & _
-                        ";Port=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Port") & _
-                        ";Speed=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Speed")
-                    Set oRequest = Nothing
-                    JsonItem(oRequest, "DeviceString") = sDeviceString
-                    If oFP.GetStatus(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
-                        sKey = JsonItem(oJson, "DeviceSerialNo")
-                        If LenB(sKey) <> 0 Then
-                            JsonItem(oRetVal, sKey) = sDeviceString
-                            JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+            If Not JsonItem(oJson, "Ok") Then
+                ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_ENUM_PORTS & vbCrLf, vKey, JsonItem(oJson, "ErrorText")
+            Else
+                For Each vKey In JsonKeys(oJson, "SerialPorts")
+                    If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
+                        sDeviceString = "Protocol=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol") & _
+                            ";Port=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Port") & _
+                            ";Speed=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Speed")
+                        Set oRequest = Nothing
+                        JsonItem(oRequest, "DeviceString") = sDeviceString
+                        If oFP.GetStatus(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
+                            sKey = JsonItem(oJson, "DeviceSerialNo")
+                            If LenB(sKey) <> 0 Then
+                                JsonItem(oRetVal, sKey) = sDeviceString
+                                JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+                            End If
                         End If
                     End If
-                End If
-            Next
+                Next
+            End If
         End If
     End If
     For Each vKey In JsonKeys(oConfig, "Printers")
@@ -146,6 +174,32 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
     Set pvCollectPrinters = oRetVal
     Exit Function
 EH:
-    ConsoleError "Critical error: " & Err.Description & vbCrLf
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvCreateEndpoints(oConfig As Object, oPrinters As Object) As Collection
+    Const FUNC_NAME     As String = "pvCreateEndpoints"
+    Dim cRetVal         As Collection
+    Dim vKey            As Variant
+    Dim oRestEndpoint   As cRestEndpoint
+    
+    On Error GoTo EH
+    Set cRetVal = New Collection
+    For Each vKey In JsonKeys(oConfig, "Endpoints")
+        Select Case LCase$(JsonItem(oConfig, "Endpoints/" & vKey & "/Binding"))
+        Case "resthttp"
+            Set oRestEndpoint = New cRestEndpoint
+            If oRestEndpoint.Init(JsonItem(oConfig, "Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oRestEndpoint
+            End If
+        Case "mssqlservicebroker"
+            '--- ToDo: impl
+        End Select
+    Next
+    Set pvCreateEndpoints = cRetVal
+    Exit Function
+EH:
+    PrintError FUNC_NAME
     Resume Next
 End Function
