@@ -1,10 +1,12 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\Windows\SysWOW64\stdole2.tlb#OLE Automation
 Reference=*\G{D486E66A-12B5-4ECC-B3FA-0C8AEAD0626E}#2.0#0#..\..\..\bin\UcsFP20.dll#Unicontsoft Fiscal Printers Component 2.0 (2.0.0)
+Reference=*\G{FA12CF21-3752-4B98-B2DA-2FDFB3F86871}#1.0#0#..\..\..\bin\UcsVbCall.tlb#Unicontsoft VB Callable Interfaces Type Library 1.0
 Module=mdGlobals; mdGlobals.bas
 Class=cAsyncSocket; cAsyncSocket.cls
 Module=mdConsole; mdConsole.bas
 Module=mdJson; ..\..\..\src\Shared\mdJson.bas
+Module=mdStartup; mdStartup.bas
 Startup="Sub Main"
 HelpFile=""
 Title="UcsFPHub"
