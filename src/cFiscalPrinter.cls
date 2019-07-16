@@ -679,8 +679,11 @@ Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    oFP.GetDeviceStatus sStatus
-    JsonItem(oRetVal, "Status") = sStatus
+    If oFP.GetDeviceStatus(sStatus) Then
+        JsonItem(oRetVal, "Status") = sStatus
+    End If
+    JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
     GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
