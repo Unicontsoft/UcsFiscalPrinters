@@ -35,12 +35,14 @@ Private Declare Function vbaObjSetAddref Lib "msvbvm60" Alias "__vbaObjSetAddref
 ' Constants and member variables
 '=========================================================================
 
+Private Const HDR_CONTENT_TYPE          As String = "Content-Type"
 Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
 
 Private m_sID                       As String
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
+Private m_oPrinters                 As Object
 Private m_oHeaders                  As Object
 Private m_sBuffer                   As String
 Private m_sHttpMethod               As String
@@ -107,13 +109,22 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
+    If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), m_oPrinters, Error:=m_sLastError) Then
+        GoTo QH
+    End If
     Set m_oSocket = New cAsyncSocket
-    oSocket.Accept m_oSocket
+    If Not oSocket.Accept(m_oSocket) Then
+        m_sLastError = oSocket.GetErrorDescription(oSocket.LastError)
+        Set m_oSocket = Nothing
+        GoTo QH
+    End If
     '--- success
     Init = True
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
+    Resume QH
 End Function
 
 Private Sub pvClearState()
@@ -123,6 +134,72 @@ Private Sub pvClearState()
     m_sRawUrl = vbNullString
     m_sProtocolVersion = vbNullString
 End Sub
+
+Private Function pvHandleRequest() As Boolean
+    Const FUNC_NAME     As String = "pvHandleRequest"
+    Dim sToLowerUrl     As String
+    Dim sBody           As String
+    Dim baBuffer()      As Byte
+    Dim vMatches        As Variant
+    Dim oInfo           As Object
+    Dim oRequest        As Object
+    Dim oFP             As New cFiscalPrinter
+    Dim sResponse       As String
+    
+    On Error GoTo EH
+    sToLowerUrl = LCase$(m_sRawUrl)
+    If sToLowerUrl = "/printers" Then
+        sBody = JsonDump(m_oPrinters, Minimize:=True)
+    ElseIf preg_match("/^/printers/([^/]+)$/i", m_sRawUrl, vMatches) Then
+        sBody = JsonDump(pvGetPrinterInfo(At(vMatches, 0)), Minimize:=True)
+    ElseIf preg_match("/^/printers/([^/]+)/status$/i", m_sRawUrl, vMatches) Then
+        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
+        If Not oInfo Is Nothing Then
+            JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+            If oFP.GetDeviceStatus(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                sBody = sResponse
+            End If
+        End If
+    Else
+        If pvParent.ClientReceive(m_sID) Then
+            '--- success
+            pvHandleRequest = True
+            GoTo QH
+        End If
+    End If
+    If LenB(sBody) <> 0 Then
+        baBuffer = m_oSocket.ToTextArray(sBody)
+        m_oSocket.SendText "HTTP/1.1 200 OK" & vbCrLf & _
+            HDR_CONTENT_TYPE & ": application/json; charset=utf-8" & vbCrLf & _
+            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+        m_oSocket.SendArray baBuffer
+    Else
+        baBuffer = m_oSocket.ToTextArray("404 Not Found")
+        m_oSocket.SendText "HTTP/1.1 404 Not Found" & vbCrLf & _
+            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+        m_oSocket.SendArray baBuffer
+    End If
+    '--- success
+    pvHandleRequest = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    baBuffer = m_oSocket.ToTextArray(m_sLastError)
+    m_oSocket.SendText "HTTP/1.1 500 Internal Server Error" & vbCrLf & _
+        HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+    m_oSocket.SendArray baBuffer
+    Resume QH
+End Function
+
+Private Function pvGetPrinterInfo(sPrinterId As String) As Object
+    Dim sKey            As String
+    
+    sKey = Zn(JsonItem(m_oPrinters, "Aliases/" & sPrinterId), sPrinterId)
+    If LenB(sKey) <> 0 Then
+        Set pvGetPrinterInfo = C_Obj(JsonItem(m_oPrinters, sKey))
+    End If
+End Function
 
 '=========================================================================
 ' Events
@@ -163,7 +240,7 @@ Private Sub m_oSocket_OnReceive()
                 GoTo QH
             End If
         End If
-        pvParent.frClientReceive m_sID
+        pvHandleRequest
         pvClearState
     End If
 QH:
@@ -177,7 +254,7 @@ Private Sub m_oSocket_OnClose()
     Const FUNC_NAME     As String = "m_oSocket_OnClose"
     
     On Error GoTo EH
-    pvParent.frClientClose m_sID
+    pvParent.ClientClose m_sID
     pvClearState
     Exit Sub
 EH:
@@ -190,7 +267,7 @@ Private Sub m_oSocket_OnError(ByVal ErrorCode As Long, ByVal EventMask As UcsAsy
     
     On Error GoTo EH
     m_sLastError = m_oSocket.GetErrorDescription(ErrorCode)
-    pvParent.frClientError m_sID
+    pvParent.ClientError m_sID
     pvClearState
     Exit Sub
 EH:

@@ -51,6 +51,14 @@ Private Sub PrintError(sFunction As String)
 End Sub
 
 '=========================================================================
+' Properties
+'=========================================================================
+
+Property Get Printers() As Object
+    Set Printers = m_oPrinters
+End Property
+
+'=========================================================================
 ' Methods
 '=========================================================================
 
@@ -71,7 +79,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     If Not m_oSocket.Listen() Then
         GoTo QH
     End If
-    ConsolePrint MODULE_NAME & ": " & STR_SOCKET_LISTEN & vbCrLf, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort
+    ConsolePrint STR_SOCKET_LISTEN & " (" & MODULE_NAME & ")" & vbCrLf, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort
     '--- success
     Init = True
 QH:
@@ -81,14 +89,14 @@ EH:
     Resume Next
 End Function
 
-Friend Sub frClientReceive(sKey As String)
+Public Function ClientReceive(sKey As String) As Boolean
     Const FUNC_NAME     As String = "frClientReceive"
     Dim oClient         As cRestClient
     Dim sBody           As String
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        ConsolePrint MODULE_NAME & ": " & STR_CONN_RECEIVE & vbCrLf, sKey
+        ConsolePrint STR_CONN_RECEIVE & " (" & MODULE_NAME & ")" & vbCrLf, sKey
         ConsolePrint "Route=" & oClient.HttpMethod & " " & oClient.RawUrl & vbCrLf
         ConsolePrint "Headers=" & JsonDump(oClient.Headers) & vbCrLf
         ConsolePrint "Body=" & oClient.Body & vbCrLf
@@ -100,27 +108,29 @@ Friend Sub frClientReceive(sKey As String)
         oClient.Socket.SendText "HTTP/1.1 200" & vbCrLf & _
             "Content-Type: text/html" & vbCrLf & _
             "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
-            sBody
+            sBody, CodePage:=ucsScpAcp
+        '--- success
+        ClientReceive = True
     End If
-    Exit Sub
+    Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
-End Sub
+End Function
 
-Friend Sub frClientClose(sKey As String)
+Public Sub ClientClose(sKey As String)
     If SearchCollection(m_cClients, sKey) Then
         m_cClients.Remove sKey
     End If
 End Sub
 
-Friend Sub frClientError(sKey As String)
+Public Sub ClientError(sKey As String)
     Const FUNC_NAME     As String = "frClientError"
     Dim oClient         As cRestClient
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, MODULE_NAME & ": " & STR_CONN_ERROR & vbCrLf, sKey, oClient.LastError
+        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_CONN_ERROR & " (" & MODULE_NAME & ")" & vbCrLf, sKey, oClient.LastError
     End If
     Exit Sub
 EH:
@@ -153,7 +163,7 @@ Private Sub m_oSocket_OnAccept()
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
-    ConsolePrint MODULE_NAME & ": " & STR_CONN_ESTABLISHED & vbCrLf, sKey, m_cClients.Count
+    ConsolePrint STR_CONN_ESTABLISHED & " (" & MODULE_NAME & ")" & vbCrLf, sKey, m_cClients.Count
 QH:
     Exit Sub
 EH:
