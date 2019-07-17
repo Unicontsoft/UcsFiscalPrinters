@@ -240,7 +240,7 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     End If
     If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Then
         JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
     End If
     If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then
         For lIdx = 1 To 3
@@ -693,7 +693,10 @@ Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Bool
         GoTo QH
     End If
     If oFP.GetDeviceStatus(sStatus) Then
-        JsonItem(oRetVal, "Status") = sStatus
+        JsonItem(oRetVal, "DeviceStatus") = sStatus
+        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+    Else
+        sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
     End If
 QH:
     GetDeviceStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
