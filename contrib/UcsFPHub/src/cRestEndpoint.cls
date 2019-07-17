@@ -31,7 +31,8 @@ Private Const MODULE_NAME As String = "cRestEndpoint"
 
 Private Const DEF_LISTEN_PORT           As Long = 8192
 Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
-Private Const STR_CONN_RECEIVE          As String = "Връзка %1 получи"
+Private Const STR_CONN_ESTABLISHED      As String = "Връзка %1 установена (%2 общо)"
+Private Const STR_CONN_RECEIVE          As String = "Връзка %1 изпрати заявка"
 Private Const STR_CONN_ERROR            As String = "Грешка във връзка %1: %2"
 
 Private m_oConfig                   As Object
@@ -80,16 +81,26 @@ EH:
     Resume Next
 End Function
 
-Friend Sub frClientReceive(sKey As String, oSocket As cAsyncSocket)
+Friend Sub frClientReceive(sKey As String)
     Const FUNC_NAME     As String = "frClientReceive"
     Dim oClient         As cRestClient
-    Dim sRequest        As String
+    Dim sBody           As String
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        sRequest = oSocket.ReceiveText()
         ConsolePrint MODULE_NAME & ": " & STR_CONN_RECEIVE & vbCrLf, sKey
-        ConsolePrint sRequest & vbCrLf
+        ConsolePrint "Address=" & oClient.Verb & " " & oClient.Path & vbCrLf
+        ConsolePrint "Headers=" & JsonDump(oClient.Headers) & vbCrLf
+        ConsolePrint "Body=" & oClient.Body & vbCrLf
+        sBody = "<html><body>" & vbCrLf & _
+            "<p>" & oClient.Verb & " " & oClient.Path & "</p>" & vbCrLf & _
+            "<p>" & Replace(JsonDump(oClient.Headers), vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
+            "<p>" & Replace(oClient.Body, vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
+            "</body></html>"
+        oClient.Socket.SendText "HTTP/1.1 200" & vbCrLf & _
+            "Content-Type: text/html" & vbCrLf & _
+            "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
+            sBody
     End If
     Exit Sub
 EH:
@@ -103,12 +114,13 @@ Friend Sub frClientClose(sKey As String)
     End If
 End Sub
 
-Friend Sub frClientError(sKey As String, oSocket As cAsyncSocket, ByVal ErrorCode As Long, ByVal EventMask As UcsAsyncSocketEventMaskEnum)
+Friend Sub frClientError(sKey As String)
     Const FUNC_NAME     As String = "frClientError"
+    Dim oClient         As cRestClient
     
     On Error GoTo EH
-    If SearchCollection(m_cClients, sKey) Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, MODULE_NAME & ": " & STR_CONN_ERROR & vbCrLf, sKey, oSocket.GetErrorDescription(ErrorCode)
+    If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
+        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, MODULE_NAME & ": " & STR_CONN_ERROR & vbCrLf, sKey, oClient.Socket.GetErrorDescription(oClient.ErrorCode)
     End If
     Exit Sub
 EH:
@@ -134,7 +146,7 @@ Private Sub m_oSocket_OnAccept()
     sKey = "#" & m_lCount
     oClient.Init sKey, oSocket, Me
     m_cClients.Add oClient, sKey
-    ConsolePrint MODULE_NAME & ": Client connection %1 established (%2 total)" & vbCrLf, sKey, m_cClients.Count
+    ConsolePrint MODULE_NAME & ": " & STR_CONN_ESTABLISHED & vbCrLf, sKey, m_cClients.Count
     Exit Sub
 EH:
     PrintError FUNC_NAME
