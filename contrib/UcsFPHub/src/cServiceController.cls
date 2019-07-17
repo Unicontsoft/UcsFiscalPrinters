@@ -107,29 +107,25 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
                     GoTo QH
                 End If
             End If
+            JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
             Select Case LCase$(At(vMatches, 1))
             Case "status"
-                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
                 If Not m_oFP.GetDeviceStatus(JsonDump(oRequest, Minimize:=True), sResponse) Then
                     GoTo QH
                 End If
             Case "receipt"
-                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
                 If Not m_oFP.PrintReceipt(JsonDump(oRequest, Minimize:=True), sResponse) Then
                     GoTo QH
                 End If
             Case "deposit"
-                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
                 If Not m_oFP.PrintServiceDeposit(JsonDump(oRequest, Minimize:=True), sResponse) Then
                     GoTo QH
                 End If
             Case "report"
-                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
                 If Not m_oFP.PrintReport(JsonDump(oRequest, Minimize:=True), sResponse) Then
                     GoTo QH
                 End If
             Case "datetime"
-                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
                 If Not m_oFP.InitDateTime(JsonDump(oRequest, Minimize:=True), sResponse) Then
                     GoTo QH
                 End If
