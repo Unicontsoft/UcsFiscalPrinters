@@ -325,3 +325,25 @@ EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Public Function Split2(sText As String, sDelim As String) As Variant
+    Dim lPos            As Long
+    
+    lPos = InStr(sText, sDelim)
+    If lPos > 0 Then
+        Split2 = Array(Left$(sText, lPos - 1), Mid$(sText, lPos + Len(sDelim)))
+    Else
+        Split2 = Array(sText)
+    End If
+End Function
+
+Public Function Printf(ByVal sText As String, ParamArray A() As Variant) As String
+    Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    Dim lIdx            As Long
+    
+    For lIdx = UBound(A) To LBound(A) Step -1
+        sText = Replace(sText, "%" & (lIdx - LBound(A) + 1), Replace(A(lIdx), "%", ChrW$(LNG_PRIVATE)))
+    Next
+    Printf = Replace(sText, ChrW$(LNG_PRIVATE), "%")
+End Function
+
