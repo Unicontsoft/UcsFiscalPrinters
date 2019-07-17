@@ -38,18 +38,18 @@ Private Declare Function vbaObjSetAddref Lib "msvbvm60" Alias "__vbaObjSetAddref
 Private Const HDR_CONTENT_TYPE          As String = "Content-Type"
 Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
 
+Private m_sLastError                As String
 Private m_sID                       As String
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
-Private m_oPrinters                 As Object
+Private m_oController               As cServiceController
+'--- http request members
 Private m_oHeaders                  As Object
 Private m_sBuffer                   As String
 Private m_sHttpMethod               As String
 Private m_sRawUrl                   As String
 Private m_sProtocolVersion          As String
-Private m_sLastError                As String
-Private m_oController               As cServiceController
 
 '=========================================================================
 ' Error handling
@@ -63,6 +63,10 @@ End Sub
 '=========================================================================
 ' Properties
 '=========================================================================
+
+Property Get LastError() As String
+    LastError = m_sLastError
+End Property
 
 Property Get ID() As String
     ID = m_sID
@@ -92,10 +96,6 @@ Property Get Body() As String
     Body = m_sBuffer
 End Property
 
-Property Get LastError() As String
-    LastError = m_sLastError
-End Property
-
 Private Property Get pvParent() As cRestEndpoint
     Call vbaObjSetAddref(pvParent, m_lParentPtr)
 End Property
@@ -106,21 +106,25 @@ End Property
 
 Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEndpoint) As Boolean
     Const FUNC_NAME     As String = "Init"
-    
+    Dim oPrinters       As Object
+
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
-    If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), m_oPrinters, Error:=m_sLastError) Then
-        GoTo QH
-    End If
+    '--- init socket
     Set m_oSocket = New cAsyncSocket
     If Not oSocket.Accept(m_oSocket) Then
         m_sLastError = oSocket.GetErrorDescription(oSocket.LastError)
         Set m_oSocket = Nothing
         GoTo QH
     End If
+    '--- deep-copy fiscal printers config
+    If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), oPrinters, Error:=m_sLastError) Then
+        GoTo QH
+    End If
+    '--- init service controlls
     Set m_oController = New cServiceController
-    If Not m_oController.Init(m_oPrinters) Then
+    If Not m_oController.Init(oPrinters) Then
         m_sLastError = m_oController.LastError
         Set m_oSocket = Nothing
         Set m_oController = Nothing
@@ -195,7 +199,7 @@ End Function
 
 Private Sub m_oSocket_OnReceive()
     Const FUNC_NAME     As String = "m_oSocket_OnReceive"
-    Dim lHdrPos         As Long
+    Dim lSize           As Long
     Dim vElem           As Variant
     Dim lPos            As Long
     Dim lIdx            As Long
@@ -203,9 +207,9 @@ Private Sub m_oSocket_OnReceive()
     On Error GoTo EH
     m_sBuffer = m_sBuffer & m_oSocket.ReceiveText()
     If m_oHeaders Is Nothing Then
-        lHdrPos = InStr(m_sBuffer, vbCrLf & vbCrLf)
-        If lHdrPos > 0 Then
-            For Each vElem In Split(Left$(m_sBuffer, lHdrPos), vbCrLf)
+        lSize = InStr(m_sBuffer, vbCrLf & vbCrLf)
+        If lSize > 0 Then
+            For Each vElem In Split(Left$(m_sBuffer, lSize), vbCrLf)
                 If lIdx = 0 Then
                     vElem = Split(vElem, " ")
                     m_sHttpMethod = At(vElem, 0)
@@ -220,7 +224,7 @@ Private Sub m_oSocket_OnReceive()
                 lIdx = lIdx + 1
             Next
         End If
-        m_sBuffer = Mid$(m_sBuffer, lHdrPos + 4)
+        m_sBuffer = Mid$(m_sBuffer, lSize + 4)
     End If
     If Not m_oHeaders Is Nothing Then
         If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
