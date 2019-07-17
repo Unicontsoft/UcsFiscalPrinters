@@ -32,7 +32,6 @@ Private Const MODULE_NAME As String = "cRestEndpoint"
 Private Const DEF_LISTEN_PORT           As Long = 8192
 Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
 Private Const STR_CONN_ESTABLISHED      As String = "Връзка %1 установена (%2 общо)"
-Private Const STR_CONN_RECEIVE          As String = "Връзка %1 изпрати заявка"
 Private Const STR_CONN_ERROR            As String = "Грешка във връзка %1: %2"
 
 Private m_oConfig                   As Object
@@ -83,35 +82,6 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     '--- success
     Init = True
 QH:
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Public Function ClientReceive(sKey As String) As Boolean
-    Const FUNC_NAME     As String = "frClientReceive"
-    Dim oClient         As cRestClient
-    Dim sBody           As String
-    
-    On Error GoTo EH
-    If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        ConsolePrint STR_CONN_RECEIVE & " (" & MODULE_NAME & ")" & vbCrLf, sKey
-        ConsolePrint "Route=" & oClient.HttpMethod & " " & oClient.RawUrl & vbCrLf
-        ConsolePrint "Headers=" & JsonDump(oClient.Headers) & vbCrLf
-        ConsolePrint "Body=" & oClient.Body & vbCrLf
-        sBody = "<html><body>" & vbCrLf & _
-            "<p>" & oClient.HttpMethod & " " & oClient.RawUrl & "</p>" & vbCrLf & _
-            "<p>" & Replace(JsonDump(oClient.Headers), vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
-            "<p>" & Replace(oClient.Body, vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
-            "</body></html>"
-        oClient.Socket.SendText "HTTP/1.1 200" & vbCrLf & _
-            "Content-Type: text/html" & vbCrLf & _
-            "Content-Length: " & Len(sBody) & vbCrLf & vbCrLf & _
-            sBody, CodePage:=ucsScpAcp
-        '--- success
-        ClientReceive = True
-    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
