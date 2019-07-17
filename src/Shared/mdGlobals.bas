@@ -1310,15 +1310,34 @@ End Function
 
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
     Const DISPID_VALUE  As Long = 0
+    Const VT_BYREF      As Long = &H4000
+    Const S_OK          As Long = 0
     Dim pVbCol          As IVbCollection
-    
+    Dim vItem           As Variant
+
     If pCol Is Nothing Then
         '--- do nothing
-    ElseIf TypeOf pCol Is IVbCollection Then
-        Set pVbCol = pCol
-        SearchCollection = (pVbCol.Item(Index, RetVal) >= 0)
+    ElseIf (PeekInt(VarPtr(RetVal)) And VT_BYREF) = 0 Then
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, RetVal) = S_OK)
+        Else
+            SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, RetVal:=RetVal, Args:=Index)
+        End If
     Else
-        SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, Args:=Index, RetVal:=RetVal)
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, vItem) = S_OK)
+        Else
+            SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, RetVal:=vItem, Args:=Index)
+        End If
+        If SearchCollection Then
+            If IsObject(vItem) Then
+                Set RetVal = vItem
+            Else
+                RetVal = vItem
+            End If
+        End If
     End If
 End Function
 
