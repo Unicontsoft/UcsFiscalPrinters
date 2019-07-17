@@ -23,7 +23,7 @@ Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_VERSION           As String = "1.0.0"
+Private Const STR_VERSION           As String = "0.1.0"
 Private Const STR_ERROR_CONFIG_NOT_FOUND As String = "Грешка: Конфигурационен файл %1 не е намерен"
 Private Const STR_ERROR_PARSING_CONFIG As String = "Грешка: Невалиден %1: %2"
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери..."
