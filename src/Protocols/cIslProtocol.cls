@@ -1436,7 +1436,7 @@ Public Function GetTaxNo() As String
         "Index", lIndex, IIf(IsIncotex, -1, 0)
     bPrevExceptions = pvSetExceptions(False)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
-    GetTaxNo = RTrim$(At(vSplit, lIndex))
+    GetTaxNo = Trim$(At(vSplit, lIndex))
     Exceptions = bPrevExceptions
     Exit Function
 EH:
@@ -1460,7 +1460,7 @@ Public Function GetTaxCaption() As String
             "Index", lIndex, 1
     End If
     bPrevExceptions = pvSetExceptions(False)
-    GetTaxCaption = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
+    GetTaxCaption = Trim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
     Exceptions = bPrevExceptions
     If IsNumeric(GetTaxCaption) Or LenB(GetTaxCaption) = 0 Then
         GetTaxCaption = pvText(ucsTxtTaxNo)
