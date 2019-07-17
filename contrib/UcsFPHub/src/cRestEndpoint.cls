@@ -89,11 +89,11 @@ Friend Sub frClientReceive(sKey As String)
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
         ConsolePrint MODULE_NAME & ": " & STR_CONN_RECEIVE & vbCrLf, sKey
-        ConsolePrint "Address=" & oClient.Verb & " " & oClient.Path & vbCrLf
+        ConsolePrint "Route=" & oClient.HttpMethod & " " & oClient.RawUrl & vbCrLf
         ConsolePrint "Headers=" & JsonDump(oClient.Headers) & vbCrLf
         ConsolePrint "Body=" & oClient.Body & vbCrLf
         sBody = "<html><body>" & vbCrLf & _
-            "<p>" & oClient.Verb & " " & oClient.Path & "</p>" & vbCrLf & _
+            "<p>" & oClient.HttpMethod & " " & oClient.RawUrl & "</p>" & vbCrLf & _
             "<p>" & Replace(JsonDump(oClient.Headers), vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
             "<p>" & Replace(oClient.Body, vbCrLf, "<br>" & vbCrLf) & "</p>" & vbCrLf & _
             "</body></html>"
@@ -120,7 +120,7 @@ Friend Sub frClientError(sKey As String)
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, MODULE_NAME & ": " & STR_CONN_ERROR & vbCrLf, sKey, oClient.Socket.GetErrorDescription(oClient.ErrorCode)
+        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, MODULE_NAME & ": " & STR_CONN_ERROR & vbCrLf, sKey, oClient.LastError
     End If
     Exit Sub
 EH:
@@ -128,25 +128,33 @@ EH:
     Resume Next
 End Sub
 
+Private Function pvThreadPoolGetRestClient() As cRestClient
+    '--- ToDo: impl multi-threading
+    Set pvThreadPoolGetRestClient = New cRestClient
+End Function
+
 '=========================================================================
 ' Events
 '=========================================================================
 
 Private Sub m_oSocket_OnAccept()
     Const FUNC_NAME     As String = "m_oSocket_OnAccept"
-    Dim oSocket         As cAsyncSocket
     Dim sKey            As String
     Dim oClient         As cRestClient
     
     On Error GoTo EH
-    Set oSocket = New cAsyncSocket
-    m_oSocket.Accept oSocket
-    Set oClient = New cRestClient
     m_lCount = m_lCount + 1
     sKey = "#" & m_lCount
-    oClient.Init sKey, oSocket, Me
+    Set oClient = pvThreadPoolGetRestClient()
+    If oClient Is Nothing Then
+        GoTo QH
+    End If
+    If Not oClient.Init(sKey, m_oSocket, Me) Then
+        GoTo QH
+    End If
     m_cClients.Add oClient, sKey
     ConsolePrint MODULE_NAME & ": " & STR_CONN_ESTABLISHED & vbCrLf, sKey, m_cClients.Count
+QH:
     Exit Sub
 EH:
     PrintError FUNC_NAME

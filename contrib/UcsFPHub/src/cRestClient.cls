@@ -39,20 +39,22 @@ Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
 
 Private m_sID                       As String
 Private WithEvents m_oSocket        As cAsyncSocket
+Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
 Private m_oHeaders                  As Object
 Private m_sBuffer                   As String
-Private m_sVerb                     As String
-Private m_sPath                     As String
-Private m_sProtocol                 As String
-Private m_lErrorCode                As Long
+Private m_sHttpMethod               As String
+Private m_sRawUrl                   As String
+Private m_sProtocolVersion          As String
+Private m_sLastError                As String
 
 '=========================================================================
 ' Error handling
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
-    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    m_sLastError = Err.Description
+    Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
 End Sub
 
 '=========================================================================
@@ -67,12 +69,16 @@ Property Get Socket() As cAsyncSocket
     Set Socket = m_oSocket
 End Property
 
-Property Get Verb() As String
-    Verb = m_sVerb
+Property Get HttpMethod() As String
+    HttpMethod = m_sHttpMethod
 End Property
 
-Property Get Path() As String
-    Path = m_sPath
+Property Get RawUrl() As String
+    RawUrl = m_sRawUrl
+End Property
+
+Property Get ProtocolVersion() As String
+    ProtocolVersion = m_sProtocolVersion
 End Property
 
 Property Get Headers() As Object
@@ -83,8 +89,8 @@ Property Get Body() As String
     Body = m_sBuffer
 End Property
 
-Property Get ErrorCode() As Long
-    ErrorCode = m_lErrorCode
+Property Get LastError() As String
+    LastError = m_sLastError
 End Property
 
 Private Property Get pvParent() As cRestEndpoint
@@ -95,18 +101,27 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEndpoint)
+Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEndpoint) As Boolean
+    Const FUNC_NAME     As String = "Init"
+    
+    On Error GoTo EH
     m_sID = sKey
-    Set m_oSocket = oSocket
     m_lParentPtr = ObjPtr(oParent)
+    Set m_oSocket = New cAsyncSocket
+    oSocket.Accept m_oSocket
+    '--- success
+    Init = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
 End Function
 
 Private Sub pvClearState()
     Set m_oHeaders = Nothing
     m_sBuffer = vbNullString
-    m_sVerb = vbNullString
-    m_sPath = vbNullString
-    m_sProtocol = vbNullString
+    m_sHttpMethod = vbNullString
+    m_sRawUrl = vbNullString
+    m_sProtocolVersion = vbNullString
 End Sub
 
 '=========================================================================
@@ -128,9 +143,9 @@ Private Sub m_oSocket_OnReceive()
             For Each vElem In Split(Left$(m_sBuffer, lHdrPos), vbCrLf)
                 If lIdx = 0 Then
                     vElem = Split(vElem, " ")
-                    m_sVerb = At(vElem, 0)
-                    m_sPath = At(vElem, 1)
-                    m_sProtocol = At(vElem, 2)
+                    m_sHttpMethod = At(vElem, 0)
+                    m_sRawUrl = At(vElem, 1)
+                    m_sProtocolVersion = At(vElem, 2)
                 Else
                     lPos = InStr(vElem, ":")
                     If lPos > 1 Then
@@ -162,11 +177,8 @@ Private Sub m_oSocket_OnClose()
     Const FUNC_NAME     As String = "m_oSocket_OnClose"
     
     On Error GoTo EH
-    If Not m_oHeaders Is Nothing Then
-        pvParent.frClientReceive m_sID
-        pvClearState
-    End If
     pvParent.frClientClose m_sID
+    pvClearState
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -174,7 +186,14 @@ EH:
 End Sub
 
 Private Sub m_oSocket_OnError(ByVal ErrorCode As Long, ByVal EventMask As UcsAsyncSocketEventMaskEnum)
-    m_lErrorCode = ErrorCode
+    Const FUNC_NAME     As String = "m_oSocket_OnError"
+    
+    On Error GoTo EH
+    m_sLastError = m_oSocket.GetErrorDescription(ErrorCode)
     pvParent.frClientError m_sID
     pvClearState
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Sub

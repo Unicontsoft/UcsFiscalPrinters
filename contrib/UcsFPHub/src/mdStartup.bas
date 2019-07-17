@@ -125,7 +125,6 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
     JsonItem(oRetVal, "Count") = 0
-    JsonItem(oRetVal, "Alias") = 0
     If JsonItem(oConfig, "Printers/Autodetect") Then
         ConsolePrint STR_AUTODETECTING_PRINTERS & vbCrLf
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
@@ -139,10 +138,13 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
                             ";Speed=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Speed")
                         Set oRequest = Nothing
                         JsonItem(oRequest, "DeviceString") = sDeviceString
-                        If oFP.GetStatus(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
+                        JsonItem(oRequest, "IncludeTaxNo") = True
+                        If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
                             sKey = JsonItem(oJson, "DeviceSerialNo")
                             If LenB(sKey) <> 0 Then
-                                JsonItem(oRetVal, sKey) = sDeviceString
+                                JsonItem(oJson, "Ok") = Empty
+                                JsonItem(oJson, "DeviceString") = sDeviceString
+                                JsonItem(oRetVal, sKey) = oJson
                                 JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                             End If
                         End If
@@ -156,16 +158,19 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
         If LenB(sDeviceString) <> 0 Then
             Set oRequest = Nothing
             JsonItem(oRequest, "DeviceString") = sDeviceString
-            If oFP.GetStatus(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
+            JsonItem(oRequest, "IncludeTaxNo") = True
+            If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
                 If Not JsonItem(oJson, "Ok") Then
                     ConsoleError STR_INFO_ERROR_ACCESSING & vbCrLf, vKey, JsonItem(oJson, "ErrorText")
                 Else
                     sKey = JsonItem(oJson, "DeviceSerialNo")
                     If LenB(sKey) <> 0 Then
-                        JsonItem(oRetVal, sKey) = sDeviceString
-                        JsonItem(oRetVal, "__" & vKey) = sDeviceString
+                        JsonItem(oJson, "Ok") = Empty
+                        JsonItem(oJson, "DeviceString") = sDeviceString
+                        JsonItem(oRetVal, sKey) = oJson
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
-                        JsonItem(oRetVal, "Alias") = JsonItem(oRetVal, "Alias") + 1
+                        JsonItem(oRetVal, "Aliases/Count") = JsonItem(oRetVal, "Aliases/Count") + 1
+                        JsonItem(oRetVal, "Aliases/" & vKey & "/DeviceSerialNo") = sKey
                     End If
                 End If
             End If
