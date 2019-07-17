@@ -11,6 +11,7 @@ Attribute VB_Name = "mdGlobals"
 '=========================================================================
 Option Explicit
 DefObj A-Z
+Private Const MODULE_NAME As String = "mdGlobals"
 
 '=========================================================================
 ' API
@@ -25,6 +26,20 @@ Private Declare Function LocalFree Lib "kernel32" (ByVal hMem As Long) As Long
 Private Declare Function ApiSysAllocString Lib "oleaut32" Alias "SysAllocString" (ByVal Ptr As Long) As Long
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
+
+'=========================================================================
+' Constants and member variables
+'=========================================================================
+
+Private m_cRegExpCache              As Collection
+
+'=========================================================================
+' Error handling
+'=========================================================================
+
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+End Sub
 
 '=========================================================================
 ' Functions
@@ -210,6 +225,16 @@ Public Function C_Str(Value As Variant) As String
     End If
 End Function
 
+Public Function C_Obj(Value As Variant) As Object
+    Dim vDest           As Variant
+
+    If VarType(Value) = vbObject Then
+        Set C_Obj = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbObject) = 0 Then
+        Set C_Obj = vDest
+    End If
+End Function
+
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null, Optional EmptyString As String) As Variant
     Zn = IIf(sText = EmptyString, IfEmptyString, sText)
 End Function
@@ -218,3 +243,85 @@ Public Function Znl(ByVal lValue As Long, Optional IfEmptyLong As Variant = Null
     Znl = IIf(lValue = EmptyLong, IfEmptyLong, lValue)
 End Function
 
+Public Function preg_match(find_re As String, sText As String, Optional Matches As Variant, Optional Indexes As Variant) As Long
+    Const FUNC_NAME     As String = "preg_match"
+    Dim lIdx            As Long
+    Dim oMatches        As Object
+    
+    On Error GoTo EH
+    Set oMatches = InitRegExp(find_re).Execute(sText)
+    With oMatches
+        preg_match = .Count
+        If Not IsMissing(Matches) Then
+            If .Count = 0 Then
+                Matches = Split(vbNullString)
+            ElseIf .Count = 1 Then
+                With .Item(0)
+                    If .Submatches.Count = 0 Then
+                        ReDim Matches(0 To 0) As String
+                        Matches(0) = .Value
+                    Else
+                        ReDim Matches(0 To .Submatches.Count - 1) As String
+                        For lIdx = 0 To .Submatches.Count - 1
+                            Matches(lIdx) = .Submatches(lIdx)
+                        Next
+                    End If
+                End With
+            Else
+                ReDim Matches(0 To .Count - 1) As String
+                For lIdx = 0 To .Count - 1
+                    Matches(lIdx) = .Item(lIdx).Value
+                Next
+            End If
+        End If
+        If Not IsMissing(Indexes) Then
+            If .Count = 0 Then
+                Indexes = Array()
+            ElseIf .Count = 1 Then
+                Indexes = Array(.Item(0).FirstIndex + 1)
+            Else
+                ReDim Indexes(0 To .Count - 1) As Variant
+                For lIdx = 0 To .Count - 1
+                    Indexes(lIdx) = .Item(lIdx).FirstIndex + 1
+                Next
+            End If
+        End If
+    End With
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function InitRegExp(sPattern As String) As Object
+    Const FUNC_NAME     As String = "InitRegExp"
+    Dim lPos            As Long
+    
+    On Error GoTo EH
+    If Not SearchCollection(m_cRegExpCache, sPattern, RetVal:=InitRegExp) Then
+        Set InitRegExp = CreateObject("VBScript.RegExp")
+        With InitRegExp
+            lPos = InStrRev(sPattern, "/")
+            If Left$(sPattern, 1) = "/" And lPos > 1 Then
+                .Pattern = Mid$(sPattern, 2, lPos - 2)
+                .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
+                .MultiLine = (InStr(lPos, sPattern, "m") > 0)
+                .Global = (InStr(lPos, sPattern, "l") = 0)
+            Else
+                .Global = True
+                .Pattern = sPattern
+            End If
+        End With
+        If m_cRegExpCache Is Nothing Then
+            Set m_cRegExpCache = New Collection
+        End If
+        m_cRegExpCache.Add InitRegExp, sPattern
+        If m_cRegExpCache.Count > 1000 Then
+            m_cRegExpCache.Remove 1
+        End If
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
