@@ -82,46 +82,59 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
     
     On Error GoTo EH
     m_sLastError = vbNullString
-    If LCase$(sPath) = "/printers" Then
-        sResponse = JsonDump(m_oPrinters, Minimize:=True)
-    ElseIf preg_match("/^/printers/([^/]+)$/i", sPath, vMatches) Then
-        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
-        If oInfo Is Nothing Then
-            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
-            GoTo QH
-        End If
-        sResponse = JsonDump(oInfo, Minimize:=True)
-    ElseIf preg_match("/^/printers/([^/]+)/status$/i", sPath, vMatches) Then
-        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
-        If oInfo Is Nothing Then
-            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
-            GoTo QH
-        End If
-        JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
-        If Not m_oFP.GetDeviceStatus(JsonDump(oRequest, Minimize:=True), sResponse) Then
-            GoTo QH
-        End If
-    ElseIf preg_match("/^/printers/([^/]+)/receipt$/i", sPath, vMatches) Then
-        If Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
-            sResponse = pvEncodeErrorText(Printf(ERR_INVALID_JSON, m_sLastError))
-            GoTo QH
-        End If
-        Set oRequest = C_Obj(vJson)
-        If oRequest Is Nothing Then
-            sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
-            GoTo QH
-        End If
-        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
-        If oInfo Is Nothing Then
-            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
-            GoTo QH
-        End If
-        JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
-        If Not m_oFP.PrintReceipt(JsonDump(oRequest, Minimize:=True), sResponse) Then
-            GoTo QH
-        End If
-    Else
+    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime))?$/i", sPath, vMatches) = 0 Then
         GoTo QH
+    End If
+    If LenB(At(vMatches, 0)) = 0 Then
+        sResponse = JsonDump(m_oPrinters, Minimize:=True)
+    Else
+        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
+        If oInfo Is Nothing Then
+            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
+            GoTo QH
+        End If
+        If LenB(At(vMatches, 1)) = 0 Then
+            sResponse = JsonDump(oInfo, Minimize:=True)
+        Else
+            If LCase$(At(vMatches, 1)) <> "status" Then
+                If Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
+                    sResponse = pvEncodeErrorText(Printf(ERR_INVALID_JSON, m_sLastError))
+                    GoTo QH
+                End If
+                Set oRequest = C_Obj(vJson)
+                If oRequest Is Nothing Then
+                    sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
+                    GoTo QH
+                End If
+            End If
+            Select Case LCase$(At(vMatches, 1))
+            Case "status"
+                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+                If Not m_oFP.GetDeviceStatus(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                    GoTo QH
+                End If
+            Case "receipt"
+                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+                If Not m_oFP.PrintReceipt(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                    GoTo QH
+                End If
+            Case "deposit"
+                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+                If Not m_oFP.PrintServiceDeposit(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                    GoTo QH
+                End If
+            Case "report"
+                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+                If Not m_oFP.PrintReport(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                    GoTo QH
+                End If
+            Case "datetime"
+                JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+                If Not m_oFP.InitDateTime(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                    GoTo QH
+                End If
+            End Select
+        End If
     End If
     '--- success
     ServiceRequest = True
