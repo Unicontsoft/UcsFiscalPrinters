@@ -437,6 +437,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
 QH:
     PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -488,12 +489,13 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim dDateTime       As Date
     Dim bResult         As Boolean
+    Dim sStatus         As String
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    dDateTime = C_Date(JsonItem(oJson, "DateTime"))
+    dDateTime = C_Date(JsonItem(oJson, "DeviceDateTime"))
     If dDateTime = 0 Then
         dDateTime = Now
     End If
@@ -505,7 +507,10 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
+    If oFP.GetDeviceStatus(sStatus) Then
+        JsonItem(oRetVal, "DeviceStatus") = sStatus
+    End If
+    JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
 QH:
     InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -663,6 +668,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     JsonItem(oRetVal, "Available") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
