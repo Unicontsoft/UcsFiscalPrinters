@@ -150,16 +150,43 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
 QH:
 End Function
 
+Public Function Peek(ByVal lPtr As Long) As Long
+    Call CopyMemory(Peek, ByVal lPtr, 4)
+End Function
+
+Public Function PeekInt(ByVal lPtr As Long) As Integer
+    Call CopyMemory(PeekInt, ByVal lPtr, 2)
+End Function
+
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
+    Const VT_BYREF      As Long = &H4000
+    Const S_OK          As Long = 0
     Dim pVbCol          As IVbCollection
+    Dim vItem           As Variant
 
     If pCol Is Nothing Then
         '--- do nothing
-    ElseIf TypeOf pCol Is IVbCollection Then
-        Set pVbCol = pCol
-        SearchCollection = (pVbCol.Item(Index, RetVal) >= 0)
+    ElseIf (PeekInt(VarPtr(RetVal)) And VT_BYREF) = 0 Then
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, RetVal) = S_OK)
+        Else
+            Err.Raise vbObjectError, , "Not implemented"
+        End If
     Else
-        Err.Raise vbObjectError, , "Not implemented"
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, vItem) = S_OK)
+        Else
+            Err.Raise vbObjectError, , "Not implemented"
+        End If
+        If SearchCollection Then
+            If IsObject(vItem) Then
+                Set RetVal = vItem
+            Else
+                RetVal = vItem
+            End If
+        End If
     End If
 End Function
 
