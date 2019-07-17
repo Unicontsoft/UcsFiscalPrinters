@@ -205,8 +205,8 @@ End Function
 ' Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current
 ' date/time, last receipt number, names of payment types, max characters on a row and operator's default password
 '
-Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetHeaderFooter"
+Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetDeviceInfo"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
@@ -218,30 +218,43 @@ Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Bool
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    For lIdx = 1 To 6
-        JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
-    Next
-    For lIdx = 1 To 2
-        JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
-    Next
-    JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
-    JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
-    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
-    JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastReceiptNo()
-    For lIdx = 1 To 3
-        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-    Next
-    For lIdx = -1 To -4 Step -1
-        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-    Next
+    JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
+    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
+    JsonItem(oRetVal, "DeviceProtocol") = oFP.GetDeviceProtocol()
+    JsonItem(oRetVal, "DeviceModel") = oFP.GetDeviceModel()
+    JsonItem(oRetVal, "FirmwareVersion") = oFP.GetDeviceFirmware()
     JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
+    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Then
+        For lIdx = 1 To 6
+            JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeFooters")) Then
+        For lIdx = 1 To 2
+            JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Then
+        JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
+        JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    End If
+    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then
+        For lIdx = 1 To 3
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+        For lIdx = -1 To -4 Step -1
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+    End If
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
         JsonItem(oRetVal, "DefOperPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
     End If
-    JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
-    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
-    GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetDeviceInfo = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
@@ -666,8 +679,8 @@ End Function
 ' Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the
 ' device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing
 '
-Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetStatus"
+Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetDeviceStatus"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
@@ -682,10 +695,8 @@ Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     If oFP.GetDeviceStatus(sStatus) Then
         JsonItem(oRetVal, "Status") = sStatus
     End If
-    JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
-    JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
 QH:
-    GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetDeviceStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
