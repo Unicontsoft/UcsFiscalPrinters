@@ -49,6 +49,7 @@ Private m_sHttpMethod               As String
 Private m_sRawUrl                   As String
 Private m_sProtocolVersion          As String
 Private m_sLastError                As String
+Private m_oController               As cServiceController
 
 '=========================================================================
 ' Error handling
@@ -118,6 +119,13 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
         Set m_oSocket = Nothing
         GoTo QH
     End If
+    Set m_oController = New cServiceController
+    If Not m_oController.Init(m_oPrinters) Then
+        m_sLastError = m_oController.LastError
+        Set m_oSocket = Nothing
+        Set m_oController = Nothing
+        GoTo QH
+    End If
     '--- success
     Init = True
 QH:
@@ -135,50 +143,39 @@ Private Sub pvClearState()
     m_sProtocolVersion = vbNullString
 End Sub
 
-Private Function pvHandleRequest() As Boolean
+Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boolean
     Const FUNC_NAME     As String = "pvHandleRequest"
-    Dim sToLowerUrl     As String
-    Dim sBody           As String
-    Dim baBuffer()      As Byte
-    Dim vMatches        As Variant
-    Dim oInfo           As Object
-    Dim oRequest        As Object
-    Dim oFP             As New cFiscalPrinter
     Dim sResponse       As String
+    Dim baBuffer()      As Byte
     
     On Error GoTo EH
-    sToLowerUrl = LCase$(m_sRawUrl)
-    If sToLowerUrl = "/printers" Then
-        sBody = JsonDump(m_oPrinters, Minimize:=True)
-    ElseIf preg_match("/^/printers/([^/]+)$/i", m_sRawUrl, vMatches) Then
-        sBody = JsonDump(pvGetPrinterInfo(At(vMatches, 0)), Minimize:=True)
-    ElseIf preg_match("/^/printers/([^/]+)/status$/i", m_sRawUrl, vMatches) Then
-        Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
-        If Not oInfo Is Nothing Then
-            JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
-            If oFP.GetDeviceStatus(JsonDump(oRequest, Minimize:=True), sResponse) Then
-                sBody = sResponse
+    #If sQueryString Then '--- touch args
+    #End If
+    If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
+        baBuffer = m_oSocket.ToTextArray("400 Bad request")
+        m_oSocket.SendText "HTTP/1.1 400 Bad request" & vbCrLf & _
+            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+        m_oSocket.SendArray baBuffer
+        GoTo QH
+    End If
+    If Not m_oController.ServiceRequest(sPath, m_sBuffer, sResponse) Then
+        If LenB(sResponse) = 0 Then
+            If LenB(m_oController.LastError) <> 0 Then
+                baBuffer = m_oSocket.ToTextArray(m_oController.LastError)
+                GoTo InternalServerError
             End If
-        End If
-    Else
-        If pvParent.ClientReceive(m_sID) Then
-            '--- success
-            pvHandleRequest = True
+            baBuffer = m_oSocket.ToTextArray("404 Not Found")
+            m_oSocket.SendText "HTTP/1.1 404 Not Found" & vbCrLf & _
+                HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+            m_oSocket.SendArray baBuffer
             GoTo QH
         End If
     End If
-    If LenB(sBody) <> 0 Then
-        baBuffer = m_oSocket.ToTextArray(sBody)
-        m_oSocket.SendText "HTTP/1.1 200 OK" & vbCrLf & _
-            HDR_CONTENT_TYPE & ": application/json; charset=utf-8" & vbCrLf & _
-            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-        m_oSocket.SendArray baBuffer
-    Else
-        baBuffer = m_oSocket.ToTextArray("404 Not Found")
-        m_oSocket.SendText "HTTP/1.1 404 Not Found" & vbCrLf & _
-            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-        m_oSocket.SendArray baBuffer
-    End If
+    baBuffer = m_oSocket.ToTextArray(sResponse)
+    m_oSocket.SendText "HTTP/1.1 200 OK" & vbCrLf & _
+        HDR_CONTENT_TYPE & ": application/json; charset=utf-8" & vbCrLf & _
+        HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
+    m_oSocket.SendArray baBuffer
     '--- success
     pvHandleRequest = True
 QH:
@@ -186,19 +183,10 @@ QH:
 EH:
     PrintError FUNC_NAME
     baBuffer = m_oSocket.ToTextArray(m_sLastError)
+InternalServerError:
     m_oSocket.SendText "HTTP/1.1 500 Internal Server Error" & vbCrLf & _
         HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
     m_oSocket.SendArray baBuffer
-    Resume QH
-End Function
-
-Private Function pvGetPrinterInfo(sPrinterId As String) As Object
-    Dim sKey            As String
-    
-    sKey = Zn(JsonItem(m_oPrinters, "Aliases/" & sPrinterId), sPrinterId)
-    If LenB(sKey) <> 0 Then
-        Set pvGetPrinterInfo = C_Obj(JsonItem(m_oPrinters, sKey))
-    End If
 End Function
 
 '=========================================================================
@@ -211,7 +199,7 @@ Private Sub m_oSocket_OnReceive()
     Dim vElem           As Variant
     Dim lPos            As Long
     Dim lIdx            As Long
-    
+   
     On Error GoTo EH
     m_sBuffer = m_sBuffer & m_oSocket.ReceiveText()
     If m_oHeaders Is Nothing Then
@@ -240,7 +228,8 @@ Private Sub m_oSocket_OnReceive()
                 GoTo QH
             End If
         End If
-        pvHandleRequest
+        vElem = Split2(m_sRawUrl, "?")
+        pvHandleRequest At(vElem, 0), At(vElem, 1)
         pvClearState
     End If
 QH:

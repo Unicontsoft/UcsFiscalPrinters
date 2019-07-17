@@ -10,6 +10,7 @@ Module=mdStartup; mdStartup.bas
 Class=cRestEndpoint; cRestEndpoint.cls
 Class=cRestClient; cRestClient.cls
 Form=frmIcon.frm
+Class=cServiceController; cServiceController.cls
 IconForm="frmIcon"
 Startup="Sub Main"
 HelpFile=""
