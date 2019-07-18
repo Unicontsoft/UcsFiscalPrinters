@@ -78,7 +78,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     If Not m_oSocket.Listen() Then
         GoTo QH
     End If
-    ConsolePrint STR_SOCKET_LISTEN & " (" & MODULE_NAME & ")" & vbCrLf, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort
+    DebugLog Printf(STR_SOCKET_LISTEN & " (" & MODULE_NAME & ")", Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
     '--- success
     Init = True
 QH:
@@ -100,7 +100,7 @@ Public Sub ClientError(sKey As String)
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_CONN_ERROR & " (" & MODULE_NAME & ")" & vbCrLf, sKey, oClient.LastError
+        DebugLog Printf(STR_CONN_ERROR & " (" & MODULE_NAME & ")", sKey, oClient.LastError), vbLogEventTypeError
     End If
     Exit Sub
 EH:
@@ -133,7 +133,7 @@ Private Sub m_oSocket_OnAccept()
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
-    ConsolePrint STR_CONN_ESTABLISHED & " (" & MODULE_NAME & ")" & vbCrLf, sKey, m_cClients.Count
+    DebugLog Printf(STR_CONN_ESTABLISHED & " (" & MODULE_NAME & ")", sKey, m_cClients.Count)
 QH:
     Exit Sub
 EH:
