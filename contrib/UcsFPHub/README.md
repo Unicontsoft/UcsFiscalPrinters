@@ -159,7 +159,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/receipt -d "{ }" | jq
 
 #### `POST` `/printers/:printer_id/deposit`
 
-Print service deposit or withdraw.
+Print service deposit or service withdraw.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" | jq
@@ -185,6 +185,20 @@ C:> curl -s http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\":
 ```json
 {
   ...
+}
+```
+
+#### `POST` `/printers/:printer_id/datetime`
+
+Get or set current device date/time.
+
+```
+C:> curl -s http://localhost:8192/printers/DT518315/datetime | jq
+```
+```json
+{
+  "Ok": false,
+  "ErrorText": "Празна JSON заявка"
 }
 ```
 
