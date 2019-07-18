@@ -43,9 +43,9 @@ The service is configured through `UcsFPHub.conf` file in JSON format. Here is a
 
 Currently the `UcsFPHub` service supports these environment variables:
 
-  - `_UCS_FISCAL_PRINTER_LOG` to specify `c:\path\to\UcsFP.log` log file for `UcsFP20` component to log communication with fiscal devices
-  - `_UCS_FISCAL_PRINTER_DATA_DUMP` set to `1` to dump data transfer too
-  - `_UCS_FP_HUB_LOG` to specify client connections `c:\path\to\UcsFPHub.log` log file
+ - `_UCS_FISCAL_PRINTER_LOG` to specify `c:\path\to\UcsFP.log` log file for `UcsFP20` component to log communication with fiscal devices
+ - `_UCS_FISCAL_PRINTER_DATA_DUMP` set to `1` to dump data transfer too
+ - `_UCS_FP_HUB_LOG` to specify client connections `c:\path\to\UcsFPHub.log` log file
 
 ### Command-line options
 
@@ -56,7 +56,6 @@ Currently the `UcsFPHub` service supports these environment variables:
 | `-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service config file. If no explicit config options are used the service tries to find `UcsFPHub.conf` config file in the application folder. If still no config file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default. |
 | `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service. |
 | `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.                   |
-                                                                |
 
 ### REST service protocol description
 
@@ -188,3 +187,8 @@ C:> curl -s http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\":
   ...
 }
 ```
+
+### ToDo
+
+ - [ ] Listener on Service Broker queues
+    
