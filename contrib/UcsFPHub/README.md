@@ -5,7 +5,7 @@ Unicontsoft Fiscal Printers Hub -- the `UcsFPHub` service
 
 Unicontsoft Fiscal Printers Hub repo builds to a standalone executable that runs on client workstations as a background `UcsFPHub` service and provides remote access to locally attached fiscal devices.
 
-The access to fiscal discal is provided by parent `UcsFP20` component and supports serial port or TCP/IP connectivity to attached devices. Fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
+The access to fiscal devices is provided by parent `UcsFP20` component and supports serial port or TCP/IP connectivity to attached devices. Most fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
 
 You can use a settings file to configure the available endpoints on which the service is accessible e.g. as a JSON based REST service on local TCP/IP port or as a Microsoft SQL Server designated Service Broker queue.
 
@@ -48,6 +48,8 @@ Currently the `UcsFPHub` service supports these environment variables:
   - `_UCS_FP_HUB_LOG` to specify client connections `c:\path\to\UcsFPHub.log` log file
 
 ### Command-line options
+
+`UcsFPHub.exe` service executable accepts these command-line options:
 
 | Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description                                             |
 | -------------- | ----------------- | ------------------------------------------------------- |
