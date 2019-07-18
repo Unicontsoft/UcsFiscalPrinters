@@ -18,23 +18,29 @@ Private Const MODULE_NAME As String = "mdStartup"
 '=========================================================================
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
+Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_VERSION           As String = "0.1.0"
-Private Const STR_ERROR_CONFIG_NOT_FOUND As String = "Грешка: Конфигурационен файл %1 не е намерен"
-Private Const STR_ERROR_PARSING_CONFIG As String = "Грешка: Невалиден %1: %2"
+Private Const STR_VERSION           As String = "0.1.1"
+Private Const STR_SERVICE_NAME      As String = "UcsFPHub"
+Private Const STR_DISPLAY_NAME      As String = "Unicontsoft Fiscal Printers Hub " & STR_VERSION
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери..."
-Private Const STR_INFO_ERROR_ACCESSING As String = "Информация: Принтер %1: %2"
-Private Const STR_ERROR_ENUM_PORTS  As String = "Грешка: Енумериране на серийни портове: %1"
 Private Const STR_PRINTERS_FOUND    As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC       As String = "Натиснете Ctrl+C за изход"
+Private Const STR_LOADING_CONFIG    As String = "Зарежда конфигурация от %1"
+'--- errors
+Private Const ERR_CONFIG_NOT_FOUND  As String = "Грешка: Конфигурационен файл %1 не е намерен"
+Private Const ERR_PARSING_CONFIG    As String = "Грешка: Невалиден %1: %2"
+Private Const ERR_ENUM_PORTS        As String = "Грешка: Енумериране на серийни портове: %1"
+Private Const ERR_WARN_ACCESS       As String = "Предупреждение: Принтер %1: %2"
 
 Private m_oOpt                  As Object
 Private m_oPrinters             As Object
 Private m_cEndpoints            As Collection
+Private m_bIsService            As Boolean
 
 '=========================================================================
 ' Error handling
@@ -59,30 +65,53 @@ End Sub
 
 Private Function Process(vArgs As Variant) As Long
     Const FUNC_NAME     As String = "Process"
-    Dim sFile           As String
+    Dim sConfFile       As String
     Dim sError          As String
     Dim oConfig         As Object
     
     On Error GoTo EH
-    Set m_oOpt = GetOpt(vArgs)
-    If Not m_oOpt.Item("-nologo") Then
-        ConsolePrint App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
+    Set m_oOpt = GetOpt(vArgs, "conf:c")
+    If Not m_oOpt.Item("--nologo") Then
+        DebugLog App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf
     End If
-    sFile = Zn(m_oOpt.Item("-conf"), m_oOpt.Item("c"))
-    If LenB(sFile) = 0 Then
-        sFile = PathCombine(App.Path, App.EXEName & ".conf")
-        If Not FileExists(sFile) Then
-            sFile = vbNullString
+    sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
+    If NtServiceInit(STR_SERVICE_NAME) Then
+        m_bIsService = True
+    ElseIf m_oOpt.Item("--install") Or m_oOpt.Item("-i") Then
+        DebugLog Printf("Installing %1...", STR_SERVICE_NAME)
+        If LenB(sConfFile) <> 0 Then
+            sConfFile = " -c " & ArgvQuote(sConfFile)
+        End If
+        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
+            DebugLog sError
+        Else
+            DebugLog "Success"
+        End If
+        GoTo QH
+    ElseIf m_oOpt.Item("--uninstall") Or m_oOpt.Item("-u") Then
+        DebugLog Printf("Uninstalling %1...", STR_SERVICE_NAME)
+        If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
+            DebugLog sError
+        Else
+            DebugLog "Success"
+        End If
+        GoTo QH
+    End If
+    If LenB(sConfFile) = 0 Then
+        sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
+        If Not FileExists(sConfFile) Then
+            sConfFile = vbNullString
         End If
     End If
-    If LenB(sFile) <> 0 Then
-        If Not FileExists(sFile) Then
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_CONFIG_NOT_FOUND & vbCrLf, sFile
+    If LenB(sConfFile) <> 0 Then
+        DebugLog Printf(STR_LOADING_CONFIG, sConfFile)
+        If Not FileExists(sConfFile) Then
+            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
-        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sFile)), oConfig, Error:=sError) Then
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_PARSING_CONFIG & vbCrLf, sFile, sError
+        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sConfFile)), oConfig, Error:=sError) Then
+            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
@@ -92,13 +121,18 @@ Private Function Process(vArgs As Variant) As Long
         JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
     End If
     Set m_oPrinters = pvCollectPrinters(oConfig)
-    ConsolePrint STR_PRINTERS_FOUND & vbCrLf, JsonItem(m_oPrinters, "Count")
-    ConsolePrint JsonDump(m_oPrinters) & vbCrLf
+    DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
+    DebugLog JsonDump(m_oPrinters)
     Set m_cEndpoints = pvCreateEndpoints(oConfig, m_oPrinters)
-    ConsolePrint STR_PRESS_CTRLC & vbCrLf
     If InIde Then
         frmIcon.Show vbModal
+    ElseIf m_bIsService Then
+        Do While Not NtServiceQueryStop()
+            '--- do nothing
+        Loop
+        NtServiceTerminate
     Else
+        DebugLog STR_PRESS_CTRLC
         Do
             ConsoleRead
             DoEvents
@@ -126,10 +160,10 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
     Set oFP = New cFiscalPrinter
     JsonItem(oRetVal, "Count") = 0
     If JsonItem(oConfig, "Printers/Autodetect") Then
-        ConsolePrint STR_AUTODETECTING_PRINTERS & vbCrLf
+        DebugLog STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
-                ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, STR_ERROR_ENUM_PORTS & vbCrLf, vKey, JsonItem(oJson, "ErrorText")
+                DebugLog Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
                     If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
@@ -161,7 +195,7 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
             JsonItem(oRequest, "IncludeTaxNo") = True
             If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
                 If Not JsonItem(oJson, "Ok") Then
-                    ConsoleError STR_INFO_ERROR_ACCESSING & vbCrLf, vKey, JsonItem(oJson, "ErrorText")
+                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeWarning
                 Else
                     sKey = JsonItem(oJson, "DeviceSerialNo")
                     If LenB(sKey) <> 0 Then
@@ -208,3 +242,19 @@ EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Private Function GetProcessName() As String
+    GetProcessName = String$(1000, 0)
+    Call GetModuleFileName(0, GetProcessName, Len(GetProcessName) - 1)
+    GetProcessName = Left$(GetProcessName, InStr(GetProcessName, vbNullChar) - 1)
+End Function
+
+Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
+    If m_bIsService Then
+        App.LogEvent sText, eType
+    ElseIf eType = vbLogEventTypeError Then
+        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sText & vbCrLf
+    Else
+        ConsolePrint sText & vbCrLf
+    End If
+End Sub
