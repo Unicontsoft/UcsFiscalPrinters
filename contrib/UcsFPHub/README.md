@@ -64,7 +64,7 @@ These are the REST service endpoints supported.
 
 #### `GET` `/printers`
 
-Lists currently configured printers.
+Lists currently configured devices.
 
 ```
 C:> curl -s http://localhost:8192/printers | jq
@@ -105,7 +105,7 @@ C:> curl -s http://localhost:8192/printers | jq
 
 #### `GET` `/printers/:printer_id`
 
-Retrieves single printer configuration
+Retrieves single device configuration
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315 | jq
@@ -126,6 +126,8 @@ C:> curl -s http://localhost:8192/printers/DT518315 | jq
 
 #### `GET` `/printers/:printer_id/status`
 
+Get device status and current clock.
+
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/status | jq
 ```
@@ -139,7 +141,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/status | jq
 
 #### `POST` `/printers/:printer_id/receipt`
 
-Print fiscal receipt, reversal receipt, invoice or credit note.
+Print fiscal receipt, reversal, invoice or credit note.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/receipt -d "{ }" | jq
@@ -156,7 +158,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/receipt -d "{ }" | jq
 
 #### `POST` `/printers/:printer_id/deposit`
 
-Print service deposit or withdraw
+Print service deposit or withdraw.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" | jq
@@ -174,7 +176,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12
 
 #### `POST` `/printers/:printer_id/report`
 
-Print reports. Supports daily X or Z and monthly report (by date range).
+Print device reports. Supports daily X or Z reports and monthly (by date range) report.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 }" | jq
