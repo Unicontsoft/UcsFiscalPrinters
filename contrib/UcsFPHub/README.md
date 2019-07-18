@@ -1,9 +1,9 @@
 ## UcsFPHub
-Unicontsoft Fiscal Printers Hub -- the `UcsFPHub` service
+Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 ### Description
 
-Unicontsoft Fiscal Printers Hub repo builds to a standalone executable that runs on client workstations as a background `UcsFPHub` service and provides remote access to locally attached fiscal devices.
+Unicontsoft Fiscal Printers Hub repo builds a standalone `UcsFPHub` service executable that runs in the background (or as an NT service) to provide remote access to client-workstation attached fiscal devices.
 
 The access to fiscal devices is provided by parent `UcsFP20` component and supports serial port or TCP/IP connectivity to attached devices. Most fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
 
