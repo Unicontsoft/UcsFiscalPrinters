@@ -19,7 +19,6 @@ DefObj A-Z
 Private Const STD_INPUT_HANDLE              As Long = -10&
 Private Const STD_OUTPUT_HANDLE             As Long = -11&
 Private Const STD_ERROR_HANDLE              As Long = -12&
-'--- error codes
 Private Const INPUT_RECORD_SIZE             As Long = 20
 Private Const KEY_EVENT                     As Long = 1
 
