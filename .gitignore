@@ -7,3 +7,4 @@
 *.scc
 _del/*
 bin/*
+scripts/*
