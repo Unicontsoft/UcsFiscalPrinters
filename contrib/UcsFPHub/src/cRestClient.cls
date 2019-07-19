@@ -251,15 +251,17 @@ Private Sub m_oSocket_OnReceive()
     End If
     If Not m_oHeaders Is Nothing Then
         lSize = UBound(m_baBuffer) + 1 - m_lHdrSize
-        If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-            If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-                GoTo QH
+        If lSize > 0 Then
+            If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+                If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+                    GoTo QH
+                End If
             End If
-        End If
-        m_sBody = String$(2 * lSize, 0)
-        lSize = MultiByteToWideChar(CP_UTF8, 0, m_baBuffer(m_lHdrSize), lSize, StrPtr(m_sBody), Len(m_sBody) + 1)
-        If lSize <> Len(m_sBody) Then
-            m_sBody = Left$(m_sBody, lSize)
+            m_sBody = String$(2 * lSize, 0)
+            lSize = MultiByteToWideChar(CP_UTF8, 0, m_baBuffer(m_lHdrSize), lSize, StrPtr(m_sBody), Len(m_sBody) + 1)
+            If lSize <> Len(m_sBody) Then
+                m_sBody = Left$(m_sBody, lSize)
+            End If
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
