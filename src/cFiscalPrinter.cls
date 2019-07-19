@@ -213,6 +213,7 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim lIdx            As Long
+    Dim bIncludeAll     As Boolean
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -224,25 +225,26 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     JsonItem(oRetVal, "DeviceModel") = oFP.GetDeviceModel()
     JsonItem(oRetVal, "FirmwareVersion") = oFP.GetDeviceFirmware()
     JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
-    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Then
+    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
+    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
         For lIdx = 1 To 6
             JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
         Next
     End If
-    If C_Bool(JsonItem(oJson, "IncludeFooters")) Then
+    If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
         For lIdx = 1 To 2
             JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
         Next
     End If
-    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Then
+    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
         JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
         JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     End If
-    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Then
+    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
         JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
         JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
     End If
-    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then
+    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
         For lIdx = 1 To 3
             JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
         Next
@@ -251,7 +253,9 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
         Next
     End If
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
-        JsonItem(oRetVal, "DefOperPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
+        JsonItem(oRetVal, "Operator/Code") = JsonItem(oJson, "Operator/Code")
+        JsonItem(oRetVal, "Operator/Name") = oFP.GetOperatorName(JsonItem(oJson, "Operator/Code"))
+        JsonItem(oRetVal, "Operator/Password") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
     End If
 QH:
     GetDeviceInfo = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
@@ -306,7 +310,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         If Not oFP.StartReceipt(C_Lng(JsonItem(oJson, "ReceiptType")), _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
-                JsonItem(oJson, "Operator/Pass"), _
+                JsonItem(oJson, "Operator/Password"), _
                 JsonItem(oJson, "UniqueSaleNo"), _
                 JsonItem(oJson, "TableNo"), _
                 JsonItem(oJson, "Invoice/DocNo"), _
@@ -490,27 +494,42 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     Dim dDateTime       As Date
     Dim bResult         As Boolean
     Dim sStatus         As String
+    Dim lTolerance      As Long
+    Dim dCurrent        As Date
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
     dDateTime = C_Date(JsonItem(oJson, "DeviceDateTime"))
+    lTolerance = C_Lng(JsonItem(oJson, "AdjustTolerance"))
+    dCurrent = oFP.GetClock()
+    If dDateTime = 0 And lTolerance = 0 Then
+        GoTo SkipSetClock
+    End If
     If dDateTime = 0 Then
         dDateTime = Now
     End If
-    If Abs(DateDiff("m", oFP.GetClock(), dDateTime)) > 0 Then
+    If lTolerance = 0 Then
         bResult = oFP.SetClock(dDateTime)
+    ElseIf Abs(DateDiff("s", dCurrent, dDateTime)) >= lTolerance Then
+        bResult = oFP.SetClock(dDateTime)
+    Else
+        GoTo SkipSetClock
     End If
     If Not bResult Then
         sLastErr = oFP.GetLastError(eLastNo)
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
+    Else
+        JsonItem(oRetVal, "PreviousDateTime") = dCurrent
+        dCurrent = oFP.GetClock()
     End If
+SkipSetClock:
     If oFP.GetDeviceStatus(sStatus) Then
         JsonItem(oRetVal, "DeviceStatus") = sStatus
     End If
-    JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+    JsonItem(oRetVal, "DeviceDateTime") = dCurrent
 QH:
     InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -658,7 +677,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Amount")))
+    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
@@ -667,8 +686,10 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    If Abs(C_Dbl(JsonItem(oJson, "Amount"))) > DBL_EPSILON Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    End If
     JsonItem(oRetVal, "Available") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
