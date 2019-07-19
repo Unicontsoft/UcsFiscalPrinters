@@ -802,9 +802,9 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
         GoTo QH
     End If
-    pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
-    If LenB(pvGetRowData.Amount) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "PaymentType")) Then
         pvGetRowData.RowType = ucsRwtPayment
+        pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
         pvGetRowData.PmtType = C_Str(JsonItem(oRow, "PaymentType"))
         pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH
