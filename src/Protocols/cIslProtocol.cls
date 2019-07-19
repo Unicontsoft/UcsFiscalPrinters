@@ -1874,9 +1874,11 @@ Public Sub SetLocalizedCommand( _
             Optional ByVal cmd As UcsIslCommandsEnum, _
             Optional Param As String, _
             Optional More As Variant)
+    Const FUNC_NAME     As String = "SetLocalizedCommand"
     Dim sMerged         As String
     Dim lIdx            As Long
     
+    On Error GoTo EH
     If m_uConfig.LocalizedCommands Is Nothing Then
         Set m_uConfig.LocalizedCommands = New Collection
     End If
@@ -1894,12 +1896,17 @@ Public Sub SetLocalizedCommand( _
             Next
         End If
     End With
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional More As Variant)
+    Const FUNC_NAME     As String = "ClearLocalizedCommand"
     Dim sMerged         As String
     Dim lIdx            As Long
     
+    On Error GoTo EH
     sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
     If SearchCollection(m_uConfig.LocalizedCommands, sMerged) Then
         m_uConfig.LocalizedCommands.Remove sMerged
@@ -1914,7 +1921,30 @@ Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional M
             End If
         Next
     End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
+
+Public Function GetOperatorName(OperatorCode As String) As String
+    Const FUNC_NAME     As String = "GetOperatorName"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    Dim bPrevExceptions As Boolean
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsFpcInfoOperator, sParam, "%1", _
+        "Index", lIndex, 5
+    sParam = Printf(sParam, OperatorCode)
+    bPrevExceptions = pvSetExceptions(False)
+    GetOperatorName = At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex)
+    pvSetExceptions bPrevExceptions
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
 
 Public Function GetDefaultPassword(OperatorCode As String) As String
     If IsEcr Or IsDaisy Or IsIncotex Then
@@ -2885,6 +2915,10 @@ End Function
 
 Private Function IDeviceProtocol_GetCommandLog() As String
     IDeviceProtocol_GetCommandLog = m_sCommandLog
+End Function
+
+Private Function IDeviceProtocol_GetOperatorName(OperatorCode As String) As String
+    IDeviceProtocol_GetOperatorName = GetOperatorName(OperatorCode)
 End Function
 
 Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
