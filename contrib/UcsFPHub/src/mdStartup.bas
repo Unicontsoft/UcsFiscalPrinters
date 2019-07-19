@@ -19,6 +19,9 @@ Private Const MODULE_NAME As String = "mdStartup"
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
+Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -27,7 +30,8 @@ Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNa
 Private Const STR_VERSION           As String = "0.1.2"
 Private Const STR_SERVICE_NAME      As String = "UcsFPHub"
 Private Const STR_DISPLAY_NAME      As String = "Unicontsoft Fiscal Printers Hub " & STR_VERSION
-Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери..."
+Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
+Private Const STR_ENVIRON_VARS_FOUND As String = "Конфигурирани %1 променливи на средата"
 Private Const STR_PRINTERS_FOUND    As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC       As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG    As String = "Зарежда конфигурация от %1"
@@ -39,6 +43,7 @@ Private Const ERR_WARN_ACCESS       As String = "Предупреждение: Принтер %1: %2"
 
 Private m_oOpt                  As Object
 Private m_oPrinters             As Object
+Private m_oConfig               As Object
 Private m_cEndpoints            As Collection
 Private m_bIsService            As Boolean
 
@@ -49,6 +54,30 @@ Private m_bIsService            As Boolean
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
 End Sub
+
+'=========================================================================
+' Propetties
+'=========================================================================
+
+Private Property Get pvConfigItem(sKey As String) As Variant
+    Dim sText          As String
+    
+    AssignVariant pvConfigItem, JsonItem(m_oConfig, sKey)
+    If VarType(pvConfigItem) = vbString Then
+        sText = String$(ExpandEnvironmentStrings(pvConfigItem, vbNullString, 0), 0)
+        If ExpandEnvironmentStrings(pvConfigItem, sText, Len(sText)) > 0 Then
+            pvConfigItem = Left$(sText, InStr(sText, vbNullChar) - 1)
+        End If
+    End If
+End Property
+
+Private Property Let pvConfigItem(sKey As String, vValue As Variant)
+    JsonItem(m_oConfig, sKey) = vValue
+End Property
+
+Private Property Get pvConfigKeys(sKey As String) As Variant
+    AssignVariant pvConfigKeys, JsonKeys(m_oConfig, sKey)
+End Property
 
 '=========================================================================
 ' Functions
@@ -67,7 +96,7 @@ Private Function Process(vArgs As Variant) As Long
     Const FUNC_NAME     As String = "Process"
     Dim sConfFile       As String
     Dim sError          As String
-    Dim oConfig         As Object
+    Dim vKey            As Variant
     
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
@@ -110,20 +139,25 @@ Private Function Process(vArgs As Variant) As Long
             Process = 1
             GoTo QH
         End If
-        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sConfFile)), oConfig, Error:=sError) Then
+        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sConfFile)), m_oConfig, Error:=sError) Then
             DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
     Else
-        JsonItem(oConfig, "Printers/Autodetect") = True
-        JsonItem(oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
+        pvConfigItem("Printers/Autodetect") = True
+        pvConfigItem("Endpoints/0/Binding") = "RestHttp"
+        pvConfigItem("Endpoints/0/Address") = "127.0.0.1:8192"
     End If
-    Set m_oPrinters = pvCollectPrinters(oConfig)
+    If UBound(pvConfigKeys("Environment")) >= 0 Then
+        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(pvConfigKeys("Environment")) + 1)
+        For Each vKey In pvConfigKeys("Environment")
+            Call SetEnvironmentVariable(vKey, C_Str(pvConfigItem("Environment/" & vKey)))
+        Next
+    End If
+    Set m_oPrinters = pvCollectPrinters()
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
-    DebugLog JsonDump(m_oPrinters)
-    Set m_cEndpoints = pvCreateEndpoints(oConfig, m_oPrinters)
+    Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If InIde Then
         frmIcon.Show vbModal
     ElseIf m_bIsService Then
@@ -145,7 +179,7 @@ EH:
     Process = 100
 End Function
 
-Private Function pvCollectPrinters(oConfig As Object) As Object
+Private Function pvCollectPrinters() As Object
     Const FUNC_NAME     As String = "pvCollectPrinters"
     Dim oFP             As cFiscalPrinter
     Dim sResponse       As String
@@ -159,7 +193,7 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
     JsonItem(oRetVal, "Count") = 0
-    If JsonItem(oConfig, "Printers/Autodetect") Then
+    If pvConfigItem("Printers/Autodetect") Then
         DebugLog STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
@@ -187,8 +221,8 @@ Private Function pvCollectPrinters(oConfig As Object) As Object
             End If
         End If
     End If
-    For Each vKey In JsonKeys(oConfig, "Printers")
-        sDeviceString = C_Str(JsonItem(oConfig, "Printers/" & vKey & "/DeviceString"))
+    For Each vKey In pvConfigKeys("Printers")
+        sDeviceString = C_Str(pvConfigItem("Printers/" & vKey & "/DeviceString"))
         If LenB(sDeviceString) <> 0 Then
             Set oRequest = Nothing
             JsonItem(oRequest, "DeviceString") = sDeviceString
@@ -217,7 +251,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvCreateEndpoints(oConfig As Object, oPrinters As Object) As Collection
+Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     Const FUNC_NAME     As String = "pvCreateEndpoints"
     Dim cRetVal         As Collection
     Dim vKey            As Variant
@@ -225,11 +259,11 @@ Private Function pvCreateEndpoints(oConfig As Object, oPrinters As Object) As Co
     
     On Error GoTo EH
     Set cRetVal = New Collection
-    For Each vKey In JsonKeys(oConfig, "Endpoints")
-        Select Case LCase$(JsonItem(oConfig, "Endpoints/" & vKey & "/Binding"))
+    For Each vKey In pvConfigKeys("Endpoints")
+        Select Case LCase$(pvConfigItem("Endpoints/" & vKey & "/Binding"))
         Case "resthttp"
             Set oRestEndpoint = New cRestEndpoint
-            If oRestEndpoint.Init(JsonItem(oConfig, "Endpoints/" & vKey), oPrinters) Then
+            If oRestEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oRestEndpoint
             End If
         Case "mssqlservicebroker"
@@ -257,4 +291,22 @@ Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstan
     Else
         ConsolePrint sText & vbCrLf
     End If
+End Sub
+
+Public Function GetEnvironmentVar(sName As String) As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
+    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+End Function
+
+Private Sub AssignVariant(vDest As Variant, vSrc As Variant)
+    On Error GoTo QH
+    If IsObject(vSrc) Then
+        Set vDest = vSrc
+    Else
+        vDest = vSrc
+    End If
+QH:
 End Sub
