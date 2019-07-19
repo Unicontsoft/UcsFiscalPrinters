@@ -111,6 +111,7 @@ Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCo
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -496,7 +497,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error Resume Next '--- checked
     If m_nDebugLogFile = 0 Then
-        sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
+        sFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
         If LenB(sFile) = 0 Then
             sFile = GetErrorTempPath() & "\UcsFP.log"
             If Not FileExists(sFile) Then
@@ -541,7 +542,7 @@ Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As St
         Exit Sub
     End If
     If lLogging = 0 Then
-        lLogging = IIf(CBool(Val(Environ$("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
+        lLogging = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
     End If
     If lLogging < 0 Then
         Exit Sub
@@ -1597,4 +1598,12 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
         JsonItem(oRetVal, sKey) = sValue
     Loop
     Set ParseDeviceString = oRetVal
+End Function
+
+Public Function GetEnvironmentVar(sName As String) As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
+    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
 End Function
