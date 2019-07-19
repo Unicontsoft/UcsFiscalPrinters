@@ -27,7 +27,7 @@ Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEn
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_VERSION           As String = "0.1.2"
+Private Const STR_VERSION           As String = "0.1.3"
 Private Const STR_SERVICE_NAME      As String = "UcsFPHub"
 Private Const STR_DISPLAY_NAME      As String = "Unicontsoft Fiscal Printers Hub " & STR_VERSION
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
