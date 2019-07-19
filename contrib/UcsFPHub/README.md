@@ -3,15 +3,15 @@ Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to lo
 
 ### Description
 
-Unicontsoft Fiscal Printers Hub repository builds the standalone `UcsFPHub` service executable that can run as a background process or NT service and provide shared access to some or all fiscal devices that are attached to this client workstation.
+Unicontsoft Fiscal Printers Hub repository builds the standalone `UcsFPHub` service executable that can run as a background process or NT service and provide shared access to some or all fiscal devices that are attached to particular client workstation.
 
 The wire protocols implementation is provided by the parent `UcsFP20` component and supports serial COM port connectivity to locally attached devices or TCP/IP (LAN) connectivity to remote devices. Most locally attached fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
 
-You can use the settings file to configure and allow fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service on local TCP/IP port or as a Microsoft SQL Server on a designated Service Broker queue.
+You can use a settings file to allow and configure fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service (local TCP/IP ports) or as a Service Broker queue (through Microsoft SQL Server connection).
 
 ### Configuration
 
-The service is configured through `UcsFPHub.conf` file in JSON format. Here is a sample settings file:
+The service is configured by a `UcsFPHub.conf` file in JSON format. Here is a sample settings file:
 
 ```json
 {
@@ -230,7 +230,7 @@ C:> curl http://localhost:8192/printers/DT518315/status -sS | jq
 
 Print fiscal receipt, reversal, invoice or credit note.
 
-Following `data-utf8.txt` prints a fiscal receipt for two products, second one is with discount. The receipt in paid first 10.00 leva with a bank card and the rest in cash. After receipt totals a free-text line output client loyalty card number used for information.
+Following `data-utf8.txt` prints a fiscal receipt for two products, second one is with discount. The receipt in paid first 10.00 leva with a bank card and the rest in cash. After all receipt totals are printed a free-text line outputs current client loyalty card number used for information.
 
 ```json
 {
