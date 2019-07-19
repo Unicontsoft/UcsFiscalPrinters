@@ -238,7 +238,7 @@ Following `data-utf8.txt` prints a fiscal receipt for two products, second one i
     "Operator": {
         "Code": "1",
         "Name": "Иван Иванов",
-        "Password": "1"
+        "Password": "****"
     },
     "UniqueSaleNo": "DT518315-0001-1234567",
     "Rows": [
