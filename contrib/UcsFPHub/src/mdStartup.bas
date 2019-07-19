@@ -192,6 +192,7 @@ Private Function pvCollectPrinters() As Object
     
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
+    JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "Count") = 0
     If pvConfigItem("Printers/Autodetect") Then
         DebugLog STR_AUTODETECTING_PRINTERS
