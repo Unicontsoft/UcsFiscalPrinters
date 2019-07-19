@@ -285,7 +285,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
 
 ```
-C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
+C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true }" -sS | jq
 ```
 ```json
 {
