@@ -3,15 +3,15 @@ Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to lo
 
 ### Description
 
-Unicontsoft Fiscal Printers Hub repo builds a standalone `UcsFPHub` service executable that runs in the background (or as an NT service) to provide remote access to client-workstation attached fiscal devices.
+Unicontsoft Fiscal Printers Hub repository builds the standalone `UcsFPHub` service executable that can run as a background process or NT service and provide shared access to some or all fiscal devices that are attached to this client workstation.
 
-The access to fiscal devices is provided by parent `UcsFP20` component and supports serial port or TCP/IP connectivity to attached devices. Most fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
+The wire protocols implementation is provided by the parent `UcsFP20` component and supports serial COM port connectivity to locally attached devices or TCP/IP (LAN) connectivity to remote devices. Most locally attached fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
 
-You can use a settings file to configure the available endpoints on which the service is accessible e.g. as a JSON based REST service on local TCP/IP port or as a Microsoft SQL Server designated Service Broker queue.
+You can use the settings file to configure and allow fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service on local TCP/IP port or as a Microsoft SQL Server on a designated Service Broker queue.
 
 ### Configuration
 
-The service is configured through `UcsFPHub.conf` file in JSON format. Here is a sample configuration file:
+The service is configured through `UcsFPHub.conf` file in JSON format. Here is a sample settings file:
 
 ```json
 {
@@ -57,11 +57,15 @@ Currently the `UcsFPHub` service supports these environment variables:
 | `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service. |
 | `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.                   |
 
-### REST service protocol description
+### ToDo
+
+ - [ ] Listener on Service Broker queues
+    
+## REST service protocol description
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. You can address printers by serial number or by ID (alias) in config file.
 
-All responses are in minimized JSON so `curl` sample requests below can use [`jq`](https://stedolan.github.io/jq/) to format JSON results.
+The service returns minimized JSON so `curl` sample requests below are using [`jq`](https://stedolan.github.io/jq/) to format JSON results.
 
 These are the REST service endpoints supported:
 
@@ -70,7 +74,7 @@ These are the REST service endpoints supported:
 List currently configured devices.
 
 ```
-C:> curl -s http://localhost:8192/printers | jq
+C:> curl http://localhost:8192/printers -sS | jq
 ```
 ```json
 {
@@ -111,7 +115,7 @@ C:> curl -s http://localhost:8192/printers | jq
 Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315 | jq
+C:> curl http://localhost:8192/printers/DT518315 -sS | jq
 ```
 ```json
 {
@@ -154,7 +158,7 @@ C:> curl -s http://localhost:8192/printers/DT518315 | jq
 
 Retrieve device configuration only. This will not communicate with the device if config is already retrieved on previous connection.
 ```
-C:> curl -s http://localhost:8192/printers/DT518315 -d "{ }"  | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ }"  -sS | jq
 ```
 ```json
 {
@@ -170,7 +174,7 @@ C:> curl -s http://localhost:8192/printers/DT518315 -d "{ }"  | jq
 
 Retrieve device configuration, operator name and default password.
 ```
-C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }"  | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }"  -sS | jq
 ```
 ```json
 {
@@ -191,7 +195,7 @@ C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code
 
 Retrieve device configuration and tax number/caption only
 ```
-C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"  | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"  -sS | jq
 ```
 ```json
 {
@@ -212,7 +216,7 @@ C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true
 Get device status and current clock.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/status | jq
+C:> curl http://localhost:8192/printers/DT518315/status -sS | jq
 ```
 ```json
 {
@@ -226,16 +230,50 @@ C:> curl -s http://localhost:8192/printers/DT518315/status | jq
 
 Print fiscal receipt, reversal, invoice or credit note.
 
+Following `data-utf8.txt` prints a fiscal receipt for two products, second one is with discount. The receipt in paid first 10.00 leva with a bank card and the rest in cash. After receipt totals a free-text line output client loyalty card number used for information.
+
+```json
+{
+    "ReceiptType": 1,
+    "Operator": {
+        "Code": "1",
+        "Name": "Иван Иванов",
+        "Password": "1"
+    },
+    "UniqueSaleNo": "DT518315-0001-1234567",
+    "Rows": [
+        {
+            "ItemName": "Продукт 1",
+            "Price": 12.34,
+        },
+        {
+            "ItemName": "Продукт 2",
+            "Price": 5.67,
+            "TaxGroup": 2,
+            "Quantity": 3.5,
+            "Discount": 15
+        },
+        {
+            "Amount": 10,
+            "PaymentType": 2
+        },
+        {
+            "PaymentType": 1
+        },
+        {
+            "Text": "Клиентска карта: 12345"
+        }
+    ]
+}
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/receipt -d ^"{  ^
-    \"ReceiptType\": 1 ^
-}^" | jq
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000048",
-  "ReceiptDateTime": "2018-07-19 22:59:34",
+  "ReceiptNo": "0000056",
+  "ReceiptDateTime": "2019-07-19 14:05:18",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
 }
@@ -251,13 +289,25 @@ Supported `ReceiptType` values:
 | `ucsFscRcpCreditNote` | 4     | Prints extended reversal receipt  |
 | `ucsFscRcpOrderList`  | 5     | Prints kitchen printers order-list |
 
+Supported `PaymentType` values:
+
+| Name                  | Value | Description                                             |
+| --------------        | ----- | ------------------------------------------------------- |
+| `ucsFscPmtCash`       | 1     | Payment in cash |
+| `ucsFscPmtCard`       | 2     | Payment with debit/credit card |
+| `ucsFscPmtCheque`     | 3     | Bank payment (if available) |
+| `ucsFscPmtCustom1`    | -1    | First custom payment (Талони) |
+| `ucsFscPmtCustom2`    | -2    | Second custom payment (В.Талони) |
+| `ucsFscPmtCustom3`    | -3    | Third custom payment (Резерв.1) |
+| `ucsFscPmtCustom4`    | -4    | Fourth custom payment (Резерв.2) |
+
 
 #### `GET` `/printers/:printer_id/deposit`
 
-Retrieve service deposit or service withdraw totals.
+Retrieve service deposit and service withdraw totals.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/deposit  | jq
+C:> curl http://localhost:8192/printers/DT518315/deposit  -sS | jq
 ```
 ```json
 {
@@ -273,7 +323,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/deposit  | jq
 Print service deposit.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" | jq
+C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" -sS | jq
 ```
 ```json
 {
@@ -289,13 +339,13 @@ C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12
 Print service withdraw.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
+C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
     \"Amount\": -56.78, ^
     \"Operator\": { ^
         \"Code\": \"2\", ^
         \"Password\": \"****\" ^
     } ^
-}^" | jq
+}^" -sS | jq
 ```
 ```json
 {
@@ -313,7 +363,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
 Print device reports. Supports daily X or Z reports and monthly (by date range) reports.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 }" | jq
+C:> curl http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 }" -sS | jq
 ```
 ```json
 {
@@ -338,7 +388,7 @@ Supported `ReportType` values:
 Get current device date/time.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/datetime | jq
+C:> curl http://localhost:8192/printers/DT518315/datetime -sS | jq
 ```
 ```json
 {
@@ -353,7 +403,7 @@ C:> curl -s http://localhost:8192/printers/DT518315/datetime | jq
 Set device date/time.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" | jq
+C:> curl http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" -sS | jq
 ```
 ```json
 {
@@ -367,10 +417,10 @@ C:> curl -s http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateT
 Set device date/time only when device clock is outside specified tolerance (in seconds).
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
+C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
     \"DeviceDateTime\": \"2019-07-19 11:58:31\", ^
     \"AdjustTolerance\": 60 ^
-}^" | jq
+}^" -sS | jq
 ```
 ```json
 {
@@ -380,8 +430,3 @@ C:> curl -s http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
   "DeviceDateTime": "2019-07-19 11:58:31"
 }
 ```
-
-### ToDo
-
- - [ ] Listener on Service Broker queues
-    
