@@ -282,6 +282,30 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 }
 ```
 
+Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
+
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
+```
+```json
+{
+  "Ok": false,
+  "ErrorText": "Непозволена команда"
+}
+```
+
+Print duplicate receipt (by receipt number) from device Electronic Journal.
+
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
+```
+```json
+{
+  "Ok": false,
+  "ErrorText": "Непозволена команда"
+}
+```
+
 Supported `ReceiptType` values:
 
 | Name                  | Value | Description                                             |
