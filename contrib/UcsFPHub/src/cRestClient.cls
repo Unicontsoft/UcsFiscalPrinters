@@ -29,7 +29,12 @@ Private Const MODULE_NAME As String = "cRestClient"
 ' API
 '=========================================================================
 
+'--- for MultiByteToWideChar
+Private Const CP_UTF8                       As Long = 65001
+
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function vbaObjSetAddref Lib "msvbvm60" Alias "__vbaObjSetAddref" (oDest As Any, ByVal lSrcPtr As Long) As Long
+Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As Long, lpMultiByteStr As Any, ByVal cchMultiByte As Long, ByVal lpWideCharStr As Long, ByVal cchWideChar As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -44,9 +49,11 @@ Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
 Private m_oController               As cServiceController
+Private m_baBuffer()                As Byte
+Private m_lHdrSize                  As Long
 '--- http request members
 Private m_oHeaders                  As Object
-Private m_sBuffer                   As String
+Private m_sBody                     As String
 Private m_sHttpMethod               As String
 Private m_sRawUrl                   As String
 Private m_sProtocolVersion          As String
@@ -93,7 +100,7 @@ Property Get Headers() As Object
 End Property
 
 Property Get Body() As String
-    Body = m_sBuffer
+    Body = m_sBody
 End Property
 
 Private Property Get pvParent() As cRestEndpoint
@@ -111,6 +118,7 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
+    pvClearState
     '--- init socket
     Set m_oSocket = New cAsyncSocket
     If Not oSocket.Accept(m_oSocket) Then
@@ -140,8 +148,9 @@ EH:
 End Function
 
 Private Sub pvClearState()
+    m_baBuffer = vbNullString
     Set m_oHeaders = Nothing
-    m_sBuffer = vbNullString
+    m_sBody = vbNullString
     m_sHttpMethod = vbNullString
     m_sRawUrl = vbNullString
     m_sProtocolVersion = vbNullString
@@ -150,47 +159,52 @@ End Sub
 Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boolean
     Const FUNC_NAME     As String = "pvHandleRequest"
     Dim sResponse       As String
-    Dim baBuffer()      As Byte
+    Dim sStatusCode     As String
+    Dim sContentType    As String
+    Dim baBody()        As Byte
     
     On Error GoTo EH
     #If sQueryString Then '--- touch args
     #End If
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
-        baBuffer = m_oSocket.ToTextArray("400 Bad request")
-        m_oSocket.SendText "HTTP/1.1 400 Bad request" & vbCrLf & _
-            HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-        m_oSocket.SendArray baBuffer
+        sStatusCode = "400 Bad request"
+        sContentType = "text/plain; charset=utf-8"
+        baBody = m_oSocket.ToTextArray("400 Bad request")
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest(sPath, m_sBuffer, sResponse) Then
+    If Not m_oController.ServiceRequest(sPath, m_sBody, sResponse) Then
         If LenB(sResponse) = 0 Then
             If LenB(m_oController.LastError) <> 0 Then
-                baBuffer = m_oSocket.ToTextArray(m_oController.LastError)
-                GoTo InternalServerError
+                sStatusCode = "500 Internal Server Error"
+                sContentType = "text/plain; charset=utf-8"
+                baBody = m_oSocket.ToTextArray(m_oController.LastError)
+                GoTo QH
             End If
-            baBuffer = m_oSocket.ToTextArray("404 Not Found")
-            m_oSocket.SendText "HTTP/1.1 404 Not Found" & vbCrLf & _
-                HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-            m_oSocket.SendArray baBuffer
+            sStatusCode = "404 Not Found"
+            sContentType = "text/plain; charset=utf-8"
+            baBody = m_oSocket.ToTextArray(sStatusCode)
             GoTo QH
         End If
     End If
-    baBuffer = m_oSocket.ToTextArray(sResponse)
-    m_oSocket.SendText "HTTP/1.1 200 OK" & vbCrLf & _
-        HDR_CONTENT_TYPE & ": application/json; charset=utf-8" & vbCrLf & _
-        HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-    m_oSocket.SendArray baBuffer
+    sStatusCode = "200 OK"
+    sContentType = "application/json; charset=utf-8"
+    baBody = m_oSocket.ToTextArray(sResponse)
     '--- success
     pvHandleRequest = True
 QH:
+    If LenB(sStatusCode) <> 0 And Not m_oSocket Is Nothing Then
+        m_oSocket.SendText "HTTP/1.1 " & sStatusCode & vbCrLf & _
+            HDR_CONTENT_TYPE & ": " & sContentType & vbCrLf & _
+            HDR_CONTENT_LENGTH & ": " & UBound(baBody) + 1 & vbCrLf & vbCrLf
+        m_oSocket.SendArray baBody
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
-    baBuffer = m_oSocket.ToTextArray(m_sLastError)
-InternalServerError:
-    m_oSocket.SendText "HTTP/1.1 500 Internal Server Error" & vbCrLf & _
-        HDR_CONTENT_LENGTH & ": " & UBound(baBuffer) + 1 & vbCrLf & vbCrLf
-    m_oSocket.SendArray baBuffer
+    sStatusCode = "500 Internal Server Error"
+    sContentType = "text/plain; charset=utf-8"
+    baBody = m_oSocket.ToTextArray(m_sLastError)
+    GoTo QH
 End Function
 
 '=========================================================================
@@ -203,13 +217,22 @@ Private Sub m_oSocket_OnReceive()
     Dim vElem           As Variant
     Dim lPos            As Long
     Dim lIdx            As Long
-   
+    Dim baBuffer()      As Byte
+    
     On Error GoTo EH
-    m_sBuffer = m_sBuffer & m_oSocket.ReceiveText()
+    If Not m_oSocket.ReceiveArray(baBuffer) Then
+        GoTo QH
+    End If
+    If UBound(baBuffer) < 0 Then
+        GoTo QH
+    End If
+    lIdx = UBound(m_baBuffer) + 1
+    ReDim m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
+    Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     If m_oHeaders Is Nothing Then
-        lSize = InStr(m_sBuffer, vbCrLf & vbCrLf)
-        If lSize > 0 Then
-            For Each vElem In Split(Left$(m_sBuffer, lSize), vbCrLf)
+        m_lHdrSize = InStrB(1, m_baBuffer, StrConv(vbCrLf & vbCrLf, vbFromUnicode))
+        If m_lHdrSize > 0 Then
+            For Each vElem In Split(Left$(StrConv(m_baBuffer, vbUnicode), m_lHdrSize - 1), vbCrLf)
                 If lIdx = 0 Then
                     vElem = Split(vElem, " ")
                     m_sHttpMethod = At(vElem, 0)
@@ -223,14 +246,20 @@ Private Sub m_oSocket_OnReceive()
                 End If
                 lIdx = lIdx + 1
             Next
+            m_lHdrSize = m_lHdrSize + 3
         End If
-        m_sBuffer = Mid$(m_sBuffer, lSize + 4)
     End If
     If Not m_oHeaders Is Nothing Then
+        lSize = UBound(m_baBuffer) + 1 - m_lHdrSize
         If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-            If Len(m_sBuffer) < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+            If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
                 GoTo QH
             End If
+        End If
+        m_sBody = String$(2 * lSize, 0)
+        lSize = MultiByteToWideChar(CP_UTF8, 0, m_baBuffer(m_lHdrSize), lSize, StrPtr(m_sBody), Len(m_sBody) + 1)
+        If lSize <> Len(m_sBody) Then
+            m_sBody = Left$(m_sBody, lSize)
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
