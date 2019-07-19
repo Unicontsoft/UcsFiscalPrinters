@@ -61,6 +61,8 @@ Currently the `UcsFPHub` service supports these environment variables:
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. You can address printers by serial number or by ID (alias) in config file.
 
+All responses are in minimized JSON so `curl` sample requests below can use [`jq`](https://stedolan.github.io/jq/) to format JSON results.
+
 These are the REST service endpoints supported:
 
 #### `GET` `/printers`
@@ -106,13 +108,94 @@ C:> curl -s http://localhost:8192/printers | jq
 
 #### `GET` `/printers/:printer_id`
 
-Retrieve single device configuration.
+Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315 | jq
 ```
 ```json
 {
+  "Ok": true,
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315",
+  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceModel": "DP-25",
+  "FirmwareVersion": "263453 08Nov18 1312",
+  "CharsPerLine": 30,
+  "Header": [
+    "               ИМЕ НА ФИРМА",
+    "              АДРЕС НА ФИРМА",
+    "               ИМЕ НА ОБЕКТ",
+    "              АДРЕС НА ОБЕКТ",
+    "",
+    ""
+  ],
+  "Footer": [
+    "",
+    ""
+  ],
+  "TaxNo": "НЕЗАДАДЕН",
+  "TaxCaption": "ЕИК",
+  "ReceiptNo": "0000048",
+  "DeviceDateTime": "2019-07-19 11:51:33",
+  "PaymentName": [
+    "В БРОЙ",
+    "С ДЕБИТНА КАРТА",
+    "С ЧЕК",
+    "ВАУЧЕР",
+    "КУПОН",
+    "",
+    ""
+  ]
+}
+```
+
+#### `POST` `/printers/:printer_id`
+
+Retrieve device configuration only. This will not communicate with the device if config is already retrieved on previous connection.
+```
+C:> curl -s http://localhost:8192/printers/DT518315 -d "{ }"  | jq
+```
+```json
+{
+  "Ok": true,
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315",
+  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceModel": "DP-25",
+  "FirmwareVersion": "263453 08Nov18 1312",
+  "CharsPerLine": 30
+}
+```
+
+Retrieve device configuration, operator name and default password.
+```
+C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }"  | jq
+```
+```json
+{
+  "Ok": true,
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315",
+  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceModel": "DP-25",
+  "FirmwareVersion": "263453 08Nov18 1312",
+  "CharsPerLine": 30,
+  "Operator": {
+    "Code": 1,
+    "Name": "Оператор 1",
+    "Password": "****"
+  }
+}
+```
+
+Retrieve device configuration and tax number/caption only
+```
+C:> curl -s http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"  | jq
+```
+```json
+{
+  "Ok": true,
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315",
   "DeviceProtocol": "DATECS FP/ECR",
@@ -120,8 +203,7 @@ C:> curl -s http://localhost:8192/printers/DT518315 | jq
   "FirmwareVersion": "263453 08Nov18 1312",
   "CharsPerLine": 30,
   "TaxNo": "НЕЗАДАДЕН",
-  "TaxCaption": "ЕИК",
-  "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
+  "TaxCaption": "ЕИК"
 }
 ```
 
@@ -145,7 +227,9 @@ C:> curl -s http://localhost:8192/printers/DT518315/status | jq
 Print fiscal receipt, reversal, invoice or credit note.
 
 ```
-C:> curl -s http://localhost:8192/printers/DT518315/receipt -d "{ }" | jq
+C:> curl -s http://localhost:8192/printers/DT518315/receipt -d ^"{  ^
+    \"ReceiptType\": 1 ^
+}^" | jq
 ```
 ```json
 {
@@ -157,9 +241,36 @@ C:> curl -s http://localhost:8192/printers/DT518315/receipt -d "{ }" | jq
 }
 ```
 
+Supported `ReceiptType` values:
+
+| Name                  | Value | Description                                             |
+| --------------        | ----- | ------------------------------------------------------- |
+| `ucsFscRcpSale`       | 1     | Prints fiscal receipt |
+| `ucsFscRcpReversal`   | 2     | Prints reversal receipt |
+| `ucsFscRcpInvoice`    | 3     | Prints extended fiscal receipt |
+| `ucsFscRcpCreditNote` | 4     | Prints extended reversal receipt  |
+| `ucsFscRcpOrderList`  | 5     | Prints kitchen printers order-list |
+
+
+#### `GET` `/printers/:printer_id/deposit`
+
+Retrieve service deposit or service withdraw totals.
+
+```
+C:> curl -s http://localhost:8192/printers/DT518315/deposit  | jq
+```
+```json
+{
+  "Ok": true,
+  "Available": 349.68,
+  "TotalDeposits": 381.34,
+  "TotalWithdraws": 123
+}
+```
+
 #### `POST` `/printers/:printer_id/deposit`
 
-Print service deposit or service withdraw.
+Print service deposit.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" | jq
@@ -167,11 +278,33 @@ C:> curl -s http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000048",
-  "ReceiptDateTime": "2018-07-19 23:02:23",
-  "Available": 337.34,
-  "TotalDeposits": 369,
+  "ReceiptNo": "0000050",
+  "ReceiptDateTime": "2019-07-19 12:02:08",
+  "Available": 362.02,
+  "TotalDeposits": 393.68,
   "TotalWithdraws": 123
+}
+```
+
+Print service withdraw.
+
+```
+C:> curl -s http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
+    \"Amount\": -56.78, ^
+    \"Operator\": { ^
+        \"Code\": \"2\", ^
+        \"Password\": \"****\" ^
+    } ^
+}^" | jq
+```
+```json
+{
+  "Ok": true,
+  "ReceiptNo": "0000052",
+  "ReceiptDateTime": "2019-07-19 12:03:41",
+  "Available": 248.46,
+  "TotalDeposits": 393.68,
+  "TotalWithdraws": 236.56
 }
 ```
 
@@ -184,21 +317,67 @@ C:> curl -s http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\":
 ```
 ```json
 {
-  ...
+  "Ok": true,
+  "ReceiptNo": "",
+  "ReceiptDateTime": "00:00:00"
 }
 ```
 
-#### `POST` `/printers/:printer_id/datetime`
+Supported `ReportType` values:
 
-Get or set current device date/time.
+| Name                | Value | Description                                             |
+| --------------      | ----- | ------------------------------------------------------- |
+| `ucsFscRptDaily`    | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.  |
+| `ucsFscRptNumber`   | 2     | Not implemented  |
+| `ucsFscRptDate`     | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.  |
+| `ucsFscRptOperator` | 4     | Not implemented  |
+
+
+#### `GET` `/printers/:printer_id/datetime`
+
+Get current device date/time.
 
 ```
 C:> curl -s http://localhost:8192/printers/DT518315/datetime | jq
 ```
 ```json
 {
-  "Ok": false,
-  "ErrorText": "Празна JSON заявка"
+  "Ok": true,
+  "DeviceStatus": "",
+  "DeviceDateTime": "2019-07-19 11:58:31"
+}
+```
+
+#### `POST` `/printers/:printer_id/datetime`
+
+Set device date/time.
+
+```
+C:> curl -s http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" | jq
+```
+```json
+{
+  "Ok": true,
+  "PreviousDateTime": "2019-07-19 11:58:39",
+  "DeviceStatus": "",
+  "DeviceDateTime": "2019-07-19 11:58:31"
+}
+```
+
+Set device date/time only when device clock is outside specified tolerance (in seconds).
+
+```
+C:> curl -s http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
+    \"DeviceDateTime\": \"2019-07-19 11:58:31\", ^
+    \"AdjustTolerance\": 60 ^
+}^" | jq
+```
+```json
+{
+  "Ok": true,
+  "PreviousDateTime": "2019-07-19 11:59:43",
+  "DeviceStatus": "",
+  "DeviceDateTime": "2019-07-19 11:58:31"
 }
 ```
 
