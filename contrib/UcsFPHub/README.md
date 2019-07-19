@@ -161,7 +161,7 @@ C:> curl http://localhost:8192/printers/DT518315 -sS | jq
 
 Retrieve device configuration only. This will not communicate with the device if config is already retrieved on previous connection.
 ```
-C:> curl http://localhost:8192/printers/DT518315 -d "{ }"  -sS | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
 ```
 ```json
 {
@@ -177,7 +177,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ }"  -sS | jq
 
 Retrieve device configuration, operator name and default password.
 ```
-C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }"  -sS | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }" -sS | jq
 ```
 ```json
 {
@@ -198,7 +198,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\":
 
 Retrieve device configuration and tax number/caption only
 ```
-C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"  -sS | jq
+C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }" -sS | jq
 ```
 ```json
 {
@@ -310,7 +310,7 @@ Supported `PaymentType` values:
 Retrieve service deposit and service withdraw totals.
 
 ```
-C:> curl http://localhost:8192/printers/DT518315/deposit  -sS | jq
+C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
 ```
 ```json
 {
