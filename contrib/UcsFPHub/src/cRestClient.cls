@@ -42,6 +42,12 @@ Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As L
 
 Private Const HDR_CONTENT_TYPE          As String = "Content-Type"
 Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
+Private Const STR_STATUS_CODE_BAD_REQUEST As String = "400 Bad request"
+Private Const STR_STATUS_CODE_INTERNAL_SERVER_ERROR As String = "500 Internal Server Error"
+Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
+Private Const STR_STATUS_CODE_OK        As String = "200 OK"
+Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
+Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
 
 Private m_sLastError                As String
 Private m_sID                       As String
@@ -167,27 +173,27 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     #If sQueryString Then '--- touch args
     #End If
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
-        sStatusCode = "400 Bad request"
-        sContentType = "text/plain; charset=utf-8"
-        baBody = m_oSocket.ToTextArray("400 Bad request")
+        sStatusCode = STR_STATUS_CODE_BAD_REQUEST
+        sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
+        baBody = m_oSocket.ToTextArray(sStatusCode)
         GoTo QH
     End If
     If Not m_oController.ServiceRequest(sPath, m_sBody, sResponse) Then
         If LenB(sResponse) = 0 Then
             If LenB(m_oController.LastError) <> 0 Then
-                sStatusCode = "500 Internal Server Error"
-                sContentType = "text/plain; charset=utf-8"
+                sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
+                sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
                 baBody = m_oSocket.ToTextArray(m_oController.LastError)
                 GoTo QH
             End If
-            sStatusCode = "404 Not Found"
-            sContentType = "text/plain; charset=utf-8"
+            sStatusCode = STR_STATUS_CODE_NOT_FOUND
+            sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
             baBody = m_oSocket.ToTextArray(sStatusCode)
             GoTo QH
         End If
     End If
-    sStatusCode = "200 OK"
-    sContentType = "application/json; charset=utf-8"
+    sStatusCode = STR_STATUS_CODE_OK
+    sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
     baBody = m_oSocket.ToTextArray(sResponse)
     '--- success
     pvHandleRequest = True
@@ -201,8 +207,8 @@ QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
-    sStatusCode = "500 Internal Server Error"
-    sContentType = "text/plain; charset=utf-8"
+    sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
+    sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
     baBody = m_oSocket.ToTextArray(m_sLastError)
     GoTo QH
 End Function
