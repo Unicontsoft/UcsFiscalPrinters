@@ -63,9 +63,11 @@ Currently the `UcsFPHub` service supports these environment variables:
     
 ## REST service protocol description
 
-All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. You can address printers by serial number or by ID (alias) in config file.
+All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-The service returns minimized JSON so `curl` sample requests below are using [`jq`](https://stedolan.github.io/jq/) to format JSON results.
+All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` in the JSON response.
+
+The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
 
 These are the REST service endpoints supported:
 
@@ -78,6 +80,7 @@ C:> curl http://localhost:8192/printers -sS | jq
 ```
 ```json
 {
+  "Ok": true,
   "Count": 2,
   "DT240349": {
     "DeviceSerialNo": "DT240349",
