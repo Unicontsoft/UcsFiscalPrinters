@@ -56,7 +56,10 @@ Public Function NtServiceInstall(sServiceName As String, sDisplayName As String,
     Dim sParams             As String
     Dim lExitCode           As Long
     
-    Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
+    Select Case NtServiceGetStatus(sServiceName)
+    Case SERVICE_RUNNING, SERVICE_START_PENDING
+        Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
+    End Select
     sParams = "create " & ArgvQuote(sServiceName) & " binPath= " & ArgvQuote(sExeFile) & " DisplayName= " & ArgvQuote(sDisplayName) & " start= auto"
     If Not ShellWait("sc", sParams, StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
         Error = "Error " & lExitCode
@@ -74,7 +77,10 @@ End Function
 Public Function NtServiceUninstall(sServiceName As String, Optional Error As String) As Boolean
     Dim lExitCode           As Long
     
-    Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
+    Select Case NtServiceGetStatus(sServiceName)
+    Case SERVICE_RUNNING, SERVICE_START_PENDING
+        Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
+    End Select
     If Not ShellWait("sc", "delete " & ArgvQuote(sServiceName), StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
         Error = "Error " & lExitCode
         GoTo QH
