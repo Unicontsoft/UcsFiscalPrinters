@@ -18,11 +18,17 @@ DefObj A-Z
 
 Private Const INFINITE                      As Long = -1
 Private Const QS_ALLINPUT                   As Long = &H4FF
+Private Const SC_MANAGER_CONNECT            As Long = 1
+Private Const SERVICE_QUERY_STATUS          As Long = 4
 
 Private Declare Function CreateThread Lib "kernel32" (ByVal lpThreadAttributes As Long, ByVal dwStackSize As Long, ByVal lpStartAddress As Long, ByVal lpParameter As Long, ByVal dwCreationFlags As Long, lpThreadId As Long) As Long
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function MsgWaitForMultipleObjects Lib "user32" (ByVal nCount As Long, pHandles As Long, ByVal fWaitAll As Long, ByVal dwMilliseconds As Long, ByVal dwWakeMask As Long) As Long
+Private Declare Function OpenSCManager Lib "advapi32" Alias "OpenSCManagerW" (ByVal lpMachineName As Long, ByVal lpDatabaseName As Long, ByVal dwDesiredAccess As Long) As Long
+Private Declare Function OpenService Lib "advapi32" Alias "OpenServiceW" (ByVal hSCManager As Long, ByVal lpServiceName As Long, ByVal dwDesiredAccess As Long) As Long
+Private Declare Function QueryServiceStatus Lib "advapi32" (ByVal hService As Long, lpServiceStatus As SERVICE_STATUS) As Long
+Private Declare Function CloseServiceHandle Lib "advapi32" (ByVal hSCObject As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -45,6 +51,10 @@ Private m_hStatus               As Long
 Public Function NtServiceInit(sServiceName As String, Optional ByVal Timeout As Long = 30000) As Boolean
     Dim aHandles(0 To 1)    As Long
     
+    '--- check if service installed
+    If NtServiceGetStatus(sServiceName) = 0 Then
+        GoTo QH
+    End If
     '--- init member vars
     m_sServiceName = sServiceName
     m_lTimeout = Timeout
@@ -75,12 +85,18 @@ Public Function NtServiceInit(sServiceName As String, Optional ByVal Timeout As 
     NtServiceInit = True
     Exit Function
 QH:
-    Call CloseHandle(m_hStartEvent)
-    Call CloseHandle(m_hStopEvent)
-    Call CloseHandle(m_hStopPendingEvent)
-    m_hStartEvent = 0
-    m_hStopEvent = 0
-    m_hStopPendingEvent = 0
+    If m_hStartEvent <> 0 Then
+        Call CloseHandle(m_hStartEvent)
+        m_hStartEvent = 0
+    End If
+    If m_hStopEvent <> 0 Then
+        Call CloseHandle(m_hStopEvent)
+        m_hStopEvent = 0
+    End If
+    If m_hStopPendingEvent <> 0 Then
+        Call CloseHandle(m_hStopPendingEvent)
+        m_hStopPendingEvent = 0
+    End If
     m_hThread = 0
 End Function
 
@@ -99,6 +115,33 @@ Public Function NtServiceTerminate() As Boolean
         If pvMsgWaitWithDoEvents(1, m_hThread, m_lTimeout) = 0 Then
             NtServiceTerminate = True
         End If
+    End If
+End Function
+
+Public Function NtServiceGetStatus(sServiceName As String) As SERVICE_STATE
+    Dim hSCManager      As Long
+    Dim hService        As Long
+    Dim uStatus         As SERVICE_STATUS
+    
+    hSCManager = OpenSCManager(0, 0, SC_MANAGER_CONNECT)
+    If hSCManager = 0 Then
+        GoTo QH
+    End If
+    hService = OpenService(hSCManager, StrPtr(sServiceName), SERVICE_QUERY_STATUS)
+    If hService = 0 Then
+        GoTo QH
+    End If
+    If QueryServiceStatus(hService, uStatus) = 0 Then
+        GoTo QH
+    End If
+    '--- success
+    NtServiceGetStatus = uStatus.dwCurrentState
+QH:
+    If hService <> 0 Then
+        Call CloseServiceHandle(hService)
+    End If
+    If hSCManager <> 0 Then
+        Call CloseServiceHandle(hSCManager)
     End If
 End Function
 
