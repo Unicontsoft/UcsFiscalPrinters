@@ -162,7 +162,7 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             If CBool(JsonItem(C_Obj(vJson), "Ok")) Then
                 JsonItem(oResponse, "TotalsByTaxGroups") = JsonItem(C_Obj(vJson), "TotalsByTaxGroups")
             End If
-            sResponse = JsonDump(oResponse)
+            sResponse = JsonDump(oResponse, Minimize:=True)
         End Select
     End If
     '--- success
