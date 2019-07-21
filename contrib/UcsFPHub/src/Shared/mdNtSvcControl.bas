@@ -24,10 +24,14 @@ Private Const SEE_MASK_NOASYNC              As Long = &H100
 Private Const SEE_MASK_FLAG_NO_UI           As Long = &H400
 '--- for WaitForSingleObject
 Private Const INFINITE                      As Long = -1
+'--- for FormatMessage
+Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
+Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
 
 Private Declare Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExA" (lpExecInfo As SHELLEXECUTEINFO) As Long
 Private Declare Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function GetExitCodeProcess Lib "kernel32" (ByVal hProcess As Long, lpExitCode As Long) As Long
+Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 
 Private Type SHELLEXECUTEINFO
     cbSize              As Long
@@ -62,11 +66,11 @@ Public Function NtServiceInstall(sServiceName As String, sDisplayName As String,
     End Select
     sParams = "create " & ArgvQuote(sServiceName) & " binPath= " & ArgvQuote(sExeFile) & " DisplayName= " & ArgvQuote(sDisplayName) & " start= auto"
     If Not ShellWait("sc", sParams, StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
-        Error = "Error " & lExitCode
+        Error = GetErrorDescription(lExitCode)
         GoTo QH
     End If
     If Not ShellWait("net", "start " & ArgvQuote(sServiceName), StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
-        Error = "Error " & lExitCode
+        Error = GetErrorDescription(lExitCode)
         GoTo QH
     End If
     '--- succes
@@ -113,7 +117,7 @@ Private Function ShellWait( _
         '--- success
         ShellWait = True
     Else
-        ExitCode = -1
+        ExitCode = Err.LastDllError
     End If
     If ExitCode <> 0 And LenB(Verb) = 0 Then
         ShellWait = ShellWait(sFile, sParameters, StartHidden, "runas", ExitCode)
@@ -135,3 +139,15 @@ Public Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As St
     End If
 End Function
 
+Public Function GetErrorDescription(ByVal ErrorCode As Long) As String
+    Dim lSize           As Long
+    
+    GetErrorDescription = Space$(2000)
+    lSize = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, ErrorCode, 0, GetErrorDescription, Len(GetErrorDescription) + 1, 0)
+    If lSize > 2 Then
+        If Mid$(GetErrorDescription, lSize - 1, 2) = vbCrLf Then
+            lSize = lSize - 2
+        End If
+    End If
+    GetErrorDescription = Left$(GetErrorDescription, lSize)
+End Function
