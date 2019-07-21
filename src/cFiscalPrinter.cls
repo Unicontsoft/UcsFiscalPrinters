@@ -568,9 +568,10 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
     End If
     For lIdx = 0 To UBound(vTotals)
         Set oItem = Nothing
+        JsonItem(oItem, "PaymentType") = lIdx + 1
         JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
         JsonItem(oItem, "Amount") = vTotals(lIdx)
-        JsonItem(oRetVal, "Totals/-1") = oItem
+        JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
     Next
 QH:
     GetTotalsByPayments = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
@@ -613,7 +614,7 @@ Public Function GetTotalsByTaxGroups(sRequest As String, sResponse As String) As
         JsonItem(oItem, "TaxGroup") = lIdx + 1
         JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
         JsonItem(oItem, "Amount") = vTotals(lIdx)(0)
-        JsonItem(oRetVal, "Totals/-1") = oItem
+        JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
     Next
 QH:
     GetTotalsByTaxGroups = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
