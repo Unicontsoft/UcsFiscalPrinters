@@ -1521,7 +1521,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         '--- custom payment types: 5, 6, 7 & 8
         Index = 4 - Index
     End If
-    If Index > 4 Then
+    If Index > 2 Then
         bPrevExceptions = pvSetExceptions(False)
         If IsDaisy Then
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsFpcExtendedInitText, sParam, "R" & (58 + Index)

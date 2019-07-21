@@ -31,8 +31,8 @@ Private Const MODULE_NAME As String = "cRestEndpoint"
 
 Private Const DEF_LISTEN_PORT           As Long = 8192
 Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
-Private Const STR_CONN_ESTABLISHED      As String = "Връзка %1 установена (%2 отворени)"
-Private Const STR_CONN_ERROR            As String = "Грешка във връзка %1: %2"
+Private Const STR_CONN_ESTABLISHED      As String = "%1 установена (%2 отворени)"
+Private Const STR_CONN_ERROR            As String = "Грешка в %1: %2"
 
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object

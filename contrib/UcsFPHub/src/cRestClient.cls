@@ -48,6 +48,7 @@ Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
 Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
+Private Const STR_CONN_ELAPSED          As String = "%1 обработи заявка %2 за %3 сек."
 
 Private m_sLastError                As String
 Private m_sID                       As String
@@ -63,6 +64,7 @@ Private m_sBody                     As String
 Private m_sHttpMethod               As String
 Private m_sRawUrl                   As String
 Private m_sProtocolVersion          As String
+Private m_dblStartTimerEx           As Double
 
 '=========================================================================
 ' Error handling
@@ -160,6 +162,7 @@ Private Sub pvClearState()
     m_sHttpMethod = vbNullString
     m_sRawUrl = vbNullString
     m_sProtocolVersion = vbNullString
+    m_dblStartTimerEx = 0
 End Sub
 
 Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boolean
@@ -233,6 +236,9 @@ Private Sub m_oSocket_OnReceive()
         GoTo QH
     End If
     lIdx = UBound(m_baBuffer) + 1
+    If lIdx = 0 Then
+        m_dblStartTimerEx = TimerEx
+    End If
     ReDim m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
     Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     If m_oHeaders Is Nothing Then
@@ -271,6 +277,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
+        DebugLog Printf(STR_CONN_ELAPSED & " (" & MODULE_NAME & ")", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
         pvClearState
     End If
 QH:

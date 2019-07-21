@@ -79,10 +79,12 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
     Dim oInfo           As Object
     Dim vJson           As Variant
     Dim oRequest        As Object
+    Dim oResponse       As Object
+    Dim sError          As String
     
     On Error GoTo EH
     m_sLastError = vbNullString
-    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime))?$/i", sPath, vMatches) = 0 Then
+    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
         GoTo QH
     End If
     If LenB(At(vMatches, 0)) = 0 Then
@@ -102,7 +104,8 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             Select Case LCase$(At(vMatches, 1))
             Case vbNullString
                 JsonItem(oRequest, "IncludeAll") = True
-            Case "status", "datetime", "deposit"
+            Case "status", "datetime", "deposit", "totals"
+                '--- do nothing
             Case Else
                 sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
                 GoTo QH
@@ -134,6 +137,32 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             If Not m_oFP.InitDateTime(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
+        Case "totals"
+            If Not m_oFP.GetTotalsStats(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                GoTo QH
+            End If
+            If Not JsonParse(sResponse, oResponse, Error:=sError) Then
+                Err.Raise vbObjectError, , sError
+            End If
+            If Not m_oFP.GetTotalsByPayments(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                GoTo QH
+            End If
+            If Not JsonParse(sResponse, vJson, Error:=sError) Then
+                Err.Raise vbObjectError, , sError
+            End If
+            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
+                JsonItem(oResponse, "TotalsByPayments") = JsonItem(C_Obj(vJson), "TotalsByPayments")
+            End If
+            If Not m_oFP.GetTotalsByTaxGroups(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                GoTo QH
+            End If
+            If Not JsonParse(sResponse, vJson, Error:=sError) Then
+                Err.Raise vbObjectError, , sError
+            End If
+            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
+                JsonItem(oResponse, "TotalsByTaxGroups") = JsonItem(C_Obj(vJson), "TotalsByTaxGroups")
+            End If
+            sResponse = JsonDump(oResponse, Minimize:=True)
         End Select
     End If
     '--- success
@@ -142,7 +171,7 @@ QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume QH
+    Err.Raise Err.Number, Err.Source & vbCrLf & MODULE_NAME & "." & FUNC_NAME, Err.Description
 End Function
 
 Private Function pvGetPrinterInfo(sPrinterId As String) As Object
