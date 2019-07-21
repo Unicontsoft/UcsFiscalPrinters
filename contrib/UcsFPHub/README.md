@@ -65,7 +65,7 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` in the JSON response.
+Both request and response payloads are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` in the JSON response.
 
 The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
 
