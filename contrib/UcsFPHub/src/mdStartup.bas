@@ -32,6 +32,10 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 Private Const STR_VERSION           As String = "0.1.5"
 Private Const STR_SERVICE_NAME      As String = "UcsFPHub"
 Private Const STR_DISPLAY_NAME      As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
+Private Const STR_SVC_INSTALL       As String = "Инсталира NT услуга %1..."
+Private Const STR_SVC_UNINSTALL     As String = "Деинсталира NT услуга %1..."
+Private Const STR_SUCCESS           As String = "Успех"
+Private Const STR_FAILURE           As String = "Грешка: "
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
 Private Const STR_ENVIRON_VARS_FOUND As String = "Конфигурирани %1 променливи на средата"
 Private Const STR_PRINTERS_FOUND    As String = "Намерени %1 принтера"
@@ -107,29 +111,30 @@ Private Function Process(vArgs As Variant) As Long
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
     If Not m_oOpt.Item("--nologo") Then
-        DebugLog App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft"
-        DebugLog vbNullString
+        ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
     sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
     If NtServiceInit(STR_SERVICE_NAME) Then
         m_bIsService = True
     ElseIf m_oOpt.Item("--install") Or m_oOpt.Item("-i") Then
-        DebugLog Printf("Installing %1...", STR_SERVICE_NAME)
+        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
             sConfFile = " -c " & ArgvQuote(sConfFile)
         End If
         If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
-            DebugLog sError
+            ConsolePrint STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
-            DebugLog "Success"
+            ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
     ElseIf m_oOpt.Item("--uninstall") Or m_oOpt.Item("-u") Then
-        DebugLog Printf("Uninstalling %1...", STR_SERVICE_NAME)
+        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
-            DebugLog sError
+            ConsolePrint STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
         Else
-            DebugLog "Success"
+            ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
     End If
