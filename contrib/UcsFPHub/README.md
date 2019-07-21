@@ -460,98 +460,34 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
 
 #### `GET` `/printers/:printer_id/totals`
 
-Get device totals by registered sales since last Z report.
+Get device totals since last Z report grouped by payment types and tax groups.
 
 ```
 C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
 ```
 ```json
 {
-  "Ok": true,
-  "NumReceipts": 24,
-  "TotalsByPayments": [
-    {
-      "PaymentType": 1,
-      "PaymentName": "В БРОЙ",
-      "Amount": 178.18
-    },
-    {
-      "PaymentType": 2,
-      "PaymentName": "С ДЕБИТНА КАРТА",
-      "Amount": 52.96
-    },
-    {
-      "PaymentType": 3,
-      "PaymentName": "С ЧЕК",
-      "Amount": 0
-    },
-    {
-      "PaymentType": 4,
-      "PaymentName": "С КРЕДИТНА КАРТА",
-      "Amount": 0
-    },
-    {
-      "PaymentType": 5,
-      "PaymentName": "ВАУЧЕР",
-      "Amount": 0
-    },
-    {
-      "PaymentType": 6,
-      "PaymentName": "КУПОН",
-      "Amount": 0
-    },
-    {
-      "PaymentType": 7,
-      "PaymentName": "",
-      "Amount": 0
-    },
-    {
-      "PaymentType": 8,
-      "PaymentName": "",
-      "Amount": 0
-    }
-  ],
-  "TotalsByTaxGroups": [
-    {
-      "TaxGroup": 1,
-      "VatPercent": 0,
-      "Amount": 231.14
-    },
-    {
-      "TaxGroup": 2,
-      "VatPercent": 20,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 3,
-      "VatPercent": 20,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 4,
-      "VatPercent": 9,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 5,
-      "VatPercent": 0,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 6,
-      "VatPercent": 0,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 7,
-      "VatPercent": 0,
-      "Amount": 0
-    },
-    {
-      "TaxGroup": 8,
-      "VatPercent": 0,
-      "Amount": 0
-    }
-  ]
+    "Ok": true,
+    "NumReceipts": 24,
+    "TotalsByPayments": [
+        { "PaymentType": 1, "PaymentName": "В БРОЙ", "Amount": 178.18 },
+        { "PaymentType": 2, "PaymentName": "С КАРТА", "Amount": 52.96 },
+        { "PaymentType": 3, "PaymentName": "НЗОК", "Amount": 0 },
+        { "PaymentType": 4, "PaymentName": "КРЕДИТ", "Amount": 0 },
+        { "PaymentType": 5, "PaymentName": "ВАУЧЕР", "Amount": 0 },
+        { "PaymentType": 6, "PaymentName": "КУПОН", "Amount": 0 },
+        { "PaymentType": 7, "PaymentName": "", "Amount": 0 },
+        { "PaymentType": 8, "PaymentName": "", "Amount": 0 }
+    ],
+    "TotalsByTaxGroups": [
+        { "TaxGroup": 1, "VatPercent": 0, "Amount": 231.14 },
+        { "TaxGroup": 2, "VatPercent": 20, "Amount": 0 },
+        { "TaxGroup": 3, "VatPercent": 20, "Amount": 0 },
+        { "TaxGroup": 4, "VatPercent": 9, "Amount": 0 },
+        { "TaxGroup": 5, "VatPercent": 0, "Amount": 0 },
+        { "TaxGroup": 6, "VatPercent": 0, "Amount": 0 },
+        { "TaxGroup": 7, "VatPercent": 0, "Amount": 0 },
+        { "TaxGroup": 8, "VatPercent": 0, "Amount": 0 }
+    ]
 }
 ```
