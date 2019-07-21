@@ -290,7 +290,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
     "Operator": {
         "Code": "1",
         "Name": "Иван Иванов",
-        "Password": "1"
+        "Password": "****"
     },
     "Reversal: {
         "Type": 1,
