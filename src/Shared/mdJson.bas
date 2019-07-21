@@ -592,6 +592,11 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
         JsonDump = "Empty"
     Case vbDate
         JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
+        If Left$(JsonDump, 12) = """1899-12-30 " Then
+            JsonDump = """" & Mid$(JsonDump, 13)
+        End If
+    Case vbBoolean
+        JsonDump = IIf(vJson, "true", "false")
     Case vbString
         '--- one-time initialization of transcoding array
         If IsEmpty(vTranscode) Then
@@ -1214,6 +1219,7 @@ EH:
         #Else
             Call CopyMemory(pvJsonCompareMode, ByVal ObjPtr(oJson) + o_pvUnk5, 4)
         #End If
+        pvJsonCompareMode = -(pvJsonCompareMode = vbTextCompare)
     End Function
 
     Private Property Get pvJsonItem(oParam As VBA.Collection, vKey As Variant) As Variant

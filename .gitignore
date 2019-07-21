@@ -7,3 +7,5 @@
 *.scc
 _del/*
 bin/*
+scripts/*
+contrib/UcsFPHub/scripts/*

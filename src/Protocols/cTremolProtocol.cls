@@ -828,7 +828,7 @@ Public Function StartReceipt( _
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
         If LenB(.InitOperatorPassword) = 0 Then
-            .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
+            .InitOperatorPassword = GetDefaultPassword(.InitOperatorCode)
         End If
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, 30
@@ -1614,13 +1614,13 @@ Public Function PrintServiceDeposit( _
         If C_Bool(At(vSplit, lIndex)) Then
             '--- use single operator
             OperatorCode = DEF_OPERNO
-            OperatorPassword = IDeviceProtocol_GetDefaultPassword(DEF_OPERNO)
+            OperatorPassword = GetDefaultPassword(DEF_OPERNO)
         End If
         pvGetCommandConfig CONF_NAME, "AdminPrintServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1;%2;%3;%4@%5", _
             "Format", sFormat, "0.00", _
             "PrintTimeout", lPrintTimeout, 0
         sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
-            Pad(Zn(OperatorPassword, IDeviceProtocol_GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
+            Pad(Zn(OperatorPassword, GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
             lPmtIndex, _
             SafeFormat(Amount, sFormat), _
             Left$(Comment, m_uConfig.MaxComment))
@@ -1661,9 +1661,11 @@ Public Sub SetLocalizedCommand( _
             Optional ByVal cmd As UcsTremolCommandsEnum, _
             Optional Param As String, _
             Optional More As Variant)
+    Const FUNC_NAME     As String = "SetLocalizedCommand"
     Dim sMerged         As String
     Dim lIdx            As Long
     
+    On Error GoTo EH
     If m_uConfig.LocalizedCommands Is Nothing Then
         Set m_uConfig.LocalizedCommands = New Collection
     End If
@@ -1681,12 +1683,17 @@ Public Sub SetLocalizedCommand( _
             Next
         End If
     End With
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional More As Variant)
+    Const FUNC_NAME     As String = "ClearLocalizedCommand"
     Dim sMerged         As String
     Dim lIdx            As Long
     
+    On Error GoTo EH
     sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
     If SearchCollection(m_uConfig.LocalizedCommands, sMerged) Then
         m_uConfig.LocalizedCommands.Remove sMerged
@@ -1701,7 +1708,39 @@ Public Sub ClearLocalizedCommand(sFunction As String, sKey As String, Optional M
             End If
         Next
     End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
+
+Public Function GetOperatorName(OperatorCode As String) As String
+    Const FUNC_NAME     As String = "GetOperatorName"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsZekCmdInfoOperator, sParam, "%1", _
+        "Index", lIndex, 1
+    sParam = Printf(sParam, Pad(OperatorCode, -m_uConfig.MaxOperCode))
+    GetOperatorName Trim$(At(Split(SendCommand(eCmd, sParam), DEF_DELIM), lIndex))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDefaultPassword(OperatorCode As String) As String
+    If IsEcr Then
+        If C_Lng(OperatorCode) > 1 Then
+            GetDefaultPassword = OperatorCode
+        Else
+            GetDefaultPassword = DEF_ECR_PASSWORD
+        End If
+    Else
+        GetDefaultPassword = DEF_FP_PASSWORD
+    End If
+End Function
 
 '= private ===============================================================
 
@@ -1957,7 +1996,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             If C_Bool(At(vSplit, lIndex)) Then
                 '--- use single operator
                 .InitOperatorCode = DEF_OPERNO
-                .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(DEF_OPERNO)
+                .InitOperatorPassword = GetDefaultPassword(DEF_OPERNO)
             End If
             pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsZekCmdInfoOperator, sParam, "%1", _
                 "Index", lIndex, 1, _
@@ -2497,16 +2536,12 @@ Private Function IDeviceProtocol_GetCommandLog() As String
     IDeviceProtocol_GetCommandLog = m_sCommandLog
 End Function
 
+Private Function IDeviceProtocol_GetOperatorName(OperatorCode As String) As String
+    IDeviceProtocol_GetOperatorName = GetOperatorName(OperatorCode)
+End Function
+
 Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
-    If IsEcr Then
-        If C_Lng(OperatorCode) > 1 Then
-            IDeviceProtocol_GetDefaultPassword = OperatorCode
-        Else
-            IDeviceProtocol_GetDefaultPassword = DEF_ECR_PASSWORD
-        End If
-    Else
-        IDeviceProtocol_GetDefaultPassword = DEF_FP_PASSWORD
-    End If
+    IDeviceProtocol_GetDefaultPassword = GetDefaultPassword(OperatorCode)
 End Function
 
 Private Function IDeviceProtocol_GetDeviceProtocol() As String

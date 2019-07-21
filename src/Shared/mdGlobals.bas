@@ -111,6 +111,7 @@ Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCo
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 
 Private Type OPENFILENAME
     lStructSize         As Long     ' size of type/structure
@@ -496,7 +497,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error Resume Next '--- checked
     If m_nDebugLogFile = 0 Then
-        sFile = Environ$("_UCS_FISCAL_PRINTER_LOG")
+        sFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
         If LenB(sFile) = 0 Then
             sFile = GetErrorTempPath() & "\UcsFP.log"
             If Not FileExists(sFile) Then
@@ -541,7 +542,7 @@ Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As St
         Exit Sub
     End If
     If lLogging = 0 Then
-        lLogging = IIf(CBool(Val(Environ$("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
+        lLogging = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
     End If
     If lLogging < 0 Then
         Exit Sub
@@ -1310,15 +1311,34 @@ End Function
 
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
     Const DISPID_VALUE  As Long = 0
+    Const VT_BYREF      As Long = &H4000
+    Const S_OK          As Long = 0
     Dim pVbCol          As IVbCollection
-    
+    Dim vItem           As Variant
+
     If pCol Is Nothing Then
         '--- do nothing
-    ElseIf TypeOf pCol Is IVbCollection Then
-        Set pVbCol = pCol
-        SearchCollection = (pVbCol.Item(Index, RetVal) >= 0)
+    ElseIf (PeekInt(VarPtr(RetVal)) And VT_BYREF) = 0 Then
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, RetVal) = S_OK)
+        Else
+            SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, RetVal:=RetVal, Args:=Index)
+        End If
     Else
-        SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, Args:=Index, RetVal:=RetVal)
+        If TypeOf pCol Is IVbCollection Then
+            Set pVbCol = pCol
+            SearchCollection = (pVbCol.Item(Index, vItem) = S_OK)
+        Else
+            SearchCollection = DispInvoke(pCol, DISPID_VALUE, VbMethod Or VbGet, RetVal:=vItem, Args:=Index)
+        End If
+        If SearchCollection Then
+            If IsObject(vItem) Then
+                Set RetVal = vItem
+            Else
+                RetVal = vItem
+            End If
+        End If
     End If
 End Function
 
@@ -1578,4 +1598,12 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
         JsonItem(oRetVal, sKey) = sValue
     Loop
     Set ParseDeviceString = oRetVal
+End Function
+
+Public Function GetEnvironmentVar(sName As String) As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
+    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
 End Function

@@ -205,43 +205,60 @@ End Function
 ' Used to retrieve an array with info from the fiscal device including header/footer texts, operator name, current
 ' date/time, last receipt number, names of payment types, max characters on a row and operator's default password
 '
-Public Function GetHeaderFooter(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetHeaderFooter"
+Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetDeviceInfo"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim lIdx            As Long
+    Dim bIncludeAll     As Boolean
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    For lIdx = 1 To 6
-        JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
-    Next
-    For lIdx = 1 To 2
-        JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
-    Next
-    JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
-    JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
-    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
-    JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastReceiptNo()
-    For lIdx = 1 To 3
-        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-    Next
-    For lIdx = -1 To -4 Step -1
-        JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-    Next
-    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
-    If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
-        JsonItem(oRetVal, "DefOperPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
-    End If
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
+    JsonItem(oRetVal, "DeviceProtocol") = oFP.GetDeviceProtocol()
+    JsonItem(oRetVal, "DeviceModel") = oFP.GetDeviceModel()
+    JsonItem(oRetVal, "FirmwareVersion") = oFP.GetDeviceFirmware()
+    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
+    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
+    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
+        For lIdx = 1 To 6
+            JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
+        For lIdx = 1 To 2
+            JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
+        JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
+        JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+    End If
+    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
+        For lIdx = 1 To 3
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+        For lIdx = -1 To -4 Step -1
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+    End If
+    If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
+        JsonItem(oRetVal, "Operator/Code") = JsonItem(oJson, "Operator/Code")
+        JsonItem(oRetVal, "Operator/Name") = oFP.GetOperatorName(JsonItem(oJson, "Operator/Code"))
+        JsonItem(oRetVal, "Operator/Password") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
+    End If
 QH:
-    GetHeaderFooter = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetDeviceInfo = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
@@ -293,7 +310,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         If Not oFP.StartReceipt(C_Lng(JsonItem(oJson, "ReceiptType")), _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
-                JsonItem(oJson, "Operator/Pass"), _
+                JsonItem(oJson, "Operator/Password"), _
                 JsonItem(oJson, "UniqueSaleNo"), _
                 JsonItem(oJson, "TableNo"), _
                 JsonItem(oJson, "Invoice/DocNo"), _
@@ -424,6 +441,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         GoTo QH
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
 QH:
     PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -475,24 +493,43 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim dDateTime       As Date
     Dim bResult         As Boolean
+    Dim sStatus         As String
+    Dim lTolerance      As Long
+    Dim dCurrent        As Date
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    dDateTime = C_Date(JsonItem(oJson, "DateTime"))
+    dDateTime = C_Date(JsonItem(oJson, "DeviceDateTime"))
+    lTolerance = C_Lng(JsonItem(oJson, "AdjustTolerance"))
+    dCurrent = oFP.GetClock()
+    If dDateTime = 0 And lTolerance = 0 Then
+        GoTo SkipSetClock
+    End If
     If dDateTime = 0 Then
         dDateTime = Now
     End If
-    If Abs(DateDiff("m", oFP.GetClock(), dDateTime)) > 0 Then
+    If lTolerance = 0 Then
         bResult = oFP.SetClock(dDateTime)
+    ElseIf Abs(DateDiff("s", dCurrent, dDateTime)) >= lTolerance Then
+        bResult = oFP.SetClock(dDateTime)
+    Else
+        GoTo SkipSetClock
     End If
     If Not bResult Then
         sLastErr = oFP.GetLastError(eLastNo)
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
+    Else
+        JsonItem(oRetVal, "PreviousDateTime") = dCurrent
+        dCurrent = oFP.GetClock()
     End If
-    JsonItem(oRetVal, "DateTime") = oFP.GetClock()
+SkipSetClock:
+    If oFP.GetDeviceStatus(sStatus) Then
+        JsonItem(oRetVal, "DeviceStatus") = sStatus
+    End If
+    JsonItem(oRetVal, "DeviceDateTime") = dCurrent
 QH:
     InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -640,7 +677,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Pass"), C_Dbl(JsonItem(oJson, "Amount")))
+    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = pvInternal(ucsErrNotImplemented)
         GoTo QH
@@ -649,7 +686,10 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+    If Abs(C_Dbl(JsonItem(oJson, "Amount"))) > DBL_EPSILON Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    End If
     JsonItem(oRetVal, "Available") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
@@ -666,8 +706,8 @@ End Function
 ' Used to retrieve additional device status without performing any other operation, e.g. can be used to poll the
 ' device if the operator is ready with loading a new paper roll after receiving out-of-paper error on receipt printing
 '
-Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetStatus"
+Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetDeviceStatus"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
@@ -679,10 +719,14 @@ Public Function GetStatus(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    oFP.GetDeviceStatus sStatus
-    JsonItem(oRetVal, "Status") = sStatus
+    If oFP.GetDeviceStatus(sStatus) Then
+        JsonItem(oRetVal, "DeviceStatus") = sStatus
+        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+    Else
+        sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
+    End If
 QH:
-    GetStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetDeviceStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
@@ -758,9 +802,9 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
         GoTo QH
     End If
-    pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
-    If LenB(pvGetRowData.Amount) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "PaymentType")) Then
         pvGetRowData.RowType = ucsRwtPayment
+        pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
         pvGetRowData.PmtType = C_Str(JsonItem(oRow, "PaymentType"))
         pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH

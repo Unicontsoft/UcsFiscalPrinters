@@ -502,6 +502,16 @@ Attribute GetCommandLog.VB_Description = "Used to retrieve debug log from device
 End Function
 
 ''
+' Used to retrieve operator name as currently configured
+'
+' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
+' @return Operator name
+'
+Public Function GetOperatorName(OperatorCode As String) As String
+
+End Function
+
+''
 ' Used to retrieve default operator password as specified in fiscal device documentation
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)

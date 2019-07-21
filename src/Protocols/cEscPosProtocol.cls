@@ -1166,6 +1166,10 @@ Private Function IDeviceProtocol_GetCommandLog() As String
     
 End Function
 
+Private Function IDeviceProtocol_GetOperatorName(OperatorCode As String) As String
+
+End Function
+
 Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As String
     
 End Function
