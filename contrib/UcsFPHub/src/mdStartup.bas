@@ -22,6 +22,8 @@ Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNa
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -40,12 +42,16 @@ Private Const ERR_CONFIG_NOT_FOUND  As String = "Грешка: Конфигурационен файл %1
 Private Const ERR_PARSING_CONFIG    As String = "Грешка: Невалиден %1: %2"
 Private Const ERR_ENUM_PORTS        As String = "Грешка: Енумериране на серийни портове: %1"
 Private Const ERR_WARN_ACCESS       As String = "Предупреждение: Принтер %1: %2"
+'--- formats
+Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
+Private Const FORMAT_BASE_3         As String = "0.000"
 
 Private m_oOpt                  As Object
 Private m_oPrinters             As Object
 Private m_oConfig               As Object
 Private m_cEndpoints            As Collection
 Private m_bIsService            As Boolean
+Private m_nDebugLogFile         As Integer
 
 '=========================================================================
 ' Error handling
@@ -101,7 +107,8 @@ Private Function Process(vArgs As Variant) As Long
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
     If Not m_oOpt.Item("--nologo") Then
-        DebugLog App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf
+        DebugLog App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft"
+        DebugLog vbNullString
     End If
     sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
     If NtServiceInit(STR_SERVICE_NAME) Then
@@ -154,6 +161,8 @@ Private Function Process(vArgs As Variant) As Long
         For Each vKey In pvConfigKeys("Environment")
             Call SetEnvironmentVariable(vKey, C_Str(pvConfigItem("Environment/" & vKey)))
         Next
+        FlushDebugLog
+        m_nDebugLogFile = 0
     End If
     Set m_oPrinters = pvCollectPrinters()
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
@@ -170,6 +179,7 @@ Private Function Process(vArgs As Variant) As Long
         Do
             ConsoleRead
             DoEvents
+            FlushDebugLog
         Loop
     End If
 QH:
@@ -285,12 +295,44 @@ Private Function GetProcessName() As String
 End Function
 
 Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
-    If m_bIsService Then
-        App.LogEvent sText, eType
-    ElseIf eType = vbLogEventTypeError Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sText & vbCrLf
+    Dim sFile           As String
+    Dim sPrefix         As String
+    
+    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): "
+    If m_nDebugLogFile <> -1 Then
+        If m_nDebugLogFile = 0 Then
+            sFile = GetEnvironmentVar("_UCS_FP_HUB_LOG")
+            If LenB(sFile) = 0 Then
+                sFile = GetErrorTempPath() & "\UcsFPHub.log"
+                If Not FileExists(sFile) Then
+                    m_nDebugLogFile = -1
+                    GoTo NoLogFile
+                End If
+            End If
+            m_nDebugLogFile = FreeFile
+            Open sFile For Append Access Write Shared As #m_nDebugLogFile
+        End If
+        Print #m_nDebugLogFile, sPrefix & sText
+        Debug.Print sPrefix & sText
     Else
-        ConsolePrint sText & vbCrLf
+NoLogFile:
+        If m_bIsService Then
+            App.LogEvent sText, eType
+            GoTo QH
+        End If
+        If eType = vbLogEventTypeError Then
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & vbCrLf
+        Else
+            ConsolePrint sPrefix & sText & vbCrLf
+        End If
+    End If
+QH:
+End Sub
+
+Public Sub FlushDebugLog()
+    If m_nDebugLogFile <> 0 And m_nDebugLogFile <> -1 Then
+        Close #m_nDebugLogFile
+        m_nDebugLogFile = 0
     End If
 End Sub
 

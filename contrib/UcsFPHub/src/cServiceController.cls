@@ -150,7 +150,7 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             If Not JsonParse(sResponse, vJson, Error:=sError) Then
                 Err.Raise vbObjectError, , sError
             End If
-            If CBool(JsonItem(C_Obj(vJson), "Ok")) Then
+            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
                 JsonItem(oResponse, "TotalsByPayments") = JsonItem(C_Obj(vJson), "TotalsByPayments")
             End If
             If Not m_oFP.GetTotalsByTaxGroups(JsonDump(oRequest, Minimize:=True), sResponse) Then
@@ -159,7 +159,7 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             If Not JsonParse(sResponse, vJson, Error:=sError) Then
                 Err.Raise vbObjectError, , sError
             End If
-            If CBool(JsonItem(C_Obj(vJson), "Ok")) Then
+            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
                 JsonItem(oResponse, "TotalsByTaxGroups") = JsonItem(C_Obj(vJson), "TotalsByTaxGroups")
             End If
             sResponse = JsonDump(oResponse, Minimize:=True)

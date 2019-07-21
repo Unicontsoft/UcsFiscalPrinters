@@ -26,6 +26,9 @@ Private Declare Function LocalFree Lib "kernel32" (ByVal hMem As Long) As Long
 Private Declare Function ApiSysAllocString Lib "oleaut32" Alias "SysAllocString" (ByVal Ptr As Long) As Long
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
+Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
+Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
+Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -235,6 +238,16 @@ Public Function C_Obj(Value As Variant) As Object
     End If
 End Function
 
+Public Function C_Bool(Value As Variant) As Boolean
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbBoolean Then
+        C_Bool = Value
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbBoolean) = 0 Then
+        C_Bool = vDest
+    End If
+End Function
+
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null, Optional EmptyString As String) As Variant
     Zn = IIf(sText = EmptyString, IfEmptyString, sText)
 End Function
@@ -347,3 +360,22 @@ Public Function Printf(ByVal sText As String, ParamArray A() As Variant) As Stri
     Printf = Replace(sText, ChrW$(LNG_PRIVATE), "%")
 End Function
 
+Public Property Get TimerEx() As Double
+    Dim cFreq           As Currency
+    Dim cValue          As Currency
+    
+    Call QueryPerformanceFrequency(cFreq)
+    Call QueryPerformanceCounter(cValue)
+    TimerEx = cValue / cFreq
+End Property
+
+Public Function GetErrorTempPath() As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetTempPath(Len(sBuffer) - 1, sBuffer)
+    GetErrorTempPath = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+    If Right$(GetErrorTempPath, 1) = "\" Then
+        GetErrorTempPath = Left$(GetErrorTempPath, Len(GetErrorTempPath) - 1)
+    End If
+End Function
