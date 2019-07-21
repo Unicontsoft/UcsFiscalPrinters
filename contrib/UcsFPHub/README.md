@@ -51,11 +51,11 @@ Currently the `UcsFPHub` service supports these environment variables:
 
 `UcsFPHub.exe` service executable accepts these command-line options:
 
-| Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description                                             |
-| -------------- | ----------------- | ------------------------------------------------------- |
-| `-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service config file. If no explicit config options are used the service tries to find `UcsFPHub.conf` config file in the application folder. If still no config file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default. |
-| `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service. |
-| `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.                   |
+Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
+------         | ---------         | ------------
+`-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service config file. If no explicit config options are used the service tries to find `UcsFPHub.conf` config file in the application folder. If still no config file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
+`-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service.
+`-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.
 
 ### ToDo
 
@@ -308,25 +308,25 @@ C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\
 
 Supported `ReceiptType` values:
 
-| Name                  | Value | Description                                             |
-| --------------        | ----- | ------------------------------------------------------- |
-| `ucsFscRcpSale`       | 1     | Prints fiscal receipt |
-| `ucsFscRcpReversal`   | 2     | Prints reversal receipt |
-| `ucsFscRcpInvoice`    | 3     | Prints extended fiscal receipt |
-| `ucsFscRcpCreditNote` | 4     | Prints extended reversal receipt  |
-| `ucsFscRcpOrderList`  | 5     | Prints kitchen printers order-list |
+Name                  | Value   | Description
+----                  | -----   | -----------
+`ucsFscRcpSale`       | 1       | Prints fiscal receipt
+`ucsFscRcpReversal`   | 2       | Prints reversal receipt
+`ucsFscRcpInvoice`    | 3       | Prints extended fiscal receipt
+`ucsFscRcpCreditNote` | 4       | Prints extended reversal receipt
+`ucsFscRcpOrderList`  | 5       | Prints kitchen printers order-list
 
 Supported `PaymentType` values:
 
-| Name                  | Value | Description                                             |
-| --------------        | ----- | ------------------------------------------------------- |
-| `ucsFscPmtCash`       | 1     | Payment in cash |
-| `ucsFscPmtCard`       | 2     | Payment with debit/credit card |
-| `ucsFscPmtCheque`     | 3     | Bank payment (if available) |
-| `ucsFscPmtCustom1`    | -1    | First custom payment (Талони) |
-| `ucsFscPmtCustom2`    | -2    | Second custom payment (В.Талони) |
-| `ucsFscPmtCustom3`    | -3    | Third custom payment (Резерв.1) |
-| `ucsFscPmtCustom4`    | -4    | Fourth custom payment (Резерв.2) |
+Name                  | Value   | Description
+----                  | -----   | -----------
+`ucsFscPmtCash`       | 1       | Payment in cash
+`ucsFscPmtCard`       | 2       | Payment with debit/credit card
+`ucsFscPmtCheque`     | 3       | Bank payment (if available)
+`ucsFscPmtCustom1`    | -1 or 5 | First custom payment (Талони)
+`ucsFscPmtCustom2`    | -2 or 6 | Second custom payment (В.Талони)
+`ucsFscPmtCustom3`    | -3 or 7 | Third custom payment (Резерв.1)
+`ucsFscPmtCustom4`    | -4 or 8 | Fourth custom payment (Резерв.2)
 
 
 #### `GET` `/printers/:printer_id/deposit`
@@ -402,12 +402,12 @@ C:> curl http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 
 
 Supported `ReportType` values:
 
-| Name                | Value | Description                                             |
-| --------------      | ----- | ------------------------------------------------------- |
-| `ucsFscRptDaily`    | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.  |
-| `ucsFscRptNumber`   | 2     | Not implemented  |
-| `ucsFscRptDate`     | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.  |
-| `ucsFscRptOperator` | 4     | Not implemented  |
+Name                | Value | Description
+----                | ----- | -----------
+`ucsFscRptDaily`    | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.
+`ucsFscRptNumber`   | 2     | Not implemented
+`ucsFscRptDate`     | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.
+`ucsFscRptOperator` | 4     | Not implemented
 
 
 #### `GET` `/printers/:printer_id/datetime`
@@ -455,5 +455,103 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
   "PreviousDateTime": "2019-07-19 11:59:43",
   "DeviceStatus": "",
   "DeviceDateTime": "2019-07-19 11:58:31"
+}
+```
+
+#### `GET` `/printers/:printer_id/totals`
+
+Get device totals by registered sales since last Z report.
+
+```
+C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
+```
+```json
+{
+  "Ok": true,
+  "NumReceipts": 24,
+  "TotalsByPayments": [
+    {
+      "PaymentType": 1,
+      "PaymentName": "В БРОЙ",
+      "Amount": 178.18
+    },
+    {
+      "PaymentType": 2,
+      "PaymentName": "С ДЕБИТНА КАРТА",
+      "Amount": 52.96
+    },
+    {
+      "PaymentType": 3,
+      "PaymentName": "С ЧЕК",
+      "Amount": 0
+    },
+    {
+      "PaymentType": 4,
+      "PaymentName": "С КРЕДИТНА КАРТА",
+      "Amount": 0
+    },
+    {
+      "PaymentType": 5,
+      "PaymentName": "ВАУЧЕР",
+      "Amount": 0
+    },
+    {
+      "PaymentType": 6,
+      "PaymentName": "КУПОН",
+      "Amount": 0
+    },
+    {
+      "PaymentType": 7,
+      "PaymentName": "",
+      "Amount": 0
+    },
+    {
+      "PaymentType": 8,
+      "PaymentName": "",
+      "Amount": 0
+    }
+  ],
+  "TotalsByTaxGroups": [
+    {
+      "TaxGroup": 1,
+      "VatPercent": 0,
+      "Amount": 231.14
+    },
+    {
+      "TaxGroup": 2,
+      "VatPercent": 20,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 3,
+      "VatPercent": 20,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 4,
+      "VatPercent": 9,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 5,
+      "VatPercent": 0,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 6,
+      "VatPercent": 0,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 7,
+      "VatPercent": 0,
+      "Amount": 0
+    },
+    {
+      "TaxGroup": 8,
+      "VatPercent": 0,
+      "Amount": 0
+    }
+  ]
 }
 ```
