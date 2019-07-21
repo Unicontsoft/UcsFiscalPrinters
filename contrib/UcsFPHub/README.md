@@ -348,11 +348,11 @@ Supported `ReceiptType` values:
 
 Name                  | Value   | Description
 ----                  | -----   | -----------
-`ucsFscRcpSale`       | 1       | Prints fiscal receipt
-`ucsFscRcpReversal`   | 2       | Prints reversal receipt
-`ucsFscRcpInvoice`    | 3       | Prints extended fiscal receipt
-`ucsFscRcpCreditNote` | 4       | Prints extended reversal receipt
-`ucsFscRcpOrderList`  | 5       | Prints kitchen printers order-list
+`ucsFscRcpSale`       | 1       | Print fiscal receipt
+`ucsFscRcpReversal`   | 2       | Print reversal receipt
+`ucsFscRcpInvoice`    | 3       | Print extended fiscal receipt for invoice
+`ucsFscRcpCreditNote` | 4       | Print extended reversal receipt for credit note
+`ucsFscRcpOrderList`  | 5       | Print order-list on kitchen printer
 
 Supported `PaymentType` values:
 
@@ -370,8 +370,8 @@ Supported `ReversalType` values:
 
 Name                        | Value | Description
 ----                        | ----- | -----------
-`ucsFscRevOperatorError`    | 0     | Error by the operator (default)
-`ucsFscRevRefund`           | 1     | Refund defect/returned items
+`ucsFscRevOperatorError`    | 0     | Operator entry error (default)
+`ucsFscRevRefund`           | 1     | Refund defective/returned goods
 `ucsFscRevTaxBaseReduction` | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
 
 #### `GET` `/printers/:printer_id/deposit`
