@@ -282,30 +282,6 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 }
 ```
 
-Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
-
-```
-C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true }" -sS | jq
-```
-```json
-{
-  "Ok": false,
-  "ErrorText": "Непозволена команда"
-}
-```
-
-Print duplicate receipt (by receipt number) from device Electronic Journal.
-
-```
-C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
-```
-```json
-{
-  "Ok": false,
-  "ErrorText": "Непозволена команда"
-}
-```
-
 Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see below) for the first products of the previous sale `0000056`.
 
 ```
@@ -344,6 +320,30 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 }
 ```
 
+Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
+
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true }" -sS | jq
+```
+```json
+{
+  "Ok": false,
+  "ErrorText": "Непозволена команда"
+}
+```
+
+Print duplicate receipt (by receipt number) from device Electronic Journal.
+
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
+```
+```json
+{
+  "Ok": false,
+  "ErrorText": "Непозволена команда"
+}
+```
+
 Supported `ReceiptType` values:
 
 Name                  | Value   | Description
@@ -356,21 +356,21 @@ Name                  | Value   | Description
 
 Supported `PaymentType` values:
 
-Name                  | Value   | Description
-----                  | -----   | -----------
-`ucsFscPmtCash`       | 1       | Payment in cash
-`ucsFscPmtCard`       | 2       | Payment with debit/credit card
-`ucsFscPmtCheque`     | 3       | Bank payment (if available)
-`ucsFscPmtCustom1`    | -1 or 5 | First custom payment (Талони)
-`ucsFscPmtCustom2`    | -2 or 6 | Second custom payment (В.Талони)
-`ucsFscPmtCustom3`    | -3 or 7 | Third custom payment (Резерв.1)
-`ucsFscPmtCustom4`    | -4 or 8 | Fourth custom payment (Резерв.2)
+Name                  | Value | Alt  | Description
+----                  | ----- | ---- | -----------
+`ucsFscPmtCash`       | 1     |      | Payment in cash
+`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card
+`ucsFscPmtCheque`     | 3     |      | Bank payment (if available)
+`ucsFscPmtCustom1`    | -1    | 5    | First custom payment (Талони)
+`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment (В.Талони)
+`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment (Резерв.1)
+`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment (Резерв.2)
 
 Supported `ReversalType` values:
 
 Name                        | Value | Description
 ----                        | ----- | -----------
-`ucsFscRevOperatorError`    | 0     | Error by the operator
+`ucsFscRevOperatorError`    | 0     | Error by the operator (default)
 `ucsFscRevRefund`           | 1     | Refund defect/returned items
 `ucsFscRevTaxBaseReduction` | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
 
