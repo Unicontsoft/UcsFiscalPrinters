@@ -233,7 +233,7 @@ C:> curl http://localhost:8192/printers/DT518315/status -sS | jq
 
 Print fiscal receipt, reversal, invoice or credit note.
 
-Following `data-utf8.txt` prints a fiscal receipt for two products, second one is with discount. The receipt in paid first 10.00 leva with a bank card and the rest in cash. After all receipt totals are printed a free-text line outputs current client loyalty card number used for information.
+Following `data-utf8.txt` prints a fiscal receipt (`ReceiptType` is 1, see below) for two products, second one is with discount. The receipt in paid first 10.00 leva with a bank card and the rest in cash. After all receipt totals are printed a free-text line outputs current client loyalty card number used for information.
 
 ```json
 {
@@ -306,6 +306,44 @@ C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\
 }
 ```
 
+Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see below) for the first products of the previous sale `0000056`.
+
+```
+{
+    "ReceiptType": 2,
+    "Operator": {
+        "Code": "1",
+        "Name": "Иван Иванов",
+        "Password": "1"
+    },
+    "Reversal: {
+        "Type": 1,
+        "ReceiptNo": "0000056",
+        "ReceiptDateTime": "2019-07-19 14:05:18",
+        "FiscalMemoryNo": "02518315",
+    },
+    "UniqueSaleNo": "DT518315-0001-1234567",
+    "Rows": [
+        {
+            "ItemName": "Продукт 1",
+            "Price": 12.34,
+        }
+    ]
+}
+```
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
+```
+```json
+{
+  "Ok": true,
+  "ReceiptNo": "...",
+  "ReceiptDateTime": "...",
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315"
+}
+```
+
 Supported `ReceiptType` values:
 
 Name                  | Value   | Description
@@ -328,6 +366,13 @@ Name                  | Value   | Description
 `ucsFscPmtCustom3`    | -3 or 7 | Third custom payment (Резерв.1)
 `ucsFscPmtCustom4`    | -4 or 8 | Fourth custom payment (Резерв.2)
 
+Supported `ReversalType` values:
+
+Name                        | Value | Description
+----                        | ----- | -----------
+`ucsFscRevOperatorError`    | 0     | Error by the operator
+`ucsFscRevRefund`           | 1     | Refund defect/returned items
+`ucsFscRevTaxBaseReduction` | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
 
 #### `GET` `/printers/:printer_id/deposit`
 
