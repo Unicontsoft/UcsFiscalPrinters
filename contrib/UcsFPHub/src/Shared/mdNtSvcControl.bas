@@ -86,7 +86,7 @@ Public Function NtServiceUninstall(sServiceName As String, Optional Error As Str
         Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
     End Select
     If Not ShellWait("sc", "delete " & ArgvQuote(sServiceName), StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
-        Error = "Error " & lExitCode
+        Error = GetErrorDescription(lExitCode)
         GoTo QH
     End If
     '--- success
