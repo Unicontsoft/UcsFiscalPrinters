@@ -311,22 +311,22 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
-                JsonItem(oJson, "UniqueSaleNo"), _
-                JsonItem(oJson, "TableNo"), _
-                JsonItem(oJson, "Invoice/DocNo"), _
-                JsonItem(oJson, "Invoice/CgTaxNo"), _
-                JsonItem(oJson, "Invoice/CgVatNo"), _
-                JsonItem(oJson, "Invoice/CgName"), _
-                vbNullString, _
-                JsonItem(oJson, "Invoice/CgAddress"), _
-                JsonItem(oJson, "Invoice/CgPrsReceive"), _
-                JsonItem(oJson, "OwnData"), _
-                C_Lng(JsonItem(oJson, "Reversal/Type")), _
-                JsonItem(oJson, "Reversal/ReceiptNo"), _
-                C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
-                JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
-                JsonItem(oJson, "Reversal/InvoiceNo"), _
-                JsonItem(oJson, "Reversal/Reason")) Then
+                UniqueSaleNo:=JsonItem(oJson, "UniqueSaleNo"), _
+                TableNo:=JsonItem(oJson, "TableNo"), _
+                InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
+                InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
+                InvCgTaxNoType:=C_Lng(JsonItem(oJson, "Invoice/CgTaxNoType")), _
+                InvCgVatNo:=JsonItem(oJson, "Invoice/CgVatNo"), _
+                InvCgName:=JsonItem(oJson, "Invoice/CgName"), _
+                InvCgAddress:=JsonItem(oJson, "Invoice/CgAddress"), _
+                InvCgPrsReceive:=JsonItem(oJson, "Invoice/CgPrsReceive"), _
+                OwnData:=JsonItem(oJson, "OwnData"), _
+                RevType:=C_Lng(JsonItem(oJson, "Reversal/ReversalType")), _
+                RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
+                RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
+                RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
+                RevInvoiceNo:=JsonItem(oJson, "Reversal/InvoiceNo"), _
+                RevReason:=JsonItem(oJson, "Reversal/Reason")) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
