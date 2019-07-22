@@ -73,6 +73,7 @@ Private m_dblStartTimerEx           As Double
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -277,7 +278,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog Printf(STR_CONN_ELAPSED & " (" & MODULE_NAME & ")", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
+        DebugLog Printf(STR_CONN_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
         pvClearState
     End If
 QH:
