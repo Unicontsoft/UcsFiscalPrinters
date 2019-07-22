@@ -271,6 +271,7 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     Dim cRetVal         As Collection
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
+    Dim oMssqlEndpoint  As cMssqlEndpoint
     
     On Error GoTo EH
     Set cRetVal = New Collection
@@ -282,7 +283,10 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
                 cRetVal.Add oRestEndpoint
             End If
         Case "mssqlservicebroker"
-            '--- ToDo: impl
+            Set oMssqlEndpoint = New cMssqlEndpoint
+            If oMssqlEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oMssqlEndpoint
+            End If
         End Select
     Next
     Set pvCreateEndpoints = cRetVal

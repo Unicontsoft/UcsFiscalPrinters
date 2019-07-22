@@ -1,0 +1,193 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cMssqlEndpoint"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+'=========================================================================
+'
+' UcsFPHub (c) 2019 by Unicontsoft
+'
+' Unicontsoft Fiscal Printers Hub
+'
+' This project is licensed under the terms of the MIT license
+' See the LICENSE file in the project root for more information
+'
+'=========================================================================
+Option Explicit
+DefObj A-Z
+Private Const MODULE_NAME As String = "cMssqlEndpoint"
+
+'=========================================================================
+' API
+'=========================================================================
+
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+
+'=========================================================================
+' Constants and member variables
+'=========================================================================
+
+Private Const STR_CONN_OPEN             As String = "Свързан с %1"
+Private Const STR_QUEUE_SETUP           As String = "Настроени %1 услуги на опашка %2"
+'--- errors
+Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
+Private Const ERR_INVALID_ENDPOINT      As String = "Невалиден Endpoint: %1"
+'--- sql
+Private Const SQL_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME, @Result INT" & vbCrLf & _
+                                                    "SELECT      @QueueName = '%1'" & vbCrLf & _
+                                                    "SELECT      @Handle = NULL, @Request = NULL, @MsgType = NULL" & vbCrLf & _
+                                                    "EXEC        @Result = dbo.usp_sys_ServiceBrokerWaitRequest @QueueName, 5000, @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT" & vbCrLf & _
+                                                    "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName" & vbCrLf & _
+                                                    "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
+
+Private m_oConfig                   As Object
+Private m_oPrinters                 As Object
+Private WithEvents m_oConn          As ADODB.Connection
+Attribute m_oConn.VB_VarHelpID = -1
+Private m_sQueueName                As String
+Private m_oController               As cServiceController
+
+'=========================================================================
+' Error handling
+'=========================================================================
+
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+End Sub
+
+'=========================================================================
+' Properties
+'=========================================================================
+
+'=========================================================================
+' Methods
+'=========================================================================
+
+Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
+    Const FUNC_NAME     As String = "Init"
+    Dim vElem           As Variant
+    Dim lIdx            As Long
+
+    On Error GoTo EH
+    Set m_oConfig = oConfig
+    Set m_oPrinters = oPrinters
+    '--- init DB connection
+    Set m_oConn = New ADODB.Connection
+    m_oConn.CursorLocation = adUseClient
+    m_oConn.Open JsonItem(oConfig, "ConnectString")
+    DebugLog Printf(STR_CONN_OPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", JsonItem(oConfig, "ConnectString"))
+    '--- init Service Broker queue
+    m_sQueueName = "UcsFpTargetQueue/" & GetErrorComputerName() & IIf(Not InIde, "/" & GetCurrentProcessId(), vbNullString)
+    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
+        If LenB(C_Str(vElem)) <> 0 Then
+            m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, "UcsFpTargetService/" & C_Str(vElem), IIf(lIdx = 0, "DROP_EXISTING", "DROP_SERVICE")
+            lIdx = lIdx + 1
+        End If
+    Next
+    DebugLog Printf(STR_QUEUE_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", lIdx, m_sQueueName)
+    '--- init service controller
+    Set m_oController = New cServiceController
+    If Not m_oController.Init(oPrinters) Then
+        Set m_oConn = Nothing
+        Set m_oController = Nothing
+        GoTo QH
+    End If
+    pvQueueLoopAsync
+    '--- success
+    Init = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Function
+
+Private Sub pvQueueLoopAsync()
+    m_oConn.Execute Printf(SQL_QUEUE_LOOP, m_sQueueName), , adAsyncExecute Or adAsyncFetch
+    '--- ToDo: start heart-beat timer
+End Sub
+
+Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "pvHandleRequest"
+    Dim vJson           As Variant
+    Dim sPrinterId      As String
+    Dim sError          As String
+    Dim sEndpoint       As String
+    
+    On Error GoTo EH
+    sPrinterId = At(Split(sSvcName, "/"), 1)
+    If LenB(sPrinterId) = 0 Then
+        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_SERVICE, sSvcName))
+        GoTo QH
+    End If
+    If Not JsonParse(sRequest, vJson, Error:=sError) Then
+        sResponse = pvEncodeErrorText(sError)
+        GoTo QH
+    End If
+    sEndpoint = JsonItem(C_Obj(vJson), "Endpoint")
+    If Left$(sEndpoint, 1) <> "/" Then
+        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_ENDPOINT, sEndpoint))
+        GoTo QH
+    End If
+    If Not m_oController.ServiceRequest("/printers/" & sPrinterId & sEndpoint, sRequest, sResponse) Then
+        If LenB(sResponse) = 0 Then
+            sResponse = pvEncodeErrorText(m_oController.LastError)
+            GoTo QH
+        End If
+    End If
+    '--- success
+    pvHandleRequest = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    sResponse = pvEncodeErrorText(Err.Description)
+    GoTo QH
+End Function
+
+Private Function pvEncodeErrorText(sErrorText As String) As String
+    Dim oResponse       As Object
+    
+    JsonItem(oResponse, "Ok") = False
+    JsonItem(oResponse, "ErrorText") = sErrorText
+    pvEncodeErrorText = JsonDump(oResponse, Minimize:=True)
+End Function
+
+'=========================================================================
+' Events
+'=========================================================================
+
+Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
+    Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
+    Dim sResponse       As String
+    
+    On Error GoTo EH
+    If Not pRecordset Is Nothing Then
+        If pRecordset.State = adStateOpen Then
+            If pRecordset.Fields.Count = 5 Then
+                If C_Lng(pRecordset!Result.Value) = 0 And LenB(C_Str(pRecordset!Handle.Value)) <> 0 Then
+                    '--- note: system msgs are "__" prefixed (e.g. "__FIN__", "__ACK__")
+                    If Left$(C_Str(pRecordset!Request.Value), 2) <> "__" Then
+                        pvHandleRequest C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse
+                        m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", pRecordset!Handle.Value, Replace(sResponse, "'", "''"))
+                    End If
+                End If
+                pvQueueLoopAsync
+            End If
+        End If
+    End If
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
