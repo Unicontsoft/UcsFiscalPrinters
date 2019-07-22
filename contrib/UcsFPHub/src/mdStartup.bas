@@ -173,7 +173,7 @@ Private Function Process(vArgs As Variant) As Long
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If InIde Then
-        frmIcon.Show vbModal
+        frmIcon.Show
     ElseIf m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
