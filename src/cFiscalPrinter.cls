@@ -742,10 +742,10 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
     Dim vRow            As Variant
     
     On Error GoTo EH
-    pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
-    If LenB(pvGetRowData.Price) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "Price")) Then
         pvGetRowData.RowType = ucsRwtSell
         pvGetRowData.Item = C_Str(JsonItem(oRow, "ItemName"))
+        pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
         pvGetRowData.TaxGroup = C_Str(JsonItem(oRow, "TaxGroup"))
         pvGetRowData.Quantity = C_Str(JsonItem(oRow, "Quantity"))
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
@@ -758,29 +758,29 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH
     End If
-    pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
-    If LenB(pvGetRowData.Item) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "Text")) Then
         pvGetRowData.RowType = ucsRwtText
+        pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
         GoTo QH
     End If
     vRow = JsonItem(oRow, "*")
     If UBound(vRow) = ucsFscPixItem Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
+        pvGetRowData.Item = At(vRow, ucsFscPixItem)
         GoTo QH
     End If
     If UBound(vRow) = ucsFscPixAmount Then
         pvGetRowData.RowType = ucsRwtPayment
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-        pvGetRowData.PmtType = C_Str(vRow(ucsFscPixWayOfPmt))
-        pvGetRowData.Amount = C_Str(vRow(ucsFscPixAmount))
+        pvGetRowData.Item = At(vRow, ucsFscPixItem)
+        pvGetRowData.PmtType = At(vRow, ucsFscPixWayOfPmt)
+        pvGetRowData.Amount = At(vRow, ucsFscPixAmount)
         GoTo QH
     End If
     pvGetRowData.RowType = ucsRwtSell
-    pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-    pvGetRowData.Price = C_Str(vRow(ucsFscPixPrice))
-    pvGetRowData.TaxGroup = C_Str(vRow(ucsFscPixTaxGroup))
-    pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
+    pvGetRowData.Item = At(vRow, ucsFscPixItem)
+    pvGetRowData.Price = At(vRow, ucsFscPixPrice)
+    pvGetRowData.TaxGroup = At(vRow, ucsFscPixTaxGroup)
+    pvGetRowData.Quantity = At(vRow, ucsFscPixQuantity)
     pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
 QH:
     Exit Function
