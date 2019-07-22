@@ -75,7 +75,7 @@ These are the REST service endpoints supported:
 
 List currently configured devices.
 
-```
+```shell
 C:> curl http://localhost:8192/printers -sS | jq
 ```
 ```json
@@ -117,7 +117,7 @@ C:> curl http://localhost:8192/printers -sS | jq
 
 Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315 -sS | jq
 ```
 ```json
@@ -160,7 +160,8 @@ C:> curl http://localhost:8192/printers/DT518315 -sS | jq
 #### `POST` `/printers/:printer_id`
 
 Retrieve device configuration only. This will not communicate with the device if config is already retrieved on previous connection.
-```
+
+```shell
 C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
 ```
 ```json
@@ -176,7 +177,8 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
 ```
 
 Retrieve device configuration, operator name and default password.
-```
+
+```shell
 C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }" -sS | jq
 ```
 ```json
@@ -197,7 +199,8 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\":
 ```
 
 Retrieve device configuration and tax number/caption only
-```
+
+```shell
 C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }" -sS | jq
 ```
 ```json
@@ -218,7 +221,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"
 
 Get device status and current clock.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/status -sS | jq
 ```
 ```json
@@ -269,7 +272,7 @@ Following `data-utf8.txt` prints a fiscal receipt (`ReceiptType` is 1, see below
     ]
 }
 ```
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
@@ -284,7 +287,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 
 Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see below) for the first products of the previous sale `0000056`.
 
-```
+```json
 {
     "ReceiptType": 2,
     "Operator": {
@@ -308,7 +311,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
     ]
 }
 ```
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
@@ -323,7 +326,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 
 Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptType` is 3, see below) paid in total by bank card. In `Rows` the line for "Продукт 3" is specified in short array form skipping field names altogether. For "Продукт 4" only name and price are specified while tax group defaults to `2` (or `"Б"`), quantity defaults to `1` and discount defaults to `0`.
 
-```
+```json
 {
     "ReceiptType": 3,
     "Operator": {
@@ -359,7 +362,7 @@ Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptTyp
     ]
 }
 ```
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
@@ -374,7 +377,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 
 Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true }" -sS | jq
 ```
 ```json
@@ -386,7 +389,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\
 
 Print duplicate receipt (by receipt number) from device Electronic Journal.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
 ```
 ```json
@@ -440,7 +443,7 @@ Name                        | Value | Description
 
 Retrieve service deposit and service withdraw totals.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
 ```
 ```json
@@ -456,7 +459,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
 
 Print service deposit.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" -sS | jq
 ```
 ```json
@@ -472,7 +475,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34
 
 Print service withdraw.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
     \"Amount\": -56.78, ^
     \"Operator\": { ^
@@ -496,7 +499,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
 
 Print device reports. Supports daily X or Z reports and monthly (by date range) reports.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 }" -sS | jq
 ```
 ```json
@@ -521,7 +524,7 @@ Name                | Value | Description
 
 Get current device date/time.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/datetime -sS | jq
 ```
 ```json
@@ -536,7 +539,7 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -sS | jq
 
 Set device date/time.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" -sS | jq
 ```
 ```json
@@ -550,7 +553,7 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime
 
 Set device date/time only when device clock is outside specified tolerance (in seconds).
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
     \"DeviceDateTime\": \"2019-07-19 11:58:31\", ^
     \"AdjustTolerance\": 60 ^
@@ -569,7 +572,7 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
 
 Get device totals since last Z report grouped by payment types and tax groups.
 
-```
+```shell
 C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
 ```
 ```json
