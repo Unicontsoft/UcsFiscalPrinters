@@ -48,7 +48,7 @@ Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
 Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
-Private Const STR_CONN_ELAPSED          As String = "%1 обработи заявка %2 за %3 сек."
+Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
 
 Private m_sLastError                As String
 Private m_sID                       As String
@@ -139,7 +139,7 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), oPrinters, Error:=m_sLastError) Then
         GoTo QH
     End If
-    '--- init service controlls
+    '--- init service controller
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters) Then
         m_sLastError = m_oController.LastError
