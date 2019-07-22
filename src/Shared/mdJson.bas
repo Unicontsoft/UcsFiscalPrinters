@@ -161,7 +161,7 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
         End If
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-        Debug.Assert MsgBox(Err.Description, vbCritical, MODULE_NAME & "." & sFunction) <> -1
+        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
     #End If
 End Function
 

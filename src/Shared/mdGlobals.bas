@@ -485,6 +485,10 @@ EH:
     Resume Next
 End Function
 
+Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
+
+End Sub
+
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
     Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
     Dim vErr            As Variant
