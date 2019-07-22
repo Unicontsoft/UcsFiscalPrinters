@@ -19,6 +19,8 @@ Private Const MODULE_NAME As String = "mdGlobals"
 
 '--- for VariantChangeType
 Private Const VARIANT_ALPHABOOL             As Long = 2
+'--- for GetSystemMetrics
+Private Const SM_REMOTESESSION              As Long = &H1000
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -29,12 +31,19 @@ Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src 
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Private Declare Function GetComputerName Lib "kernel32" Alias "GetComputerNameA" (ByVal lpBuffer As String, nSize As Long) As Long
+Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
+Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
 Private m_cRegExpCache              As Collection
+Private m_sErrComputerName          As String
 
 '=========================================================================
 ' Error handling
@@ -42,6 +51,7 @@ Private m_cRegExpCache              As Collection
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -379,3 +389,51 @@ Public Function GetErrorTempPath() As String
         GetErrorTempPath = Left$(GetErrorTempPath, Len(GetErrorTempPath) - 1)
     End If
 End Function
+
+Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As String
+    Dim lSize           As Long
+    
+    If LenB(m_sErrComputerName) = 0 Then
+        m_sErrComputerName = Space$(256): lSize = 255
+        If GetComputerName(m_sErrComputerName, lSize) > 0 Then
+            m_sErrComputerName = Left$(m_sErrComputerName, lSize)
+        Else
+            m_sErrComputerName = vbNullString
+        End If
+    End If
+    GetErrorComputerName = m_sErrComputerName
+    If GetSystemMetrics(SM_REMOTESESSION) <> 0 And Not NoSession Then
+        lSize = -1
+        On Error Resume Next '--- checked
+        Call ProcessIdToSessionId(GetCurrentProcessId(), lSize)
+        On Error GoTo 0
+        If lSize <> -1 Then
+            GetErrorComputerName = GetErrorComputerName & ":" & lSize
+        End If
+    End If
+End Function
+
+Public Function GetProcessName() As String
+    GetProcessName = String$(1000, 0)
+    Call GetModuleFileName(0, GetProcessName, Len(GetProcessName) - 1)
+    GetProcessName = Left$(GetProcessName, InStr(GetProcessName, vbNullChar) - 1)
+End Function
+
+Public Function GetEnvironmentVar(sName As String) As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
+    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+End Function
+
+Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
+    On Error GoTo QH
+    If IsObject(vSrc) Then
+        Set vDest = vSrc
+    Else
+        vDest = vSrc
+    End If
+QH:
+End Sub
+
