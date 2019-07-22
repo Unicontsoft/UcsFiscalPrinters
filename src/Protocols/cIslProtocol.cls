@@ -945,11 +945,15 @@ Public Function AddPLU( _
     With uRow
         .RowType = ucsRowPlu
         .PluName = RTrim$(SafeText(Name))
-        bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         Select Case m_uRow(0).InitReceiptType
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
-            bNegative = Not bNegative
+            If Price < 0 Then
+                Price = -Price
+            Else
+                Quantity = -Quantity
+            End If
         End Select
+        bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(IIf(bNegative Or m_uConfig.NegativePrices, Abs(Quantity), Quantity), 3)
         .PluTaxGroup = LimitLong(TaxGroup, 1, 8)
