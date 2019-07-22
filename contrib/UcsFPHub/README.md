@@ -292,10 +292,10 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
         "Name": "Иван Иванов",
         "Password": "****"
     },
-    "Reversal: {
-        "Type": 1,
+    "Reversal": {
+        "ReversalType": 1,
         "ReceiptNo": "0000056",
-        "ReceiptDateTime": "2019-07-19 14:05:18",
+        "ReceiptDate": "2019-07-19 14:05:18",
         "FiscalMemoryNo": "02518315",
     },
     "UniqueSaleNo": "DT518315-0001-1234567",
@@ -303,6 +303,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
         {
             "ItemName": "Продукт 1",
             "Price": 12.34,
+            "Quantity": -1
         }
     ]
 }
@@ -313,8 +314,59 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "...",
-  "ReceiptDateTime": "...",
+  "ReceiptNo": "0000061",
+  "ReceiptDateTime": "2019-07-22 11:46:23",
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315"
+}
+```
+
+Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptType` is 3, see below) paid in total by bank card. In `Rows` the line for "Продукт 3" is specified in short array form skipping field names altogether. For "Продукт 4" only name and price are specified while tax group defaults to `2` (or `"Б"`), quantity defaults to `1` and discount defaults to `0`.
+
+```
+{
+    "ReceiptType": 3,
+    "Operator": {
+        "Code": "1",
+        "Name": "Иван Иванов",
+        "Password": "****"
+    },
+    "Invoice": {
+        "DocNo": "1237",
+        "CgTaxNo": "130395814",
+        "CgTaxNoType": 0,
+        "CgVatNo": "BG130395814",
+        "CgName": "Униконт Софт ООД",
+        "CgAddress": "София, бул. Тотлебен №85-87",
+        "CgPrsReceive": "В. Висулчев",
+    },
+    "UniqueSaleNo": "DT518315-0001-0001234",
+    "Rows": [
+        {
+            "ItemName": "Продукт 1",
+            "Price": 12.34,
+        },
+        {
+            "ItemName": "Продукт 2",
+            "Price": 5.67,
+            "TaxGroup": 2,
+            "Quantity": 3.5,
+            "Discount": 15
+        },
+        [ "Продукт 3", 5.67, "Б", 3.5, 15 ],
+        [ "Продукт 4", 2.00  ],
+        { "PaymentType": 2 },
+    ]
+}
+```
+```
+C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
+```
+```json
+{
+  "Ok": true,
+  "ReceiptNo": "0000065",
+  "ReceiptDateTime": "2019-07-22 12:05:55",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
 }
@@ -328,7 +380,7 @@ C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\
 ```json
 {
   "Ok": false,
-  "ErrorText": "Непозволена команда"
+  "ErrorText": "Време за достъп изтече в очакване на отговор"
 }
 ```
 
@@ -373,6 +425,16 @@ Name                        | Value | Description
 `ucsFscRevOperatorError`    | 0     | Operator entry error (default)
 `ucsFscRevRefund`           | 1     | Refund defective/returned goods
 `ucsFscRevTaxBaseReduction` | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
+
+Supported `TaxNoType` values
+
+Name                        | Value | Description
+----                        | ----- | -----------
+`ucsFscTxnEIC`              | 0     | ЕИК a.k.a Bulstat (default)
+`ucsFscTxnCitizenNo`        | 1     | ЕГН
+`ucsFscTxnForeignerNo`      | 2     | ЛНЧ
+`ucsFscTxnOfficialNo`       | 3     | Служебен номер
+
 
 #### `GET` `/printers/:printer_id/deposit`
 
@@ -513,26 +575,29 @@ C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
 ```json
 {
     "Ok": true,
-    "NumReceipts": 24,
-    "TotalsByPayments": [
-        { "PaymentType": 1, "PaymentName": "В БРОЙ", "Amount": 178.18 },
-        { "PaymentType": 2, "PaymentName": "С КАРТА", "Amount": 52.96 },
-        { "PaymentType": 3, "PaymentName": "НЗОК", "Amount": 0 },
-        { "PaymentType": 4, "PaymentName": "КРЕДИТ", "Amount": 0 },
-        { "PaymentType": 5, "PaymentName": "ВАУЧЕР", "Amount": 0 },
-        { "PaymentType": 6, "PaymentName": "КУПОН", "Amount": 0 },
-        { "PaymentType": 7, "PaymentName": "", "Amount": 0 },
-        { "PaymentType": 8, "PaymentName": "", "Amount": 0 }
-    ],
+    "NumReceipts": 29,
+    "Available": 361.04,
+    "TotalDeposits": 393.68,
+    "TotalWithdraws": 236.56,
     "TotalsByTaxGroups": [
-        { "TaxGroup": 1, "VatPercent": 0, "Amount": 231.14 },
-        { "TaxGroup": 2, "VatPercent": 20, "Amount": 0 },
+        { "TaxGroup": 1, "VatPercent": 0, "Amount": 0 },
+        { "TaxGroup": 2, "VatPercent": 20, "Amount": 421.46 },
         { "TaxGroup": 3, "VatPercent": 20, "Amount": 0 },
         { "TaxGroup": 4, "VatPercent": 9, "Amount": 0 },
         { "TaxGroup": 5, "VatPercent": 0, "Amount": 0 },
         { "TaxGroup": 6, "VatPercent": 0, "Amount": 0 },
         { "TaxGroup": 7, "VatPercent": 0, "Amount": 0 },
         { "TaxGroup": 8, "VatPercent": 0, "Amount": 0 }
+    ],
+    "TotalsByPayments": [
+        { "PaymentType": 1, "PaymentName": "В БРОЙ", "Amount": 226.26 },
+        { "PaymentType": 2, "PaymentName": "С КАРТА", "Amount": 195.2 },
+        { "PaymentType": 3, "PaymentName": "НЗОК", "Amount": 0 },
+        { "PaymentType": 4, "PaymentName": "КРЕДИТ", "Amount": 0 },
+        { "PaymentType": 5, "PaymentName": "ВАУЧЕР", "Amount": 0 },
+        { "PaymentType": 6, "PaymentName": "КУПОН", "Amount": 0 },
+        { "PaymentType": 7, "PaymentName": "", "Amount": 0 },
+        { "PaymentType": 8, "PaymentName": "", "Amount": 0 }
     ]
 }
 ```
