@@ -115,8 +115,16 @@ EH:
 End Function
 
 Private Sub pvQueueLoopAsync()
+    Const FUNC_NAME     As String = "pvQueueLoopAsync"
+    
+    On Error GoTo EH
     m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
     '--- ToDo: start heart-beat timer
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
 End Sub
 
 Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String) As Boolean
@@ -189,11 +197,11 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                         m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", pRecordset!Handle.Value, Replace(sResponse, "'", "''"))
                     End If
                 End If
+QH:
                 pvQueueLoopAsync
             End If
         End If
     End If
-QH:
     Exit Sub
 EH:
     PrintError FUNC_NAME
