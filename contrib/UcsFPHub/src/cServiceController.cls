@@ -79,8 +79,6 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
     Dim oInfo           As Object
     Dim vJson           As Variant
     Dim oRequest        As Object
-    Dim oResponse       As Object
-    Dim sError          As String
     
     On Error GoTo EH
     m_sLastError = vbNullString
@@ -102,9 +100,9 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
         Set oRequest = C_Obj(vJson)
         If oRequest Is Nothing Then
             Select Case LCase$(At(vMatches, 1))
-            Case vbNullString
+            Case vbNullString, "totals"
                 JsonItem(oRequest, "IncludeAll") = True
-            Case "status", "datetime", "deposit", "totals"
+            Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
                 sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
@@ -138,31 +136,9 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
                 GoTo QH
             End If
         Case "totals"
-            If Not m_oFP.GetTotalsStats(JsonDump(oRequest, Minimize:=True), sResponse) Then
+            If Not m_oFP.GetDailyTotals(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
-            If Not JsonParse(sResponse, oResponse, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If Not m_oFP.GetTotalsByPayments(JsonDump(oRequest, Minimize:=True), sResponse) Then
-                GoTo QH
-            End If
-            If Not JsonParse(sResponse, vJson, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
-                JsonItem(oResponse, "TotalsByPayments") = JsonItem(C_Obj(vJson), "TotalsByPayments")
-            End If
-            If Not m_oFP.GetTotalsByTaxGroups(JsonDump(oRequest, Minimize:=True), sResponse) Then
-                GoTo QH
-            End If
-            If Not JsonParse(sResponse, vJson, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
-                JsonItem(oResponse, "TotalsByTaxGroups") = JsonItem(C_Obj(vJson), "TotalsByTaxGroups")
-            End If
-            sResponse = JsonDump(oResponse, Minimize:=True)
         End Select
     End If
     '--- success
