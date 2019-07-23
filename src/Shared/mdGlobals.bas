@@ -486,7 +486,8 @@ EH:
 End Function
 
 Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
-
+    #If sText And eType Then '--- touch args
+    #End If
 End Sub
 
 Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
