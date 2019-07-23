@@ -65,7 +65,9 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-Both request and response payloads are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` in the JSON response.
+Both request and response payloads by default are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. Use `format=xml` in query string to change result to XML with content-type of `text/xml; charset=utf-8`.
+
+All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` localized error text in the JSON response.
 
 The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
 
@@ -113,6 +115,46 @@ C:> curl http://localhost:8192/printers -sS | jq
 }
 ```
 
+Same with results in XML.
+
+```shell
+C:> curl http://localhost:8192/printers?format=xml -sS
+```
+```xml
+<Root>
+   <Ok __json__bool="1">1</Ok>
+   <Count>2</Count>
+   <DT240349>
+      <DeviceSerialNo>DT240349</DeviceSerialNo>
+      <FiscalMemoryNo>02240349</FiscalMemoryNo>
+      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+      <DeviceModel>FP-3530?</DeviceModel>
+      <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
+      <CharsPerLine>30</CharsPerLine>
+      <TaxNo>0000000000</TaxNo>
+      <TaxCaption>БУЛСТАТ</TaxCaption>
+      <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
+   </DT240349>
+   <DT518315>
+      <DeviceSerialNo>DT518315</DeviceSerialNo>
+      <FiscalMemoryNo>02518315</FiscalMemoryNo>
+      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+      <DeviceModel>DP-25</DeviceModel>
+      <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+      <CharsPerLine>30</CharsPerLine>
+      <TaxNo>НЕЗАДАДЕН</TaxNo>
+      <TaxCaption>ЕИК</TaxCaption>
+      <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+   </DT518315>
+   <Aliases>
+      <Count>1</Count>
+      <PrinterID1>
+         <DeviceSerialNo>DT518315</DeviceSerialNo>
+      </PrinterID1>
+   </Aliases>
+</Root>
+```
+
 #### `GET` `/printers/:printer_id`
 
 Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names.
@@ -155,6 +197,42 @@ C:> curl http://localhost:8192/printers/DT518315 -sS | jq
     ""
   ]
 }
+```
+
+Same with results in XML.
+
+```shell
+C:> curl http://localhost:8192/printers/DT518315?format=xml -sS
+```
+```xml
+<Root>
+   <Ok __json__bool="1">1</Ok>
+   <DeviceSerialNo>DT518315</DeviceSerialNo>
+   <FiscalMemoryNo>02518315</FiscalMemoryNo>
+   <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+   <DeviceModel>DP-25</DeviceModel>
+   <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+   <CharsPerLine>30</CharsPerLine>
+   <Header>ИМЕ НА ФИРМА</Header>
+   <Header>АДРЕС НА ФИРМА</Header>
+   <Header>ИМЕ НА ОБЕКТ</Header>
+   <Header>АДРЕС НА ОБЕКТ</Header>
+   <Header />
+   <Header />
+   <Footer />
+   <Footer />
+   <TaxNo>НЕЗАДАДЕН</TaxNo>
+   <TaxCaption>ЕИК</TaxCaption>
+   <ReceiptNo>0000081</ReceiptNo>
+   <DeviceDateTime>2019-07-23 18:07:01</DeviceDateTime>
+   <PaymentName>В БРОЙ</PaymentName>
+   <PaymentName>С КАРТА</PaymentName>
+   <PaymentName>НЗОК</PaymentName>
+   <PaymentName>ВАУЧЕР</PaymentName>
+   <PaymentName>КУПОН</PaymentName>
+   <PaymentName />
+   <PaymentName />
+</Root>
 ```
 
 #### `POST` `/printers/:printer_id`
