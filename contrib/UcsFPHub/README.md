@@ -25,8 +25,9 @@ The service is configured by a `UcsFPHub.conf` file in JSON format. Here is a sa
         { 
             "Binding": "MssqlServiceBroker", 
             "ConnectString": "Provider=SQLNCLI10;DataTypeCompatibility=80;MARS Connection=False;Data Source=SQL-PC;Initial Catalog=Dreem15_Personal;User ID=db_user;Password=%_UCS_SQL_PASSWORD%",
-            "SshSettings": "1,SSH-PC,22,ssh_user,%_UCS_SSH_PASSWORD%",
-            "IniFile": "C:\\Unicontsoft\\Pos\\Pos.ini"
+            "IniFile": "C:\\Unicontsoft\\Pos\\Pos.ini",
+            "QueueName": "UcsFpTargetQueue/POS-PC/002",
+            "QueueTimeout": 5000
         },
         {
             "Binding": "RestHttp", 
@@ -56,10 +57,14 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 `-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service config file. If no explicit config options are used the service tries to find `UcsFPHub.conf` config file in the application folder. If still no config file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
 `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service.
 `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.
+|              | `--systray`       | Hides the process and only shows the application icon in the system notification area.
 
 ### ToDo
 
- - [ ] Listener on Service Broker queues
+ - [x] Listener on Service Broker queues
+ - [ ] Systray icon form
+ - [ ] Impl `IniFile` for `MssqlServiceBroker` binding
+ - [ ] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
     
 ## REST service protocol description
 
