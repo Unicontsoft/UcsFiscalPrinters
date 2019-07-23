@@ -32,11 +32,12 @@ Private Const MODULE_NAME As String = "cMssqlEndpoint"
 Private Const STR_CONN_OPEN             As String = "Свързан с %1"
 Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 услуги"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
-Private Const STR_QUEUE_ERROR           As String = "Грешка в %1: %2"
+Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
 '--- errors
 Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
+Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- queue
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
 Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME" & vbCrLf & _
@@ -44,6 +45,7 @@ Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSN
                                                     "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName" & vbCrLf & _
                                                     "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
 
+Private m_sLastError                As String
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
 Private WithEvents m_oConn          As ADODB.Connection
@@ -57,6 +59,7 @@ Private m_oController               As cServiceController
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
+    m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
@@ -64,6 +67,10 @@ End Sub
 '=========================================================================
 ' Properties
 '=========================================================================
+
+Property Get LastError() As String
+    LastError = m_sLastError
+End Property
 
 '=========================================================================
 ' Methods
@@ -95,11 +102,16 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     '--- init service controller
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters) Then
+        m_sLastError = m_oController.LastError
         Set m_oConn = Nothing
         Set m_oController = Nothing
         GoTo QH
     End If
-    pvQueueLoopAsync
+    If Not pvQueueLoopAsync() Then
+        Set m_oConn = Nothing
+        Set m_oController = Nothing
+        GoTo QH
+    End If
     '--- success
     Init = True
 QH:
@@ -109,25 +121,27 @@ EH:
     Resume QH
 End Function
 
-Private Sub pvQueueLoopAsync()
+Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
     '--- ToDo: start heart-beat timer
+    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
+    '--- success
+    pvQueueLoopAsync = True
 QH:
-    Exit Sub
+    Exit Function
 EH:
     PrintError FUNC_NAME
     Resume QH
-End Sub
+End Function
 
 Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "pvHandleRequest"
     Dim vJson           As Variant
     Dim sPrinterId      As String
     Dim sError          As String
-    Dim sRawUrl        As String
+    Dim sRawUrl         As String
     Dim dblStartTimerEx As Double
     Dim vSplit          As Variant
     
@@ -135,18 +149,22 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     dblStartTimerEx = TimerEx
     sPrinterId = At(Split(sSvcName, "/"), 1)
     If LenB(sPrinterId) = 0 Then
-        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_SERVICE, sSvcName))
+        sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
         GoTo QH
     End If
     If Left$(sRequest, 1) = "<" Then
         AssignVariant vJson, JsonFromXmlDocument(sRequest)
+        If IsEmpty(vJson) Then
+            sResponse = ERR_INVALID_XML
+            GoTo QH
+        End If
     ElseIf Not JsonParse(sRequest, vJson, Error:=sError) Then
-        sResponse = pvEncodeErrorText(sError)
+        sResponse = sError
         GoTo QH
     End If
     sRawUrl = JsonItem(C_Obj(vJson), "Url")
     If Left$(sRawUrl, 1) <> "/" Then
-        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_URL, sRawUrl))
+        sResponse = Printf(ERR_INVALID_URL, sRawUrl)
         GoTo QH
     End If
     If LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
@@ -155,7 +173,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     vSplit = Split2(sRawUrl, "?")
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
         If LenB(sResponse) = 0 Then
-            sResponse = pvEncodeErrorText(m_oController.LastError)
+            sResponse = m_oController.LastError
             GoTo QH
         End If
     End If
@@ -163,21 +181,14 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     '--- success
     pvHandleRequest = True
 QH:
+    If Not pvHandleRequest Then
+        DebugLog Printf(STR_QUEUE_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sResponse)
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
-    sResponse = pvEncodeErrorText(Err.Description)
+    sResponse = m_sLastError
     GoTo QH
-End Function
-
-Private Function pvEncodeErrorText(sErrorText As String) As String
-    Const FUNC_NAME     As String = "pvEncodeErrorText"
-    Dim oResponse       As Object
-    
-    DebugLog Printf(STR_QUEUE_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sErrorText), vbLogEventTypeError
-    JsonItem(oResponse, "Ok") = False
-    JsonItem(oResponse, "ErrorText") = sErrorText
-    pvEncodeErrorText = JsonDump(oResponse, Minimize:=True)
 End Function
 
 '=========================================================================
@@ -186,6 +197,7 @@ End Function
 
 Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
     Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
+    Dim sHandle         As String
     Dim sResponse       As String
     
     On Error GoTo EH
@@ -193,13 +205,16 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
         If pRecordset.State = adStateOpen Then
             If pRecordset.Fields.Count = 5 Then
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(C_Str(pRecordset!Handle.Value)) <> 0 Then
+                    sHandle = pRecordset!Handle.Value
                     '--- note: system msgs are "__" prefixed (e.g. "__FIN__", "__ACK__")
                     If Left$(C_Str(pRecordset!Request.Value), 2) <> "__" Then
-                        pvHandleRequest C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse
-                        m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", pRecordset!Handle.Value, Replace(sResponse, "'", "''"))
+                        If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse) Then
+                            m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", sHandle, Quote(sResponse))
+                        Else
+                            m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, 1001, Quote(sResponse))
+                        End If
                     End If
                 End If
-QH:
                 pvQueueLoopAsync
             End If
         End If
@@ -207,5 +222,10 @@ QH:
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume QH
+    Resume NextLine
+NextLine:
+    If LenB(sHandle) <> 0 Then
+        m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, 1002, Quote(m_sLastError))
+    End If
+    pvQueueLoopAsync
 End Sub

@@ -32,6 +32,7 @@ Private Const MODULE_NAME As String = "cServiceController"
 Private Const ERR_INVALID_JSON      As String = "Невалидна JSON заявка: %1"
 Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
 Private Const ERR_MISSING_REQUEST   As String = "Празна JSON заявка"
+Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
 
 Private m_sLastError                As String
 Private m_oPrinters                 As Object
@@ -86,6 +87,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     m_sLastError = vbNullString
     Set oParams = ParseQueryString(sQueryString)
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
+        m_sLastError = ERR_INVALID_URL
         GoTo QH
     End If
     If LenB(At(vMatches, 0)) = 0 Then

@@ -463,3 +463,6 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Set ParseQueryString = oRetVal
 End Function
 
+Public Function Quote(sText As String) As String
+    Quote = Replace(sText, "'", "''")
+End Function
