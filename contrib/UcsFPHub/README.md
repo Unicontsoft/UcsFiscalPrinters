@@ -449,7 +449,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
 ```json
 {
   "Ok": true,
-  "Available": 349.68,
+  "TotalAvailable": 349.68,
   "TotalDeposits": 381.34,
   "TotalWithdraws": 123
 }
@@ -467,7 +467,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34
   "Ok": true,
   "ReceiptNo": "0000050",
   "ReceiptDateTime": "2019-07-19 12:02:08",
-  "Available": 362.02,
+  "TotalAvailable": 362.02,
   "TotalDeposits": 393.68,
   "TotalWithdraws": 123
 }
@@ -489,7 +489,7 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
   "Ok": true,
   "ReceiptNo": "0000052",
   "ReceiptDateTime": "2019-07-19 12:03:41",
-  "Available": 248.46,
+  "TotalAvailable": 248.46,
   "TotalDeposits": 393.68,
   "TotalWithdraws": 236.56
 }
@@ -579,7 +579,7 @@ C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
 {
     "Ok": true,
     "NumReceipts": 29,
-    "Available": 361.04,
+    "TotalAvailable": 361.04,
     "TotalDeposits": 393.68,
     "TotalWithdraws": 236.56,
     "TotalsByTaxGroups": [

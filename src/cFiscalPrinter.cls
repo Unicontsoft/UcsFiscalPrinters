@@ -571,7 +571,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
     If C_Bool(JsonItem(oJson, "IncludeServiceDeposit")) Or bIncludeAll Then
         vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
         If IsArray(vTotals) Then
-            JsonItem(oRetVal, "Available") = vTotals(0)
+            JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
             JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
             JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
         End If
@@ -639,7 +639,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
         JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     End If
-    JsonItem(oRetVal, "Available") = vTotals(0)
+    JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
 QH:
