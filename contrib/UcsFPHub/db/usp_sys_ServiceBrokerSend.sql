@@ -9,18 +9,61 @@ DECLARE     @Handle1    UNIQUEIDENTIFIER
 EXEC        dbo.usp_sys_ServiceBrokerSetupService
 
 --- open conversation and send request
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Endpoint": "/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT
-SELECT      @Result, @Response
--- Result,Response
--- 0,{"Ok":true,"DeviceStatus":"","DeviceDateTime":"2019-07-23 11:43:39"}
--- (1 row affected)
-
---- send another request on the same conversation
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Endpoint": "/deposit", "Amount": 10.55 }', @Response OUTPUT, @Handle = @Handle1
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers/DT518315/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT
 SELECT      @Result AS Result, @Response AS Response
--- Result,Response
--- 0,{"Ok":true,"ReceiptNo":"0000074","ReceiptDateTime":"2019-07-23 11:43:40","Available":454.1,"TotalDeposits":467.53,"TotalWithdraws":236.56}
--- (1 row affected)
+--{  
+--   "Ok":true,
+--   "DeviceStatus":"",
+--   "DeviceDateTime":"2019-07-23 17:17:18"
+--}
+
+--- send another request on the same conversation (result in XML)
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers?format=xml" }', @Response OUTPUT, @Handle = @Handle1
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
+--<Root>
+--  <Ok __json__bool="1">1</Ok>
+--  <Count>2</Count>
+--  <DT240349>
+--    <DeviceSerialNo>DT240349</DeviceSerialNo>
+--    <FiscalMemoryNo>02240349</FiscalMemoryNo>
+--    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceModel>FP-3530?</DeviceModel>
+--    <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
+--    <CharsPerLine>30</CharsPerLine>
+--    <TaxNo>0000000000</TaxNo>
+--    <TaxCaption>БУЛСТАТ</TaxCaption>
+--    <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
+--  </DT240349>
+--  <DT518315>
+--    <DeviceSerialNo>DT518315</DeviceSerialNo>
+--    <FiscalMemoryNo>02518315</FiscalMemoryNo>
+--    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceModel>DP-25</DeviceModel>
+--    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+--    <CharsPerLine>30</CharsPerLine>
+--    <TaxNo>НЕЗАДАДЕН</TaxNo>
+--    <TaxCaption>ЕИК</TaxCaption>
+--    <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+--  </DT518315>
+--  <Aliases>
+--    <Count>1</Count>
+--    <PrinterID1>
+--      <DeviceSerialNo>DT518315</DeviceSerialNo>
+--    </PrinterID1>
+--  </Aliases>
+--</Root>
+
+--- send another request on the same conversation (request and result in XML)
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '<Request><Url>/printers/DT518315/deposit?format=xml</Url><Amount>10.55</Amount></Request>', @Response OUTPUT, @Handle = @Handle1
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
+--<Root>
+--  <Ok __json__bool="1">1</Ok>
+--  <ReceiptNo>0000076</ReceiptNo>
+--  <ReceiptDateTime>2019-07-23 16:37:43</ReceiptDateTime>
+--  <TotalAvailable>475.2</TotalAvailable>
+--  <TotalDeposits>488.63</TotalDeposits>
+--  <TotalWithdraws>236.56</TotalWithdraws>
+--</Root>
 
 --- close conversation
 EXEC        @Result = dbo.usp_sys_ServiceBrokerSend @Handle = @Handle1
