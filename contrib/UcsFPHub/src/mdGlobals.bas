@@ -280,13 +280,13 @@ Public Function preg_match(find_re As String, sText As String, Optional Matches 
                 Matches = Split(vbNullString)
             ElseIf .Count = 1 Then
                 With .Item(0)
-                    If .Submatches.Count = 0 Then
+                    If .SubMatches.Count = 0 Then
                         ReDim Matches(0 To 0) As String
                         Matches(0) = .Value
                     Else
-                        ReDim Matches(0 To .Submatches.Count - 1) As String
-                        For lIdx = 0 To .Submatches.Count - 1
-                            Matches(lIdx) = .Submatches(lIdx)
+                        ReDim Matches(0 To .SubMatches.Count - 1) As String
+                        For lIdx = 0 To .SubMatches.Count - 1
+                            Matches(lIdx) = .SubMatches(lIdx)
                         Next
                     End If
                 End With
@@ -436,4 +436,30 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
     End If
 QH:
 End Sub
+
+Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+    Dim oCol            As Object
+    
+    Set oCol = InitRegExp(sPattern).Execute(sText)
+    If oCol.Count > 0 Then
+        pvParseTokenByRegExp = oCol.Item(0).SubMatches(0)
+        sText = Mid$(sText, oCol.Item(0).FirstIndex + oCol.Item(0).Length + 1)
+    End If
+End Function
+
+Public Function ParseQueryString(ByVal sQueryString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=&#?]+)"
+    Const VALUE_PATTERN As String = "^(?:=([^&#?]*))"
+    Dim sKey            As String
+    Dim oRetVal         As Object
+    
+    Do
+        sKey = pvParseTokenByRegExp(sQueryString, KEY_PATTERN)
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        JsonItem(oRetVal, sKey) = pvParseTokenByRegExp(sQueryString, VALUE_PATTERN)
+    Loop
+    Set ParseQueryString = oRetVal
+End Function
 

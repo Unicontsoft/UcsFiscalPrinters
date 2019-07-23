@@ -46,8 +46,9 @@ Private Const STR_STATUS_CODE_BAD_REQUEST As String = "400 Bad request"
 Private Const STR_STATUS_CODE_INTERNAL_SERVER_ERROR As String = "500 Internal Server Error"
 Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
-Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
+Private Const STR_CONTENT_TYPE_TEXT_XML As String = "text/xml; charset=utf-8"
+Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
 Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
 
 Private m_sLastError                As String
@@ -182,7 +183,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         baBody = m_oSocket.ToTextArray(sStatusCode)
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest(sPath, m_sBody, sResponse) Then
+    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse) Then
         If LenB(sResponse) = 0 Then
             If LenB(m_oController.LastError) <> 0 Then
                 sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
@@ -197,7 +198,11 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         End If
     End If
     sStatusCode = STR_STATUS_CODE_OK
-    sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+    If Left$(sResponse, 1) = "<" Then
+        sContentType = STR_CONTENT_TYPE_TEXT_XML
+    Else
+        sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+    End If
     baBody = m_oSocket.ToTextArray(sResponse)
     '--- success
     pvHandleRequest = True

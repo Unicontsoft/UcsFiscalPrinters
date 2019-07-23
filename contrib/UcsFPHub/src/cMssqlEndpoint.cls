@@ -39,9 +39,10 @@ Private Const STR_CONN_OPEN             As String = "Свързан с %1"
 Private Const STR_QUEUE_SETUP           As String = "Настроени %1 услуги на опашка %2"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1: %2"
+Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
 '--- errors
 Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
-Private Const ERR_INVALID_ENDPOINT      As String = "Невалиден Endpoint: %1"
+Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 '--- queue
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
 Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME" & vbCrLf & _
@@ -132,8 +133,9 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     Dim vJson           As Variant
     Dim sPrinterId      As String
     Dim sError          As String
-    Dim sEndpoint       As String
+    Dim sRawUrl        As String
     Dim dblStartTimerEx As Double
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
@@ -142,22 +144,28 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         sResponse = pvEncodeErrorText(Printf(ERR_INVALID_SERVICE, sSvcName))
         GoTo QH
     End If
-    If Not JsonParse(sRequest, vJson, Error:=sError) Then
+    If Left$(sRequest, 1) = "<" Then
+        AssignVariant vJson, JsonFromXmlDocument(sRequest)
+    ElseIf Not JsonParse(sRequest, vJson, Error:=sError) Then
         sResponse = pvEncodeErrorText(sError)
         GoTo QH
     End If
-    sEndpoint = JsonItem(C_Obj(vJson), "Endpoint")
-    If Left$(sEndpoint, 1) <> "/" Then
-        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_ENDPOINT, sEndpoint))
+    sRawUrl = JsonItem(C_Obj(vJson), "Url")
+    If Left$(sRawUrl, 1) <> "/" Then
+        sResponse = pvEncodeErrorText(Printf(ERR_INVALID_URL, sRawUrl))
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest("/printers/" & sPrinterId & sEndpoint, sRequest, sResponse) Then
+    If LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
+        DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
+    End If
+    vSplit = Split2(sRawUrl, "?")
+    If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
         If LenB(sResponse) = 0 Then
             sResponse = pvEncodeErrorText(m_oController.LastError)
             GoTo QH
         End If
     End If
-    DebugLog Printf(STR_QUEUE_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sEndpoint, Format(TimerEx - dblStartTimerEx, "0.000"))
+    DebugLog Printf(STR_QUEUE_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, "0.000"))
     '--- success
     pvHandleRequest = True
 QH:

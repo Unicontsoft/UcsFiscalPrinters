@@ -74,15 +74,17 @@ EH:
     Resume QH
 End Function
 
-Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As String) As Boolean
+Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "ServiceRequest"
     Dim vMatches        As Variant
     Dim oInfo           As Object
     Dim vJson           As Variant
     Dim oRequest        As Object
+    Dim oParams         As Object
     
     On Error GoTo EH
     m_sLastError = vbNullString
+    Set oParams = ParseQueryString(sQueryString)
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
         GoTo QH
     End If
@@ -94,7 +96,9 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
             sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
             GoTo QH
         End If
-        If Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
+        If Left$(sRequest, 1) = "<" Then
+            AssignVariant vJson, JsonFromXmlDocument(sRequest)
+        ElseIf Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
             sResponse = pvEncodeErrorText(Printf(ERR_INVALID_JSON, m_sLastError))
             GoTo QH
         End If
@@ -145,6 +149,11 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
     '--- success
     ServiceRequest = True
 QH:
+    If LCase$(JsonItem(oParams, "format")) = "xml" And LenB(sResponse) <> 0 Then
+        If JsonParse(sResponse, vJson) Then
+            sResponse = JsonToXmlDocument(vJson).Xml
+        End If
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
