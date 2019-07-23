@@ -26,17 +26,11 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "cMssqlEndpoint"
 
 '=========================================================================
-' API
-'=========================================================================
-
-Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
-
-'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
 Private Const STR_CONN_OPEN             As String = "Свързан с %1"
-Private Const STR_QUEUE_SETUP           As String = "Настроени %1 услуги на опашка %2"
+Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 услуги"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1: %2"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
@@ -89,7 +83,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     m_oConn.Open JsonItem(oConfig, "ConnectString")
     DebugLog Printf(STR_CONN_OPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", JsonItem(oConfig, "ConnectString"))
     '--- init Service Broker queue
-    m_sQueueName = Zn(C_Str(JsonItem(oConfig, "QueueName")), "UcsFpTargetQueue/" & GetErrorComputerName() & IIf(Not InIde, "/" & GetCurrentProcessId(), vbNullString))
+    m_sQueueName = Zn(C_Str(JsonItem(oConfig, "QueueName")), "UcsFpTargetQueue/" & GetErrorComputerName())
     m_lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
     For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
         If LenB(C_Str(vElem)) <> 0 Then
