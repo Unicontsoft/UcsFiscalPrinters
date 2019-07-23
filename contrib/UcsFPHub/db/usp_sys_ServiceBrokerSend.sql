@@ -4,13 +4,14 @@ GO
 DECLARE     @Handle1    UNIQUEIDENTIFIER
             , @Result   INT
             , @Response NVARCHAR(MAX)
+            , @ErrorText NVARCHAR(255)
 
 --- setup receiving queue for current connection once on re-connect
 EXEC        dbo.usp_sys_ServiceBrokerSetupService
 
 --- open conversation and send request
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers/DT518315/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT
-SELECT      @Result AS Result, @Response AS Response
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers/DT518315/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT, @ErrorText = @ErrorText OUTPUT
+SELECT      @Result AS Result, @Response AS Response, @ErrorText AS ErrorText
 --{  
 --   "Ok":true,
 --   "DeviceStatus":"",
@@ -18,8 +19,8 @@ SELECT      @Result AS Result, @Response AS Response
 --}
 
 --- send another request on the same conversation (result in XML)
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers?format=xml" }', @Response OUTPUT, @Handle = @Handle1
-SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers?format=xml" }', @Response OUTPUT, @Handle = @Handle1, @ErrorText = @ErrorText OUTPUT
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText AS ErrorText
 --<Root>
 --  <Ok __json__bool="1">1</Ok>
 --  <Count>2</Count>
@@ -54,8 +55,8 @@ SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
 --</Root>
 
 --- send another request on the same conversation (request and result in XML)
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '<Request><Url>/printers/DT518315/deposit?format=xml</Url><Amount>10.55</Amount></Request>', @Response OUTPUT, @Handle = @Handle1
-SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '<Request><Url>/printers/DT518315/deposit?format=xml</Url><Amount>10.55</Amount></Request>', @Response OUTPUT, @Handle = @Handle1, @ErrorText = @ErrorText OUTPUT
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText AS ErrorText
 --<Root>
 --  <Ok __json__bool="1">1</Ok>
 --  <ReceiptNo>0000076</ReceiptNo>
@@ -75,6 +76,7 @@ CREATE PROC usp_sys_ServiceBrokerSend (
             , @Response     NVARCHAR(MAX)       = NULL OUTPUT
             , @TargetSvc    SYSNAME             = NULL
             , @Handle       UNIQUEIDENTIFIER    = NULL OUTPUT
+            , @ErrorText    NVARCHAR(255)       = NULL OUTPUT
             , @QueueName    SYSNAME             = NULL
             , @SvcName      SYSNAME             = NULL
             , @Timeout      INT                 = NULL
@@ -144,6 +146,7 @@ RepeatWait:
                         END
 
                         SELECT      @RetVal = 99
+                                    , @ErrorText = 'Timeout'
                         GOTO        QH
             END
 
@@ -154,6 +157,7 @@ RepeatWait:
                         ; END       CONVERSATION @Handle
 
                         SELECT      @RetVal = 1
+                                    , @ErrorText = 'Conversation ended'
                         GOTO        QH
             END
 
@@ -162,6 +166,7 @@ RepeatWait:
                         ; END       CONVERSATION @Handle
 
                         SELECT      @RetVal = 1
+                                    , @ErrorText = LEFT(CONVERT(XML, @Response).value('declare namespace ns="http://schemas.microsoft.com/SQL/ServiceBroker/Error"; (ns:Error/ns:Description)[1]', 'NVARCHAR(MAX)'), 255)
                         GOTO        QH
             END
 
@@ -188,6 +193,7 @@ BEGIN CATCH
             ; END       CONVERSATION @Handle
 
             SELECT      @RetVal = 2
+                        , @ErrorText = LEFT(ERROR_MESSAGE(), 255)
             GOTO        QH
 END CATCH
 
