@@ -5,44 +5,36 @@ DECLARE     @Handle1    UNIQUEIDENTIFIER
             , @Result   INT
             , @Response NVARCHAR(MAX)
 
+--- setup receiving queue for current connection once on re-connect
 EXEC        dbo.usp_sys_ServiceBrokerSetupService
 
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend 'UcsFpTargetService/DT123456', 'test_status_request', @Response = @Response OUTPUT, @Handle = @Handle1 OUTPUT
+--- open conversation and send request
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Endpoint": "/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT
 SELECT      @Result, @Response
+-- Result,Response
+-- 0,{"Ok":true,"DeviceStatus":"","DeviceDateTime":"2019-07-23 11:43:39"}
+-- (1 row affected)
 
--- close conversation
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend 'UcsFpTargetService/DT123456',  @Handle = @Handle1 OUTPUT
+--- send another request on the same conversation
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Endpoint": "/deposit", "Amount": 10.55 }', @Response OUTPUT, @Handle = @Handle1
+SELECT      @Result AS Result, @Response AS Response
+-- Result,Response
+-- 0,{"Ok":true,"ReceiptNo":"0000074","ReceiptDateTime":"2019-07-23 11:43:40","Available":454.1,"TotalDeposits":467.53,"TotalWithdraws":236.56}
+-- (1 row affected)
 
-*/
+--- close conversation
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend @Handle = @Handle1
 
-/*
-DECLARE     @Handle2    UNIQUEIDENTIFIER
-            , @Result   INT
-            , @Response NVARCHAR(MAX)
-
-EXEC        dbo.usp_sys_ServiceBrokerSetupService
-
-
-WHILE       1=1
-BEGIN
-            SET         @Handle2 = NULL
-            EXEC        @Result = dbo.usp_sys_ServiceBrokerSend 'UcsFpTargetService/DT234567', 'test_status_request', @Response = @Response OUTPUT, @Handle = @Handle2 OUTPUT
-            SELECT      @Result, @Response
-
-            EXEC        @Result = dbo.usp_sys_ServiceBrokerSend 'UcsFpTargetService/DT234567',  @Handle = @Handle2 OUTPUT
-
-            WAITFOR DELAY '0:0:1'
-END
 */
 
 CREATE PROC usp_sys_ServiceBrokerSend (
-            @TargetSvc      SYSNAME
-            , @Request      NVARCHAR(MAX)       = NULL
+            @Request        NVARCHAR(MAX)       = NULL
             , @Response     NVARCHAR(MAX)       = NULL OUTPUT
+            , @TargetSvc    SYSNAME             = NULL
+            , @Handle       UNIQUEIDENTIFIER    = NULL OUTPUT
             , @QueueName    SYSNAME             = NULL
             , @SvcName      SYSNAME             = NULL
             , @Timeout      INT                 = NULL
-            , @Handle       UNIQUEIDENTIFIER    = NULL OUTPUT
 ) AS
 /*------------------------------------------------------------------------
 '
@@ -68,8 +60,13 @@ SELECT      @QueueName = COALESCE(@QueueName, 'UcsFpInitiator' + 'Queue/' + CONV
             , @RetVal = 0
 
 BEGIN TRY
-            IF          @Handle IS NULL
+            IF          @TargetSvc IS NOT NULL
             BEGIN
+                        IF          @Handle IS NOT NULL
+                        BEGIN
+                                    ; END       CONVERSATION @Handle
+                        END
+
                         BEGIN DIALOG CONVERSATION @Handle
                         FROM        SERVICE @SvcName
                         TO          SERVICE @TargetSvc, 'CURRENT DATABASE'
