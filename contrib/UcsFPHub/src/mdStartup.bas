@@ -150,7 +150,7 @@ Private Function Process(vArgs As Variant) As Long
             Process = 1
             GoTo QH
         End If
-        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sConfFile)), m_oConfig, Error:=sError) Then
+        If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
             DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH

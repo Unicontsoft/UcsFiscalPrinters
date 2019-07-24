@@ -41,7 +41,8 @@ Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnviron
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
-    
+Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
+
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -101,13 +102,67 @@ Private Function pvSetTrue(bValue As Boolean) As Boolean
     pvSetTrue = True
 End Function
 
-Public Function ReadBinaryFile(sFile As String) As Byte()
-    With CreateObject("ADODB.Stream")
-        .Open
-        .Type = 1
-        .LoadFromFile sFile
-        ReadBinaryFile = .Read
-    End With
+Public Function ReadTextFile(sFile As String) As String
+    Const ForReading    As Long = 1
+    Const BOM_UTF       As String = "ï»¿"   '--- "\xEF\xBB\xBF"
+    Const BOM_UNICODE   As String = "ÿþ"    '--- "\xFF\xFE"
+    Dim lSize           As Long
+    Dim sPrefix         As String
+    Dim nFile           As Integer
+    Dim sCharset        As String
+    Dim oStream         As Object
+    
+    '--- get file size
+    On Error GoTo EH
+    If FileExists(sFile) Then
+        lSize = FileLen(sFile)
+    End If
+    If lSize = 0 Then
+        Exit Function
+    End If
+    '--- read first 50 chars
+    nFile = FreeFile
+    Open sFile For Binary Access Read Shared As nFile
+    sPrefix = String$(IIf(lSize < 50, lSize, 50), 0)
+    Get nFile, , sPrefix
+    Close nFile
+    '--- figure out charset
+    If Left$(sPrefix, 3) = BOM_UTF Then
+        sCharset = "UTF-8"
+    ElseIf Left$(sPrefix, 2) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0 Then
+        sCharset = "Unicode"
+    ElseIf InStr(1, sPrefix, "<?xml", vbTextCompare) > 0 And InStr(1, sPrefix, "utf-8", vbTextCompare) > 0 Then
+        '--- special xml encoding test
+        sCharset = "UTF-8"
+    End If
+    '--- plain text: direct VB6 read
+    If LenB(ReadTextFile) = 0 And LenB(sCharset) = 0 Then
+        nFile = FreeFile
+        Open sFile For Binary Access Read Shared As nFile
+        ReadTextFile = String$(lSize, 0)
+        Get nFile, , ReadTextFile
+        Close nFile
+    End If
+    '--- plain text + unicode: use FileSystemObject
+    If LenB(ReadTextFile) = 0 And sCharset <> "UTF-8" Then
+        On Error Resume Next  '--- checked
+        ReadTextFile = CreateObject("Scripting.FileSystemObject").OpenTextFile(sFile, ForReading, False, sCharset = "Unicode").ReadAll()
+        On Error GoTo EH
+    End If
+    '--- plain text + unicode + utf-8: use ADODB.Stream
+    If LenB(ReadTextFile) = 0 Then
+        Set oStream = CreateObject("ADODB.Stream")
+        With oStream
+            .Open
+            If LenB(sCharset) <> 0 Then
+                .Charset = sCharset
+            End If
+            .LoadFromFile sFile
+            ReadTextFile = .ReadText()
+        End With
+    End If
+    Exit Function
+EH:
 End Function
 
 Public Function PathCombine(sPath As String, sFile As String) As String
@@ -119,12 +174,6 @@ Public Function FileExists(sFile As String) As Boolean
     Else
         FileExists = True
     End If
-End Function
-
-Public Function FromUtf8Array(baData() As Byte) As String
-    With New cAsyncSocket
-        FromUtf8Array = .FromTextArray(baData)
-    End With
 End Function
 
 Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As Object
