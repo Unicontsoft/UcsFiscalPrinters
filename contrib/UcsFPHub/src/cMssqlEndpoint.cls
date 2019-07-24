@@ -76,7 +76,6 @@ Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSN
 Private m_sLastError                As String
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
-Private m_oRequestsCache            As Object
 Private m_pTimer                    As IUnknown
 Private WithEvents m_oConn          As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
@@ -114,14 +113,15 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vElem           As Variant
     Dim lIdx            As Long
+    Dim oRequestsCache  As Object
 
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
-    JsonItem(m_oRequestsCache, "Dummy") = Empty
+    JsonItem(oRequestsCache, "Dummy") = Empty
     '--- init service controller
     Set m_oController = New cServiceController
-    If Not m_oController.Init(oPrinters) Then
+    If Not m_oController.Init(oPrinters, oRequestsCache) Then
         m_sLastError = m_oController.LastError
         Set m_oController = Nothing
         GoTo QH
@@ -221,7 +221,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
     End If
     vSplit = Split2(sRawUrl, "?")
-    If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse, m_oRequestsCache) Then
+    If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
         If LenB(sResponse) = 0 Then
             sResponse = m_oController.LastError
             GoTo QH

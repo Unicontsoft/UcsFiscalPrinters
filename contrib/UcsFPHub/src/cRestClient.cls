@@ -129,7 +129,6 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
-    Set m_oRequestsCache = oParent.RequestsCache
     pvClearState
     '--- init socket
     Set m_oSocket = New cAsyncSocket
@@ -144,7 +143,7 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     End If
     '--- init service controller
     Set m_oController = New cServiceController
-    If Not m_oController.Init(oPrinters) Then
+    If Not m_oController.Init(oPrinters, oParent.RequestsCache) Then
         m_sLastError = m_oController.LastError
         Set m_oSocket = Nothing
         Set m_oController = Nothing
@@ -185,7 +184,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         baBody = m_oSocket.ToTextArray(sStatusCode)
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse, m_oRequestsCache) Then
+    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse) Then
         If LenB(sResponse) = 0 Then
             If LenB(m_oController.LastError) <> 0 Then
                 sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR

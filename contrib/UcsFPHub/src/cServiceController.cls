@@ -36,6 +36,7 @@ Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
 
 Private m_sLastError                As String
 Private m_oPrinters                 As Object
+Private m_oRequestsCache            As Object
 Private m_oFP                       As cFiscalPrinter
 
 '=========================================================================
@@ -60,11 +61,12 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oPrinters As Object) As Boolean
+Public Function Init(oPrinters As Object, oRequestsCache As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
     Set m_oPrinters = oPrinters
+    Set m_oRequestsCache = oRequestsCache
     Set m_oFP = New cFiscalPrinter
     '--- success
     Init = True
@@ -75,7 +77,7 @@ EH:
     Resume QH
 End Function
 
-Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String, oRequestsCache As Object) As Boolean
+Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "ServiceRequest"
     Dim vMatches        As Variant
     Dim oInfo           As Object
@@ -88,11 +90,11 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     On Error GoTo EH
     m_sLastError = vbNullString
     Set oParams = ParseQueryString(sQueryString)
-    If Not oRequestsCache Is Nothing Then
+    If Not m_oRequestsCache Is Nothing Then
         sRequestId = JsonItem(oParams, "request_id")
     End If
     If LenB(sRequestId) <> 0 Then
-        Set oEntry = C_Obj(JsonItem(oRequestsCache, sRequestId))
+        Set oEntry = C_Obj(JsonItem(m_oRequestsCache, sRequestId))
         If Not oEntry Is Nothing Then
             If JsonItem(oEntry, "Path") = sPath And JsonItem(oEntry, "Request") = sRequest Then
                 sResponse = JsonItem(oEntry, "Response")
@@ -179,7 +181,7 @@ QH:
         JsonItem(oEntry, "Request") = sRequest
         JsonItem(oEntry, "Response") = sResponse
         JsonItem(oEntry, "DateTime") = Now
-        JsonItem(oRequestsCache, sRequestId) = oEntry
+        JsonItem(m_oRequestsCache, sRequestId) = oEntry
     End If
     Exit Function
 EH:
