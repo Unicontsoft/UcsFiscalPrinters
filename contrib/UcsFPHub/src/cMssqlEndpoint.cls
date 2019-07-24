@@ -73,6 +73,8 @@ Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSN
                                                     "EXEC        @Result = dbo.usp_sys_ServiceBrokerWaitRequest @QueueName, %2, @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT" & vbCrLf & _
                                                     "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName" & vbCrLf & _
                                                     "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
+Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
+Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 
 Private m_sLastError                As String
 Private m_oConfig                   As Object
@@ -364,10 +366,10 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     '--- note: system msgs are "__" prefixed (e.g. "__FIN__", "__ACK__")
                     If Left$(C_Str(pRecordset!Request.Value), 2) <> "__" Then
                         If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                            m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", sHandle, Quote(sResponse))
+                            m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
                         Else
-                            m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, _
-                                Znl(lErrorCode, 500), Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode)))
+                            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+                                Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
                         End If
                     End If
                 End If
@@ -382,8 +384,8 @@ EH:
 NextLine:
     On Error Resume Next
     If LenB(sHandle) <> 0 Then
-        m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, _
-            Znl(lErrorCode, 500), Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
+        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+            Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
     End If
     pvQueueLoopAsync
 End Sub
