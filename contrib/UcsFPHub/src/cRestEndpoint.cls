@@ -36,6 +36,7 @@ Private Const STR_CONN_ERROR            As String = "√решка в %1: %2"
 
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
+Private m_oRequestsCache            As Object
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_cClients                  As Collection
@@ -58,6 +59,10 @@ Property Get Printers() As Object
     Set Printers = m_oPrinters
 End Property
 
+Property Get RequestsCache() As Object
+    Set RequestsCache = m_oRequestsCache
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -70,6 +75,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
+    JsonItem(m_oRequestsCache, "Dummy") = Empty
     vSplit = Split(C_Str(JsonItem(oConfig, "Address")), ":")
     lListenPort = Znl(C_Lng(At(vSplit, 1)), DEF_LISTEN_PORT)
     Set m_oSocket = New cAsyncSocket

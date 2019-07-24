@@ -75,17 +75,33 @@ EH:
     Resume QH
 End Function
 
-Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String) As Boolean
+Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String, oRequestsCache As Object) As Boolean
     Const FUNC_NAME     As String = "ServiceRequest"
     Dim vMatches        As Variant
     Dim oInfo           As Object
     Dim vJson           As Variant
     Dim oRequest        As Object
     Dim oParams         As Object
+    Dim sRequestId      As String
+    Dim oEntry          As Object
     
     On Error GoTo EH
     m_sLastError = vbNullString
     Set oParams = ParseQueryString(sQueryString)
+    If Not oRequestsCache Is Nothing Then
+        sRequestId = JsonItem(oParams, "request_id")
+    End If
+    If LenB(sRequestId) <> 0 Then
+        Set oEntry = C_Obj(JsonItem(oRequestsCache, sRequestId))
+        If Not oEntry Is Nothing Then
+            If JsonItem(oEntry, "Path") = sPath And JsonItem(oEntry, "Request") = sRequest Then
+                sResponse = JsonItem(oEntry, "Response")
+                '--- success
+                ServiceRequest = True
+                Exit Function
+            End If
+        End If
+    End If
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
         m_sLastError = ERR_INVALID_URL
         GoTo QH
@@ -155,6 +171,15 @@ QH:
         If JsonParse(sResponse, vJson) Then
             sResponse = JsonToXmlDocument(vJson).Xml
         End If
+    End If
+    If ServiceRequest And LenB(sRequestId) <> 0 Then
+        Set oEntry = Nothing
+        JsonItem(oEntry, "Path") = sPath
+        JsonItem(oEntry, "QueryString") = sQueryString
+        JsonItem(oEntry, "Request") = sRequest
+        JsonItem(oEntry, "Response") = sResponse
+        JsonItem(oEntry, "DateTime") = Now
+        JsonItem(oRequestsCache, sRequestId) = oEntry
     End If
     Exit Function
 EH:

@@ -56,6 +56,7 @@ Private m_sID                       As String
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
+Private m_oRequestsCache            As Object
 Private m_oController               As cServiceController
 Private m_baBuffer()                As Byte
 Private m_lHdrSize                  As Long
@@ -128,6 +129,7 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
+    Set m_oRequestsCache = oParent.RequestsCache
     pvClearState
     '--- init socket
     Set m_oSocket = New cAsyncSocket
@@ -183,7 +185,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         baBody = m_oSocket.ToTextArray(sStatusCode)
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse) Then
+    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse, m_oRequestsCache) Then
         If LenB(sResponse) = 0 Then
             If LenB(m_oController.LastError) <> 0 Then
                 sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
