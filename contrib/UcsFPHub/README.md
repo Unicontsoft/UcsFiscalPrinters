@@ -16,7 +16,7 @@ The service is configured by a `UcsFPHub.conf` file in JSON format. Here is a sa
 ```json
 {
     "Printers": {
-        "Autodetect": true,
+        "AutoDetect": true,
         "PrinterID1": {
             "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
         }
@@ -47,6 +47,30 @@ Currently the `UcsFPHub` service supports these environment variables:
  - `_UCS_FISCAL_PRINTER_LOG` to specify `c:\path\to\UcsFP.log` log file for `UcsFP20` component to log communication with fiscal devices
  - `_UCS_FISCAL_PRINTER_DATA_DUMP` set to `1` to dump data transfer too
  - `_UCS_FP_HUB_LOG` to specify client connections `c:\path\to\UcsFPHub.log` log file
+ 
+### DeviceString
+
+The device strings are used to configure the connection used for communication with the fiscal device through a list of `Name=Value` pairs separated by `;` delimiter very similar to database connection strings.
+
+Here is a (short) list of supported `Name` entries:
+
+Name             | Type   | Description
+----             | ----   | -----------
+`Protocol`       | string | Whether to use ISL protocol (`DATECS FP/ECR`, `DAISY FP/ECR` and `INCOTEX FP/ECR`), Tremol protocol (`TREMOL ECR`) or ESP/POS protocol (`ESC/POS`) for communication with the device
+`Port`           | string | Serial port the device is attached to (e.g. `COM1`)
+`Speed`          | number | Controls serial port speed to use (e.g. `9600`)
+`Persistent`     | bool   | Controls if serial port is closed after each operation or not (e.g. `Y` or `N`)
+`IP`             | address | Target IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
+`Port`           | number | Port on target IP to connect to (e.g. `9100`)
+`CodePage`       | number | Code page to use when encoding strings to/from the device (e.g. `866` or `1251`)
+`RowChars`       | number | Max number of characters on line (depends on the device model and paper loaded)
+`ItemChars`      | number | Max number of characters in a product name (defaults to `RowChars - 5`)
+`MaxReceiptRows` | number | ISL/Tremol
+`MinDiscount`    | number | ISL/Tremol
+`MaxDiscount`    | number | ISL/Tremol
+`MaxPaymentLen`  | number | ISL
+`PingTimeout`    | number | Tremol
+`DetailedReceipt`| bool   | Tremol
 
 ### Command-line options
 
@@ -54,8 +78,8 @@ Currently the `UcsFPHub` service supports these environment variables:
 
 Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Description
 ------         | ---------         | ------------
-`-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service config file. If no explicit config options are used the service tries to find `UcsFPHub.conf` config file in the application folder. If still no config file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
-`-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom config file to be used by the NT service.
+`-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service configuration file. If no explicit configuration options are used the service tries to find `UcsFPHub.conf` configuration file in the application folder. If still no configuration file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
+`-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom configuration file to be used by the NT service.
 `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.
 |              | `--systray`       | Hides the process and only shows the application icon in the system notification area.
 
@@ -64,15 +88,17 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
  - [x] Listener on Service Broker queues
  - [ ] Systray icon form
  - [ ] Impl `IniFile` for `MssqlServiceBroker` binding
- - [ ] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
-    
+ - [x] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
+
 ## REST service protocol description
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-Both request and response payloads by default are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. Use `format=xml` in query string to change result to XML with content-type of `text/xml; charset=utf-8`.
+Both request and response payloads by default are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. Use `format=xml` as URL query string parameter to change results format to XML with content-type of `text/xml; charset=utf-8`.
 
-All endpoints return `"Ok": true` on success or in case of failure include `"ErrorText": "Описание на грешка"` localized error text in the JSON response.
+Use `request_id=N2qbikc5lUU` as URL query string parameter for idempotent `POST` requests (and general cache control) in order to prevent duplicating fiscal transactions when repeating requests because of a timeout or connectivity issues. If a request is repeated with the same payload and `request_id` then the results would be fetched directly from service cache without communicating with the fiscal device.
+
+All endpoints return `"Ok": true` on success and in case of failure include `"ErrorText": "Описание на грешка"` localized error text in the response.
 
 The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
 
@@ -242,7 +268,7 @@ C:> curl http://localhost:8192/printers/DT518315?format=xml -sS
 
 #### `POST` `/printers/:printer_id`
 
-Retrieve device configuration only. This will not communicate with the device if config is already retrieved on previous connection.
+Retrieve device configuration only. This will not communicate with the device if all needed data was retrieved on previous request.
 
 ```shell
 C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
