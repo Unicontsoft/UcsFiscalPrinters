@@ -21,6 +21,9 @@ Private Const MODULE_NAME As String = "mdGlobals"
 Private Const VARIANT_ALPHABOOL             As Long = 2
 '--- for GetSystemMetrics
 Private Const SM_REMOTESESSION              As Long = &H1000
+'--- for UrlUnescapeW
+Private Const URL_UNESCAPE_AS_UTF8          As Long = &H40000
+Private Const INTERNET_MAX_URL_LENGTH       As Long = 2048
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -37,7 +40,8 @@ Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNa
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
-
+Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
+    
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -452,13 +456,18 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Const VALUE_PATTERN As String = "^(?:=([^&#?]*))"
     Dim sKey            As String
     Dim oRetVal         As Object
+    Dim sBuffer         As String
+    Dim lSize           As Long
     
+    sBuffer = String$(INTERNET_MAX_URL_LENGTH, 0)
     Do
         sKey = pvParseTokenByRegExp(sQueryString, KEY_PATTERN)
         If LenB(sKey) = 0 Then
             Exit Do
         End If
-        JsonItem(oRetVal, sKey) = pvParseTokenByRegExp(sQueryString, VALUE_PATTERN)
+        lSize = Len(sBuffer)
+        Call UrlUnescapeW(StrPtr(pvParseTokenByRegExp(sQueryString, VALUE_PATTERN)), StrPtr(sBuffer), lSize, URL_UNESCAPE_AS_UTF8)
+        JsonItem(oRetVal, sKey) = Left$(sBuffer, lSize)
     Loop
     Set ParseQueryString = oRetVal
 End Function
