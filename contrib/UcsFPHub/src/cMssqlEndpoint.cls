@@ -66,6 +66,7 @@ Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройст
 Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
+Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
 '--- queue
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
 Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME" & vbCrLf & _
@@ -186,7 +187,7 @@ EH:
     Resume QH
 End Function
 
-Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String) As Boolean
+Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String, lErrorCode As Long) As Boolean
     Const FUNC_NAME     As String = "pvHandleRequest"
     Dim vJson           As Variant
     Dim sPrinterId      As String
@@ -199,21 +200,25 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     dblStartTimerEx = TimerEx
     sPrinterId = At(Split(sSvcName, "/"), 1)
     If LenB(sPrinterId) = 0 Then
+        lErrorCode = 400
         sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
         GoTo QH
     End If
     If Left$(sRequest, 1) = "<" Then
         AssignVariant vJson, JsonFromXmlDocument(sRequest)
         If IsEmpty(vJson) Then
+            lErrorCode = 400
             sResponse = ERR_INVALID_XML
             GoTo QH
         End If
     ElseIf Not JsonParse(sRequest, vJson, Error:=sError) Then
+        lErrorCode = 400
         sResponse = sError
         GoTo QH
     End If
     sRawUrl = JsonItem(C_Obj(vJson), "Url")
     If Left$(sRawUrl, 1) <> "/" Then
+        lErrorCode = 400
         sResponse = Printf(ERR_INVALID_URL, sRawUrl)
         GoTo QH
     End If
@@ -222,10 +227,9 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     End If
     vSplit = Split2(sRawUrl, "?")
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
-        If LenB(sResponse) = 0 Then
-            sResponse = m_oController.LastError
-            GoTo QH
-        End If
+        lErrorCode = m_oController.LastCode
+        sResponse = m_oController.LastError
+        GoTo QH
     End If
     DebugLog Printf(STR_QUEUE_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, "0.000"))
     '--- success
@@ -349,6 +353,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
     Dim sHandle         As String
     Dim sResponse       As String
+    Dim lErrorCode      As Long
     
     On Error GoTo EH
     If Not pRecordset Is Nothing Then
@@ -358,10 +363,11 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     sHandle = pRecordset!Handle.Value
                     '--- note: system msgs are "__" prefixed (e.g. "__FIN__", "__ACK__")
                     If Left$(C_Str(pRecordset!Request.Value), 2) <> "__" Then
-                        If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse) Then
+                        If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
                             m_oConn.Execute Printf("SEND ON CONVERSATION '%1' (N'%2')", sHandle, Quote(sResponse))
                         Else
-                            m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, 1001, Quote(sResponse))
+                            m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, _
+                                Znl(lErrorCode, 500), Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode)))
                         End If
                     End If
                 End If
@@ -376,7 +382,8 @@ EH:
 NextLine:
     On Error Resume Next
     If LenB(sHandle) <> 0 Then
-        m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, 1002, Quote(m_sLastError))
+        m_oConn.Execute Printf("END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'", sHandle, _
+            Znl(lErrorCode, 500), Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
     End If
     pvQueueLoopAsync
 End Sub

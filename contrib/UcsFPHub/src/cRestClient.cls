@@ -56,7 +56,6 @@ Private m_sID                       As String
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_lParentPtr                As Long
-Private m_oRequestsCache            As Object
 Private m_oController               As cServiceController
 Private m_baBuffer()                As Byte
 Private m_lHdrSize                  As Long
@@ -185,18 +184,26 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         GoTo QH
     End If
     If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse) Then
-        If LenB(sResponse) = 0 Then
-            If LenB(m_oController.LastError) <> 0 Then
-                sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
-                sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
-                baBody = m_oSocket.ToTextArray(m_oController.LastError)
-                GoTo QH
-            End If
+        Select Case m_oController.LastCode
+        Case 400
+            sStatusCode = STR_STATUS_CODE_BAD_REQUEST
+        Case 404
             sStatusCode = STR_STATUS_CODE_NOT_FOUND
+        Case Else
+            sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
+        End Select
+        If LenB(sResponse) <> 0 Then
+            If Left$(sResponse, 1) = "<" Then
+                sContentType = STR_CONTENT_TYPE_TEXT_XML
+            Else
+                sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+            End If
+            baBody = m_oSocket.ToTextArray(sResponse)
+        Else
             sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
-            baBody = m_oSocket.ToTextArray(sStatusCode)
-            GoTo QH
+            baBody = m_oSocket.ToTextArray(Zn(m_oController.LastError, sStatusCode))
         End If
+        GoTo QH
     End If
     sStatusCode = STR_STATUS_CODE_OK
     If Left$(sResponse, 1) = "<" Then

@@ -30,10 +30,12 @@ Private Const MODULE_NAME As String = "cServiceController"
 '=========================================================================
 
 Private Const ERR_INVALID_JSON      As String = "Невалидна JSON заявка: %1"
+Private Const ERR_INVALID_XML       As String = "Невалидна XML заявка"
 Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
-Private Const ERR_MISSING_REQUEST   As String = "Празна JSON заявка"
+Private Const ERR_MISSING_PAYLOAD   As String = "Празна заявка"
 Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
 
+Private m_lLastCode                 As Long
 Private m_sLastError                As String
 Private m_oPrinters                 As Object
 Private m_oRequestsCache            As Object
@@ -52,6 +54,10 @@ End Sub
 '=========================================================================
 ' Properties
 '=========================================================================
+
+Property Get LastCode() As Long
+    LastCode = m_lLastCode
+End Property
 
 Property Get LastError() As String
     LastError = m_sLastError
@@ -88,6 +94,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     Dim oEntry          As Object
     
     On Error GoTo EH
+    m_lLastCode = 0
     m_sLastError = vbNullString
     Set oParams = ParseQueryString(sQueryString)
     If Not m_oRequestsCache Is Nothing Then
@@ -105,7 +112,9 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         End If
     End If
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
+        m_lLastCode = 404
         m_sLastError = ERR_INVALID_URL
+        sResponse = pvEncodeErrorText(m_sLastError)
         GoTo QH
     End If
     If LenB(At(vMatches, 0)) = 0 Then
@@ -113,13 +122,23 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     Else
         Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
         If oInfo Is Nothing Then
-            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
+            m_lLastCode = 404
+            m_sLastError = Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0))
+            sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
         If Left$(sRequest, 1) = "<" Then
             AssignVariant vJson, JsonFromXmlDocument(sRequest)
+            If IsEmpty(vJson) Then
+                m_lLastCode = 400
+                m_sLastError = ERR_INVALID_XML
+                sResponse = pvEncodeErrorText(m_sLastError)
+                GoTo QH
+            End If
         ElseIf Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
-            sResponse = pvEncodeErrorText(Printf(ERR_INVALID_JSON, m_sLastError))
+            m_lLastCode = 400
+            m_sLastError = Printf(ERR_INVALID_JSON, m_sLastError)
+            sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
         Set oRequest = C_Obj(vJson)
@@ -130,7 +149,9 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
-                sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
+                m_lLastCode = 400
+                m_sLastError = ERR_MISSING_PAYLOAD
+                sResponse = pvEncodeErrorText(m_sLastError)
                 GoTo QH
             End Select
         End If
