@@ -311,22 +311,22 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
-                JsonItem(oJson, "UniqueSaleNo"), _
-                JsonItem(oJson, "TableNo"), _
-                JsonItem(oJson, "Invoice/DocNo"), _
-                JsonItem(oJson, "Invoice/CgTaxNo"), _
-                JsonItem(oJson, "Invoice/CgVatNo"), _
-                JsonItem(oJson, "Invoice/CgName"), _
-                vbNullString, _
-                JsonItem(oJson, "Invoice/CgAddress"), _
-                JsonItem(oJson, "Invoice/CgPrsReceive"), _
-                JsonItem(oJson, "OwnData"), _
-                C_Lng(JsonItem(oJson, "Reversal/Type")), _
-                JsonItem(oJson, "Reversal/ReceiptNo"), _
-                C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
-                JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
-                JsonItem(oJson, "Reversal/InvoiceNo"), _
-                JsonItem(oJson, "Reversal/Reason")) Then
+                UniqueSaleNo:=JsonItem(oJson, "UniqueSaleNo"), _
+                TableNo:=JsonItem(oJson, "TableNo"), _
+                InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
+                InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
+                InvCgTaxNoType:=C_Lng(JsonItem(oJson, "Invoice/CgTaxNoType")), _
+                InvCgVatNo:=JsonItem(oJson, "Invoice/CgVatNo"), _
+                InvCgName:=JsonItem(oJson, "Invoice/CgName"), _
+                InvCgAddress:=JsonItem(oJson, "Invoice/CgAddress"), _
+                InvCgPrsReceive:=JsonItem(oJson, "Invoice/CgPrsReceive"), _
+                OwnData:=JsonItem(oJson, "OwnData"), _
+                RevType:=C_Lng(JsonItem(oJson, "Reversal/ReversalType")), _
+                RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
+                RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
+                RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
+                RevInvoiceNo:=JsonItem(oJson, "Reversal/InvoiceNo"), _
+                RevReason:=JsonItem(oJson, "Reversal/Reason")) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -540,13 +540,16 @@ EH:
 End Function
 
 ''
+' Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed
+' Used to retrieve accumulated totals by VAT groups (1-8) since last z-report
 ' Used to retrieve accumulated totals by payment types since last z-report
 '
-Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetTotalsByPayments"
+Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "GetDailyTotals"
     Dim oFP             As IDeviceProtocol
     Dim oJson           As Object
     Dim oRetVal         As Object
+    Dim bIncludeAll     As Variant
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
@@ -557,103 +560,48 @@ Public Function GetTotalsByPayments(sRequest As String, sResponse As String) As 
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.GetTotalsByPayments()
-    If Not IsArray(vTotals) Then
-        sLastErr = pvInternal(ucsErrNotImplemented)
-        GoTo QH
-    ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNo)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
-        GoTo QH
+    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
+    If C_Bool(JsonItem(oJson, "IncludeStats")) Or bIncludeAll Then
+        vTotals = oFP.GetTotalsStats()
+        If IsArray(vTotals) Then
+            JsonItem(oRetVal, "NumReceipts") = vTotals(0)
+            JsonItem(oRetVal, "LastZReportDateTime") = vTotals(1)
+        End If
     End If
-    For lIdx = 0 To UBound(vTotals)
-        Set oItem = Nothing
-        JsonItem(oItem, "PaymentType") = lIdx + 1
-        JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
-        JsonItem(oItem, "Amount") = vTotals(lIdx)
-        JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
-    Next
+    If C_Bool(JsonItem(oJson, "IncludeServiceDeposit")) Or bIncludeAll Then
+        vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
+        If IsArray(vTotals) Then
+            JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
+            JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
+            JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
+        End If
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeTaxGroups")) Or bIncludeAll Then
+        vTotals = oFP.GetTotalsByTaxGroups()
+        If IsArray(vTotals) Then
+            For lIdx = 0 To UBound(vTotals)
+                Set oItem = Nothing
+                JsonItem(oItem, "TaxGroup") = lIdx + 1
+                JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
+                JsonItem(oItem, "Amount") = vTotals(lIdx)(0)
+                JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
+            Next
+        End If
+    End If
+    If C_Bool(JsonItem(oJson, "IncludePayments")) Or bIncludeAll Then
+        vTotals = oFP.GetTotalsByPayments()
+        If IsArray(vTotals) Then
+            For lIdx = 0 To UBound(vTotals)
+                Set oItem = Nothing
+                JsonItem(oItem, "PaymentType") = lIdx + 1
+                JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
+                JsonItem(oItem, "Amount") = vTotals(lIdx)
+                JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
+            Next
+        End If
+    End If
 QH:
-    GetTotalsByPayments = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
-    Exit Function
-EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
-        Resume QH
-    End If
-End Function
-
-''
-' Used to retrieve accumulated totals by VAT groups (1-8) since last z-report
-'
-Public Function GetTotalsByTaxGroups(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
-    Dim oFP             As IDeviceProtocol
-    Dim oJson           As Object
-    Dim oRetVal         As Object
-    Dim sLastErr        As String
-    Dim eLastNo         As UcsFiscalErrorsEnum
-    Dim vTotals         As Variant
-    Dim lIdx            As Long
-    Dim oItem           As Object
-    
-    On Error GoTo EH
-    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
-        GoTo QH
-    End If
-    vTotals = oFP.GetTotalsByTaxGroups()
-    If Not IsArray(vTotals) Then
-        sLastErr = pvInternal(ucsErrNotImplemented)
-        GoTo QH
-    ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNo)
-        DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
-        GoTo QH
-    End If
-    For lIdx = 0 To UBound(vTotals)
-        Set oItem = Nothing
-        JsonItem(oItem, "TaxGroup") = lIdx + 1
-        JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
-        JsonItem(oItem, "Amount") = vTotals(lIdx)(0)
-        JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
-    Next
-QH:
-    GetTotalsByTaxGroups = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
-    Exit Function
-EH:
-    If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
-        Resume QH
-    End If
-End Function
-
-''
-' Used to retrieve number of receipts printed since last z-report and the date/time of the last receipt printed
-'
-Public Function GetTotalsStats(sRequest As String, sResponse As String) As Boolean
-    Const FUNC_NAME     As String = "GetTotalsStats"
-    Dim oFP             As IDeviceProtocol
-    Dim oJson           As Object
-    Dim oRetVal         As Object
-    Dim sLastErr        As String
-    Dim eLastNo         As UcsFiscalErrorsEnum
-    Dim vStats          As Variant
-
-    On Error GoTo EH
-    If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
-        GoTo QH
-    End If
-    vStats = oFP.GetTotalsStats()
-    If Not IsArray(vStats) Then
-        sLastErr = pvInternal(ucsErrNotImplemented)
-        GoTo QH
-    ElseIf UBound(vStats) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNo)
-        DebugLog FUNC_NAME, "UBound(vStats) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
-        GoTo QH
-    End If
-    JsonItem(oRetVal, "NumReceipts") = vStats(0)
-    JsonItem(oRetVal, "LastZReportDateTime") = vStats(1)
-QH:
-    GetTotalsStats = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
+    GetDailyTotals = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
@@ -691,7 +639,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
         JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     End If
-    JsonItem(oRetVal, "Available") = vTotals(0)
+    JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
 QH:
@@ -794,10 +742,10 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
     Dim vRow            As Variant
     
     On Error GoTo EH
-    pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
-    If LenB(pvGetRowData.Price) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "Price")) Then
         pvGetRowData.RowType = ucsRwtSell
         pvGetRowData.Item = C_Str(JsonItem(oRow, "ItemName"))
+        pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
         pvGetRowData.TaxGroup = C_Str(JsonItem(oRow, "TaxGroup"))
         pvGetRowData.Quantity = C_Str(JsonItem(oRow, "Quantity"))
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
@@ -810,29 +758,29 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH
     End If
-    pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
-    If LenB(pvGetRowData.Item) <> 0 Then
+    If Not IsEmpty(JsonItem(oRow, "Text")) Then
         pvGetRowData.RowType = ucsRwtText
+        pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
         GoTo QH
     End If
     vRow = JsonItem(oRow, "*")
     If UBound(vRow) = ucsFscPixItem Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
+        pvGetRowData.Item = At(vRow, ucsFscPixItem)
         GoTo QH
     End If
     If UBound(vRow) = ucsFscPixAmount Then
         pvGetRowData.RowType = ucsRwtPayment
-        pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-        pvGetRowData.PmtType = C_Str(vRow(ucsFscPixWayOfPmt))
-        pvGetRowData.Amount = C_Str(vRow(ucsFscPixAmount))
+        pvGetRowData.Item = At(vRow, ucsFscPixItem)
+        pvGetRowData.PmtType = At(vRow, ucsFscPixWayOfPmt)
+        pvGetRowData.Amount = At(vRow, ucsFscPixAmount)
         GoTo QH
     End If
     pvGetRowData.RowType = ucsRwtSell
-    pvGetRowData.Item = C_Str(vRow(ucsFscPixItem))
-    pvGetRowData.Price = C_Str(vRow(ucsFscPixPrice))
-    pvGetRowData.TaxGroup = C_Str(vRow(ucsFscPixTaxGroup))
-    pvGetRowData.Quantity = C_Str(vRow(ucsFscPixQuantity))
+    pvGetRowData.Item = At(vRow, ucsFscPixItem)
+    pvGetRowData.Price = At(vRow, ucsFscPixPrice)
+    pvGetRowData.TaxGroup = At(vRow, ucsFscPixTaxGroup)
+    pvGetRowData.Quantity = At(vRow, ucsFscPixQuantity)
     pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
 QH:
     Exit Function

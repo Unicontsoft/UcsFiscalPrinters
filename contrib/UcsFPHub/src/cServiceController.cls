@@ -30,11 +30,15 @@ Private Const MODULE_NAME As String = "cServiceController"
 '=========================================================================
 
 Private Const ERR_INVALID_JSON      As String = "Невалидна JSON заявка: %1"
+Private Const ERR_INVALID_XML       As String = "Невалидна XML заявка"
 Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
-Private Const ERR_MISSING_REQUEST   As String = "Празна JSON заявка"
+Private Const ERR_MISSING_PAYLOAD   As String = "Празна заявка"
+Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
 
+Private m_lLastCode                 As Long
 Private m_sLastError                As String
 Private m_oPrinters                 As Object
+Private m_oRequestsCache            As Object
 Private m_oFP                       As cFiscalPrinter
 
 '=========================================================================
@@ -44,11 +48,16 @@ Private m_oFP                       As cFiscalPrinter
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
 ' Properties
 '=========================================================================
+
+Property Get LastCode() As Long
+    LastCode = m_lLastCode
+End Property
 
 Property Get LastError() As String
     LastError = m_sLastError
@@ -58,11 +67,12 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oPrinters As Object) As Boolean
+Public Function Init(oPrinters As Object, oRequestsCache As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
     Set m_oPrinters = oPrinters
+    Set m_oRequestsCache = oRequestsCache
     Set m_oFP = New cFiscalPrinter
     '--- success
     Init = True
@@ -73,18 +83,38 @@ EH:
     Resume QH
 End Function
 
-Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As String) As Boolean
+Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "ServiceRequest"
     Dim vMatches        As Variant
     Dim oInfo           As Object
     Dim vJson           As Variant
     Dim oRequest        As Object
-    Dim oResponse       As Object
-    Dim sError          As String
+    Dim oParams         As Object
+    Dim sRequestId      As String
+    Dim oEntry          As Object
     
     On Error GoTo EH
+    m_lLastCode = 0
     m_sLastError = vbNullString
+    Set oParams = ParseQueryString(sQueryString)
+    If Not m_oRequestsCache Is Nothing Then
+        sRequestId = JsonItem(oParams, "request_id")
+    End If
+    If LenB(sRequestId) <> 0 Then
+        Set oEntry = C_Obj(JsonItem(m_oRequestsCache, sRequestId))
+        If Not oEntry Is Nothing Then
+            If JsonItem(oEntry, "Path") = sPath And JsonItem(oEntry, "Request") = sRequest Then
+                sResponse = JsonItem(oEntry, "Response")
+                '--- success
+                ServiceRequest = True
+                Exit Function
+            End If
+        End If
+    End If
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
+        m_lLastCode = 404
+        m_sLastError = ERR_INVALID_URL
+        sResponse = pvEncodeErrorText(m_sLastError)
         GoTo QH
     End If
     If LenB(At(vMatches, 0)) = 0 Then
@@ -92,22 +122,36 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
     Else
         Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
         If oInfo Is Nothing Then
-            sResponse = pvEncodeErrorText(Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0)))
+            m_lLastCode = 404
+            m_sLastError = Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0))
+            sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
-        If Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
-            sResponse = pvEncodeErrorText(Printf(ERR_INVALID_JSON, m_sLastError))
+        If Left$(sRequest, 1) = "<" Then
+            AssignVariant vJson, JsonFromXmlDocument(sRequest)
+            If IsEmpty(vJson) Then
+                m_lLastCode = 400
+                m_sLastError = ERR_INVALID_XML
+                sResponse = pvEncodeErrorText(m_sLastError)
+                GoTo QH
+            End If
+        ElseIf Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
+            m_lLastCode = 400
+            m_sLastError = Printf(ERR_INVALID_JSON, m_sLastError)
+            sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
         Set oRequest = C_Obj(vJson)
         If oRequest Is Nothing Then
             Select Case LCase$(At(vMatches, 1))
-            Case vbNullString
+            Case vbNullString, "totals"
                 JsonItem(oRequest, "IncludeAll") = True
-            Case "status", "datetime", "deposit", "totals"
+            Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
-                sResponse = pvEncodeErrorText(ERR_MISSING_REQUEST)
+                m_lLastCode = 400
+                m_sLastError = ERR_MISSING_PAYLOAD
+                sResponse = pvEncodeErrorText(m_sLastError)
                 GoTo QH
             End Select
         End If
@@ -138,36 +182,28 @@ Public Function ServiceRequest(sPath As String, sRequest As String, sResponse As
                 GoTo QH
             End If
         Case "totals"
-            If Not m_oFP.GetTotalsStats(JsonDump(oRequest, Minimize:=True), sResponse) Then
+            If Not m_oFP.GetDailyTotals(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
-            If Not JsonParse(sResponse, oResponse, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If Not m_oFP.GetTotalsByPayments(JsonDump(oRequest, Minimize:=True), sResponse) Then
-                GoTo QH
-            End If
-            If Not JsonParse(sResponse, vJson, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
-                JsonItem(oResponse, "TotalsByPayments") = JsonItem(C_Obj(vJson), "TotalsByPayments")
-            End If
-            If Not m_oFP.GetTotalsByTaxGroups(JsonDump(oRequest, Minimize:=True), sResponse) Then
-                GoTo QH
-            End If
-            If Not JsonParse(sResponse, vJson, Error:=sError) Then
-                Err.Raise vbObjectError, , sError
-            End If
-            If C_Bool(JsonItem(C_Obj(vJson), "Ok")) Then
-                JsonItem(oResponse, "TotalsByTaxGroups") = JsonItem(C_Obj(vJson), "TotalsByTaxGroups")
-            End If
-            sResponse = JsonDump(oResponse, Minimize:=True)
         End Select
     End If
     '--- success
     ServiceRequest = True
 QH:
+    If LCase$(JsonItem(oParams, "format")) = "xml" And LenB(sResponse) <> 0 Then
+        If JsonParse(sResponse, vJson) Then
+            sResponse = JsonToXmlDocument(vJson).Xml
+        End If
+    End If
+    If ServiceRequest And LenB(sRequestId) <> 0 Then
+        Set oEntry = Nothing
+        JsonItem(oEntry, "Path") = sPath
+        JsonItem(oEntry, "QueryString") = sQueryString
+        JsonItem(oEntry, "Request") = sRequest
+        JsonItem(oEntry, "Response") = sResponse
+        JsonItem(oEntry, "DateTime") = Now
+        JsonItem(m_oRequestsCache, sRequestId) = oEntry
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME

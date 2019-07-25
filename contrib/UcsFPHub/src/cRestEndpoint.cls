@@ -36,6 +36,7 @@ Private Const STR_CONN_ERROR            As String = "√решка в %1: %2"
 
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
+Private m_oRequestsCache            As Object
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
 Private m_cClients                  As Collection
@@ -47,6 +48,7 @@ Private m_lCount                    As Long
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -55,6 +57,10 @@ End Sub
 
 Property Get Printers() As Object
     Set Printers = m_oPrinters
+End Property
+
+Property Get RequestsCache() As Object
+    Set RequestsCache = m_oRequestsCache
 End Property
 
 '=========================================================================
@@ -69,6 +75,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
+    JsonItem(m_oRequestsCache, "Dummy") = Empty
     vSplit = Split(C_Str(JsonItem(oConfig, "Address")), ":")
     lListenPort = Znl(C_Lng(At(vSplit, 1)), DEF_LISTEN_PORT)
     Set m_oSocket = New cAsyncSocket
@@ -78,7 +85,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     If Not m_oSocket.Listen() Then
         GoTo QH
     End If
-    DebugLog Printf(STR_SOCKET_LISTEN & " (" & MODULE_NAME & ")", Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
+    DebugLog Printf(STR_SOCKET_LISTEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
     '--- success
     Init = True
 QH:
@@ -100,7 +107,7 @@ Public Sub ClientError(sKey As String)
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        DebugLog Printf(STR_CONN_ERROR & " (" & MODULE_NAME & ")", sKey, oClient.LastError), vbLogEventTypeError
+        DebugLog Printf(STR_CONN_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", sKey, oClient.LastError), vbLogEventTypeError
     End If
     Exit Sub
 EH:
@@ -133,7 +140,7 @@ Private Sub m_oSocket_OnAccept()
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
-    DebugLog Printf(STR_CONN_ESTABLISHED & " (" & MODULE_NAME & ")", sKey, m_cClients.Count)
+    DebugLog Printf(STR_CONN_ESTABLISHED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", sKey, m_cClients.Count)
 QH:
     Exit Sub
 EH:

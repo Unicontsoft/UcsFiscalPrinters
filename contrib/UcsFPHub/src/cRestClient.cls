@@ -46,9 +46,10 @@ Private Const STR_STATUS_CODE_BAD_REQUEST As String = "400 Bad request"
 Private Const STR_STATUS_CODE_INTERNAL_SERVER_ERROR As String = "500 Internal Server Error"
 Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
-Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
-Private Const STR_CONN_ELAPSED          As String = "%1 обработи заявка %2 за %3 сек."
+Private Const STR_CONTENT_TYPE_TEXT_XML As String = "text/xml; charset=utf-8"
+Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
+Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
 
 Private m_sLastError                As String
 Private m_sID                       As String
@@ -73,6 +74,7 @@ Private m_dblStartTimerEx           As Double
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -138,9 +140,9 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), oPrinters, Error:=m_sLastError) Then
         GoTo QH
     End If
-    '--- init service controlls
+    '--- init service controller
     Set m_oController = New cServiceController
-    If Not m_oController.Init(oPrinters) Then
+    If Not m_oController.Init(oPrinters, oParent.RequestsCache) Then
         m_sLastError = m_oController.LastError
         Set m_oSocket = Nothing
         Set m_oController = Nothing
@@ -181,22 +183,34 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
         baBody = m_oSocket.ToTextArray(sStatusCode)
         GoTo QH
     End If
-    If Not m_oController.ServiceRequest(sPath, m_sBody, sResponse) Then
-        If LenB(sResponse) = 0 Then
-            If LenB(m_oController.LastError) <> 0 Then
-                sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
-                sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
-                baBody = m_oSocket.ToTextArray(m_oController.LastError)
-                GoTo QH
-            End If
+    If Not m_oController.ServiceRequest(sPath, sQueryString, m_sBody, sResponse) Then
+        Select Case m_oController.LastCode
+        Case 400
+            sStatusCode = STR_STATUS_CODE_BAD_REQUEST
+        Case 404
             sStatusCode = STR_STATUS_CODE_NOT_FOUND
+        Case Else
+            sStatusCode = STR_STATUS_CODE_INTERNAL_SERVER_ERROR
+        End Select
+        If LenB(sResponse) <> 0 Then
+            If Left$(sResponse, 1) = "<" Then
+                sContentType = STR_CONTENT_TYPE_TEXT_XML
+            Else
+                sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+            End If
+            baBody = m_oSocket.ToTextArray(sResponse)
+        Else
             sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
-            baBody = m_oSocket.ToTextArray(sStatusCode)
-            GoTo QH
+            baBody = m_oSocket.ToTextArray(Zn(m_oController.LastError, sStatusCode))
         End If
+        GoTo QH
     End If
     sStatusCode = STR_STATUS_CODE_OK
-    sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+    If Left$(sResponse, 1) = "<" Then
+        sContentType = STR_CONTENT_TYPE_TEXT_XML
+    Else
+        sContentType = STR_CONTENT_TYPE_APPLICATION_JSON
+    End If
     baBody = m_oSocket.ToTextArray(sResponse)
     '--- success
     pvHandleRequest = True
@@ -277,7 +291,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog Printf(STR_CONN_ELAPSED & " (" & MODULE_NAME & ")", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
+        DebugLog Printf(STR_CONN_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
         pvClearState
     End If
 QH:

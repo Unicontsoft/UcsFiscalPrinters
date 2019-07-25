@@ -18,8 +18,6 @@ Private Const MODULE_NAME As String = "mdStartup"
 '=========================================================================
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
-Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
-Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
@@ -29,29 +27,33 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_VERSION           As String = "0.1.4"
-Private Const STR_SERVICE_NAME      As String = "UcsFPHub"
-Private Const STR_DISPLAY_NAME      As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
+Private Const STR_VERSION               As String = "0.1.9"
+Private Const STR_SERVICE_NAME          As String = "UcsFPHub"
+Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
+Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
+Private Const STR_SVC_UNINSTALL         As String = "Деинсталира NT услуга %1..."
+Private Const STR_SUCCESS               As String = "Успех"
+Private Const STR_FAILURE               As String = "Грешка: "
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
-Private Const STR_ENVIRON_VARS_FOUND As String = "Конфигурирани %1 променливи на средата"
-Private Const STR_PRINTERS_FOUND    As String = "Намерени %1 принтера"
-Private Const STR_PRESS_CTRLC       As String = "Натиснете Ctrl+C за изход"
-Private Const STR_LOADING_CONFIG    As String = "Зарежда конфигурация от %1"
+Private Const STR_ENVIRON_VARS_FOUND    As String = "Конфигурирани %1 променливи на средата"
+Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
+Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
+Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 '--- errors
-Private Const ERR_CONFIG_NOT_FOUND  As String = "Грешка: Конфигурационен файл %1 не е намерен"
-Private Const ERR_PARSING_CONFIG    As String = "Грешка: Невалиден %1: %2"
-Private Const ERR_ENUM_PORTS        As String = "Грешка: Енумериране на серийни портове: %1"
-Private Const ERR_WARN_ACCESS       As String = "Предупреждение: Принтер %1: %2"
+Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
+Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
+Private Const ERR_ENUM_PORTS            As String = "Грешка: Енумериране на серийни портове: %1"
+Private Const ERR_WARN_ACCESS           As String = "Предупреждение: Принтер %1: %2"
 '--- formats
-Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
-Private Const FORMAT_BASE_3         As String = "0.000"
+Private Const FORMAT_DATETIME_LOG       As String = "yyyy.MM.dd hh:nn:ss"
+Private Const FORMAT_BASE_3             As String = "0.000"
 
-Private m_oOpt                  As Object
-Private m_oPrinters             As Object
-Private m_oConfig               As Object
-Private m_cEndpoints            As Collection
-Private m_bIsService            As Boolean
-Private m_nDebugLogFile         As Integer
+Private m_oOpt                      As Object
+Private m_oPrinters                 As Object
+Private m_oConfig                   As Object
+Private m_cEndpoints                As Collection
+Private m_bIsService                As Boolean
+Private m_nDebugLogFile             As Integer
 
 '=========================================================================
 ' Error handling
@@ -59,6 +61,7 @@ Private m_nDebugLogFile         As Integer
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -107,29 +110,30 @@ Private Function Process(vArgs As Variant) As Long
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
     If Not m_oOpt.Item("--nologo") Then
-        DebugLog App.ProductName & " " & STR_VERSION & " (c) 2019 by Unicontsoft"
-        DebugLog vbNullString
+        ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
     sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
     If NtServiceInit(STR_SERVICE_NAME) Then
         m_bIsService = True
     ElseIf m_oOpt.Item("--install") Or m_oOpt.Item("-i") Then
-        DebugLog Printf("Installing %1...", STR_SERVICE_NAME)
+        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
             sConfFile = " -c " & ArgvQuote(sConfFile)
         End If
         If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
-            DebugLog sError
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
-            DebugLog "Success"
+            ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
     ElseIf m_oOpt.Item("--uninstall") Or m_oOpt.Item("-u") Then
-        DebugLog Printf("Uninstalling %1...", STR_SERVICE_NAME)
+        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
-            DebugLog sError
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
         Else
-            DebugLog "Success"
+            ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
     End If
@@ -146,7 +150,7 @@ Private Function Process(vArgs As Variant) As Long
             Process = 1
             GoTo QH
         End If
-        If Not JsonParse(FromUtf8Array(ReadBinaryFile(sConfFile)), m_oConfig, Error:=sError) Then
+        If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
             DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH
@@ -168,14 +172,14 @@ Private Function Process(vArgs As Variant) As Long
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If InIde Then
-        frmIcon.Show vbModal
+        frmIcon.Show
     ElseIf m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
         Loop
         NtServiceTerminate
     Else
-        DebugLog STR_PRESS_CTRLC
+        ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
             DoEvents
@@ -267,6 +271,7 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     Dim cRetVal         As Collection
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
+    Dim oMssqlEndpoint  As cMssqlEndpoint
     
     On Error GoTo EH
     Set cRetVal = New Collection
@@ -278,7 +283,10 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
                 cRetVal.Add oRestEndpoint
             End If
         Case "mssqlservicebroker"
-            '--- ToDo: impl
+            Set oMssqlEndpoint = New cMssqlEndpoint
+            If oMssqlEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oMssqlEndpoint
+            End If
         End Select
     Next
     Set pvCreateEndpoints = cRetVal
@@ -286,12 +294,6 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
 EH:
     PrintError FUNC_NAME
     Resume Next
-End Function
-
-Private Function GetProcessName() As String
-    GetProcessName = String$(1000, 0)
-    Call GetModuleFileName(0, GetProcessName, Len(GetProcessName) - 1)
-    GetProcessName = Left$(GetProcessName, InStr(GetProcessName, vbNullChar) - 1)
 End Function
 
 Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
@@ -336,20 +338,4 @@ Public Sub FlushDebugLog()
     End If
 End Sub
 
-Public Function GetEnvironmentVar(sName As String) As String
-    Dim sBuffer         As String
-    
-    sBuffer = String$(2000, 0)
-    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
-    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
-End Function
 
-Private Sub AssignVariant(vDest As Variant, vSrc As Variant)
-    On Error GoTo QH
-    If IsObject(vSrc) Then
-        Set vDest = vSrc
-    Else
-        vDest = vSrc
-    End If
-QH:
-End Sub

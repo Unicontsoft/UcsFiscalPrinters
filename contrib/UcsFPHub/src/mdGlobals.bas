@@ -19,6 +19,11 @@ Private Const MODULE_NAME As String = "mdGlobals"
 
 '--- for VariantChangeType
 Private Const VARIANT_ALPHABOOL             As Long = 2
+'--- for GetSystemMetrics
+Private Const SM_REMOTESESSION              As Long = &H1000
+'--- for UrlUnescapeW
+Private Const URL_UNESCAPE_AS_UTF8          As Long = &H40000
+Private Const INTERNET_MAX_URL_LENGTH       As Long = 2048
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -29,12 +34,21 @@ Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src 
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Private Declare Function GetComputerName Lib "kernel32" Alias "GetComputerNameA" (ByVal lpBuffer As String, nSize As Long) As Long
+Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
+Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
+Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
+Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
 Private m_cRegExpCache              As Collection
+Private m_sErrComputerName          As String
 
 '=========================================================================
 ' Error handling
@@ -42,6 +56,7 @@ Private m_cRegExpCache              As Collection
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -87,13 +102,67 @@ Private Function pvSetTrue(bValue As Boolean) As Boolean
     pvSetTrue = True
 End Function
 
-Public Function ReadBinaryFile(sFile As String) As Byte()
-    With CreateObject("ADODB.Stream")
-        .Open
-        .Type = 1
-        .LoadFromFile sFile
-        ReadBinaryFile = .Read
-    End With
+Public Function ReadTextFile(sFile As String) As String
+    Const ForReading    As Long = 1
+    Const BOM_UTF       As String = "ï»¿"   '--- "\xEF\xBB\xBF"
+    Const BOM_UNICODE   As String = "ÿþ"    '--- "\xFF\xFE"
+    Dim lSize           As Long
+    Dim sPrefix         As String
+    Dim nFile           As Integer
+    Dim sCharset        As String
+    Dim oStream         As Object
+    
+    '--- get file size
+    On Error GoTo EH
+    If FileExists(sFile) Then
+        lSize = FileLen(sFile)
+    End If
+    If lSize = 0 Then
+        Exit Function
+    End If
+    '--- read first 50 chars
+    nFile = FreeFile
+    Open sFile For Binary Access Read Shared As nFile
+    sPrefix = String$(IIf(lSize < 50, lSize, 50), 0)
+    Get nFile, , sPrefix
+    Close nFile
+    '--- figure out charset
+    If Left$(sPrefix, 3) = BOM_UTF Then
+        sCharset = "UTF-8"
+    ElseIf Left$(sPrefix, 2) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0 Then
+        sCharset = "Unicode"
+    ElseIf InStr(1, sPrefix, "<?xml", vbTextCompare) > 0 And InStr(1, sPrefix, "utf-8", vbTextCompare) > 0 Then
+        '--- special xml encoding test
+        sCharset = "UTF-8"
+    End If
+    '--- plain text: direct VB6 read
+    If LenB(ReadTextFile) = 0 And LenB(sCharset) = 0 Then
+        nFile = FreeFile
+        Open sFile For Binary Access Read Shared As nFile
+        ReadTextFile = String$(lSize, 0)
+        Get nFile, , ReadTextFile
+        Close nFile
+    End If
+    '--- plain text + unicode: use FileSystemObject
+    If LenB(ReadTextFile) = 0 And sCharset <> "UTF-8" Then
+        On Error Resume Next  '--- checked
+        ReadTextFile = CreateObject("Scripting.FileSystemObject").OpenTextFile(sFile, ForReading, False, sCharset = "Unicode").ReadAll()
+        On Error GoTo EH
+    End If
+    '--- plain text + unicode + utf-8: use ADODB.Stream
+    If LenB(ReadTextFile) = 0 Then
+        Set oStream = CreateObject("ADODB.Stream")
+        With oStream
+            .Open
+            If LenB(sCharset) <> 0 Then
+                .Charset = sCharset
+            End If
+            .LoadFromFile sFile
+            ReadTextFile = .ReadText()
+        End With
+    End If
+    Exit Function
+EH:
 End Function
 
 Public Function PathCombine(sPath As String, sFile As String) As String
@@ -105,12 +174,6 @@ Public Function FileExists(sFile As String) As Boolean
     Else
         FileExists = True
     End If
-End Function
-
-Public Function FromUtf8Array(baData() As Byte) As String
-    With New cAsyncSocket
-        FromUtf8Array = .FromTextArray(baData)
-    End With
 End Function
 
 Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As Object
@@ -270,13 +333,13 @@ Public Function preg_match(find_re As String, sText As String, Optional Matches 
                 Matches = Split(vbNullString)
             ElseIf .Count = 1 Then
                 With .Item(0)
-                    If .Submatches.Count = 0 Then
+                    If .SubMatches.Count = 0 Then
                         ReDim Matches(0 To 0) As String
                         Matches(0) = .Value
                     Else
-                        ReDim Matches(0 To .Submatches.Count - 1) As String
-                        For lIdx = 0 To .Submatches.Count - 1
-                            Matches(lIdx) = .Submatches(lIdx)
+                        ReDim Matches(0 To .SubMatches.Count - 1) As String
+                        For lIdx = 0 To .SubMatches.Count - 1
+                            Matches(lIdx) = .SubMatches(lIdx)
                         Next
                     End If
                 End With
@@ -378,4 +441,86 @@ Public Function GetErrorTempPath() As String
     If Right$(GetErrorTempPath, 1) = "\" Then
         GetErrorTempPath = Left$(GetErrorTempPath, Len(GetErrorTempPath) - 1)
     End If
+End Function
+
+Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As String
+    Dim lSize           As Long
+    
+    If LenB(m_sErrComputerName) = 0 Then
+        m_sErrComputerName = Space$(256): lSize = 255
+        If GetComputerName(m_sErrComputerName, lSize) > 0 Then
+            m_sErrComputerName = Left$(m_sErrComputerName, lSize)
+        Else
+            m_sErrComputerName = vbNullString
+        End If
+    End If
+    GetErrorComputerName = m_sErrComputerName
+    If GetSystemMetrics(SM_REMOTESESSION) <> 0 And Not NoSession Then
+        lSize = -1
+        On Error Resume Next '--- checked
+        Call ProcessIdToSessionId(GetCurrentProcessId(), lSize)
+        On Error GoTo 0
+        If lSize <> -1 Then
+            GetErrorComputerName = GetErrorComputerName & ":" & lSize
+        End If
+    End If
+End Function
+
+Public Function GetProcessName() As String
+    GetProcessName = String$(1000, 0)
+    Call GetModuleFileName(0, GetProcessName, Len(GetProcessName) - 1)
+    GetProcessName = Left$(GetProcessName, InStr(GetProcessName, vbNullChar) - 1)
+End Function
+
+Public Function GetEnvironmentVar(sName As String) As String
+    Dim sBuffer         As String
+    
+    sBuffer = String$(2000, 0)
+    Call GetEnvironmentVariable(sName, sBuffer, Len(sBuffer) - 1)
+    GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
+End Function
+
+Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
+    On Error GoTo QH
+    If IsObject(vSrc) Then
+        Set vDest = vSrc
+    Else
+        vDest = vSrc
+    End If
+QH:
+End Sub
+
+Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+    Dim oCol            As Object
+    
+    Set oCol = InitRegExp(sPattern).Execute(sText)
+    If oCol.Count > 0 Then
+        pvParseTokenByRegExp = oCol.Item(0).SubMatches(0)
+        sText = Mid$(sText, oCol.Item(0).FirstIndex + oCol.Item(0).Length + 1)
+    End If
+End Function
+
+Public Function ParseQueryString(ByVal sQueryString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=&#?]+)"
+    Const VALUE_PATTERN As String = "^(?:=([^&#?]*))"
+    Dim sKey            As String
+    Dim oRetVal         As Object
+    Dim sBuffer         As String
+    Dim lSize           As Long
+    
+    sBuffer = String$(INTERNET_MAX_URL_LENGTH, 0)
+    Do
+        sKey = pvParseTokenByRegExp(sQueryString, KEY_PATTERN)
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        lSize = Len(sBuffer)
+        Call UrlUnescapeW(StrPtr(pvParseTokenByRegExp(sQueryString, VALUE_PATTERN)), StrPtr(sBuffer), lSize, URL_UNESCAPE_AS_UTF8)
+        JsonItem(oRetVal, sKey) = Left$(sBuffer, lSize)
+    Loop
+    Set ParseQueryString = oRetVal
+End Function
+
+Public Function Quote(sText As String) As String
+    Quote = Replace(sText, "'", "''")
 End Function
