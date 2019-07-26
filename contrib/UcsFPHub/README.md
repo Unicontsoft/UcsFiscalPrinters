@@ -86,7 +86,7 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 ### ToDo
 
  - [x] Listener on Service Broker queues
- - [ ] Systray icon form
+ - [x] Systray icon form
  - [ ] Impl `IniFile` for `MssqlServiceBroker` binding
  - [x] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
 
