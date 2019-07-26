@@ -17,6 +17,7 @@ Private Const MODULE_NAME As String = "mdStartup"
 ' API
 '=========================================================================
 
+
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
@@ -96,7 +97,7 @@ Private Sub Main()
     Dim lExitCode       As Long
     
     lExitCode = Process(SplitArgs(Command$))
-    If Not InIde Then
+    If Not InIde And lExitCode <> -1 Then
         Call ExitProcess(lExitCode)
     End If
 End Sub
@@ -109,16 +110,43 @@ Private Function Process(vArgs As Variant) As Long
     
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
+    '--- normalize options: convert -o and -option to proper long form (--option)
+    For Each vKey In Split("nologo config:c install:i uninstall:u systray hidden")
+        vKey = Split(vKey, ":")
+        If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 0))) Then
+            m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 0))
+        End If
+        If LenB(At(vKey, 1)) <> 0 Then
+            If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 1))) Then
+                m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 1))
+            End If
+        End If
+    Next
     If Not m_oOpt.Item("--nologo") Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
-    sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
     If NtServiceInit(STR_SERVICE_NAME) Then
         m_bIsService = True
-    ElseIf m_oOpt.Item("--install") Or m_oOpt.Item("-i") Then
+        '--- cannot handle these as NT service
+        m_oOpt.Item("--systray") = Empty
+        m_oOpt.Item("--install") = Empty
+        m_oOpt.Item("--uninstall") = Empty
+    End If
+    If m_oOpt.Item("--systray") Then
+        If Not m_oOpt.Item("--hidden") And Not InIde Then
+            frmIcon.Restart "--hidden"
+            GoTo QH
+        ElseIf Not frmIcon.Init(App.ProductName & " v" & STR_VERSION) Then
+            Process = 1
+            GoTo QH
+        End If
+        Process = -1
+    End If
+    sConfFile = m_oOpt.Item("--config")
+    If m_oOpt.Item("--install") Then
         ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
-            sConfFile = " -c " & ArgvQuote(sConfFile)
+            sConfFile = " --config " & ArgvQuote(sConfFile)
         End If
         If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
             ConsoleError STR_FAILURE
@@ -127,7 +155,7 @@ Private Function Process(vArgs As Variant) As Long
             ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
-    ElseIf m_oOpt.Item("--uninstall") Or m_oOpt.Item("-u") Then
+    ElseIf m_oOpt.Item("--uninstall") Then
         ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
             ConsoleError STR_FAILURE
@@ -171,14 +199,12 @@ Private Function Process(vArgs As Variant) As Long
     Set m_oPrinters = pvCollectPrinters()
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
-    If InIde Then
-        frmIcon.Show
-    ElseIf m_bIsService Then
+    If m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
         Loop
         NtServiceTerminate
-    Else
+    ElseIf Not m_oOpt.Item("--systray") Then
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
@@ -338,4 +364,6 @@ Public Sub FlushDebugLog()
     End If
 End Sub
 
-
+Public Sub TerminateEndpoints()
+    Set m_cEndpoints = Nothing
+End Sub
