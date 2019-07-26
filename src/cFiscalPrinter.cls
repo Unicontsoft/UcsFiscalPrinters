@@ -371,6 +371,14 @@ ReturnReceiptInfo:
     JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
+    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then
+        For lIdx = 1 To 3
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+        For lIdx = -1 To -4 Step -1
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+    End If
 QH:
     PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
