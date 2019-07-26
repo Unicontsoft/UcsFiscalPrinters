@@ -121,7 +121,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
-    JsonItem(oRequestsCache, "Dummy") = Empty
+    JsonItem(oRequestsCache, vbNullString) = Empty
     '--- init service controller
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters, oRequestsCache) Then
