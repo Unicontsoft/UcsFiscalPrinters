@@ -74,6 +74,7 @@ Private Const NIF_INFO                          As Long = &H10
 Private Const NIS_HIDDEN                        As Long = 1
 
 Private Declare Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconA" (ByVal dwMessage As Long, pnid As NOTIFYICONDATA) As Boolean
+Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As Long) As Long
 
 Private Type NOTIFYICONDATA
     cbSize              As Long
@@ -171,7 +172,7 @@ Public Sub ShowBalloonTip( _
             sMessage As String, _
             Optional ByVal IconType As UcsBalloonIconEnum = ucsBicInformation, _
             Optional Title As String, _
-            Optional ByVal Timeout = 30000)
+            Optional ByVal Timeout As Long = 30000)
     m_uData.szInfo = sMessage & vbNullChar
     m_uData.szInfoTitle = Title & vbNullChar
     m_uData.uTimeoutOrVersion = Timeout
@@ -191,6 +192,7 @@ Private Sub m_oForm_MouseMove(Button As Integer, Shift As Integer, X As Single, 
     Case WM_LBUTTONDBLCLK
         RaiseEvent DblClick
     Case WM_RBUTTONUP
+        Call SetForegroundWindow(m_uData.hWnd)
         RaiseEvent ContextMenu
     Case NIN_BALLOONHIDE
         RaiseEvent BalloonHide
