@@ -111,7 +111,7 @@ Private Function Process(vArgs As Variant) As Long
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
     '--- normalize options: convert -o and -option to proper long form (--option)
-    For Each vKey In Split("nologo config:c install:i uninstall:u systray hidden")
+    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden")
         vKey = Split(vKey, ":")
         If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 0))) Then
             m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 0))
@@ -355,6 +355,7 @@ NoLogFile:
         End If
     End If
 QH:
+    FlushDebugLog
 End Sub
 
 Public Sub FlushDebugLog()
