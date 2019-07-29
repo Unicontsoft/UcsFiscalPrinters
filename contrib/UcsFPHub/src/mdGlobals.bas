@@ -14,6 +14,17 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "mdGlobals"
 
 '=========================================================================
+' Public enums
+'=========================================================================
+
+Public Enum UcsFileTypeEnum
+    ucsFltAnsi = 1
+    ucsFltUnicode
+    ucsFltUtf8
+    ucsFltUtf8NoBom
+End Enum
+
+'=========================================================================
 ' API
 '=========================================================================
 
@@ -42,7 +53,8 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
-
+Private Declare Function CreateDirectory Lib "kernel32" Alias "CreateDirectoryW" (ByVal lpPathName As Long, ByVal lpSecurityAttributes As Long) As Long
+    
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -103,6 +115,7 @@ Private Function pvSetTrue(bValue As Boolean) As Boolean
 End Function
 
 Public Function ReadTextFile(sFile As String) As String
+    Const FUNC_NAME     As String = "ReadTextFile"
     Const ForReading    As Long = 1
     Const BOM_UTF       As String = "ï»¿"   '--- "\xEF\xBB\xBF"
     Const BOM_UNICODE   As String = "ÿþ"    '--- "\xFF\xFE"
@@ -110,7 +123,7 @@ Public Function ReadTextFile(sFile As String) As String
     Dim sPrefix         As String
     Dim nFile           As Integer
     Dim sCharset        As String
-    Dim oStream         As Object
+    Dim oStream         As ADODB.Stream
     
     '--- get file size
     On Error GoTo EH
@@ -151,7 +164,7 @@ Public Function ReadTextFile(sFile As String) As String
     End If
     '--- plain text + unicode + utf-8: use ADODB.Stream
     If LenB(ReadTextFile) = 0 Then
-        Set oStream = CreateObject("ADODB.Stream")
+        Set oStream = New ADODB.Stream
         With oStream
             .Open
             If LenB(sCharset) <> 0 Then
@@ -163,6 +176,71 @@ Public Function ReadTextFile(sFile As String) As String
     End If
     Exit Function
 EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, Err.Source, Err.Description
+End Function
+
+Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFileTypeEnum)
+    Const FUNC_NAME     As String = "WriteTextFile"
+    Dim oStream         As ADODB.Stream
+    Dim oBinStream      As ADODB.Stream
+    
+    On Error GoTo EH
+    MkPath Left$(sFile, InStrRev(sFile, "\"))
+    Set oStream = New ADODB.Stream
+    With oStream
+        .Open
+        Select Case eType
+        Case ucsFltUnicode
+            .Charset = "Unicode"
+        Case ucsFltUtf8, ucsFltUtf8NoBom
+            .Charset = "UTF-8"
+        Case Else
+            .Charset = "Windows-1251"
+        End Select
+        .WriteText sText
+        If eType = ucsFltUtf8NoBom Then
+            .Position = 3
+            Set oBinStream = New ADODB.Stream
+            oBinStream.Type = adTypeBinary
+            oBinStream.Mode = adModeReadWrite
+            oBinStream.Open
+            .CopyTo oBinStream
+            .Close
+            '--- don't log save errors
+            On Error GoTo 0
+            oBinStream.SaveToFile sFile, adSaveCreateOverWrite
+            On Error GoTo EH
+        Else
+            On Error GoTo 0
+            .SaveToFile sFile, adSaveCreateOverWrite
+            On Error GoTo EH
+        End If
+    End With
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, Err.Source, Err.Description
+End Sub
+
+Public Function MkPath(sPath As String) As Boolean
+    Dim lAttrib         As Long
+    
+    lAttrib = GetFileAttributes(StrPtr(sPath))
+    If lAttrib = -1 Then
+        If InStrRev(sPath, "\") > 0 Then
+            If Not MkPath(Left$(sPath, InStrRev(sPath, "\") - 1)) Then
+                Exit Function
+            End If
+        End If
+        If CreateDirectory(StrPtr(sPath), 0) = 0 Then
+            Exit Function
+        End If
+    ElseIf (lAttrib And vbDirectory + vbVolume) = 0 Then
+        Exit Function
+    End If
+    '--- success
+    MkPath = True
 End Function
 
 Public Function PathCombine(sPath As String, sFile As String) As String
