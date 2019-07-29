@@ -109,7 +109,7 @@ These are the REST service endpoints supported:
 List currently configured devices.
 
 ```shell
-C:> curl http://localhost:8192/printers -sS | jq
+C:> curl -X GET http://localhost:8192/printers -sS | jq
 ```
 ```json
 {
@@ -121,7 +121,7 @@ C:> curl http://localhost:8192/printers -sS | jq
     "DeviceProtocol": "DATECS FP/ECR",
     "DeviceModel": "FP-3530?",
     "FirmwareVersion": "4.10BG 10MAR08 1130",
-    "CharsPerLine": 30,
+    "CommentTextMaxLength": 28,
     "TaxNo": "0000000000",
     "TaxCaption": "БУЛСТАТ",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM1;Speed=9600"
@@ -132,7 +132,7 @@ C:> curl http://localhost:8192/printers -sS | jq
     "DeviceProtocol": "DATECS FP/ECR",
     "DeviceModel": "DP-25",
     "FirmwareVersion": "263453 08Nov18 1312",
-    "CharsPerLine": 30,
+    "CommentTextMaxLength": 28,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
@@ -149,7 +149,7 @@ C:> curl http://localhost:8192/printers -sS | jq
 Same with results in XML.
 
 ```shell
-C:> curl http://localhost:8192/printers?format=xml -sS
+C:> curl -X GET http://localhost:8192/printers?format=xml -sS
 ```
 ```xml
 <Root>
@@ -161,7 +161,7 @@ C:> curl http://localhost:8192/printers?format=xml -sS
       <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
       <DeviceModel>FP-3530?</DeviceModel>
       <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
-      <CharsPerLine>30</CharsPerLine>
+      <CommentTextMaxLength>30</CommentTextMaxLength>
       <TaxNo>0000000000</TaxNo>
       <TaxCaption>БУЛСТАТ</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
@@ -172,7 +172,7 @@ C:> curl http://localhost:8192/printers?format=xml -sS
       <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
       <DeviceModel>DP-25</DeviceModel>
       <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-      <CharsPerLine>30</CharsPerLine>
+      <CommentTextMaxLength>30</CommentTextMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
@@ -191,7 +191,7 @@ C:> curl http://localhost:8192/printers?format=xml -sS
 Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315 -sS | jq
+C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
 ```
 ```json
 {
@@ -201,7 +201,7 @@ C:> curl http://localhost:8192/printers/DT518315 -sS | jq
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CharsPerLine": 30,
+  "CommentTextMaxLength": 28,
   "Header": [
     "               ИМЕ НА ФИРМА",
     "              АДРЕС НА ФИРМА",
@@ -233,7 +233,7 @@ C:> curl http://localhost:8192/printers/DT518315 -sS | jq
 Same with results in XML.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315?format=xml -sS
+C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
 ```
 ```xml
 <Root>
@@ -243,7 +243,7 @@ C:> curl http://localhost:8192/printers/DT518315?format=xml -sS
    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
    <DeviceModel>DP-25</DeviceModel>
    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-   <CharsPerLine>30</CharsPerLine>
+   <CommentTextMaxLength>30</CommentTextMaxLength>
    <Header>ИМЕ НА ФИРМА</Header>
    <Header>АДРЕС НА ФИРМА</Header>
    <Header>ИМЕ НА ОБЕКТ</Header>
@@ -271,7 +271,8 @@ C:> curl http://localhost:8192/printers/DT518315?format=xml -sS
 Retrieve device configuration only. This will not communicate with the device if all needed data was retrieved on previous request.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315 ^
+         --data "{ }" -sS | jq
 ```
 ```json
 {
@@ -281,14 +282,15 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ }" -sS | jq
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CharsPerLine": 30
+  "CommentTextMaxLength": 28
 }
 ```
 
 Retrieve device configuration, operator name and default password.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\": 1 } }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315 ^
+         --data "{ \"Operator\": { \"Code\": 1 } }" -sS | jq
 ```
 ```json
 {
@@ -298,7 +300,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\":
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CharsPerLine": 30,
+  "CommentTextMaxLength": 28,
   "Operator": {
     "Code": 1,
     "Name": "Оператор 1",
@@ -310,7 +312,8 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"Operator\": { \"Code\":
 Retrieve device configuration and tax number/caption only
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315 ^
+         --data "{ \"IncludeTaxNo\": true }" -sS | jq
 ```
 ```json
 {
@@ -320,7 +323,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CharsPerLine": 30,
+  "CommentTextMaxLength": 28,
   "TaxNo": "НЕЗАДАДЕН",
   "TaxCaption": "ЕИК"
 }
@@ -331,7 +334,7 @@ C:> curl http://localhost:8192/printers/DT518315 -d "{ \"IncludeTaxNo\": true }"
 Get device status and current clock.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/status -sS | jq
+C:> curl -X GET http://localhost:8192/printers/DT518315/status -sS | jq
 ```
 ```json
 {
@@ -382,7 +385,8 @@ Following `data-utf8.txt` prints a fiscal receipt (`ReceiptType` is 1, see below
 }
 ```
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
+         --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
 {
@@ -421,7 +425,8 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
 }
 ```
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
+         --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
 {
@@ -472,7 +477,8 @@ Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptTyp
 }
 ```
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf8.txt -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
+         --data-binary @data-utf8.txt -sS | jq
 ```
 ```json
 {
@@ -487,7 +493,8 @@ C:> curl http://localhost:8192/printers/DT518315/receipt --data-binary @data-utf
 Duplicate last receipt. Can be executed only once immediately after printing a receipt (or the command fails).
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
+         --data "{ \"PrintDuplicate\": true }" -sS | jq
 ```
 ```json
 {
@@ -499,7 +506,8 @@ C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\
 Print duplicate receipt (by receipt number) from device Electronic Journal.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/receipt -d "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
+         --data "{ \"PrintDuplicate\": true, \"Invoice\": { \"DocNo\": 57 } }" -sS | jq
 ```
 ```json
 {
@@ -553,7 +561,7 @@ Name                        | Value | Description
 Retrieve service deposit and service withdraw totals.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
+C:> curl -X GET http://localhost:8192/printers/DT518315/deposit -sS | jq
 ```
 ```json
 {
@@ -569,7 +577,8 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -sS | jq
 Print service deposit.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34 }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/deposit ^
+         --data "{ \"Amount\": 12.34 }" -sS | jq
 ```
 ```json
 {
@@ -585,13 +594,8 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d "{ \"Amount\": 12.34
 Print service withdraw.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
-    \"Amount\": -56.78, ^
-    \"Operator\": { ^
-        \"Code\": \"2\", ^
-        \"Password\": \"****\" ^
-    } ^
-}^" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/deposit ^
+         --data "{ \"Amount\": -56.78, \"Operator\": { \"Code\": \"2\", \"Password\": \"****\" } }" -sS | jq
 ```
 ```json
 {
@@ -609,7 +613,8 @@ C:> curl http://localhost:8192/printers/DT518315/deposit -d ^"{ ^
 Print device reports. Supports daily X or Z reports and monthly (by date range) reports.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/report -d "{ \"ReportType\": 1 }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/report ^
+         --data "{ \"ReportType\": 1 }" -sS | jq
 ```
 ```json
 {
@@ -634,7 +639,7 @@ Name                | Value | Description
 Get current device date/time.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/datetime -sS | jq
+C:> curl -X GET http://localhost:8192/printers/DT518315/datetime -sS | jq
 ```
 ```json
 {
@@ -649,7 +654,8 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -sS | jq
 Set device date/time.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/datetime ^
+         --data "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\" }" -sS | jq
 ```
 ```json
 {
@@ -663,10 +669,8 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d "{ \"DeviceDateTime
 Set device date/time only when device clock is outside specified tolerance (in seconds).
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
-    \"DeviceDateTime\": \"2019-07-19 11:58:31\", ^
-    \"AdjustTolerance\": 60 ^
-}^" -sS | jq
+C:> curl -X POST http://localhost:8192/printers/DT518315/datetime ^
+         --data "{ \"DeviceDateTime\": \"2019-07-19 11:58:31\", \"AdjustTolerance\": 60 }" -sS | jq
 ```
 ```json
 {
@@ -682,7 +686,7 @@ C:> curl http://localhost:8192/printers/DT518315/datetime -d ^"{ ^
 Get device totals since last Z report grouped by payment types and tax groups.
 
 ```shell
-C:> curl http://localhost:8192/printers/DT518315/totals -sS | jq
+C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
 ```
 ```json
 {
