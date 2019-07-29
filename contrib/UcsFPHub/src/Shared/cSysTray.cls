@@ -52,7 +52,7 @@ End Enum
 '=========================================================================
 
 '--- Windows Messages
-Private Const WM_MOUSEMOVE                      As Long = &H200
+Private Const WM_LBUTTONDOWN                    As Long = &H201
 Private Const WM_LBUTTONUP                      As Long = &H202
 Private Const WM_LBUTTONDBLCLK                  As Long = &H203
 Private Const WM_RBUTTONUP                      As Long = &H205
@@ -116,7 +116,9 @@ Property Let Visible(ByVal bValue As Boolean)
     m_uData.uFlags = NIF_STATE
     m_uData.dwState = IIf(bValue, 0, NIS_HIDDEN)
     m_uData.dwStateMask = NIS_HIDDEN
-    Shell_NotifyIcon NIM_MODIFY, m_uData
+    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+        Err.Raise Err.LastDllError
+    End If
 End Property
 
 Property Get Icon() As StdPicture
@@ -128,7 +130,9 @@ Property Set Icon(oValue As StdPicture)
     Set m_oIcon = oValue
     m_uData.uFlags = NIF_ICON
     m_uData.hIcon = oValue.Handle
-    Shell_NotifyIcon NIM_MODIFY, m_uData
+    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+        Err.Raise Err.LastDllError
+    End If
 End Property
 
 Property Get TooltipText() As String
@@ -139,26 +143,31 @@ Property Let TooltipText(ByVal sValue As String)
     m_sTooltip = sValue
     m_uData.uFlags = NIF_TIP
     m_uData.szTip = m_sTooltip & vbNullChar
-    Shell_NotifyIcon NIM_MODIFY, m_uData
+    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+        Err.Raise Err.LastDllError
+    End If
 End Property
 
 '=========================================================================
 ' Methods
 '=========================================================================
 
-Public Function Init(oForm As Form, sTooltip As String) As Boolean
+Public Function Init(oForm As Form, sTooltip As String, Optional ByVal uID As Long) As Boolean
     Set m_oForm = oForm
     m_oForm.ScaleMode = vbPixels
     With m_uData
         .cbSize = Len(m_uData)
         .hWnd = m_oForm.hWnd
-        .uFlags = NIF_MESSAGE
-        .uCallbackMessage = WM_MOUSEMOVE
+        .uID = uID
+        .uFlags = NIF_MESSAGE Or NIF_ICON Or NIF_TIP
+        .uCallbackMessage = WM_LBUTTONDOWN
+        .hIcon = m_oForm.Icon.Handle
+        .szTip = sTooltip & vbNullChar
     End With
-    Shell_NotifyIcon NIM_ADD, m_uData
+    If Shell_NotifyIcon(NIM_ADD, m_uData) = 0 Then
+        Err.Raise Err.LastDllError
+    End If
     m_bVisible = True
-    Set Icon = m_oForm.Icon
-    TooltipText = sTooltip
     '--- success
     Init = True
 End Function
@@ -185,22 +194,26 @@ End Sub
 ' Events
 '=========================================================================
 
-Private Sub m_oForm_MouseMove(Button As Integer, Shift As Integer, X As Single, y As Single)
-    Select Case X
-    Case WM_LBUTTONUP
-        RaiseEvent Click
-    Case WM_LBUTTONDBLCLK
-        RaiseEvent DblClick
-    Case WM_RBUTTONUP
-        Call SetForegroundWindow(m_uData.hWnd)
-        RaiseEvent ContextMenu
-    Case NIN_BALLOONHIDE
-        RaiseEvent BalloonHide
-    Case NIN_BALLOONTIMEOUT
-        RaiseEvent BalloonTimeout
-    Case NIN_BALLOONUSERCLICK
-        RaiseEvent BalloonClick
-    End Select
+Private Sub m_oForm_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    If Y = 0 Then
+        Select Case X
+        Case WM_LBUTTONUP
+            Call SetForegroundWindow(m_uData.hWnd)
+            RaiseEvent Click
+        Case WM_LBUTTONDBLCLK
+            Call SetForegroundWindow(m_uData.hWnd)
+            RaiseEvent DblClick
+        Case WM_RBUTTONUP
+            Call SetForegroundWindow(m_uData.hWnd)
+            RaiseEvent ContextMenu
+        Case NIN_BALLOONHIDE
+            RaiseEvent BalloonHide
+        Case NIN_BALLOONTIMEOUT
+            RaiseEvent BalloonTimeout
+        Case NIN_BALLOONUSERCLICK
+            RaiseEvent BalloonClick
+        End Select
+    End If
 End Sub
 
 Private Sub m_oForm_Unload(Cancel As Integer)
