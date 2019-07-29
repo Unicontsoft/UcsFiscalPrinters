@@ -132,39 +132,8 @@ Private Function Process(vArgs As Variant) As Long
         m_oOpt.Item("--install") = Empty
         m_oOpt.Item("--uninstall") = Empty
     End If
-    If m_oOpt.Item("--systray") Then
-        If Not m_oOpt.Item("--hidden") And Not InIde Then
-            frmIcon.Restart "--hidden"
-            GoTo QH
-        ElseIf Not frmIcon.Init(App.ProductName & " v" & STR_VERSION) Then
-            Process = 1
-            GoTo QH
-        End If
-        Process = -1
-    End If
+    '--- read config file
     sConfFile = m_oOpt.Item("--config")
-    If m_oOpt.Item("--install") Then
-        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
-        If LenB(sConfFile) <> 0 Then
-            sConfFile = " --config " & ArgvQuote(sConfFile)
-        End If
-        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
-            ConsoleError STR_FAILURE
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
-        Else
-            ConsolePrint STR_SUCCESS & vbCrLf
-        End If
-        GoTo QH
-    ElseIf m_oOpt.Item("--uninstall") Then
-        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
-        If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
-            ConsoleError STR_FAILURE
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
-        Else
-            ConsolePrint STR_SUCCESS & vbCrLf
-        End If
-        GoTo QH
-    End If
     If LenB(sConfFile) = 0 Then
         sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
         If Not FileExists(sConfFile) Then
@@ -187,6 +156,38 @@ Private Function Process(vArgs As Variant) As Long
         pvConfigItem("Printers/Autodetect") = True
         pvConfigItem("Endpoints/0/Binding") = "RestHttp"
         pvConfigItem("Endpoints/0/Address") = "127.0.0.1:8192"
+    End If
+    If m_oOpt.Item("--systray") Then
+        If Not m_oOpt.Item("--hidden") And Not InIde Then
+            frmIcon.Restart "--hidden"
+            GoTo QH
+        ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+            Process = 1
+            GoTo QH
+        End If
+        Process = -1
+    End If
+    If m_oOpt.Item("--install") Then
+        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
+        If LenB(sConfFile) <> 0 Then
+            sConfFile = " --config " & ArgvQuote(sConfFile)
+        End If
+        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
+        Else
+            ConsolePrint STR_SUCCESS & vbCrLf
+        End If
+        GoTo QH
+    ElseIf m_oOpt.Item("--uninstall") Then
+        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
+        If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
+        Else
+            ConsolePrint STR_SUCCESS & vbCrLf
+        End If
+        GoTo QH
     End If
     If UBound(pvConfigKeys("Environment")) >= 0 Then
         DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(pvConfigKeys("Environment")) + 1)
