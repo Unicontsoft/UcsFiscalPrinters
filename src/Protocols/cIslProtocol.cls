@@ -566,6 +566,10 @@ EH:
     RaiseError FUNC_NAME
 End Property
 
+Private Property Get pvCommentChars() As Long
+    pvCommentChars = pvRowChars - 2
+End Property
+
 Private Property Get pvItemChars() As Long
     pvItemChars = m_uConfig.ItemChars
     If pvItemChars = 0 Then
@@ -913,7 +917,7 @@ Public Function StartReceipt( _
             .InitOperatorPassword = IDeviceProtocol_GetDefaultPassword(.InitOperatorCode)
         End If
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
-        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvRowChars - 2
+        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
@@ -2450,9 +2454,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End Select
         Case ucsRowLine
             If .LineWordWrap Then
-                vSplit = WrapText(.LineText, pvRowChars)
+                vSplit = WrapText(.LineText, pvCommentChars)
             Else
-                vSplit = Array(Left$(.LineText, pvRowChars))
+                vSplit = Array(Left$(.LineText, pvCommentChars))
             End If
             pvPrintLine vSplit
         Case ucsRowPayment
@@ -2574,14 +2578,14 @@ Private Sub pvConvertExtraRows()
                 If Not m_uConfig.NegativePrices And dblPrice <= 0 Then
                     vSplit = WrapText(m_uRow(lRow).PluName, pvItemChars)
                     lIdx = LimitLong(UBound(vSplit), , 1)
-                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + m_uRow(lRow).PluTaxGroup), pvRowChars)
+                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + m_uRow(lRow).PluTaxGroup), pvCommentChars)
                     m_uRow(lRow).RowType = ucsRowLine
                     m_uRow(lRow).LineText = vSplit(0)
                     If lIdx > 0 Then
                         AddLine At(vSplit, 1), False, lRow + 1
                         lRow = lRow + 1
                     ElseIf lIdx = 0 And m_uRow(lRow).PluQuantity <> 1 Then
-                        AddLine AlignText(vbNullString, SafeFormat(m_uRow(lRow).PluQuantity, "0.000") & " x " & SafeFormat(m_uRow(lRow).PluPrice, "0.00"), pvRowChars - 2), False, lRow
+                        AddLine AlignText(vbNullString, SafeFormat(m_uRow(lRow).PluQuantity, "0.000") & " x " & SafeFormat(m_uRow(lRow).PluPrice, "0.00"), pvCommentChars - 2), False, lRow
                     End If
                     If dblPrice < -DBL_EPSILON Then
                         AddDiscount ucsFscDscSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
@@ -2912,7 +2916,7 @@ Private Function IDeviceProtocol_EndReceipt(Optional ResumeTicket As String) As 
 End Function
 
 Private Function IDeviceProtocol_GetCharsPerLine() As Long
-    IDeviceProtocol_GetCharsPerLine = pvRowChars
+    IDeviceProtocol_GetCharsPerLine = pvCommentChars
 End Function
 
 Private Function IDeviceProtocol_GetClock() As Date

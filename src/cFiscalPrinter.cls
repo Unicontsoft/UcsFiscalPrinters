@@ -224,7 +224,7 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     JsonItem(oRetVal, "DeviceProtocol") = oFP.GetDeviceProtocol()
     JsonItem(oRetVal, "DeviceModel") = oFP.GetDeviceModel()
     JsonItem(oRetVal, "FirmwareVersion") = oFP.GetDeviceFirmware()
-    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
+    JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCharsPerLine()
     bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
     If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
         For lIdx = 1 To 6

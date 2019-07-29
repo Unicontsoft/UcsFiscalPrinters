@@ -440,9 +440,9 @@ EH:
     RaiseError FUNC_NAME
 End Property
 
-Private Property Get pvRowChars() As Long
-    pvRowChars = pvZfplibValue(m_uConfig.RowChars, "FPLineWidth", DEF_LINE_WIDTH)
-    pvRowChars = pvRowChars - 2
+Private Property Get pvCommentChars() As Long
+    pvCommentChars = pvZfplibValue(m_uConfig.RowChars, "FPLineWidth", DEF_LINE_WIDTH)
+    pvCommentChars = pvCommentChars - 2
 End Property
 
 Private Property Get pvPingTimeout() As Long
@@ -2090,7 +2090,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 "FormatPrice", sFormatPrice, "0.00", _
                 "FormatQty", sFormatQty, "0.000", _
                 "FormatDisc", sFormatDisc, "0.00"
-            vSplit = WrapText(.PluName, pvRowChars)
+            vSplit = WrapText(.PluName, pvCommentChars)
             For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH
@@ -2118,12 +2118,12 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, "0.00", _
                         "FormatAmount", sFormatAmount, "0.00"
-                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvRowChars)
+                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
                             pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                                SafeFormat(dblTotal, sFormatAmount), pvRowChars)
+                                SafeFormat(dblTotal, sFormatAmount), pvCommentChars)
                         End If
                     Next
                 End If
@@ -2145,9 +2145,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End If
         Case ucsRowLine
             If .LineWordWrap Then
-                vSplit = WrapText(.LineText, pvRowChars)
+                vSplit = WrapText(.LineText, pvCommentChars)
             Else
-                vSplit = Array(Left$(.LineText, pvRowChars))
+                vSplit = Array(Left$(.LineText, pvCommentChars))
             End If
             pvPrintLine vSplit
         Case ucsRowPayment
@@ -2529,7 +2529,7 @@ Private Function IDeviceProtocol_EndReceipt(Optional ResumeTicket As String) As 
 End Function
 
 Private Function IDeviceProtocol_GetCharsPerLine() As Long
-    IDeviceProtocol_GetCharsPerLine = pvRowChars
+    IDeviceProtocol_GetCharsPerLine = pvCommentChars
 End Function
 
 Private Function IDeviceProtocol_GetClock() As Date
