@@ -212,10 +212,6 @@ Public Sub Restart(Optional AddParam As String)
     Unload Me
 End Sub
 
-Private Sub Form_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
-    Debug.Print "Form_MouseDown, X=" & X & ", Y=" & Y, Timer
-End Sub
-
 '=========================================================================
 ' Methods
 '=========================================================================
