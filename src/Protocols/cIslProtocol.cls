@@ -1801,8 +1801,8 @@ Public Function GetTotalsStats() As Variant
         Next
         Exceptions = bPrevExceptions
     End If
-    If IsIncotex Then
-        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsFpcInfoLastFiscalBlock, sParam, vbNullString, _
+    If IsIncotex Or IsEcr Then
+        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsFpcInfoLastFiscalBlock, sParam, IIf(IsEcr, "*0", vbNullString), _
             "Index", lIndex, -1
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_DELIM)
