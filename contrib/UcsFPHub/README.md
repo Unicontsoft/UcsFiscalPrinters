@@ -81,12 +81,12 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 `-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service configuration file. If no explicit configuration options are used the service tries to find `UcsFPHub.conf` configuration file in the application folder. If still no configuration file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
 `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom configuration file to be used by the NT service.
 `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.
-|              | `--systray`       | Hides the process and only shows the application icon in the system notification area.
+`-s`           | `--systray`       | Hides the process and only shows the application icon in the system notification area.
 
 ### ToDo
 
  - [x] Listener on Service Broker queues
- - [x] Systray icon form
+ - [x] Hook config editor on systray icon popup menu
  - [ ] Impl `IniFile` for `MssqlServiceBroker` binding
  - [x] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
 
