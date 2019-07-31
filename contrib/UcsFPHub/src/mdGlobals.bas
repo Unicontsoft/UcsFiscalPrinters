@@ -177,7 +177,7 @@ Public Function ReadTextFile(sFile As String) As String
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Err.Raise Err.Number, Err.Source, Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
 Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFileTypeEnum)
@@ -220,7 +220,7 @@ Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFil
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Err.Raise Err.Number, Err.Source, Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Public Function MkPath(sPath As String) As Boolean
