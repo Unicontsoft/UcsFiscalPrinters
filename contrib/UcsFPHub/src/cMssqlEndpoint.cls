@@ -32,11 +32,29 @@ Private Const MODULE_NAME As String = "cMssqlEndpoint"
 ' API
 '=========================================================================
 
+'--- for winsock
+Private Const AF_INET                   As Long = 2
+Private Const SOCK_STREAM               As Long = 1
+Private Const IPPROTO_TCP               As Long = 6
+Private Const INVALID_SOCKET            As Long = -1
+'--- for SetInformationJobObject
+Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 '--- for thunks
 Private Const MEM_COMMIT                    As Long = &H1000
 Private Const PAGE_EXECUTE_READWRITE        As Long = &H40
 Private Const CRYPT_STRING_BASE64           As Long = 1
 
+Private Declare Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As String, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSADATA As Any) As Long
+Private Declare Function WSACleanup Lib "ws2_32" () As Long
+Private Declare Function SocketInit Lib "ws2_32" Alias "socket" (ByVal lAf As Long, ByVal lSocketType As Long, ByVal lProtocol As Long) As Long
+Private Declare Function SocketBind Lib "ws2_32" Alias "bind" (ByVal lSocket As Long, ByRef uName As SOCKADDR_IN, ByRef lNameLen As Long) As Long
+Private Declare Function SocketListen Lib "ws2_32" Alias "listen" (ByVal lSocket As Long, ByVal lBackLog As Long) As Long
+Private Declare Function SocketClose Lib "ws2_32" Alias "closesocket" (ByVal lSocket As Long) As Long
+Private Declare Function SocketGetIP Lib "ws2_32" Alias "inet_addr" (ByVal sConnPoint As String) As Long
+Private Declare Function SocketnTons Lib "ws2_32" Alias "htons" (ByVal lNetShort As Long) As Integer
+'--- for thunks
 Private Declare Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As Long, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As Long
 Private Declare Function CryptStringToBinary Lib "crypt32" Alias "CryptStringToBinaryA" (ByVal pszString As String, ByVal cchString As Long, ByVal dwFlags As Long, ByVal pbBinary As Long, pcbBinary As Long, Optional ByVal pdwSkip As Long, Optional ByVal pdwFlags As Long) As Long
 Private Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcA" (ByVal lpPrevWndFunc As Long, ByVal hWnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
@@ -51,6 +69,13 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
     Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
     Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
 #End If
+
+Private Type SOCKADDR_IN
+    Family              As Integer
+    Port                As Integer
+    Addr                As Long
+    Zero(7)             As Byte
+End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -75,6 +100,19 @@ Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSN
                                                     "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
 Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
 Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
+'--- params
+Private Const PRM_SQLSERVER             As String = "SqlServer"
+Private Const PRM_DBUSER                As String = "DbUser"
+Private Const PRM_DBPASS                As String = "DbPass"
+Private Const PRM_CONNSTR               As String = "ConnStr"
+Private Const PRM_SSHSETTINGS           As String = "SshSettings"
+'--- SSH consts
+Private Const STR_SSH_TUNNEL_ERROR              As String = "Грешка при отваряне на SSH тунел" & vbCrLf & vbCrLf & "%1"
+Private Const STR_SSH_TUNNEL_NO_PORT_AVAILABLE  As String = "Невъзможно отваряне на локален порт"
+Private Const STR_SSH_TUNNEL_PORT_UNACCESSIBLE  As String = "Тунелът е отворен, но локалния порт е недостъпен"
+Private Const STR_SSH_TUNNEL_MISSING_FILE       As String = "Липсва файл %1"
+Private Const STR_SSH_TUNNEL_TIMEOUT            As String = "Отваряне на SSH тунел отне прекалено много време"
+Private Const STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY As String = "SSH сървърът използва неоторизиран ключ"
 
 Private m_sLastError                As String
 Private m_oConfig                   As Object
@@ -85,6 +123,20 @@ Attribute m_oConn.VB_VarHelpID = -1
 Private m_sQueueName                As String
 Private m_lQueueTimeout             As Long
 Private m_oController               As cServiceController
+Private m_oSshTunnel                As cExec
+Private m_lSshLocalPort             As Long
+Private m_dSshLastAccess            As Date
+
+Private Enum UcsSshSettingsIndexEnum
+    ucsSixTunnel
+    ucsSixHost
+    ucsSixPort
+    ucsSixUser
+    ucsSixPass
+    ucsSixKeyFile
+    ucsSixLocalPort
+    ucsSixExtraParams
+End Enum
 
 '=========================================================================
 ' Error handling
@@ -94,6 +146,11 @@ Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+End Sub
+
+Private Sub RaiseError(sFunction As String)
+    PrintError sFunction
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & vbCrLf & Err.Source, Err.Description
 End Sub
 
 '=========================================================================
@@ -106,6 +163,10 @@ End Property
 
 Private Property Get pvAddressOfTimerProc() As cMssqlEndpoint
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
+End Property
+
+Private Property Get STR_RC4_SALT() As String
+    STR_RC4_SALT = GetEnvironmentVar("_UCS_RC4_SALT")
 End Property
 
 '=========================================================================
@@ -155,39 +216,23 @@ EH:
     Resume QH
 End Function
 
-Private Function pvOpenConn(oConfig As Object) As Boolean
-    Const FUNC_NAME     As String = "pvOpenConn"
+Public Function TimerProc() As Long
+Attribute TimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "TimerProc"
     
     On Error GoTo EH
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    Set m_oConn = New ADODB.Connection
-    m_oConn.CursorLocation = adUseClient
-    m_oConn.Open JsonItem(oConfig, "ConnectString")
-    '--- success
-    pvOpenConn = True
-QH:
+    '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
+    If pvOpenConn(m_oConfig) Then
+        DebugLog Printf(STR_CONN_REOPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
+        pvQueueLoopAsync
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume QH
+    Resume Next
 End Function
 
-Private Function pvQueueLoopAsync() As Boolean
-    Const FUNC_NAME     As String = "pvQueueLoopAsync"
-    
-    On Error GoTo EH
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
-    '--- success
-    pvQueueLoopAsync = True
-QH:
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Function
+'= private ===============================================================
 
 Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String, lErrorCode As Long) As Boolean
     Const FUNC_NAME     As String = "pvHandleRequest"
@@ -247,20 +292,392 @@ EH:
     GoTo QH
 End Function
 
-Public Function TimerProc() As Long
-Attribute TimerProc.VB_MemberFlags = "40"
-    Const FUNC_NAME     As String = "TimerProc"
+Private Function pvQueueLoopAsync() As Boolean
+    Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
-    If pvOpenConn(m_oConfig) Then
-        DebugLog Printf(STR_CONN_REOPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
-        pvQueueLoopAsync
-    End If
+    '--- start heart-beat timer
+    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
+    '--- success
+    pvQueueLoopAsync = True
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
+End Function
+
+Private Function pvOpenConn(oConfig As Object) As Boolean
+    Const FUNC_NAME     As String = "pvOpenConn"
+    Const DEF_SECTION   As String = "Profile"
+    Dim STR_DATA_SOURCE As String
+    Dim STR_FAILOVER_PARTNER As String
+    Dim sIniFile        As String
+    Dim sSqlServer      As String
+    Dim sDbUser         As String
+    Dim sDbPass         As String
+    Dim sLocalConnStr   As String
+    Dim sSshSettings    As String
+    Dim sSshError       As String
+    Dim oTunnel         As cExec
+    Dim lLocalPort      As Long
+    Dim vSplit          As Variant
+    Dim vSqlServer      As Variant
+    Dim vMirrorServer   As Variant
+    
+    On Error GoTo EH
+    '--- start heart-beat timer
+    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+    Set m_oConn = New ADODB.Connection
+    m_oConn.CursorLocation = adUseClient
+    sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
+    If LenB(sIniFile) <> 0 Then
+        sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
+        sDbUser = pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBUSER, vbNullString)
+        sDbPass = CryptRC4(pvFromHexDump(pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBPASS, vbNullString)), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
+        sLocalConnStr = pvGetProfileString(sIniFile, DEF_SECTION, PRM_CONNSTR, vbNullString) & IIf(LenB(sDbUser) <> 0, ";Password=" & sDbPass, vbNullString)
+        sSshSettings = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SSHSETTINGS, vbNullString)
+        If Not m_oSshTunnel Is Nothing Then
+            If m_oSshTunnel.KillProcess() Then
+                Call Sleep(100)
+            End If
+            Set m_oSshTunnel = Nothing
+            m_lSshLocalPort = 0
+            m_dSshLastAccess = 0
+        End If
+        If LenB(pvGetConnProp(sLocalConnStr, "Data Source")) <> 0 Then
+            STR_DATA_SOURCE = "Data Source"
+            STR_FAILOVER_PARTNER = "Failover Partner"
+        Else
+            STR_DATA_SOURCE = "Server"
+            STR_FAILOVER_PARTNER = "Failover_Partner"
+        End If
+        vSplit = Split(sSshSettings, ",")
+        If C_Lng(At(vSplit, ucsSixTunnel)) <> 0 Then
+            vSqlServer = Split(pvGetConnProp(sLocalConnStr, STR_DATA_SOURCE), ",")
+            vMirrorServer = Split(pvGetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER), ",")
+            lLocalPort = C_Lng(At(vSplit, ucsSixLocalPort))
+            If Not pvMakeSshTunnel( _
+                    At(vSplit, ucsSixHost), _
+                    C_Lng(At(vSplit, ucsSixPort)), _
+                    At(vSplit, ucsSixUser), _
+                    CryptRC4(pvFromHexDump(At(vSplit, ucsSixPass)), LCase$(At(vSplit, ucsSixHost)) & STR_RC4_SALT & LCase$(At(vSplit, ucsSixUser))), _
+                    At(vSplit, ucsSixKeyFile), _
+                    At(vSqlServer, 0), _
+                    C_Lng(At(vSqlServer, 1, 1433)), _
+                    At(vMirrorServer, 0), _
+                    C_Lng(At(vMirrorServer, 1, 1433)), _
+                    At(vSplit, ucsSixExtraParams), _
+                    sSshError, oTunnel, lLocalPort) Then
+                vSplit = Split(sSshError, vbCrLf)
+                m_sLastError = Printf(STR_SSH_TUNNEL_ERROR, At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
+                GoTo QH
+            End If
+        End If
+        If Not oTunnel Is Nothing Then
+            sLocalConnStr = pvSetConnProp(sLocalConnStr, STR_DATA_SOURCE, "127.0.0.1," & lLocalPort)
+            If LenB(pvGetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER)) <> 0 Then
+                sLocalConnStr = pvSetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER, "127.0.0.1," & (lLocalPort + 1))
+            End If
+        End If
+        Set m_oSshTunnel = oTunnel
+        m_lSshLocalPort = lLocalPort
+        m_dSshLastAccess = Now
+        m_oConn.Open sLocalConnStr
+    Else
+        m_oConn.Open JsonItem(oConfig, "ConnectString")
+    End If
+    '--- success
+    pvOpenConn = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Function
+
+Private Function pvGetProfileString(IniFile As String, Section As String, Name As String, Optional DefaultValue As String) As String
+    Const FUNC_NAME     As String = "pvGetProfileString"
+    Dim sValue          As String
+    
+    On Error GoTo EH
+    sValue = String$(1000, 0)
+    Call GetPrivateProfileString(Section, Name, DefaultValue, sValue, Len(sValue), IniFile)
+    pvGetProfileString = Left$(sValue, InStr(sValue, vbNullChar) - 1)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvFromHexDump(sText As String) As String
+    Const FUNC_NAME     As String = "pvFromHexDump"
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    For lIdx = 1 To Len(sText) Step 2
+        pvFromHexDump = pvFromHexDump & Chr$(C_Lng("&H" & Mid$(sText, lIdx, 2)))
+    Next
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvMakeSshTunnel( _
+            sSshSrv As String, _
+            ByVal lSshPort As Long, _
+            sUser As String, _
+            sPass As String, _
+            sKeyFile As String, _
+            sSqlSrv As String, _
+            ByVal lSqlPort As Long, _
+            sMirrorSrv As String, _
+            ByVal lMirrorPort As Long, _
+            sExtraParams As String, _
+            sError As String, _
+            oTunnel As cExec, _
+            lLocalPort As Long) As Boolean
+    Const FUNC_NAME     As String = "pvMakeSshTunnel"
+    Const DEF_TIMEOUT   As Long = 10
+    Const DEF_MAXATTEMPTS As Long = 10
+    Const MIN_PORT      As Long = 2000
+    Const MAX_PORT      As Long = &HFFFF&
+    Dim sParams         As String
+    Dim sInput          As String
+    Dim lAttempt        As Long
+    Dim lMaxAttempts    As Long
+    Dim dblTimer        As Double
+    Dim lTimeout        As Double
+    Dim lExtraTimeout   As Double
+    Dim vElem           As Variant
+    Dim sExeFile        As String
+    Dim sLine           As String
+    Dim bAcceptKeys     As Boolean
+    
+    On Error GoTo EH
+    '--- terminate previous tunnel
+    If Not oTunnel Is Nothing Then
+        If oTunnel.KillProcess() Then
+            Call Sleep(100)
+        End If
+        Set oTunnel = Nothing
+    End If
+    '--- init local vars
+    lTimeout = DEF_TIMEOUT
+    lMaxAttempts = DEF_MAXATTEMPTS
+    bAcceptKeys = True
+    sExeFile = GetEnvironmentVar("_UCS_SSH_PLINK")
+    If LenB(sExeFile) = 0 Then
+        sExeFile = LocateFile(PathCombine(App.Path, "plink.exe"))
+    End If
+    If LenB(sExeFile) = 0 Then
+        sExeFile = PathCombine(App.Path, "plink.exe")
+    End If
+    #If DebugMode Then
+        DebugPrint FUNC_NAME, MODULE_NAME, "lTimeout=" & lTimeout & ", lMaxAttempts=" & lMaxAttempts & ", bAcceptKeys=" & bAcceptKeys & ", sExeFile=" & sExeFile, 2
+    #End If
+    '--- check plink.exe exists
+    If Not FileExists(sExeFile) Then
+        sError = Printf(STR_SSH_TUNNEL_MISSING_FILE, sExeFile)
+        GoTo QH
+    End If
+    '--- figure out free local port
+    If lLocalPort <> 0 Then
+        For lAttempt = 1 To lMaxAttempts
+            If pvTestListen(lLocalPort) And pvTestListen(lLocalPort + 1) Then
+                Exit For
+            End If
+            lLocalPort = lLocalPort + 1
+            If lLocalPort >= MAX_PORT Then
+                lLocalPort = MIN_PORT
+            End If
+            If lLocalPort = 8191 Or lLocalPort = 8192 Then
+                lLocalPort = lLocalPort + 2
+            End If
+        Next
+    Else
+        For lAttempt = 1 To lMaxAttempts
+            lLocalPort = MIN_PORT + Rnd * (MAX_PORT - MIN_PORT)
+            If lLocalPort = 8191 Or lLocalPort = 8192 Then
+                lLocalPort = lLocalPort + 2
+            End If
+            If pvTestListen(lLocalPort) And pvTestListen(lLocalPort + 1) Then
+                Exit For
+            End If
+        Next
+    End If
+    If lAttempt > lMaxAttempts Then
+        sError = STR_SSH_TUNNEL_NO_PORT_AVAILABLE
+        GoTo QH
+    End If
+    '--- plink.exe options:
+    '---   -ssh   use SSH protocol
+    '---   -2     use version 2 of protocol
+    '---   -C     compress w/ zlib
+    '---   -N     no shell
+    '---   -v     verbose
+    '---   -P     server port
+    '---   -l     (l)user
+    '---   -pw    password
+    '---   -i     keyfile
+    '---   -L     local port tunnel [local_IP:]local_port:remote_IP:remote_port
+    '---   -R     remote port tunnel [remote_IP:]remote_port:local_IP:local_port
+    sParams = Printf("%1 -ssh -2 -C -N -v -l %2", ArgvQuote(sSshSrv), ArgvQuote(sUser)) & _
+        IIf(LenB(sSqlSrv) <> 0, Printf(" -L %1", ArgvQuote(lLocalPort & ":" & sSqlSrv & ":" & lSqlPort)), vbNullString) & _
+        IIf(LenB(sMirrorSrv) <> 0, Printf(" -L %1", ArgvQuote((lLocalPort + 1) & ":" & sMirrorSrv & ":" & lMirrorPort)), vbNullString) & _
+        IIf(LenB(sKeyFile) <> 0, Printf(" -i %1", ArgvQuote(sKeyFile)), vbNullString) & _
+        IIf(LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
+        IIf(lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
+        IIf(LenB(sExtraParams) <> 0, " " & sExtraParams, vbNullString)
+    #If DebugMode Then
+        DebugPrint FUNC_NAME, MODULE_NAME, "sParams=" & sParams, 2
+    #End If
+    '--- shell plink.exe
+    Set oTunnel = New cExec
+    With oTunnel
+        .Run sExeFile, sParams, StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        dblTimer = TimerEx
+        Do While Not .AtEndOfError Or Not .AtEndOfOutput
+            If TimerEx - dblTimer > lTimeout + lExtraTimeout Then
+                sError = STR_SSH_TUNNEL_TIMEOUT & vbCrLf & sInput
+                If .KillProcess() Then
+                    Call Sleep(100)
+                End If
+                GoTo QH
+            End If
+            Call Sleep(1)
+            sLine = .ReadPendingOutput & .ReadPendingError
+            If LenB(sLine) Then
+                #If DebugMode Then
+                    DebugPrint FUNC_NAME, MODULE_NAME, "plink.exe output: " & sLine, 2
+                #End If
+                sInput = sInput & Format$(TimerEx - dblTimer, "0.000") & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, "0.000") & ": ") & Right$(sLine, 1)
+            End If
+            If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
+                lExtraTimeout = lTimeout
+                #If DebugMode Then
+                    DebugPrint FUNC_NAME, MODULE_NAME, "lExtraTimeout=" & lExtraTimeout, 2
+                #End If
+            End If
+            If InStr(sInput, "y/n") > 0 Then
+                '--- find ssh server rsa key
+                For Each vElem In Split(sInput, vbCrLf)
+                    If InStr(vElem, "ssh-rsa ") > 0 Then
+                        sError = vElem & vbCrLf
+                        #If DebugMode Then
+                            DebugPrint FUNC_NAME, MODULE_NAME, "SSH server key: " & vElem, 2
+                        #End If
+                    End If
+                Next
+                If bAcceptKeys Then
+                    .WriteInput "y" & vbCrLf
+                    sInput = Replace(sInput, "y/n", vbNullString)
+                Else
+                    sError = STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY & vbCrLf & sError
+                    GoTo QH
+                End If
+            ElseIf InStr(sInput, "Local port " & lLocalPort & " forwarding") > 0 Then
+                If Not pvTestListen(lLocalPort) Then
+                    pvMakeSshTunnel = True
+                Else
+                    sError = STR_SSH_TUNNEL_PORT_UNACCESSIBLE
+                End If
+                GoTo QH
+            End If
+        Loop
+        sError = sInput
+        #If DebugMode Then
+            DebugPrint FUNC_NAME, MODULE_NAME, "GetExitCode=" & .GetExitCode, 2
+        #End If
+    End With
+QH:
+    '--- trim ending new lines
+    Do While Right$(sError, 2) = vbCrLf
+        sError = Left$(sError, Len(sError) - 2)
+    Loop
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvTestListen(ByVal lPort As Long) As Boolean
+    Const FUNC_NAME     As String = "pvTestListen"
+    Dim hSocket         As Long
+    Dim uAddr           As SOCKADDR_IN
+    Dim baWSAData()     As Byte
+    
+    On Error GoTo EH
+    ReDim baWSAData(0 To 1000) As Byte
+    If WSAStartup(&H202, baWSAData(0)) = 0 Then
+        hSocket = SocketInit(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+        If hSocket <> INVALID_SOCKET Then
+            With uAddr
+                .Addr = SocketGetIP("127.0.0.1")
+                .Family = AF_INET
+                .Port = SocketnTons(lPort And &HFFFF&)
+            End With
+            If SocketBind(hSocket, uAddr, Len(uAddr)) <> -1 Then
+                If SocketListen(hSocket, 5) <> -1 Then
+                    pvTestListen = True
+                End If
+            End If
+            Call SocketClose(hSocket)
+        End If
+        Call WSACleanup
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvGetConnProp(ByVal sConnStr As String, sProp As String) As String
+    Const FUNC_NAME     As String = "pvGetConnProp"
+    Dim vElem           As Variant
+    
+    On Error GoTo EH
+    For Each vElem In Split(sConnStr, ";")
+        If LCase$(Left$(vElem, Len(sProp) + 1)) = LCase$(sProp & "=") Then
+            pvGetConnProp = Mid$(vElem, InStr(vElem, "=") + 1)
+            Exit Function
+        End If
+    Next
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvSetConnProp(ByVal sConnStr As String, sProp As String, sValue As String) As String
+    Const FUNC_NAME     As String = "pvSetConnProp"
+    Dim vSplit          As Variant
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    vSplit = Split(sConnStr, ";")
+    For lIdx = 0 To UBound(vSplit)
+        If LCase$(Left$(vSplit(lIdx), Len(sProp) + 1)) = LCase$(sProp & "=") Then
+            If LenB(sValue) <> 0 Then
+                vSplit(lIdx) = sProp & "=" & sValue
+            Else
+                vSplit(lIdx) = vbNullString
+            End If
+            Exit For
+        End If
+    Next
+    If lIdx > UBound(vSplit) Then
+        pvSetConnProp = sConnStr
+        If LenB(sValue) <> 0 Then
+            pvSetConnProp = pvSetConnProp & IIf(LenB(pvSetConnProp) <> 0 And Right$(pvSetConnProp, 1) <> ";", ";", vbNullString) & sProp & "=" & sValue
+        End If
+    Else
+        For lIdx = 0 To UBound(vSplit)
+            If LenB(vSplit(lIdx)) <> 0 Then
+                pvSetConnProp = pvSetConnProp & IIf(LenB(pvSetConnProp) <> 0, ";", vbNullString) & vSplit(lIdx)
+            End If
+        Next
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 '=========================================================================
