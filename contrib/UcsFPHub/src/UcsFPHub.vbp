@@ -17,6 +17,7 @@ Class=cMssqlEndpoint; cMssqlEndpoint.cls
 Module=mdJson; ..\..\..\src\Shared\mdJson.bas
 Class=cSysTray; Shared\cSysTray.cls
 Object={8405D0DF-9FDD-4829-AEAD-8E2B0A18FEA4}#1.0#0; Inked.dll
+Class=cExec; Shared\cExec.cls
 IconForm="frmIcon"
 Startup="Sub Main"
 HelpFile=""
