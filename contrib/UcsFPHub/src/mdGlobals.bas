@@ -602,3 +602,76 @@ End Function
 Public Function Quote(sText As String) As String
     Quote = Replace(sText, "'", "''")
 End Function
+
+Public Function CryptRC4(sText As String, sKey As String) As String
+    Dim baS(0 To 255) As Byte
+    Dim baK(0 To 255) As Byte
+    Dim lI          As Long
+    Dim lJ          As Long
+    Dim lSwap       As Long
+    Dim lIdx        As Long
+
+    For lIdx = 0 To 255
+        baS(lIdx) = lIdx
+        baK(lIdx) = Asc(Mid$(sKey, 1 + (lIdx Mod Len(sKey)), 1))
+    Next
+    For lI = 0 To 255
+        lJ = (lJ + baS(lI) + baK(lI)) Mod 256
+        lSwap = baS(lI)
+        baS(lI) = baS(lJ)
+        baS(lJ) = lSwap
+    Next
+    lI = 0
+    lJ = 0
+    For lIdx = 1 To Len(sText)
+        lI = (lI + 1) Mod 256
+        lJ = (lJ + baS(lI)) Mod 256
+        lSwap = baS(lI)
+        baS(lI) = baS(lJ)
+        baS(lJ) = lSwap
+        CryptRC4 = CryptRC4 & Chr$((pvCryptXor(baS((CLng(baS(lI)) + baS(lJ)) Mod 256), Asc(Mid$(sText, lIdx, 1)))))
+    Next
+End Function
+
+Private Function pvCryptXor(ByVal lI As Long, ByVal lJ As Long) As Long
+    If lI = lJ Then
+        pvCryptXor = lJ
+    Else
+        pvCryptXor = lI Xor lJ
+    End If
+End Function
+
+Public Function LocateFile(sFile As String) As String
+    Const FUNC_NAME     As String = "LocateFile"
+    Dim sDir            As String
+    Dim sName           As String
+    Dim lPos            As Long
+    
+    On Error GoTo EH
+    If InStrRev(sFile, "\") > 0 Then
+        sDir = Left$(sFile, InStrRev(sFile, "\"))
+        sName = Mid$(sFile, InStrRev(sFile, "\") + 1)
+        Do While Not FileExists(sDir & sName)
+            If Len(sDir) > 1 Then
+                lPos = InStrRev(sDir, "\", Len(sDir) - 1)
+                If lPos > 0 Then
+                    sDir = Left$(sDir, lPos)
+                    If Left$(sDir, 2) = "\\" And InStrRev(sDir, "\", Len(sDir) - 1) <= 2 Then
+                        Exit Function
+                    End If
+                Else
+                    Exit Function
+                End If
+            Else
+                Exit Function
+            End If
+        Loop
+        LocateFile = sDir & sName
+    ElseIf FileExists(sFile) Then
+        LocateFile = sFile
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+End Function
