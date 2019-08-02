@@ -54,7 +54,10 @@ Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID 
 Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
 Private Declare Function CreateDirectory Lib "kernel32" Alias "CreateDirectoryW" (ByVal lpPathName As Long, ByVal lpSecurityAttributes As Long) As Long
-    
+Private Declare Function CreateFileMoniker Lib "ole32" (ByVal lpszPathName As Long, pResult As IUnknown) As Long
+Private Declare Function GetRunningObjectTable Lib "ole32" (ByVal dwReserved As Long, pResult As IUnknown) As Long
+Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, ByVal oVft As Long, ByVal lCc As Long, ByVal vtReturn As VbVarType, ByVal cActuals As Long, prgVt As Any, prgpVarg As Any, pvargResult As Variant) As Long
+
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
@@ -675,3 +678,42 @@ EH:
     PrintError FUNC_NAME
     Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
+
+Public Function PutObject(oObj As Object, sPathName As String) As Long
+    Const ROTFLAGS_REGISTRATIONKEEPSALIVE As Long = 1
+    Const IDX_REGISTER  As Long = 3
+    Dim pROT            As IUnknown
+    Dim pMoniker        As IUnknown
+    
+    Call GetRunningObjectTable(0, pROT)
+    Call CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
+End Function
+
+Public Sub RevokeObject(ByVal lCookie As Long)
+    Const IDX_REVOKE    As Long = 4
+    Dim pROT            As IUnknown
+    
+    Call GetRunningObjectTable(0, pROT)
+    DispCallByVtbl pROT, IDX_REVOKE, lCookie
+End Sub
+
+Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArray A() As Variant) As Variant
+    Const CC_STDCALL    As Long = 4
+    Dim lIdx            As Long
+    Dim vParam()        As Variant
+    Dim vType(0 To 63)  As Integer
+    Dim vPtr(0 To 63)   As Long
+    Dim hResult         As Long
+    
+    vParam = A
+    For lIdx = 0 To UBound(vParam)
+        vType(lIdx) = VarType(vParam(lIdx))
+        vPtr(lIdx) = VarPtr(vParam(lIdx))
+    Next
+    hResult = DispCallFunc(ObjPtr(pUnk), lIndex * 4, CC_STDCALL, vbLong, lIdx, vType(0), vPtr(0), DispCallByVtbl)
+    If hResult < 0 Then
+        Err.Raise hResult
+    End If
+End Function
+
