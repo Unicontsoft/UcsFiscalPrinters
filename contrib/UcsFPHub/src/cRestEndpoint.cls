@@ -95,6 +95,10 @@ EH:
     Resume Next
 End Function
 
+Public Sub Terminate()
+    Set m_cClients = Nothing
+End Sub
+
 Public Sub ClientClose(sKey As String)
     If SearchCollection(m_cClients, sKey) Then
         m_cClients.Remove sKey

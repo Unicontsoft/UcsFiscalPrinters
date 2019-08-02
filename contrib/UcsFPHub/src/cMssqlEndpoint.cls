@@ -216,6 +216,15 @@ EH:
     Resume QH
 End Function
 
+Public Sub Terminate()
+    Set m_pTimer = Nothing
+    Set m_oConn = Nothing
+    Set m_oSshTunnel = Nothing
+    Set m_oController = Nothing
+    Set m_oConfig = Nothing
+    Set m_oPrinters = Nothing
+End Sub
+
 Public Function TimerProc() As Long
 Attribute TimerProc.VB_MemberFlags = "40"
     Const FUNC_NAME     As String = "TimerProc"
@@ -296,9 +305,9 @@ Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
+    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
     '--- start heart-beat timer
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
     '--- success
     pvQueueLoopAsync = True
 QH:
@@ -327,8 +336,6 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim vMirrorServer   As Variant
     
     On Error GoTo EH
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
@@ -388,9 +395,16 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Else
         m_oConn.Open JsonItem(oConfig, "ConnectString")
     End If
+    '--- start heart-beat timer
+    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
     pvOpenConn = True
 QH:
+    If Not pvOpenConn Then
+        Set m_pTimer = Nothing
+        Set m_oConn = Nothing
+        Set m_oSshTunnel = Nothing
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -805,4 +819,12 @@ NextLine:
             Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
     End If
     pvQueueLoopAsync
+End Sub
+
+'=========================================================================
+' Base class events
+'=========================================================================
+
+Private Sub Class_Terminate()
+    Terminate
 End Sub
