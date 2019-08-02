@@ -299,6 +299,7 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
     Dim oMssqlEndpoint  As cMssqlEndpoint
+    Dim oLocalEndpoint  As frmLocalEndpoint
     
     On Error GoTo EH
     Set cRetVal = New Collection
@@ -314,8 +315,20 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
             If oMssqlEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oMssqlEndpoint
             End If
+        Case "local"
+            Set oLocalEndpoint = New frmLocalEndpoint
+            If oLocalEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oLocalEndpoint
+            End If
         End Select
     Next
+    '--- always init local endpoint
+    If oLocalEndpoint Is Nothing Then
+        Set oLocalEndpoint = New frmLocalEndpoint
+        If oLocalEndpoint.Init(Nothing, oPrinters) Then
+            cRetVal.Add oLocalEndpoint
+        End If
+    End If
     Set pvCreateEndpoints = cRetVal
     Exit Function
 EH:
@@ -367,5 +380,12 @@ Public Sub FlushDebugLog()
 End Sub
 
 Public Sub TerminateEndpoints()
-    Set m_cEndpoints = Nothing
+    Dim vElem           As Variant
+    
+    If Not m_cEndpoints Is Nothing Then
+        For Each vElem In m_cEndpoints
+            vElem.Terminate
+        Next
+        Set m_cEndpoints = Nothing
+    End If
 End Sub
