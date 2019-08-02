@@ -87,7 +87,7 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 
  - [x] Listener on Service Broker queues
  - [x] Hook config editor on systray icon popup menu
- - [ ] Impl `IniFile` for `MssqlServiceBroker` binding
+ - [x] Impl `IniFile` for `MssqlServiceBroker` binding
  - [x] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
 
 ## REST service protocol description
