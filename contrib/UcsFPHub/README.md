@@ -115,16 +115,14 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
 {
   "Ok": true,
   "Count": 2,
-  "DT240349": {
-    "DeviceSerialNo": "DT240349",
-    "FiscalMemoryNo": "02240349",
-    "DeviceProtocol": "DATECS FP/ECR",
-    "DeviceModel": "FP-3530?",
-    "FirmwareVersion": "4.10BG 10MAR08 1130",
-    "CommentTextMaxLength": 28,
-    "TaxNo": "0000000000",
-    "TaxCaption": "БУЛСТАТ",
-    "DeviceString": "Protocol=DATECS FP/ECR;Port=COM1;Speed=9600"
+  "Aliases": {
+    "Count": 2,
+    "PrinterID1": {
+      "DeviceSerialNo": "DT518315"
+    },
+    "PrinterID2": {
+      "DeviceSerialNo": "ZK133759"
+    }
   },
   "DT518315": {
     "DeviceSerialNo": "DT518315",
@@ -137,11 +135,16 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
   },
-  "Aliases": {
-    "Count": 1,
-    "PrinterID1": {
-      "DeviceSerialNo": "DT518315"
-    }
+  "ZK133759": {
+    "DeviceSerialNo": "ZK133759",
+    "FiscalMemoryNo": "50170895",
+    "DeviceProtocol": "TREMOL ECR",
+    "DeviceModel": "TREMOL M20",
+    "FirmwareVersion": "Ver. 1.01 TRA20 C.S. 2541",
+    "CommentTextMaxLength": 30,
+    "TaxNo": "",
+    "TaxCaption": "ЕИК",
+    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200"
   }
 }
 ```
@@ -155,34 +158,37 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
 <Root>
    <Ok __json__bool="1">1</Ok>
    <Count>2</Count>
-   <DT240349>
-      <DeviceSerialNo>DT240349</DeviceSerialNo>
-      <FiscalMemoryNo>02240349</FiscalMemoryNo>
-      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
-      <DeviceModel>FP-3530?</DeviceModel>
-      <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
-      <CommentTextMaxLength>30</CommentTextMaxLength>
-      <TaxNo>0000000000</TaxNo>
-      <TaxCaption>БУЛСТАТ</TaxCaption>
-      <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
-   </DT240349>
+   <Aliases>
+      <Count>2</Count>
+      <PrinterID1>
+         <DeviceSerialNo>DT518315</DeviceSerialNo>
+      </PrinterID1>
+      <PrinterID2>
+         <DeviceSerialNo>ZK133759</DeviceSerialNo>
+      </PrinterID2>
+   </Aliases>
    <DT518315>
       <DeviceSerialNo>DT518315</DeviceSerialNo>
       <FiscalMemoryNo>02518315</FiscalMemoryNo>
       <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
       <DeviceModel>DP-25</DeviceModel>
       <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-      <CommentTextMaxLength>30</CommentTextMaxLength>
+      <CommentTextMaxLength>28</CommentTextMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
    </DT518315>
-   <Aliases>
-      <Count>1</Count>
-      <PrinterID1>
-         <DeviceSerialNo>DT518315</DeviceSerialNo>
-      </PrinterID1>
-   </Aliases>
+   <ZK133759>
+      <DeviceSerialNo>ZK133759</DeviceSerialNo>
+      <FiscalMemoryNo>50170895</FiscalMemoryNo>
+      <DeviceProtocol>TREMOL ECR</DeviceProtocol>
+      <DeviceModel>TREMOL M20</DeviceModel>
+      <FirmwareVersion>Ver. 1.01 TRA20 C.S. 2541</FirmwareVersion>
+      <CommentTextMaxLength>30</CommentTextMaxLength>
+      <TaxNo />
+      <TaxCaption>ЕИК</TaxCaption>
+      <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
+   </ZK133759>
 </Root>
 ```
 
