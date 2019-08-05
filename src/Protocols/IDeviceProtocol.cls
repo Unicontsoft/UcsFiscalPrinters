@@ -389,6 +389,15 @@ Public Function GetLastInvoiceNo() As String
 End Function
 
 ''
+' Used to retrieve the fiscal number and datetime of the last sale/invoice printed.
+'
+' @return Last receipt number as string
+'
+Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+
+End Function
+
+''
 ' Used to retrieve fiscal device serial number as reported by firmware
 '
 ' @return Serial number as string

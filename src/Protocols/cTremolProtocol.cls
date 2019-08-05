@@ -1276,6 +1276,31 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+    Const FUNC_NAME     As String = "GetLastReceiptNo"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    Dim lDateIndex      As Long
+    Dim sDelimiter      As String
+    Dim vSplit          As Variant
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, "B", _
+        "Index", lIndex, 1, _
+        "DateIndex", lDateIndex, 2, _
+        "Delimiter", sDelimiter, "*"
+    vSplit = Split(SendCommand(eCmd, sParam), sDelimiter)
+    If LenB(m_sLastError) = 0 Then
+        LastReceiptDate = C_Date(At(vSplit, lDateIndex))
+        GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 Public Function GetDeviceSerialNo() As String
     Const FUNC_NAME     As String = "GetDeviceSerialNo"
     Const CONF_NAME     As String = FUNC_NAME
@@ -2159,8 +2184,13 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             End If
             If .PmtType <> 0 Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & ";0;%1", _
-                    "FormatAmount", sFormatAmount, "0.00"
-                sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
+                    "FormatAmount", sFormatAmount, "0.00", _
+                    "FormatZeroAmount", sFormatDisc, "\"""
+                If Abs(.PmtAmount) < DBL_EPSILON Then
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatDisc))
+                Else
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
+                End If
             ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
             End If
@@ -2587,6 +2617,10 @@ End Function
 
 Private Function IDeviceProtocol_GetLastInvoiceNo() As String
     IDeviceProtocol_GetLastInvoiceNo = GetLastInvoiceNo()
+End Function
+
+Private Function IDeviceProtocol_GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+    IDeviceProtocol_GetLastQRCodeInfo = GetLastQRCodeInfo(LastReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_GetPaymentName(ByVal Index As Long) As String

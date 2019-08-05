@@ -280,6 +280,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim lIdx            As Long
     Dim sResumeTicket   As String
     Dim sPrevReceiptNo  As String
+    Dim dLastDateTime   As Date
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -367,8 +368,12 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
 ReturnReceiptInfo:
-    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-    JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastQRCodeInfo(dLastDateTime)
+    JsonItem(oRetVal, "ReceiptDateTime") = dLastDateTime
+    If LenB(JsonItem(oRetVal, "ReceiptNo")) = 0 Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    End If
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
     If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then

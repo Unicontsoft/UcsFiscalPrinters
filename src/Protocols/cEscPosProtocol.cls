@@ -1223,6 +1223,10 @@ Private Function IDeviceProtocol_GetLastInvoiceNo() As String
 
 End Function
 
+Private Function IDeviceProtocol_GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+
+End Function
+
 Private Function IDeviceProtocol_GetPaymentName(ByVal Index As Long) As String
     IDeviceProtocol_GetPaymentName = GetPaymentName(Index)
 End Function

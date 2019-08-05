@@ -2963,17 +2963,21 @@ Private Function IDeviceProtocol_GetHeaderText(ByVal Index As Long) As String
     IDeviceProtocol_GetHeaderText = GetHeaderText(Index)
 End Function
 
-Private Function IDeviceProtocol_GetLastReceiptNo() As String
-    IDeviceProtocol_GetLastReceiptNo = GetLastReceiptNo()
-End Function
-
 Private Function IDeviceProtocol_GetLastError(Optional ErrNo As UcsFiscalErrorsEnum) As String
     ErrNo = LastErrNo
     IDeviceProtocol_GetLastError = LastError
 End Function
 
+Private Function IDeviceProtocol_GetLastReceiptNo() As String
+    IDeviceProtocol_GetLastReceiptNo = GetLastReceiptNo()
+End Function
+
 Private Function IDeviceProtocol_GetLastInvoiceNo() As String
     IDeviceProtocol_GetLastInvoiceNo = GetLastInvoiceNo()
+End Function
+
+Private Function IDeviceProtocol_GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+    
 End Function
 
 Private Function IDeviceProtocol_GetPaymentName(ByVal Index As Long) As String
