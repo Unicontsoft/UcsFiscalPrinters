@@ -20,7 +20,6 @@ Private Const MODULE_NAME As String = "mdStartup"
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
-Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 
@@ -64,30 +63,6 @@ Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
-
-'=========================================================================
-' Propetties
-'=========================================================================
-
-Private Property Get pvConfigItem(sKey As String) As Variant
-    Dim sText          As String
-    
-    AssignVariant pvConfigItem, JsonItem(m_oConfig, sKey)
-    If VarType(pvConfigItem) = vbString Then
-        sText = String$(ExpandEnvironmentStrings(pvConfigItem, vbNullString, 0), 0)
-        If ExpandEnvironmentStrings(pvConfigItem, sText, Len(sText)) > 0 Then
-            pvConfigItem = Left$(sText, InStr(sText, vbNullChar) - 1)
-        End If
-    End If
-End Property
-
-Private Property Let pvConfigItem(sKey As String, vValue As Variant)
-    JsonItem(m_oConfig, sKey) = vValue
-End Property
-
-Private Property Get pvConfigKeys(sKey As String) As Variant
-    AssignVariant pvConfigKeys, JsonKeys(m_oConfig, sKey)
-End Property
 
 '=========================================================================
 ' Functions
@@ -152,10 +127,11 @@ Private Function Process(vArgs As Variant) As Long
             Process = 1
             GoTo QH
         End If
+        JsonExpandEnviron m_oConfig
     Else
-        pvConfigItem("Printers/Autodetect") = True
-        pvConfigItem("Endpoints/0/Binding") = "RestHttp"
-        pvConfigItem("Endpoints/0/Address") = "127.0.0.1:8192"
+        JsonItem(m_oConfig, "Printers/Autodetect") = True
+        JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
+        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
     End If
     If m_oOpt.Item("--systray") Then
         If Not m_oOpt.Item("--hidden") And Not InIde Then
@@ -189,10 +165,10 @@ Private Function Process(vArgs As Variant) As Long
         End If
         GoTo QH
     End If
-    If UBound(pvConfigKeys("Environment")) >= 0 Then
-        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(pvConfigKeys("Environment")) + 1)
-        For Each vKey In pvConfigKeys("Environment")
-            Call SetEnvironmentVariable(vKey, C_Str(pvConfigItem("Environment/" & vKey)))
+    If UBound(JsonKeys(m_oConfig, "Environment")) >= 0 Then
+        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1)
+        For Each vKey In JsonKeys(m_oConfig, "Environment")
+            Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
         FlushDebugLog
         m_nDebugLogFile = 0
@@ -235,7 +211,7 @@ Private Function pvCollectPrinters() As Object
     Set oFP = New cFiscalPrinter
     JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "Count") = 0
-    If pvConfigItem("Printers/Autodetect") Then
+    If JsonItem(m_oConfig, "Printers/Autodetect") Then
         DebugLog STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
@@ -263,8 +239,8 @@ Private Function pvCollectPrinters() As Object
             End If
         End If
     End If
-    For Each vKey In pvConfigKeys("Printers")
-        sDeviceString = C_Str(pvConfigItem("Printers/" & vKey & "/DeviceString"))
+    For Each vKey In JsonKeys(m_oConfig, "Printers")
+        sDeviceString = C_Str(JsonItem(m_oConfig, "Printers/" & vKey & "/DeviceString"))
         If LenB(sDeviceString) <> 0 Then
             Set oRequest = Nothing
             JsonItem(oRequest, "DeviceString") = sDeviceString
@@ -303,21 +279,21 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     
     On Error GoTo EH
     Set cRetVal = New Collection
-    For Each vKey In pvConfigKeys("Endpoints")
-        Select Case LCase$(pvConfigItem("Endpoints/" & vKey & "/Binding"))
+    For Each vKey In JsonKeys(m_oConfig, "Endpoints")
+        Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
         Case "resthttp"
             Set oRestEndpoint = New cRestEndpoint
-            If oRestEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+            If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oRestEndpoint
             End If
         Case "mssqlservicebroker"
             Set oMssqlEndpoint = New cMssqlEndpoint
-            If oMssqlEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+            If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oMssqlEndpoint
             End If
         Case "local"
             Set oLocalEndpoint = New frmLocalEndpoint
-            If oLocalEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+            If oLocalEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oLocalEndpoint
             End If
         End Select
@@ -389,3 +365,4 @@ Public Sub TerminateEndpoints()
         Set m_cEndpoints = Nothing
     End If
 End Sub
+
