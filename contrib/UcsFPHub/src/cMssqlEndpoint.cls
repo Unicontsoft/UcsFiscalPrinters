@@ -327,7 +327,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim sDbUser         As String
     Dim sDbPass         As String
     Dim sLocalConnStr   As String
-    Dim sSshSettings    As String
+    Dim oSshSettings    As Object
     Dim sSshError       As String
     Dim oTunnel         As cExec
     Dim lLocalPort      As Long
@@ -336,15 +336,33 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim vMirrorServer   As Variant
     
     On Error GoTo EH
-    Set m_oConn = New ADODB.Connection
-    m_oConn.CursorLocation = adUseClient
+    sLocalConnStr = JsonItem(oConfig, "ConnectString")
+    Set oSshSettings = ParseConnectString(JsonItem(oConfig, "SshSettings"))
     sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
     If LenB(sIniFile) <> 0 Then
-        sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
-        sDbUser = pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBUSER, vbNullString)
-        sDbPass = CryptRC4(pvFromHexDump(pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBPASS, vbNullString)), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
-        sLocalConnStr = pvGetProfileString(sIniFile, DEF_SECTION, PRM_CONNSTR, vbNullString) & IIf(LenB(sDbUser) <> 0, ";Password=" & sDbPass, vbNullString)
-        sSshSettings = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SSHSETTINGS, vbNullString)
+        If LenB(sLocalConnStr) <> 0 Then
+            sLocalConnStr = pvGetProfileString(sIniFile, DEF_SECTION, PRM_CONNSTR, vbNullString)
+            sDbUser = pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBUSER, vbNullString)
+            If LenB(sDbUser) <> 0 Then
+                sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
+                sDbPass = CryptRC4(pvFromHexDump(pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBPASS, vbNullString)), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
+                sLocalConnStr = sLocalConnStr & ";Password=" & sDbPass
+            End If
+        End If
+        If oSshSettings Is Nothing Then
+            vSplit = Split(pvGetProfileString(sIniFile, DEF_SECTION, PRM_SSHSETTINGS, vbNullString), ",")
+            If C_Lng(At(vSplit, ucsSixTunnel)) <> 0 Then
+                JsonItem(oSshSettings, "Host") = At(vSplit, ucsSixHost)
+                JsonItem(oSshSettings, "Port") = At(vSplit, ucsSixPort)
+                JsonItem(oSshSettings, "User ID") = At(vSplit, ucsSixUser)
+                JsonItem(oSshSettings, "Password") = CryptRC4(pvFromHexDump(At(vSplit, ucsSixPass)), LCase$(At(vSplit, ucsSixHost)) & STR_RC4_SALT & LCase$(At(vSplit, ucsSixUser)))
+                JsonItem(oSshSettings, "Key File") = At(vSplit, ucsSixKeyFile)
+                JsonItem(oSshSettings, "Local Port") = At(vSplit, ucsSixLocalPort)
+                JsonItem(oSshSettings, "Extra Params") = At(vSplit, ucsSixExtraParams)
+            End If
+        End If
+    End If
+    If Not oSshSettings Is Nothing Then
         If Not m_oSshTunnel Is Nothing Then
             If m_oSshTunnel.KillProcess() Then
                 Call Sleep(100)
@@ -360,27 +378,24 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             STR_DATA_SOURCE = "Server"
             STR_FAILOVER_PARTNER = "Failover_Partner"
         End If
-        vSplit = Split(sSshSettings, ",")
-        If C_Lng(At(vSplit, ucsSixTunnel)) <> 0 Then
-            vSqlServer = Split(pvGetConnProp(sLocalConnStr, STR_DATA_SOURCE), ",")
-            vMirrorServer = Split(pvGetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER), ",")
-            lLocalPort = C_Lng(At(vSplit, ucsSixLocalPort))
-            If Not pvMakeSshTunnel( _
-                    At(vSplit, ucsSixHost), _
-                    C_Lng(At(vSplit, ucsSixPort)), _
-                    At(vSplit, ucsSixUser), _
-                    CryptRC4(pvFromHexDump(At(vSplit, ucsSixPass)), LCase$(At(vSplit, ucsSixHost)) & STR_RC4_SALT & LCase$(At(vSplit, ucsSixUser))), _
-                    At(vSplit, ucsSixKeyFile), _
-                    At(vSqlServer, 0), _
-                    C_Lng(At(vSqlServer, 1, 1433)), _
-                    At(vMirrorServer, 0), _
-                    C_Lng(At(vMirrorServer, 1, 1433)), _
-                    At(vSplit, ucsSixExtraParams), _
-                    sSshError, oTunnel, lLocalPort) Then
-                vSplit = Split(sSshError, vbCrLf)
-                m_sLastError = Printf(STR_SSH_TUNNEL_ERROR, At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
-                GoTo QH
-            End If
+        vSqlServer = Split(pvGetConnProp(sLocalConnStr, STR_DATA_SOURCE), ",")
+        vMirrorServer = Split(pvGetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER), ",")
+        lLocalPort = C_Lng(JsonItem(oSshSettings, "Local Port"))
+        If Not pvMakeSshTunnel( _
+                JsonItem(oSshSettings, "Host"), _
+                C_Lng(JsonItem(oSshSettings, "Port")), _
+                JsonItem(oSshSettings, "User ID"), _
+                JsonItem(oSshSettings, "Password"), _
+                JsonItem(oSshSettings, "Key File"), _
+                At(vSqlServer, 0), _
+                C_Lng(At(vSqlServer, 1, 1433)), _
+                At(vMirrorServer, 0), _
+                C_Lng(At(vMirrorServer, 1, 1433)), _
+                JsonItem(oSshSettings, "Extra Params"), _
+                sSshError, oTunnel, lLocalPort) Then
+            vSplit = Split(sSshError, vbCrLf)
+            m_sLastError = Printf(STR_SSH_TUNNEL_ERROR, At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
+            GoTo QH
         End If
         If Not oTunnel Is Nothing Then
             sLocalConnStr = pvSetConnProp(sLocalConnStr, STR_DATA_SOURCE, "127.0.0.1," & lLocalPort)
@@ -391,10 +406,10 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         Set m_oSshTunnel = oTunnel
         m_lSshLocalPort = lLocalPort
         m_dSshLastAccess = Now
-        m_oConn.Open sLocalConnStr
-    Else
-        m_oConn.Open JsonItem(oConfig, "ConnectString")
     End If
+    Set m_oConn = New ADODB.Connection
+    m_oConn.CursorLocation = adUseClient
+    m_oConn.Open sLocalConnStr
     '--- start heart-beat timer
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
