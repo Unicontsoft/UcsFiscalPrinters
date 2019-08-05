@@ -57,6 +57,7 @@ Private Declare Function CreateDirectory Lib "kernel32" Alias "CreateDirectoryW"
 Private Declare Function CreateFileMoniker Lib "ole32" (ByVal lpszPathName As Long, pResult As IUnknown) As Long
 Private Declare Function GetRunningObjectTable Lib "ole32" (ByVal dwReserved As Long, pResult As IUnknown) As Long
 Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, ByVal oVft As Long, ByVal lCc As Long, ByVal vtReturn As VbVarType, ByVal cActuals As Long, prgVt As Any, prgpVarg As Any, pvargResult As Variant) As Long
+Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -602,6 +603,32 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Set ParseQueryString = oRetVal
 End Function
 
+Public Function ParseConnectString(ByVal sDeviceString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=]+)="
+    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
+    Dim sKey            As String
+    Dim sValue          As String
+    Dim oRetVal         As Object
+    
+    Do
+        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        If Len(sValue) >= 2 Then
+            If Left$(sValue, 1) = Right$(sValue, 1) Then
+                Select Case Asc(sValue)
+                Case 34, 39 '--- ' and "
+                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
+                End Select
+            End If
+        End If
+        JsonItem(oRetVal, sKey) = sValue
+    Loop
+    Set ParseConnectString = oRetVal
+End Function
+
 Public Function Quote(sText As String) As String
     Quote = Replace(sText, "'", "''")
 End Function
@@ -717,3 +744,23 @@ Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArr
     End If
 End Function
 
+Public Sub JsonExpandEnviron(ByVal oJson As Object)
+    Dim vKey            As Variant
+    Dim sText           As String
+    Dim sExpand         As String
+    
+    For Each vKey In JsonKeys(oJson)
+        If IsObject(JsonItem(oJson, vKey)) Then
+            JsonExpandEnviron JsonItem(oJson, vKey)
+        Else
+            sText = C_Str(JsonItem(oJson, vKey))
+            sExpand = String$(ExpandEnvironmentStrings(sText, vbNullString, 0), 0)
+            If ExpandEnvironmentStrings(sText, sExpand, Len(sExpand)) > 0 Then
+                sExpand = Left$(sExpand, InStr(sExpand, vbNullChar) - 1)
+                If sExpand <> sText Then
+                    JsonItem(oJson, vKey) = sExpand
+                End If
+            End If
+        End If
+    Next
+End Sub
