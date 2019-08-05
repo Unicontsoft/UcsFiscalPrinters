@@ -277,10 +277,10 @@ Private Function pvCollectPrinters() As Object
                     If LenB(sKey) <> 0 Then
                         JsonItem(oJson, "Ok") = Empty
                         JsonItem(oJson, "DeviceString") = sDeviceString
-                        JsonItem(oRetVal, sKey) = oJson
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         JsonItem(oRetVal, "Aliases/Count") = JsonItem(oRetVal, "Aliases/Count") + 1
                         JsonItem(oRetVal, "Aliases/" & vKey & "/DeviceSerialNo") = sKey
+                        JsonItem(oRetVal, sKey) = oJson
                     End If
                 End If
             End If
