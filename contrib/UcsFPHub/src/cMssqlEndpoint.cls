@@ -94,10 +94,11 @@ Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
 '--- queue
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
-Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME" & vbCrLf & _
-                                                    "EXEC        @Result = dbo.usp_sys_ServiceBrokerWaitRequest @QueueName, %2, @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT" & vbCrLf & _
-                                                    "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName" & vbCrLf & _
+Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME, @ErrorText NVARCHAR(255)" & vbCrLf & _
+                                                    "EXEC        @Result = dbo.usp_sys_ServiceBrokerWaitRequest @QueueName, %2, @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT, @ErrorText OUTPUT" & vbCrLf & _
+                                                    "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName, @ErrorText AS ErrorText" & vbCrLf & _
                                                     "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
+Private Const LNG_QUEUE_FIELDS          As Long = 6
 Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
 Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 '--- params
@@ -802,24 +803,28 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Dim sHandle         As String
     Dim sResponse       As String
     Dim lErrorCode      As Long
+    Dim sPrinterId      As String
     
     On Error GoTo EH
     If Not pRecordset Is Nothing Then
-        If pRecordset.State = adStateOpen Then
-            If pRecordset.Fields.Count = 5 Then
-                If C_Lng(pRecordset!Result.Value) = 0 And LenB(C_Str(pRecordset!Handle.Value)) <> 0 Then
-                    sHandle = pRecordset!Handle.Value
-                    '--- note: system msgs are "__" prefixed (e.g. "__FIN__", "__ACK__")
-                    If Left$(C_Str(pRecordset!Request.Value), 2) <> "__" Then
-                        If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                            m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
-                        Else
-                            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
-                                Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
-                        End If
+        If (pRecordset.State And adStateOpen) <> 0 Then
+            If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
+                pvQueueLoopAsync
+                sHandle = C_Str(pRecordset!Handle.Value)
+                If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
+                    If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
+                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
+                    Else
+                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+                            Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
+                    End If
+                ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
+                    sResponse = C_Str(pRecordset!ErrorText.Value)
+                    If LenB(sResponse) <> 0 Then
+                        sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
+                        DebugLog Printf(STR_QUEUE_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sResponse)
                     End If
                 End If
-                pvQueueLoopAsync
             End If
         End If
     End If
