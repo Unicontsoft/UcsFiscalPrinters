@@ -4,14 +4,13 @@ GO
 DECLARE     @Handle1    UNIQUEIDENTIFIER
             , @Result   INT
             , @Response NVARCHAR(MAX)
-            , @ErrorText NVARCHAR(255)
 
 --- setup receiving queue for current connection once on re-connect
 EXEC        dbo.usp_sys_ServiceBrokerSetupService
 
 --- open conversation and send request
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers/DT518315/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT, @ErrorText = @ErrorText OUTPUT
-SELECT      @Result AS Result, @Response AS Response, @ErrorText AS ErrorText
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers/DT518315/status" }', @Response OUTPUT, @TargetSvc = 'UcsFpTargetService/DT518315', @Handle = @Handle1 OUTPUT
+SELECT      @Result AS Result, @Response AS Response
 --{  
 --   "Ok":true,
 --   "DeviceStatus":"",
@@ -19,8 +18,8 @@ SELECT      @Result AS Result, @Response AS Response, @ErrorText AS ErrorText
 --}
 
 --- send another request on the same conversation (result in XML)
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers?format=xml" }', @Response OUTPUT, @Handle = @Handle1, @ErrorText = @ErrorText OUTPUT
-SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText AS ErrorText
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '{ "Url": "/printers?format=xml" }', @Response OUTPUT, @Handle = @Handle1
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
 --<Root>
 --  <Ok __json__bool="1">1</Ok>
 --  <Count>2</Count>
@@ -55,8 +54,8 @@ SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText A
 --</Root>
 
 --- send another request on the same conversation (request and result in XML)
-EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '<Request><Url>/printers/DT518315/deposit?format=xml</Url><Amount>10.55</Amount></Request>', @Response OUTPUT, @Handle = @Handle1, @ErrorText = @ErrorText OUTPUT
-SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText AS ErrorText
+EXEC        @Result = dbo.usp_sys_ServiceBrokerSend '<Request><Url>/printers/DT518315/deposit?format=xml</Url><Amount>10.55</Amount></Request>', @Response OUTPUT, @Handle = @Handle1
+SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
 --<Root>
 --  <Ok __json__bool="1">1</Ok>
 --  <ReceiptNo>0000076</ReceiptNo>
@@ -68,7 +67,6 @@ SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response, @ErrorText A
 
 --- close conversation
 EXEC        @Result = dbo.usp_sys_ServiceBrokerSend @Handle = @Handle1
-
 */
 
 CREATE PROC usp_sys_ServiceBrokerSend (
@@ -76,10 +74,10 @@ CREATE PROC usp_sys_ServiceBrokerSend (
             , @Response     NVARCHAR(MAX)       = NULL OUTPUT
             , @TargetSvc    SYSNAME             = NULL
             , @Handle       UNIQUEIDENTIFIER    = NULL OUTPUT
-            , @ErrorText    NVARCHAR(255)       = NULL OUTPUT
             , @QueueName    SYSNAME             = NULL
             , @SvcName      SYSNAME             = NULL
             , @Timeout      INT                 = NULL
+            , @Retry        INT                 = NULL
 ) AS
 /*------------------------------------------------------------------------
 '
@@ -97,105 +95,134 @@ DECLARE     @RetVal     INT
             , @SQL      NVARCHAR(MAX)
             , @MsgType  SYSNAME
             , @Lifetime INT
+            , @Attempt  INT
+            , @IsAck    INT
 
-SELECT      @QueueName = COALESCE(@QueueName, 'UcsFpInitiator' + 'Queue/' + CONVERT(VARCHAR(50), @@SPID))
-            , @SvcName = COALESCE(@SvcName, 'UcsFpInitiator' + 'Service/' + CONVERT(VARCHAR(50), @@SPID))
+SELECT      @QueueName = COALESCE(@QueueName, N'UcsFpInitiator' + N'Queue/' + CONVERT(NVARCHAR(50), @@SPID))
+            , @SvcName = COALESCE(@SvcName, N'UcsFpInitiator' + N'Service/' + CONVERT(NVARCHAR(50), @@SPID))
             , @Timeout = COALESCE(@Timeout, 30000)
-            , @Lifetime = 4 * (@Timeout / 1000) -- 30 sec -> 2 min
+            , @Retry = COALESCE(@Retry, 3)
+            , @Lifetime = 5 + (@Retry * @Timeout + 999) / 1000 -- 30 sec -> 2 min
+            , @Attempt = 0
+            , @IsAck = 0
             , @RetVal = 0
 
-BEGIN TRY
-            IF          @TargetSvc IS NOT NULL
-            BEGIN
-                        IF          @Handle IS NOT NULL
+WHILE       @Attempt < @Retry
+BEGIN
+            BEGIN TRY
+                        SET         @Attempt = @Attempt + 1
+
+                        IF          @TargetSvc IS NOT NULL
+                        BEGIN
+                                    IF          @Handle IS NOT NULL
+                                    BEGIN
+                                                ; END       CONVERSATION @Handle
+                                    END
+
+                                    BEGIN DIALOG CONVERSATION @Handle
+                                    FROM        SERVICE @SvcName
+                                    TO          SERVICE @TargetSvc, N'CURRENT DATABASE'
+                                    WITH        ENCRYPTION = OFF, LIFETIME = @Lifetime
+                        END
+
+                        IF          @Request IS NULL
+                        BEGIN
+                                    ; SEND ON   CONVERSATION @Handle (N'__FIN__')
+                                    ; END       CONVERSATION @Handle
+                                    GOTO        QH
+                        END
+
+                        ; SEND ON   CONVERSATION @Handle (N'__PING__')
+
+                        SET         @SQL = N'
+                        WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
+                                                , @MsgType = message_type_name
+                                    FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
+
+                        EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
+                                        @Response OUTPUT, @MsgType OUTPUT
+
+                        IF          @Response = N'__PONG__'
+                        BEGIN
+                                    SET         @IsAck = 0
+                                    ; SEND ON   CONVERSATION @Handle (@Request)
+
+                                    SET         @SQL = N'
+                                    WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
+                                                            , @MsgType = message_type_name
+                                                FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+                        RepeatWait:
+                                    SELECT      @Response = NULL, @MsgType = NULL
+                                    EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
+                                                    @Response OUTPUT, @MsgType OUTPUT
+
+                                    IF          @MsgType = 'DEFAULT'
+                                    BEGIN
+                                                IF          @Request = N'__PING__' AND @Response = N'__PONG__'
+                                                BEGIN
+                                                            GOTO        QH
+                                                END
+
+                                                IF          @IsAck = 0
+                                                BEGIN
+                                                            IF          @Response <> N'__ACK__'
+                                                            BEGIN
+                                                                        GOTO        RepeatWait
+                                                            END
+
+                                                            SET         @IsAck = 1
+                                                            GOTO        RepeatWait
+                                                END
+
+                                                IF          LEFT(@Response, 2) <> N'__'
+                                                            BREAK
+                                    END
+                        END
+            END TRY
+            BEGIN CATCH
+                        --PRINT { fn CURRENT_TIMESTAMP } + ': ERROR_MESSAGE=' + ERROR_MESSAGE()
+
+                        IF          ERROR_NUMBER() <> 8426  -- The conversation handle "%s" is not found.
                         BEGIN
                                     ; END       CONVERSATION @Handle
                         END
 
-                        BEGIN DIALOG CONVERSATION @Handle
-                        FROM        SERVICE @SvcName
-                        TO          SERVICE @TargetSvc, 'CURRENT DATABASE'
-                        WITH        ENCRYPTION = OFF, LIFETIME = @Lifetime
-            END
-
-            IF          @Request IS NULL
-            BEGIN
-                        SET         @Request = N'__FIN__'
-            END
-
-            ; SEND ON   CONVERSATION @Handle (@Request)
-
-            SET         @SQL = N'
-            WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
-                                    , @MsgType = message_type_name
-                        FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
-
-RepeatWait:
-            SELECT      @Response = NULL, @MsgType = NULL
-            EXEC        dbo.sp_executesql @SQL
-                            , N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT'
-                            , @Response OUTPUT, @MsgType OUTPUT
-
-            IF          @MsgType IS NULL
-            BEGIN
-                        --PRINT { fn CURRENT_TIMESTAMP } + ': Timeout'
-
-                        IF          @Request = '__FIN__'
+                        IF          @Attempt >= @Retry
                         BEGIN
-                                    ; END       CONVERSATION @Handle
+                                    SELECT      @RetVal = 2
+                                                , @Response = LEFT(ERROR_MESSAGE(), 255)
+                                    GOTO        QH
                         END
+            END CATCH
+END
 
-                        SELECT      @RetVal = 99
-                                    , @ErrorText = 'Timeout'
-                        GOTO        QH
-            END
-
-            --PRINT { fn CURRENT_TIMESTAMP } + ': @MsgType=' + @MsgType
-
-            IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/EndDialog'
-            BEGIN
-                        ; END       CONVERSATION @Handle
-
-                        SELECT      @RetVal = 1
-                                    , @ErrorText = 'Conversation ended'
-                        GOTO        QH
-            END
-
-            IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/Error'
-            BEGIN
-                        ; END       CONVERSATION @Handle
-
-                        SELECT      @RetVal = 1
-                                    , @ErrorText = LEFT(CONVERT(XML, @Response).value('declare namespace ns="http://schemas.microsoft.com/SQL/ServiceBroker/Error"; (ns:Error/ns:Description)[1]', 'NVARCHAR(MAX)'), 255)
-                        GOTO        QH
-            END
-
-            IF          @Request IS NOT NULL
-            BEGIN
-                        IF          @Response <> N'__ACK__'
-                        BEGIN
-                                    GOTO        RepeatWait
-                        END
-
-                        --- get response only when not terminating conversatiopn
-                        IF          @Request <> '__FIN__'
-                        BEGIN
-                                    SET         @Request = NULL
-                                    GOTO        RepeatWait
-                        END
-
-                        ; END       CONVERSATION @Handle
-            END
-END TRY
-BEGIN CATCH
-            --PRINT { fn CURRENT_TIMESTAMP } + ': ERROR_MESSAGE=' + ERROR_MESSAGE()
-
+IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/EndDialog'
+BEGIN
             ; END       CONVERSATION @Handle
 
-            SELECT      @RetVal = 2
-                        , @ErrorText = LEFT(ERROR_MESSAGE(), 255)
+            SELECT      @RetVal = 1
+                        , @Response = N'Conversation ended'
             GOTO        QH
-END CATCH
+END
+
+IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/Error'
+BEGIN
+            ; END       CONVERSATION @Handle
+
+            SELECT      @RetVal = 1
+                        , @Response = LEFT(CONVERT(XML, @Response).value('declare namespace ns="http://schemas.microsoft.com/SQL/ServiceBroker/Error";
+                                                                            (//ns:Description)[1]', 'NVARCHAR(MAX)'), 255)
+            GOTO        QH
+END
+
+IF          @MsgType IS NULL
+BEGIN
+            --PRINT { fn CURRENT_TIMESTAMP } + ': Timeout'
+
+            SELECT      @RetVal = 99
+                        , @Response = N'Timeout'
+            GOTO        QH
+END
 
 QH:
 RETURN      @RetVal

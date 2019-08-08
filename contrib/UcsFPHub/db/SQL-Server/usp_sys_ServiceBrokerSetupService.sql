@@ -34,14 +34,14 @@ DECLARE     @SQL            NVARCHAR(MAX)
 
 SELECT      @Mode = COALESCE(@Mode, '')
             , @ProcessID = COALESCE(@ProcessID, @@SPID)
-            , @Prefix = COALESCE(@Prefix, 'UcsFpInitiator')
-            , @Suffix = COALESCE(@Suffix, CONVERT(VARCHAR(50), @ProcessID))
-            , @QueueName = COALESCE(@QueueName, @Prefix + 'Queue/' + @Suffix)
-            , @SvcName = COALESCE(@SvcName, @Prefix + 'Service/' + @Suffix)
+            , @Prefix = COALESCE(@Prefix, N'UcsFpInitiator')
+            , @Suffix = COALESCE(@Suffix, CONVERT(NVARCHAR(50), @ProcessID))
+            , @QueueName = COALESCE(@QueueName, @Prefix + N'Queue/' + @Suffix)
+            , @SvcName = COALESCE(@SvcName, @Prefix + N'Service/' + @Suffix)
 
 IF EXISTS (SELECT * FROM sys.databases WHERE database_id = DB_ID() AND is_broker_enabled = 0)
 BEGIN
-            SET         @SQL = 'ALTER DATABASE ' + QUOTENAME(DB_NAME()) + ' SET ENABLE_BROKER WITH ROLLBACK IMMEDIATE'
+            SET         @SQL = N'ALTER DATABASE ' + QUOTENAME(DB_NAME()) + N' SET ENABLE_BROKER WITH ROLLBACK IMMEDIATE'
             EXEC        (@SQL)
 END
 
@@ -56,16 +56,16 @@ BEGIN
 
             WHILE       1=1
             BEGIN
-                        FETCH NEXT FROM @CrsClean INTO @Handle
-                        IF @@FETCH_STATUS <> 0 BREAK
+                        FETCH NEXT  FROM @CrsClean INTO @Handle
+                        IF          @@FETCH_STATUS <> 0 BREAK
 
-                        END CONVERSATION @Handle WITH CLEANUP
+                        ; END       CONVERSATION @Handle WITH CLEANUP
             END
 
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = 'DROP SERVICE ' + QUOTENAME(@SvcName)
+            SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@SvcName)
             EXEC        (@SQL)
 END
 
@@ -80,29 +80,29 @@ BEGIN
 
             WHILE       1=1
             BEGIN
-                        FETCH NEXT FROM @CrsClean INTO @Name
-                        IF @@FETCH_STATUS <> 0 BREAK
+                        FETCH NEXT  FROM @CrsClean INTO @Name
+                        IF          @@FETCH_STATUS <> 0 BREAK
 
-                        SET         @SQL = 'DROP SERVICE ' + QUOTENAME(@Name)
+                        SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@Name)
                         EXEC        (@SQL)
             END
 
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = 'DROP QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'DROP QUEUE ' + QUOTENAME(@QueueName)
             EXEC        (@SQL)
 END
 
 IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = 'CREATE QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'CREATE QUEUE ' + QUOTENAME(@QueueName)
             EXEC        (@SQL)
 END
 
 IF NOT EXISTS (SELECT * FROM sys.services WHERE name = @SvcName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = 'CREATE SERVICE ' + QUOTENAME(@SvcName) + ' ON QUEUE ' + QUOTENAME(@QueueName) + ' ([DEFAULT])'
+            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE ' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
             EXEC        (@SQL)
 END
 GO
