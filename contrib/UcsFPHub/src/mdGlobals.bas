@@ -24,6 +24,29 @@ Public Enum UcsFileTypeEnum
     ucsFltUtf8NoBom
 End Enum
 
+Public Enum UcsOpenSaveDirectoryType
+    ucsOdtPersonal = &H5                         ' My Documents
+    ucsOdtMyMusic = &HD                          ' "My Music" folder
+    ucsOdtAppData = &H1A                         ' Application Data, new for NT4
+    ucsOdtLocalAppData = &H1C                    ' non roaming, user\Local Settings\Application Data
+    ucsOdtInternetCache = &H20
+    ucsOdtCookies = &H21
+    ucsOdtHistory = &H22
+    ucsOdtCommonAppData = &H23                   ' All Users\Application Data
+    ucsOdtWindows = &H24                         ' GetWindowsDirectory()
+    ucsOdtSystem = &H25                          ' GetSystemDirectory()
+    ucsOdtProgramFiles = &H26                    ' C:\Program Files
+    ucsOdtMyPictures = &H27                      ' My Pictures, new for Win2K
+    ucsOdtSystemX86 = &H29
+    ucsOdtProgramFilesCommon = &H2B              ' C:\Program Files\Common
+    ucsOdtCommonDocuments = &H2E                 ' All Users\Documents
+    ucsOdtResources = &H38                       ' %windir%\Resources\, For theme and other windows resources.
+    ucsOdtResourcesLocalized = &H39              ' %windir%\Resources\<LangID>, for theme and other windows specific resources.
+    ucsOdtCommonAdminTools = &H2F                ' All Users\Start Menu\Programs\Administrative Tools
+    ucsOdtAdminTools = &H30                      ' <user name>\Start Menu\Programs\Administrative Tools
+    ucsOdtFlagCreate = &H8000&                   ' new for Win2K, or this in to force creation of folder
+End Enum
+
 '=========================================================================
 ' API
 '=========================================================================
@@ -59,6 +82,7 @@ Private Declare Function GetRunningObjectTable Lib "ole32" (ByVal dwReserved As 
 Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, ByVal oVft As Long, ByVal lCc As Long, ByVal vtReturn As VbVarType, ByVal cActuals As Long, prgVt As Any, prgpVarg As Any, pvargResult As Variant) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetAdaptersInfo Lib "iphlpapi" (lpAdapterInfo As Any, lpSize As Long) As Long
+Private Declare Function SHGetFolderPath Lib "shfolder" Alias "SHGetFolderPathA" (ByVal hWnd As Long, ByVal csidl As Long, ByVal hToken As Long, ByVal dwFlags As Long, ByVal szPath As String) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -231,7 +255,7 @@ End Sub
 Public Function MkPath(sPath As String) As Boolean
     Dim lAttrib         As Long
     
-    lAttrib = GetFileAttributes(StrPtr(sPath))
+    lAttrib = GetFileAttributes(sPath)
     If lAttrib = -1 Then
         If InStrRev(sPath, "\") > 0 Then
             If Not MkPath(Left$(sPath, InStrRev(sPath, "\") - 1)) Then
@@ -784,3 +808,10 @@ Public Function GetMacAddress() As String
     End If
     GetMacAddress = sRetVal
 End Function
+
+Public Function GetSpecialFolder(ByVal eType As UcsOpenSaveDirectoryType) As String
+    GetSpecialFolder = String$(1000, 0)
+    Call SHGetFolderPath(0, eType, 0, 0, GetSpecialFolder)
+    GetSpecialFolder = Left$(GetSpecialFolder, InStr(GetSpecialFolder, vbNullChar) - 1)
+End Function
+
