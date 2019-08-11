@@ -973,6 +973,10 @@ Public Function AddPayment( _
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, 2)
         .PrintRowType = m_uRow(0).InitReceiptType
+        Select Case .PrintRowType
+        Case ucsFscRcpReversal, ucsFscRcpCreditNote
+            .PmtAmount = -.PmtAmount
+        End Select
     End With
     '--- success
     AddPayment = True

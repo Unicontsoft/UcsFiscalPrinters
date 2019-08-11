@@ -218,7 +218,7 @@ Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|576
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0000"
-Private Const DEF_ROW_CHARS             As Long = 30
+Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
@@ -553,7 +553,7 @@ Private Property Get pvRowChars() As Long
             Exceptions = bPrevExceptions
             '--- check for paper width above 57mm (432px) e.g. 80mm paper is 576px wide
             If Len(sResult) * 4 > 432 Then
-                m_uConfig.RowChars = Len(sResult) * 4 / 12 - 6
+                m_uConfig.RowChars = Len(sResult) * 4 / 12
             End If
         End If
         If m_uConfig.RowChars <= 0 Then
@@ -567,13 +567,13 @@ EH:
 End Property
 
 Private Property Get pvCommentChars() As Long
-    pvCommentChars = pvRowChars - 2
+    pvCommentChars = pvRowChars - IIf(IsEcr, 6, 0)
 End Property
 
 Private Property Get pvItemChars() As Long
     pvItemChars = m_uConfig.ItemChars
     If pvItemChars = 0 Then
-        pvItemChars = LimitLong(pvRowChars - 5, , 30)
+        pvItemChars = pvRowChars - IIf(IsEcr, 20, 6)
     End If
 End Property
 
@@ -1066,6 +1066,10 @@ Public Function AddPayment( _
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, 2)
         .PrintRowType = m_uRow(0).InitReceiptType
+        Select Case .PrintRowType
+        Case ucsFscRcpReversal, ucsFscRcpCreditNote
+            .PmtAmount = -.PmtAmount
+        End Select
     End With
     '--- success
     AddPayment = True
