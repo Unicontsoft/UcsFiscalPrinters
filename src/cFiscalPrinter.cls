@@ -856,6 +856,7 @@ End Function
 Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, oRetVal As Object)
     Dim bIncludeAll     As Boolean
     Dim lIdx            As Long
+    Dim dLastDateTime   As Date
     
     bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
     If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
@@ -873,8 +874,12 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     End If
     If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
-        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+        JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastQRCodeInfo(dLastDateTime)
+        JsonItem(oRetVal, "LastReceiptDateTime") = dLastDateTime
+        If LenB(JsonItem(oRetVal, "LastReceiptNo")) = 0 Then
+            JsonItem(oRetVal, "LastReceiptNo") = oFP.GetLastReceiptNo()
+            JsonItem(oRetVal, "LastReceiptDateTime") = oFP.GetClock()
+        End If
     End If
     If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
         For lIdx = 1 To 3
