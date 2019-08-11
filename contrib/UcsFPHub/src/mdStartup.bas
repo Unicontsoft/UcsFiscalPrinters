@@ -112,7 +112,10 @@ Private Function Process(vArgs As Variant) As Long
     If LenB(sConfFile) = 0 Then
         sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
         If Not FileExists(sConfFile) Then
-            sConfFile = vbNullString
+            sConfFile = PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf")
+            If Not FileExists(sConfFile) Then
+                sConfFile = vbNullString
+            End If
         End If
     End If
     If LenB(sConfFile) <> 0 Then

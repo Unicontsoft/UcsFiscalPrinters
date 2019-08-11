@@ -174,7 +174,7 @@ Public Function Init(oOpt As Object, sConfFile As String, sProductName As String
     
     On Error GoTo EH
     Set m_oOpt = oOpt
-    m_sConfFile = Zn(sConfFile, PathCombine(App.Path, App.EXEName & ".conf"))
+    m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
     '--- load config
     If LenB(sConfFile) <> 0 Then
         txtConfig.Text = ReadTextFile(sConfFile)
