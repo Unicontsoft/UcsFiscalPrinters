@@ -87,11 +87,14 @@ Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 ус
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
+Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
+Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
 '--- errors
 Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
+Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 '--- queue
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
 Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME, @ErrorText NVARCHAR(255)" & vbCrLf & _
@@ -176,8 +179,6 @@ End Property
 
 Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
-    Dim vElem           As Variant
-    Dim lIdx            As Long
     Dim oRequestsCache  As Object
 
     On Error GoTo EH
@@ -196,17 +197,10 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog Printf(STR_CONN_OPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
     '--- init Service Broker queue
-    m_sQueueName = Zn(C_Str(JsonItem(oConfig, "QueueName")), "UcsFpTargetQueue/" & GetErrorComputerName())
+    m_sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6))
     m_lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
-    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
-        If LenB(C_Str(vElem)) <> 0 Then
-            m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, "UcsFpTargetService/" & C_Str(vElem), IIf(lIdx = 0, "DROP_EXISTING", "DROP_SERVICE")
-            lIdx = lIdx + 1
-        End If
-    Next
-    DebugLog Printf(STR_QUEUE_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", lIdx, m_sQueueName)
+    pvQueueSetup
     pvQueueLoopAsync
     '--- success
     Init = True
@@ -233,7 +227,6 @@ Attribute TimerProc.VB_MemberFlags = "40"
     On Error GoTo EH
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     If pvOpenConn(m_oConfig) Then
-        DebugLog Printf(STR_CONN_REOPEN & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
         pvQueueLoopAsync
     End If
     Exit Function
@@ -302,6 +295,27 @@ EH:
     GoTo QH
 End Function
 
+Private Function pvQueueSetup() As Boolean
+    Const FUNC_NAME     As String = "pvQueueSetup"
+    Dim lIdx            As Long
+    Dim vElem           As Variant
+    
+    On Error GoTo EH
+    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, Len(STR_QUEUE_PREFIX) + 1), "DROP_EXISTING"
+    lIdx = lIdx + 1
+    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
+        If LenB(C_Str(vElem)) <> 0 Then
+            m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & C_Str(vElem), "DROP_SERVICE"
+            lIdx = lIdx + 1
+        End If
+    Next
+    DebugLog Printf(STR_QUEUE_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", lIdx, m_sQueueName)
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
@@ -335,8 +349,10 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim vSplit          As Variant
     Dim vSqlServer      As Variant
     Dim vMirrorServer   As Variant
+    Dim bReopen         As Boolean
     
     On Error GoTo EH
+    bReopen = Not m_oConn Is Nothing
     sLocalConnStr = JsonItem(oConfig, "ConnectString")
     Set oSshSettings = ParseConnectString(JsonItem(oConfig, "SshSettings"))
     sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
@@ -411,6 +427,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
+    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
     '--- start heart-beat timer
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
@@ -804,6 +821,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Dim sResponse       As String
     Dim lErrorCode      As Long
     Dim sPrinterId      As String
+    Dim vErr            As Variant
     
     On Error GoTo EH
     If Not pRecordset Is Nothing Then
@@ -830,10 +848,14 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     End If
     Exit Sub
 EH:
+    vErr = Array(Err.Number, Err.Source, Err.Description)
     PrintError FUNC_NAME
     Resume NextLine
 NextLine:
     On Error Resume Next
+    If vErr(0) = ERR_DB_E_NOTABLE Then
+        pvQueueSetup
+    End If
     If LenB(sHandle) <> 0 Then
         m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
             Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
