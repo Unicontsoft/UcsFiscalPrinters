@@ -253,6 +253,8 @@ Private Function pvCollectPrinters() As Object
                     If LenB(sKey) <> 0 Then
                         JsonItem(oJson, "Ok") = Empty
                         JsonItem(oJson, "DeviceString") = sDeviceString
+                        JsonItem(oJson, "Host") = GetErrorComputerName()
+                        JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         JsonItem(oRetVal, "Aliases/Count") = JsonItem(oRetVal, "Aliases/Count") + 1
                         JsonItem(oRetVal, "Aliases/" & vKey & "/DeviceSerialNo") = sKey
