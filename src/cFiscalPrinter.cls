@@ -212,8 +212,6 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     Dim oRetVal         As Object
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
-    Dim lIdx            As Long
-    Dim bIncludeAll     As Boolean
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -225,38 +223,12 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     JsonItem(oRetVal, "DeviceModel") = oFP.GetDeviceModel()
     JsonItem(oRetVal, "FirmwareVersion") = oFP.GetDeviceFirmware()
     JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCharsPerLine()
-    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
-    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
-        For lIdx = 1 To 6
-            JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
-        Next
-    End If
-    If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
-        For lIdx = 1 To 2
-            JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
-        Next
-    End If
-    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
-        JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
-        JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
-    End If
-    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
-        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
-        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
-    End If
-    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
-        For lIdx = 1 To 3
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-        Next
-        For lIdx = -1 To -4 Step -1
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-        Next
-    End If
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
         JsonItem(oRetVal, "Operator/Code") = JsonItem(oJson, "Operator/Code")
         JsonItem(oRetVal, "Operator/Name") = oFP.GetOperatorName(JsonItem(oJson, "Operator/Code"))
         JsonItem(oRetVal, "Operator/Password") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
     End If
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     GetDeviceInfo = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -376,14 +348,7 @@ ReturnReceiptInfo:
     End If
     JsonItem(oRetVal, "DeviceSerialNo") = oFP.GetDeviceSerialNo()
     JsonItem(oRetVal, "FiscalMemoryNo") = oFP.GetFiscalMemoryNo()
-    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Then
-        For lIdx = 1 To 3
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-        Next
-        For lIdx = -1 To -4 Step -1
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
-        Next
-    End If
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -455,6 +420,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     End If
     JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
     JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -485,6 +451,7 @@ Public Function OpenDrawer(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     OpenDrawer = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -543,6 +510,7 @@ SkipSetClock:
         JsonItem(oRetVal, "DeviceStatus") = sStatus
     End If
     JsonItem(oRetVal, "DeviceDateTime") = dCurrent
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     InitDateTime = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -613,6 +581,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             Next
         End If
     End If
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     GetDailyTotals = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -655,6 +624,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintServiceDeposit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -687,6 +657,7 @@ Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Bool
     Else
         sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
     End If
+    pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     GetDeviceStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
@@ -882,6 +853,39 @@ Private Function pvCommonErrHandler(sFunction As String, oFP As IDeviceProtocol,
     pvCommonErrHandler = True
 End Function
 
+Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, oRetVal As Object)
+    Dim bIncludeAll     As Boolean
+    Dim lIdx            As Long
+    
+    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
+    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
+        For lIdx = 1 To 6
+            JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
+        For lIdx = 1 To 2
+            JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
+        Next
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
+        JsonItem(oRetVal, "TaxNo") = oFP.GetTaxNo()
+        JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
+    End If
+    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
+        JsonItem(oRetVal, "ReceiptNo") = oFP.GetLastReceiptNo()
+        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
+    End If
+    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
+        For lIdx = 1 To 3
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+        For lIdx = -1 To -4 Step -1
+            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+        Next
+    End If
+End Sub
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -894,5 +898,3 @@ End Sub
 Private Sub Class_Terminate()
     FlushDebugLog
 End Sub
-
-
