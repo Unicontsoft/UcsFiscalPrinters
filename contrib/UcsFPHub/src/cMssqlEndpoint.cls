@@ -87,6 +87,8 @@ Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 ус
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
+Private Const STR_DATETIME_SETUP        As String = "Установен час %2 на принтер %1"
+Private Const STR_DATETIME_ERROR        As String = "Грешка от принтер %1: %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
 Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
 '--- errors
@@ -180,6 +182,7 @@ End Property
 Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oRequestsCache  As Object
+    Dim dClock          As Date
 
     On Error GoTo EH
     Set m_oConfig = oConfig
@@ -196,6 +199,11 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     If Not pvOpenConn(oConfig) Then
         Set m_oController = Nothing
         GoTo QH
+    End If
+    '--- sync devices date/time if needed
+    If Not IsEmpty(JsonItem(oConfig, "SyncDateTimeAdjustTolerance")) Then
+        dClock = m_oConn.Execute("SELECT GETDATE()").Fields(0).Value
+        pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
     m_sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6))
@@ -293,6 +301,38 @@ EH:
     PrintError FUNC_NAME
     sResponse = m_sLastError
     GoTo QH
+End Function
+
+Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) As Boolean
+    Const FUNC_NAME     As String = "pvSyncDateTime"
+    Const URL_DATETIME  As String = "/printers/%1/datetime"
+    Dim oRequest        As Object
+    Dim vElem           As Variant
+    Dim sResponse       As String
+    Dim vJson           As Variant
+    
+    On Error GoTo EH
+    JsonItem(oRequest, "DeviceDateTime") = dClock
+    If lTolerance > 0 Then
+        JsonItem(oRequest, "AdjustTolerance") = lTolerance
+    End If
+    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
+        If LenB(C_Str(vElem)) <> 0 Then
+            If m_oController.ServiceRequest(Printf(URL_DATETIME, vElem), vbNullString, JsonDump(oRequest, Minimize:=True), sResponse) Then
+                If JsonParse(sResponse, vJson) Then
+                    If JsonItem(C_Obj(vJson), "Ok") Then
+                        DebugLog Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+                    Else
+                        DebugLog Printf(STR_DATETIME_ERROR, vElem, JsonItem(C_Obj(vJson), "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+                    End If
+                End If
+            End If
+        End If
+    Next
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvQueueSetup() As Boolean
