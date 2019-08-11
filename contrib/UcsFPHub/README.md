@@ -18,15 +18,16 @@ The service is configured by a `UcsFPHub.conf` file in JSON format. Here is a sa
     "Printers": {
         "AutoDetect": true,
         "PrinterID1": {
-            "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
+            "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
+            "Description": "Втори етаж, счетоводството"
         }
     },
     "Endpoints": [
         { 
             "Binding": "MssqlServiceBroker", 
-            "ConnectString": "Provider=SQLNCLI10;DataTypeCompatibility=80;MARS Connection=False;Data Source=SQL-PC;Initial Catalog=Dreem15_Personal;User ID=db_user;Password=%_UCS_SQL_PASSWORD%",
-            "IniFile": "C:\\Unicontsoft\\Pos\\Pos.ini",
-            "QueueName": "UcsFpTargetQueue/POS-PC/002",
+            "ConnectString": "Provider=SQLNCLI11;DataTypeCompatibility=80;MARS Connection=False;Data Source=SQL-PC;Initial Catalog=Dreem15_Personal;User ID=db_user;Password=%_UCS_SQL_PASSWORD%",
+            "SshSettings": "Host=ssh.mycompany.com;User ID=ssh_user;Password=%_UCS_SSH_PASSWORD%",
+            "QueueName": "POS-PC/12345",
             "QueueTimeout": 5000
         },
         {
@@ -35,7 +36,8 @@ The service is configured by a `UcsFPHub.conf` file in JSON format. Here is a sa
         }
     ],
     "Environment": {
-        "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP.log"
+        "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP.log",
+        "_UCS_SSH_PASSWORD": "s3cr3t"
     }
 }
 ```
@@ -130,10 +132,12 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "DeviceProtocol": "DATECS FP/ECR",
     "DeviceModel": "DP-25",
     "FirmwareVersion": "263453 08Nov18 1312",
-    "CommentTextMaxLength": 28,
+    "CommentTextMaxLength": 36,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200"
+    "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
+    "Host": "WQW-PC",
+    "Description": "Втори етаж, счетоводството"
   },
   "ZK133759": {
     "DeviceSerialNo": "ZK133759",
@@ -144,7 +148,8 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "CommentTextMaxLength": 30,
     "TaxNo": "",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200"
+    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
+    "Host": "WQW-PC"
   }
 }
 ```
@@ -173,10 +178,12 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
       <DeviceModel>DP-25</DeviceModel>
       <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-      <CommentTextMaxLength>28</CommentTextMaxLength>
+      <CommentTextMaxLength>36</CommentTextMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+      <Host>WQW-PC</Host>
+      <Description>Втори етаж, счетоводството</Description>
    </DT518315>
    <ZK133759>
       <DeviceSerialNo>ZK133759</DeviceSerialNo>
@@ -188,6 +195,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <TaxNo />
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
+      <Host>WQW-PC</Host>
    </ZK133759>
 </Root>
 ```
