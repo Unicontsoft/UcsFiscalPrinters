@@ -58,6 +58,7 @@ Private Declare Function CreateFileMoniker Lib "ole32" (ByVal lpszPathName As Lo
 Private Declare Function GetRunningObjectTable Lib "ole32" (ByVal dwReserved As Long, pResult As IUnknown) As Long
 Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, ByVal oVft As Long, ByVal lCc As Long, ByVal vtReturn As VbVarType, ByVal cActuals As Long, prgVt As Any, prgpVarg As Any, pvargResult As Variant) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
+Private Declare Function GetAdaptersInfo Lib "iphlpapi" (lpAdapterInfo As Any, lpSize As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -764,3 +765,22 @@ Public Sub JsonExpandEnviron(ByVal oJson As Object)
         End If
     Next
 End Sub
+
+Public Function GetMacAddress() As String
+    Const OFFSET_LENGTH As Long = 400
+    Dim lSize           As Long
+    Dim baBuffer()      As Byte
+    Dim lIdx            As Long
+    Dim sRetVal         As String
+    
+    Call GetAdaptersInfo(ByVal 0, lSize)
+    If lSize <> 0 Then
+        ReDim baBuffer(0 To lSize - 1) As Byte
+        Call GetAdaptersInfo(baBuffer(0), lSize)
+        Call CopyMemory(lSize, baBuffer(OFFSET_LENGTH), 4)
+        For lIdx = OFFSET_LENGTH + 4 To OFFSET_LENGTH + 4 + lSize - 1
+            sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & ":", vbNullString) & Right$("0" & Hex$(baBuffer(lIdx)), 2)
+        Next
+    End If
+    GetMacAddress = sRetVal
+End Function
