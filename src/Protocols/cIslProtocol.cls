@@ -2227,12 +2227,7 @@ Private Sub pvPrintLine(vText As Variant)
     Dim sParam              As String
     
     On Error GoTo EH
-    Select Case m_uRow(0).InitReceiptType
-    Case ucsFscRcpSale, ucsFscRcpInvoice
-        pvGetCommandConfig CONF_NAME, "FiscalText", eCmd, ucsFpcFiscalText, sParam, "%1"
-    Case Else
-        pvGetCommandConfig CONF_NAME, "NonFiscalText", eCmd, ucsFpcNonFiscalText, sParam, "%1"
-    End Select
+    pvGetCommandConfig CONF_NAME, "FiscalText", eCmd, ucsFpcFiscalText, sParam, "%1"
     If IsArray(vText) Then
         For Each vElem In vText
             SendCommand eCmd, Zn(Printf(sParam, C_Str(vElem)), " ")
