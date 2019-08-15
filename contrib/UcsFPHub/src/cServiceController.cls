@@ -207,7 +207,7 @@ QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Err.Raise Err.Number, Err.Source & vbCrLf & MODULE_NAME & "." & FUNC_NAME, Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
 Private Function pvGetPrinterInfo(sPrinterId As String) As Object

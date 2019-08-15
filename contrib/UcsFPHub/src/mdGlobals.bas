@@ -14,6 +14,40 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "mdGlobals"
 
 '=========================================================================
+' Public enums
+'=========================================================================
+
+Public Enum UcsFileTypeEnum
+    ucsFltAnsi = 1
+    ucsFltUnicode
+    ucsFltUtf8
+    ucsFltUtf8NoBom
+End Enum
+
+Public Enum UcsOpenSaveDirectoryType
+    ucsOdtPersonal = &H5                         ' My Documents
+    ucsOdtMyMusic = &HD                          ' "My Music" folder
+    ucsOdtAppData = &H1A                         ' Application Data, new for NT4
+    ucsOdtLocalAppData = &H1C                    ' non roaming, user\Local Settings\Application Data
+    ucsOdtInternetCache = &H20
+    ucsOdtCookies = &H21
+    ucsOdtHistory = &H22
+    ucsOdtCommonAppData = &H23                   ' All Users\Application Data
+    ucsOdtWindows = &H24                         ' GetWindowsDirectory()
+    ucsOdtSystem = &H25                          ' GetSystemDirectory()
+    ucsOdtProgramFiles = &H26                    ' C:\Program Files
+    ucsOdtMyPictures = &H27                      ' My Pictures, new for Win2K
+    ucsOdtSystemX86 = &H29
+    ucsOdtProgramFilesCommon = &H2B              ' C:\Program Files\Common
+    ucsOdtCommonDocuments = &H2E                 ' All Users\Documents
+    ucsOdtResources = &H38                       ' %windir%\Resources\, For theme and other windows resources.
+    ucsOdtResourcesLocalized = &H39              ' %windir%\Resources\<LangID>, for theme and other windows specific resources.
+    ucsOdtCommonAdminTools = &H2F                ' All Users\Start Menu\Programs\Administrative Tools
+    ucsOdtAdminTools = &H30                      ' <user name>\Start Menu\Programs\Administrative Tools
+    ucsOdtFlagCreate = &H8000&                   ' new for Win2K, or this in to force creation of folder
+End Enum
+
+'=========================================================================
 ' API
 '=========================================================================
 
@@ -42,6 +76,13 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 Private Declare Function UrlUnescapeW Lib "shlwapi" (ByVal pszURL As Long, ByVal pszUnescaped As Long, ByRef cchUnescaped As Long, ByVal dwFlags As Long) As Long
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
+Private Declare Function CreateDirectory Lib "kernel32" Alias "CreateDirectoryW" (ByVal lpPathName As Long, ByVal lpSecurityAttributes As Long) As Long
+Private Declare Function CreateFileMoniker Lib "ole32" (ByVal lpszPathName As Long, pResult As IUnknown) As Long
+Private Declare Function GetRunningObjectTable Lib "ole32" (ByVal dwReserved As Long, pResult As IUnknown) As Long
+Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, ByVal oVft As Long, ByVal lCc As Long, ByVal vtReturn As VbVarType, ByVal cActuals As Long, prgVt As Any, prgpVarg As Any, pvargResult As Variant) As Long
+Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
+Private Declare Function GetAdaptersInfo Lib "iphlpapi" (lpAdapterInfo As Any, lpSize As Long) As Long
+Private Declare Function SHGetFolderPath Lib "shfolder" Alias "SHGetFolderPathA" (ByVal hWnd As Long, ByVal csidl As Long, ByVal hToken As Long, ByVal dwFlags As Long, ByVal szPath As String) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -103,6 +144,7 @@ Private Function pvSetTrue(bValue As Boolean) As Boolean
 End Function
 
 Public Function ReadTextFile(sFile As String) As String
+    Const FUNC_NAME     As String = "ReadTextFile"
     Const ForReading    As Long = 1
     Const BOM_UTF       As String = "ï»¿"   '--- "\xEF\xBB\xBF"
     Const BOM_UNICODE   As String = "ÿþ"    '--- "\xFF\xFE"
@@ -110,7 +152,7 @@ Public Function ReadTextFile(sFile As String) As String
     Dim sPrefix         As String
     Dim nFile           As Integer
     Dim sCharset        As String
-    Dim oStream         As Object
+    Dim oStream         As ADODB.Stream
     
     '--- get file size
     On Error GoTo EH
@@ -151,7 +193,7 @@ Public Function ReadTextFile(sFile As String) As String
     End If
     '--- plain text + unicode + utf-8: use ADODB.Stream
     If LenB(ReadTextFile) = 0 Then
-        Set oStream = CreateObject("ADODB.Stream")
+        Set oStream = New ADODB.Stream
         With oStream
             .Open
             If LenB(sCharset) <> 0 Then
@@ -163,6 +205,71 @@ Public Function ReadTextFile(sFile As String) As String
     End If
     Exit Function
 EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+End Function
+
+Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFileTypeEnum)
+    Const FUNC_NAME     As String = "WriteTextFile"
+    Dim oStream         As ADODB.Stream
+    Dim oBinStream      As ADODB.Stream
+    
+    On Error GoTo EH
+    MkPath Left$(sFile, InStrRev(sFile, "\"))
+    Set oStream = New ADODB.Stream
+    With oStream
+        .Open
+        Select Case eType
+        Case ucsFltUnicode
+            .Charset = "Unicode"
+        Case ucsFltUtf8, ucsFltUtf8NoBom
+            .Charset = "UTF-8"
+        Case Else
+            .Charset = "Windows-1251"
+        End Select
+        .WriteText sText
+        If eType = ucsFltUtf8NoBom Then
+            .Position = 3
+            Set oBinStream = New ADODB.Stream
+            oBinStream.Type = adTypeBinary
+            oBinStream.Mode = adModeReadWrite
+            oBinStream.Open
+            .CopyTo oBinStream
+            .Close
+            '--- don't log save errors
+            On Error GoTo 0
+            oBinStream.SaveToFile sFile, adSaveCreateOverWrite
+            On Error GoTo EH
+        Else
+            On Error GoTo 0
+            .SaveToFile sFile, adSaveCreateOverWrite
+            On Error GoTo EH
+        End If
+    End With
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+End Sub
+
+Public Function MkPath(sPath As String) As Boolean
+    Dim lAttrib         As Long
+    
+    lAttrib = GetFileAttributes(sPath)
+    If lAttrib = -1 Then
+        If InStrRev(sPath, "\") > 0 Then
+            If Not MkPath(Left$(sPath, InStrRev(sPath, "\") - 1)) Then
+                Exit Function
+            End If
+        End If
+        If CreateDirectory(StrPtr(sPath), 0) = 0 Then
+            Exit Function
+        End If
+    ElseIf (lAttrib And vbDirectory + vbVolume) = 0 Then
+        Exit Function
+    End If
+    '--- success
+    MkPath = True
 End Function
 
 Public Function PathCombine(sPath As String, sFile As String) As String
@@ -521,6 +628,190 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Set ParseQueryString = oRetVal
 End Function
 
+Public Function ParseConnectString(ByVal sDeviceString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=]+)="
+    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
+    Dim sKey            As String
+    Dim sValue          As String
+    Dim oRetVal         As Object
+    
+    Do
+        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        If Len(sValue) >= 2 Then
+            If Left$(sValue, 1) = Right$(sValue, 1) Then
+                Select Case Asc(sValue)
+                Case 34, 39 '--- ' and "
+                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
+                End Select
+            End If
+        End If
+        JsonItem(oRetVal, sKey) = sValue
+    Loop
+    Set ParseConnectString = oRetVal
+End Function
+
 Public Function Quote(sText As String) As String
     Quote = Replace(sText, "'", "''")
 End Function
+
+Public Function CryptRC4(sText As String, sKey As String) As String
+    Dim baS(0 To 255) As Byte
+    Dim baK(0 To 255) As Byte
+    Dim lI          As Long
+    Dim lJ          As Long
+    Dim lSwap       As Long
+    Dim lIdx        As Long
+
+    For lIdx = 0 To 255
+        baS(lIdx) = lIdx
+        baK(lIdx) = Asc(Mid$(sKey, 1 + (lIdx Mod Len(sKey)), 1))
+    Next
+    For lI = 0 To 255
+        lJ = (lJ + baS(lI) + baK(lI)) Mod 256
+        lSwap = baS(lI)
+        baS(lI) = baS(lJ)
+        baS(lJ) = lSwap
+    Next
+    lI = 0
+    lJ = 0
+    For lIdx = 1 To Len(sText)
+        lI = (lI + 1) Mod 256
+        lJ = (lJ + baS(lI)) Mod 256
+        lSwap = baS(lI)
+        baS(lI) = baS(lJ)
+        baS(lJ) = lSwap
+        CryptRC4 = CryptRC4 & Chr$((pvCryptXor(baS((CLng(baS(lI)) + baS(lJ)) Mod 256), Asc(Mid$(sText, lIdx, 1)))))
+    Next
+End Function
+
+Private Function pvCryptXor(ByVal lI As Long, ByVal lJ As Long) As Long
+    If lI = lJ Then
+        pvCryptXor = lJ
+    Else
+        pvCryptXor = lI Xor lJ
+    End If
+End Function
+
+Public Function LocateFile(sFile As String) As String
+    Const FUNC_NAME     As String = "LocateFile"
+    Dim sDir            As String
+    Dim sName           As String
+    Dim lPos            As Long
+    
+    On Error GoTo EH
+    If InStrRev(sFile, "\") > 0 Then
+        sDir = Left$(sFile, InStrRev(sFile, "\"))
+        sName = Mid$(sFile, InStrRev(sFile, "\") + 1)
+        Do While Not FileExists(sDir & sName)
+            If Len(sDir) > 1 Then
+                lPos = InStrRev(sDir, "\", Len(sDir) - 1)
+                If lPos > 0 Then
+                    sDir = Left$(sDir, lPos)
+                    If Left$(sDir, 2) = "\\" And InStrRev(sDir, "\", Len(sDir) - 1) <= 2 Then
+                        Exit Function
+                    End If
+                Else
+                    Exit Function
+                End If
+            Else
+                Exit Function
+            End If
+        Loop
+        LocateFile = sDir & sName
+    ElseIf FileExists(sFile) Then
+        LocateFile = sFile
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+End Function
+
+Public Function PutObject(oObj As Object, sPathName As String) As Long
+    Const ROTFLAGS_REGISTRATIONKEEPSALIVE As Long = 1
+    Const IDX_REGISTER  As Long = 3
+    Dim pROT            As IUnknown
+    Dim pMoniker        As IUnknown
+    
+    Call GetRunningObjectTable(0, pROT)
+    Call CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
+End Function
+
+Public Sub RevokeObject(ByVal lCookie As Long)
+    Const IDX_REVOKE    As Long = 4
+    Dim pROT            As IUnknown
+    
+    Call GetRunningObjectTable(0, pROT)
+    DispCallByVtbl pROT, IDX_REVOKE, lCookie
+End Sub
+
+Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArray A() As Variant) As Variant
+    Const CC_STDCALL    As Long = 4
+    Dim lIdx            As Long
+    Dim vParam()        As Variant
+    Dim vType(0 To 63)  As Integer
+    Dim vPtr(0 To 63)   As Long
+    Dim hResult         As Long
+    
+    vParam = A
+    For lIdx = 0 To UBound(vParam)
+        vType(lIdx) = VarType(vParam(lIdx))
+        vPtr(lIdx) = VarPtr(vParam(lIdx))
+    Next
+    hResult = DispCallFunc(ObjPtr(pUnk), lIndex * 4, CC_STDCALL, vbLong, lIdx, vType(0), vPtr(0), DispCallByVtbl)
+    If hResult < 0 Then
+        Err.Raise hResult
+    End If
+End Function
+
+Public Sub JsonExpandEnviron(ByVal oJson As Object)
+    Dim vKey            As Variant
+    Dim sText           As String
+    Dim sExpand         As String
+    
+    For Each vKey In JsonKeys(oJson)
+        If IsObject(JsonItem(oJson, vKey)) Then
+            JsonExpandEnviron JsonItem(oJson, vKey)
+        Else
+            sText = C_Str(JsonItem(oJson, vKey))
+            sExpand = String$(ExpandEnvironmentStrings(sText, vbNullString, 0), 0)
+            If ExpandEnvironmentStrings(sText, sExpand, Len(sExpand)) > 0 Then
+                sExpand = Left$(sExpand, InStr(sExpand, vbNullChar) - 1)
+                If sExpand <> sText Then
+                    JsonItem(oJson, vKey) = sExpand
+                End If
+            End If
+        End If
+    Next
+End Sub
+
+Public Function GetMacAddress() As String
+    Const OFFSET_LENGTH As Long = 400
+    Dim lSize           As Long
+    Dim baBuffer()      As Byte
+    Dim lIdx            As Long
+    Dim sRetVal         As String
+    
+    Call GetAdaptersInfo(ByVal 0, lSize)
+    If lSize <> 0 Then
+        ReDim baBuffer(0 To lSize - 1) As Byte
+        Call GetAdaptersInfo(baBuffer(0), lSize)
+        Call CopyMemory(lSize, baBuffer(OFFSET_LENGTH), 4)
+        For lIdx = OFFSET_LENGTH + 4 To OFFSET_LENGTH + 4 + lSize - 1
+            sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & ":", vbNullString) & Right$("0" & Hex$(baBuffer(lIdx)), 2)
+        Next
+    End If
+    GetMacAddress = sRetVal
+End Function
+
+Public Function GetSpecialFolder(ByVal eType As UcsOpenSaveDirectoryType) As String
+    GetSpecialFolder = String$(1000, 0)
+    Call SHGetFolderPath(0, eType, 0, 0, GetSpecialFolder)
+    GetSpecialFolder = Left$(GetSpecialFolder, InStr(GetSpecialFolder, vbNullChar) - 1)
+End Function
+

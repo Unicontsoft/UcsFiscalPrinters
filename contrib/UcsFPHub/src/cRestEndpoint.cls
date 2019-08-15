@@ -75,7 +75,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
-    JsonItem(m_oRequestsCache, "Dummy") = Empty
+    JsonItem(m_oRequestsCache, vbNullString) = Empty
     vSplit = Split(C_Str(JsonItem(oConfig, "Address")), ":")
     lListenPort = Znl(C_Lng(At(vSplit, 1)), DEF_LISTEN_PORT)
     Set m_oSocket = New cAsyncSocket
@@ -94,6 +94,10 @@ EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Public Sub Terminate()
+    Set m_cClients = Nothing
+End Sub
 
 Public Sub ClientClose(sKey As String)
     If SearchCollection(m_cClients, sKey) Then

@@ -17,9 +17,9 @@ Private Const MODULE_NAME As String = "mdStartup"
 ' API
 '=========================================================================
 
+
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
-Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 
@@ -27,7 +27,7 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_VERSION               As String = "0.1.9"
+Private Const STR_VERSION               As String = "0.1.16"
 Private Const STR_SERVICE_NAME          As String = "UcsFPHub"
 Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
 Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
@@ -65,30 +65,6 @@ Private Sub PrintError(sFunction As String)
 End Sub
 
 '=========================================================================
-' Propetties
-'=========================================================================
-
-Private Property Get pvConfigItem(sKey As String) As Variant
-    Dim sText          As String
-    
-    AssignVariant pvConfigItem, JsonItem(m_oConfig, sKey)
-    If VarType(pvConfigItem) = vbString Then
-        sText = String$(ExpandEnvironmentStrings(pvConfigItem, vbNullString, 0), 0)
-        If ExpandEnvironmentStrings(pvConfigItem, sText, Len(sText)) > 0 Then
-            pvConfigItem = Left$(sText, InStr(sText, vbNullChar) - 1)
-        End If
-    End If
-End Property
-
-Private Property Let pvConfigItem(sKey As String, vValue As Variant)
-    JsonItem(m_oConfig, sKey) = vValue
-End Property
-
-Private Property Get pvConfigKeys(sKey As String) As Variant
-    AssignVariant pvConfigKeys, JsonKeys(m_oConfig, sKey)
-End Property
-
-'=========================================================================
 ' Functions
 '=========================================================================
 
@@ -96,7 +72,7 @@ Private Sub Main()
     Dim lExitCode       As Long
     
     lExitCode = Process(SplitArgs(Command$))
-    If Not InIde Then
+    If Not InIde And lExitCode <> -1 Then
         Call ExitProcess(lExitCode)
     End If
 End Sub
@@ -109,38 +85,37 @@ Private Function Process(vArgs As Variant) As Long
     
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "conf:c")
+    '--- normalize options: convert -o and -option to proper long form (--option)
+    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden")
+        vKey = Split(vKey, ":")
+        If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 0))) Then
+            m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 0))
+        End If
+        If LenB(At(vKey, 1)) <> 0 Then
+            If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 1))) Then
+                m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 1))
+            End If
+        End If
+    Next
     If Not m_oOpt.Item("--nologo") Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
-    sConfFile = Zn(m_oOpt.Item("--conf"), m_oOpt.Item("-c"))
     If NtServiceInit(STR_SERVICE_NAME) Then
         m_bIsService = True
-    ElseIf m_oOpt.Item("--install") Or m_oOpt.Item("-i") Then
-        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
-        If LenB(sConfFile) <> 0 Then
-            sConfFile = " -c " & ArgvQuote(sConfFile)
-        End If
-        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
-            ConsoleError STR_FAILURE
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
-        Else
-            ConsolePrint STR_SUCCESS & vbCrLf
-        End If
-        GoTo QH
-    ElseIf m_oOpt.Item("--uninstall") Or m_oOpt.Item("-u") Then
-        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
-        If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
-            ConsoleError STR_FAILURE
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
-        Else
-            ConsolePrint STR_SUCCESS & vbCrLf
-        End If
-        GoTo QH
+        '--- cannot handle these as NT service
+        m_oOpt.Item("--systray") = Empty
+        m_oOpt.Item("--install") = Empty
+        m_oOpt.Item("--uninstall") = Empty
     End If
+    '--- read config file
+    sConfFile = m_oOpt.Item("--config")
     If LenB(sConfFile) = 0 Then
         sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
         If Not FileExists(sConfFile) Then
-            sConfFile = vbNullString
+            sConfFile = PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf")
+            If Not FileExists(sConfFile) Then
+                sConfFile = vbNullString
+            End If
         End If
     End If
     If LenB(sConfFile) <> 0 Then
@@ -155,15 +130,48 @@ Private Function Process(vArgs As Variant) As Long
             Process = 1
             GoTo QH
         End If
+        JsonExpandEnviron m_oConfig
     Else
-        pvConfigItem("Printers/Autodetect") = True
-        pvConfigItem("Endpoints/0/Binding") = "RestHttp"
-        pvConfigItem("Endpoints/0/Address") = "127.0.0.1:8192"
+        JsonItem(m_oConfig, "Printers/Autodetect") = True
+        JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
+        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
     End If
-    If UBound(pvConfigKeys("Environment")) >= 0 Then
-        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(pvConfigKeys("Environment")) + 1)
-        For Each vKey In pvConfigKeys("Environment")
-            Call SetEnvironmentVariable(vKey, C_Str(pvConfigItem("Environment/" & vKey)))
+    If m_oOpt.Item("--systray") Then
+        If Not m_oOpt.Item("--hidden") And Not InIde Then
+            frmIcon.Restart "--hidden"
+            GoTo QH
+        ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+            Process = 1
+            GoTo QH
+        End If
+        Process = -1
+    End If
+    If m_oOpt.Item("--install") Then
+        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
+        If LenB(sConfFile) <> 0 Then
+            sConfFile = " --config " & ArgvQuote(sConfFile)
+        End If
+        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
+        Else
+            ConsolePrint STR_SUCCESS & vbCrLf
+        End If
+        GoTo QH
+    ElseIf m_oOpt.Item("--uninstall") Then
+        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
+        If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
+            ConsoleError STR_FAILURE
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
+        Else
+            ConsolePrint STR_SUCCESS & vbCrLf
+        End If
+        GoTo QH
+    End If
+    If UBound(JsonKeys(m_oConfig, "Environment")) >= 0 Then
+        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1)
+        For Each vKey In JsonKeys(m_oConfig, "Environment")
+            Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
         FlushDebugLog
         m_nDebugLogFile = 0
@@ -171,14 +179,12 @@ Private Function Process(vArgs As Variant) As Long
     Set m_oPrinters = pvCollectPrinters()
     DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
-    If InIde Then
-        frmIcon.Show
-    ElseIf m_bIsService Then
+    If m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
         Loop
         NtServiceTerminate
-    Else
+    ElseIf Not m_oOpt.Item("--systray") Then
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
@@ -208,7 +214,7 @@ Private Function pvCollectPrinters() As Object
     Set oFP = New cFiscalPrinter
     JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "Count") = 0
-    If pvConfigItem("Printers/Autodetect") Then
+    If JsonItem(m_oConfig, "Printers/Autodetect") Then
         DebugLog STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
@@ -236,8 +242,8 @@ Private Function pvCollectPrinters() As Object
             End If
         End If
     End If
-    For Each vKey In pvConfigKeys("Printers")
-        sDeviceString = C_Str(pvConfigItem("Printers/" & vKey & "/DeviceString"))
+    For Each vKey In JsonKeys(m_oConfig, "Printers")
+        sDeviceString = C_Str(JsonItem(m_oConfig, "Printers/" & vKey & "/DeviceString"))
         If LenB(sDeviceString) <> 0 Then
             Set oRequest = Nothing
             JsonItem(oRequest, "DeviceString") = sDeviceString
@@ -250,10 +256,12 @@ Private Function pvCollectPrinters() As Object
                     If LenB(sKey) <> 0 Then
                         JsonItem(oJson, "Ok") = Empty
                         JsonItem(oJson, "DeviceString") = sDeviceString
-                        JsonItem(oRetVal, sKey) = oJson
+                        JsonItem(oJson, "Host") = GetErrorComputerName()
+                        JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         JsonItem(oRetVal, "Aliases/Count") = JsonItem(oRetVal, "Aliases/Count") + 1
                         JsonItem(oRetVal, "Aliases/" & vKey & "/DeviceSerialNo") = sKey
+                        JsonItem(oRetVal, sKey) = oJson
                     End If
                 End If
             End If
@@ -272,23 +280,36 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
     Dim oMssqlEndpoint  As cMssqlEndpoint
+    Dim oLocalEndpoint  As frmLocalEndpoint
     
     On Error GoTo EH
     Set cRetVal = New Collection
-    For Each vKey In pvConfigKeys("Endpoints")
-        Select Case LCase$(pvConfigItem("Endpoints/" & vKey & "/Binding"))
+    For Each vKey In JsonKeys(m_oConfig, "Endpoints")
+        Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
         Case "resthttp"
             Set oRestEndpoint = New cRestEndpoint
-            If oRestEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+            If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oRestEndpoint
             End If
         Case "mssqlservicebroker"
             Set oMssqlEndpoint = New cMssqlEndpoint
-            If oMssqlEndpoint.Init(pvConfigItem("Endpoints/" & vKey), oPrinters) Then
+            If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oMssqlEndpoint
+            End If
+        Case "local"
+            Set oLocalEndpoint = New frmLocalEndpoint
+            If oLocalEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oLocalEndpoint
             End If
         End Select
     Next
+    '--- always init local endpoint
+    If oLocalEndpoint Is Nothing Then
+        Set oLocalEndpoint = New frmLocalEndpoint
+        If oLocalEndpoint.Init(Nothing, oPrinters) Then
+            cRetVal.Add oLocalEndpoint
+        End If
+    End If
     Set pvCreateEndpoints = cRetVal
     Exit Function
 EH:
@@ -329,6 +350,7 @@ NoLogFile:
         End If
     End If
 QH:
+    FlushDebugLog
 End Sub
 
 Public Sub FlushDebugLog()
@@ -338,4 +360,14 @@ Public Sub FlushDebugLog()
     End If
 End Sub
 
+Public Sub TerminateEndpoints()
+    Dim vElem           As Variant
+    
+    If Not m_cEndpoints Is Nothing Then
+        For Each vElem In m_cEndpoints
+            vElem.Terminate
+        Next
+        Set m_cEndpoints = Nothing
+    End If
+End Sub
 

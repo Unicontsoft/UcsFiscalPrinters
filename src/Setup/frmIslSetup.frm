@@ -2385,8 +2385,8 @@ Private Const EM_SCROLLCARET                    As Long = &HB7
 
 Private Declare Function UpdateWindow Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
-Private Declare Function GetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long) As Long
-Private Declare Function SetPixel Lib "gdi32" (ByVal hDC As Long, ByVal X As Long, ByVal Y As Long, ByVal crColor As Long) As Long
+Private Declare Function GetPixel Lib "gdi32" (ByVal hDC As Long, ByVal lX As Long, ByVal lY As Long) As Long
+Private Declare Function SetPixel Lib "gdi32" (ByVal hDC As Long, ByVal lX As Long, ByVal lY As Long, ByVal crColor As Long) As Long
 
 '=========================================================================
 ' Constants and member variables
