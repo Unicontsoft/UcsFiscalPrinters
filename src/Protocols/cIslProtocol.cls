@@ -2260,6 +2260,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim sFormatQty      As String
     Dim sFormatDisc     As String
     Dim sFormatAmount   As String
+    Dim sFormatZero     As String
     Dim sFormatDate     As String
     Dim lAmountIndex    As Long
     Dim lPaidIndex      As Long
@@ -2374,7 +2375,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 Select Case .InitReceiptType
                 Case ucsFscRcpReversal, ucsFscRcpCreditNote
                     '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StTipe><DocNo>)%5=([,<StUNP>,<StDT>,<StFMIN>])[#<RevType>]
-                    sParam = "%1,%2,1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, ",I,%3", vbNullString) & ",%4"
+                    sParam = "%1,%2,1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, ",I,%3", vbNullString) & ",%4%5"
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .InitReceiptType, eCmd, ucsFpcFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
@@ -2476,8 +2477,13 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                     Exceptions = bPrevExceptions
                 End If
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsFpcFiscalPayment, sParam, vbTab & sType & "%1", _
-                    "FormatAmount", sFormatAmount, "0.00"
-                sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
+                    "FormatAmount", sFormatAmount, "0.00", _
+                    "FormatZero", sFormatZero, "\"
+                If Abs(.PmtAmount) < DBL_EPSILON Then
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatZero))
+                Else
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
+                End If
                 SendCommand eCmd, sParam
                 uCtx.PmtPrinted = True
             Else

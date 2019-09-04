@@ -2015,6 +2015,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Dim sFormatQty      As String
     Dim sFormatDisc     As String
     Dim sFormatAmount   As String
+    Dim sFormatZero     As String
     Dim lPrintType      As Long
     
     On Error GoTo EH
@@ -2189,9 +2190,9 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             If .PmtType <> 0 Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & ";0;%1", _
                     "FormatAmount", sFormatAmount, "0.00", _
-                    "FormatZeroAmount", sFormatDisc, "\"""
+                    "FormatZero", sFormatZero, "\"""
                 If Abs(.PmtAmount) < DBL_EPSILON Then
-                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatDisc))
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatZero))
                 Else
                     sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
                 End If
