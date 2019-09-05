@@ -172,9 +172,10 @@ Public Function EnumPorts(sResponse As String) As Boolean
     On Error GoTo EH
     JsonItem(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
-    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL_FP, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_ESP_POS, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipLastError:=True))
+    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipLastError:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -684,7 +685,7 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
     sProtocol = UCase$(JsonItem(oOptions, "Protocol"))
     '--- figure out model
     Select Case sProtocol
-    Case STR_PROTOCOL_DATECS_FP
+    Case STR_PROTOCOL_DATECS_X
         Set pvInit = New cDatecsProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)
@@ -693,7 +694,7 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
         pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_FP_MEMORY)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
-    Case STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY, STR_PROTOCOL_INCOTEX
         Set pvInit = New cIslProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)
@@ -703,14 +704,14 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
         pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol, CFG_EXTENDED_ERRORS, STR_DAISY_FP_EXT_ERRORS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
-    Case STR_PROTOCOL_TREMOL_FP
+    Case STR_PROTOCOL_TREMOL
         Set pvInit = New cTremolProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_TREMOL_FP_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_TREMOL_FP_STATUSES)
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_TREMOL_FP_ERRORS)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_TREMOL_FP_TEXTS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
-    Case STR_PROTOCOL_ESP_POS
+    Case STR_PROTOCOL_ESCPOS
         Set pvInit = New cEscPosProtocol
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ESP_POS_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ESP_POS_TEXTS)

@@ -230,11 +230,12 @@ End Type
 
 Public Const LIB_NAME               As String = "UcsFiscalPrinters"
 Public Const STR_NONE               As String = "(Няма)"
+Public Const STR_PROTOCOL_DATECS_X  As String = "DATECS X"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
-Public Const STR_PROTOCOL_DAISY_ECR As String = "DAISY FP/ECR"
-Public Const STR_PROTOCOL_INCOTEX_ECR As String = "INCOTEX FP/ECR"
-Public Const STR_PROTOCOL_TREMOL_FP As String = "TREMOL ECR"
-Public Const STR_PROTOCOL_ESP_POS   As String = "ESC/POS"
+Public Const STR_PROTOCOL_DAISY     As String = "DAISY FP/ECR"
+Public Const STR_PROTOCOL_INCOTEX   As String = "INCOTEX FP/ECR"
+Public Const STR_PROTOCOL_TREMOL    As String = "TREMOL ECR"
+Public Const STR_PROTOCOL_ESCPOS    As String = "ESC/POS"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
 Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
