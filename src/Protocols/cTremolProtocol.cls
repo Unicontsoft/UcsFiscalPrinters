@@ -179,6 +179,7 @@ Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
 Private Const LNG_STATUS_OVERHEATED     As Long = &H44
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
+Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -1218,11 +1219,11 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Select Case ReportType
     Case ucsFscRstPeriodShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsZekCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
-            "Format", sFormat, "ddmmyy", _
+            "Format", sFormat, FORMAT_DATE_REPORT, _
             "PrintTimeout", lPrintTimeout, 0
     Case ucsFscRstPeriodDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsZekCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
-            "Format", sFormat, "ddmmyy", _
+            "Format", sFormat, FORMAT_DATE_REPORT, _
             "PrintTimeout", lPrintTimeout, 0
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)

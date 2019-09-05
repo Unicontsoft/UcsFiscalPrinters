@@ -234,6 +234,7 @@ Private Const ucsFscDscSubtotalAbs      As Long = ucsFscDscSubtotal + 100
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
+Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -1339,10 +1340,10 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Select Case ReportType
     Case ucsFscRstPeriodShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsIslCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
-            "Format", sFormat, "ddmmyy"
+            "Format", sFormat, FORMAT_DATE_REPORT
     Case ucsFscRstPeriodDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsIslCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
-            "Format", sFormat, "ddmmyy"
+            "Format", sFormat, FORMAT_DATE_REPORT
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
