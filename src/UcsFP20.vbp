@@ -15,6 +15,7 @@ Class=cEscPosProtocol; Protocols\cEscPosProtocol.cls
 Class=IDeviceConnector; Connectors\IDeviceConnector.cls
 Class=cSocketConnector; Connectors\cSocketConnector.cls
 Class=cSerialPortConnector; Connectors\cSerialPortConnector.cls
+Class=cDatecsProtocol; Protocols\cDatecsProtocol.cls
 Startup="Sub Main"
 HelpFile=""
 Title="Fiscal Printers"

@@ -211,11 +211,11 @@ Attribute ShowSetup.VB_Description = "Used to show device's specific configurati
     '--- figure out protocol
     sProtocol = UCase$(JsonItem(ParseDeviceString(DeviceString), "Protocol"))
     Select Case sProtocol
-    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY_ECR, STR_PROTOCOL_INCOTEX_ECR
+    Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY, STR_PROTOCOL_INCOTEX
         ShowSetup = oFrmIsl.frInit(DeviceString, Server, OwnerForm)
-    Case STR_PROTOCOL_TREMOL_FP
+    Case STR_PROTOCOL_TREMOL
         ShowSetup = oFrmTremol.frInit(DeviceString, Server, OwnerForm)
-    Case STR_PROTOCOL_ESP_POS
+    Case STR_PROTOCOL_ESCPOS
         '--- do nothing
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
