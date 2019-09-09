@@ -525,8 +525,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", STR_CHR1 & Chr$(&H24) & Chr$(&H20) & Chr$(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H15))  '--- NAK (&H15)
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(&H1) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3B) & Chr$(&H20) & Chr$(&H30) & Chr$(&H30) & Chr$(&H35) & Chr$(&H3A) & Chr$(&H9) & Chr$(&H5) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H3A) & Chr$(&H3))
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H16))  '--- SYN (&H16)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_X, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -598,12 +598,10 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
-                        '--- remove SYN (&H16)
-                        .Buffer = Replace(.Buffer, Chr$(&H16), vbNullString)
                     End If
                     If LenB(.Buffer) <> 0 Then
 '                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
-                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
+                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
@@ -2343,15 +2341,11 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     Dim lSerialIndex    As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsDcsCmdInfoDiagnostics, sParam, "0", _
+    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsDcsCmdInfoDiagnostics, sParam, DEF_SEP, _
         "NameIndex", lNameIndex, 1, _
         "SerialIndex", lSerialIndex, 7
     If Not IsArray(vResult) Then
         vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
-        If LenB(At(vResult, 0)) = 0 Then
-            sParam = vbNullString
-            vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
-        End If
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
         '--- check serial

@@ -604,8 +604,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", STR_CHR1 & Chr$(&H24) & Chr$(&H20) & Chr$(&H20) & Chr$(5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(&H30) & Chr$(3))
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(&H15))  '--- NAK (&H15)
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(&H1) & Chr$(&H25) & Chr$(&H20) & Chr$(&H5A) & Chr$(&H30) & Chr$(&H5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3D) & Chr$(&H34) & Chr$(&H3))
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H16))  '--- SYN (&H16)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -677,12 +677,10 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If InStr(.Buffer, vbNullChar) > 0 Then
                         .Buffer = StrConv(.Buffer, vbUnicode)
                         .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
-                        '--- remove SYN (&H16)
-                        .Buffer = Replace(.Buffer, Chr$(&H16), vbNullString)
                     End If
                     If LenB(.Buffer) <> 0 Then
 '                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
-                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
+                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
