@@ -144,8 +144,10 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         Set oRequest = C_Obj(vJson)
         If oRequest Is Nothing Then
             Select Case LCase$(At(vMatches, 1))
-            Case vbNullString, "totals"
+            Case vbNullString
                 JsonItem(oRequest, "IncludeAll") = True
+            Case "totals"
+                JsonItem(oRequest, "IncludeAllTotals") = True
             Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
