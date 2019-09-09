@@ -203,7 +203,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
 Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
@@ -211,7 +211,7 @@ Private Const STR_MEMORY                As String = "Write error|1|No memory mod
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|NHIF|SURCHARGE %1|DISCOUNT %1|Sales %1|EIC"
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|BANK|CHEQUE|SURCHARGE %1|DISCOUNT %1|Sales %1|EIC"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -266,6 +266,7 @@ Private Enum UcsInternalErrors
     ucsErrInvalidReportType
     ucsErrUnknownError
     ucsErrUnknownMemory
+    ucsErrUnsupportedPaymentType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -511,12 +512,11 @@ Property Get DefPmtTypes() As String
     On Error GoTo EH
     If LenB(m_uConfig.DefPmtTypes) = 0 Then
         If IsDaisy Or IsIncotex Then
-            m_uConfig.DefPmtTypes = "PCNCDBCC"
+            m_uConfig.DefPmtTypes = "PCNCDB"
         ElseIf IsEcr Then
-            '--- ToDo: use ucsIslCmdEcrReadRow to check for swapped [2 - card]<->[3 - cheque] payment types
-            m_uConfig.DefPmtTypes = "PCDNIJKL"
+            m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
-            m_uConfig.DefPmtTypes = "PDCNIJKL"
+            m_uConfig.DefPmtTypes = "PNDCIJKL  mnopqrs"
         End If
     End If
     DefPmtTypes = m_uConfig.DefPmtTypes
@@ -589,6 +589,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lIdx            As Long
     Dim sProbeText      As String
     Dim sReplyText      As String
+    Dim sReplyText2     As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
@@ -608,6 +609,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     On Error GoTo EH
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(&H1) & Chr$(&H25) & Chr$(&H20) & Chr$(&H5A) & Chr$(&H30) & Chr$(&H5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3D) & Chr$(&H34) & Chr$(&H3))
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H16))  '--- SYN (&H16)
+    sReplyText2 = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText2", Chr$(&H1))
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -682,7 +684,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     End If
                     If LenB(.Buffer) <> 0 Then
 '                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
-                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
+                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyText2)) = sReplyText2 Then
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
@@ -1534,26 +1536,32 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         '--- custom payment types: 5, 6, 7 & 8
         Index = 4 - Index
     End If
-    If Index > 2 Then
-        bPrevExceptions = pvSetExceptions(False)
-        If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (58 + Index)
-            GetPaymentName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
-            GoTo QH
-        ElseIf IsIncotex Then
-            If Index >= 7 Then
-                GoTo QH
+    If Index > 3 Then
+        lIndex = pvToDevicePmtIndex(Index)
+        If lIndex >= 0 Then
+            bPrevExceptions = pvSetExceptions(False)
+            If IsDaisy Then
+                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (58 + lIndex)
+            ElseIf IsIncotex Then
+                If Index >= 7 Then
+                    Exceptions = bPrevExceptions
+                    GoTo QH
+                End If
+                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (7 + lIndex)
+            Else
+                pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
             End If
-            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (7 + Index), _
-                "Index", lIndex, -1
-        Else
-            pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, Index, 1)
-        End If
-        GetPaymentName = RTrim$(pvStripBold(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)))
-        Exceptions = bPrevExceptions
-        '--- check for failure (returns 'F')
-        If Status(ucsIslStbPrintingError) And GetPaymentName = "F" Then
-            GetPaymentName = vbNullString
+            GetPaymentName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
+'            Debug.Print Index, lIndex, sParam, GetPaymentName
+            Exceptions = bPrevExceptions
+            '--- check for failure (returns 'F')
+            If GetPaymentName = "F" Then
+                If Index <= 4 Then
+                    GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
+                Else
+                    GetPaymentName = vbNullString
+                End If
+            End If
         End If
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
@@ -1688,33 +1696,31 @@ Public Function GetTotalsByPayments() As Variant
     Const FUNC_NAME     As String = "GetTotalsByPayments"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim vSplit          As Variant
+    Dim vPmtSum         As Variant
+    Dim vRevSum         As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim lJdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
-    Dim vIdxMap          As Variant
+    Dim lPmtIndex       As Long
+    Dim lOffset         As Long
+    Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString)
     bPrevExceptions = pvSetExceptions(False)
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString), _
+        "Offset", lOffset, 1
+    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
+        "RevOffset", lRevOffset, 1
+    vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     Exceptions = bPrevExceptions
-    If UBound(vSplit) > 0 Then
-        '--- WTF?!#@ happened w/ these indexes!
-        If IsDaisy Then
-            vIdxMap = Split("0|2|1|4|5|6|7|-1", "|")
-        ElseIf IsIncotex Then
-            vIdxMap = Split("0|1|2|4", "|")
-        Else
-            vIdxMap = Split("0|3|1|2", "|")
-        End If
+    If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            lJdx = At(vIdxMap, lIdx, C_Str(lIdx))
-            If 0 <= lJdx And lIdx <= UBound(vSplit) - IIf(Not IsDaisy, 2, 3) Then
-                vRetVal(lJdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vSplit, lIdx)), 0)
+            lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
+            If lPmtIndex >= 0 Then
+                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
             End If
         Next
         GetTotalsByPayments = vRetVal
@@ -1779,12 +1785,12 @@ Public Function GetTotalsStats() As Variant
     
     On Error GoTo EH
     If Not IsEcr Then
-        pvGetCommandConfig CONF_NAME, "InfoDailyStats", eCmd, ucsIslCmdInfoDailyStats, sParam, vbNullString, _
-            "Index", lIndex, -2
+        pvGetCommandConfig CONF_NAME, "ucsIslCmdInfoNap", eCmd, ucsIslCmdInfoNap, sParam, "1", _
+            "Index", lIndex, 2
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
         Exceptions = bPrevExceptions
-        If UBound(vSplit) >= lIndex Then
+        If UBound(vSplit) >= 0 Then
             lReceipts = C_Lng(At(vSplit, lIndex))
         Else
             vSplit = Empty
@@ -2457,14 +2463,19 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
             pvPrintLine vSplit
         Case ucsRowPayment
             If .PmtType <> 0 Then
+                lIndex = pvToDevicePmtIndex(.PmtType)
+                If lIndex < 0 Then
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                    GoTo QH
+                End If
                 pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sParam, DefPmtTypes
-                sType = Mid$(sParam, .PmtType, 1)
-                If .PmtType > 4 Then
+                sType = Mid$(sParam, lIndex, 1)
+                If lIndex > 4 Then
                     bPrevExceptions = pvSetExceptions(False)
                     If IsDaisy Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (56 + .PmtType) & DEF_SEP & "%1"
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (56 + lIndex) & DEF_SEP & "%1"
                     ElseIf IsIncotex Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (7 + .PmtType) & DEF_SEP & "%1"
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (7 + lIndex) & DEF_SEP & "%1"
                     Else
                         pvGetCommandConfig CONF_NAME, "InitPaymentType" & .PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, sType & DEF_SEP & "%1"
                     End If
@@ -2534,6 +2545,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
     Loop
     '--- success
     pvPrintReceipt = True
+QH:
     Exit Function
 EH:
     pvSetLastError Err.Description, DontRaise:=True
@@ -2808,6 +2820,53 @@ Private Function pvStripBold(sText As String) As String
     
     pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
         sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
+End Function
+
+Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    If IsDaisy Or IsIncotex Then
+        '--- ToDo: figure out payments
+        pvToDevicePmtIndex = PmtType - 1
+    ElseIf IsEcr Then
+        Select Case PmtType
+        Case ucsFscPmtCash
+            pvToDevicePmtIndex = 0      ' SCash (В БРОЙ)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 2      ' SCards (ДЕБ.КАРТА)
+        Case ucsFscPmtBank
+            pvToDevicePmtIndex = 1      ' ??? (КРЕДИТ)
+        Case 4
+            pvToDevicePmtIndex = -1     ' unsupported
+        Case 5, ucsFscPmtCustom1
+            pvToDevicePmtIndex = 5      ' ST (КУПОН)
+        Case 6, ucsFscPmtCustom2
+            pvToDevicePmtIndex = 4      ' SOT (ВАУЧЕР)
+        Case 7, ucsFscPmtCustom3
+            pvToDevicePmtIndex = 3      ' SR1 (НЗОК)
+        Case Else
+            pvToDevicePmtIndex = -1     ' unsupported
+        End Select
+    Else
+        Select Case PmtType
+        Case ucsFscPmtCash
+            pvToDevicePmtIndex = 0      ' SCash (В брой)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 1      ' SCards (С дебитна карта)
+        Case ucsFscPmtBank
+            pvToDevicePmtIndex = 2      ' ??? (С кредит)
+        Case 4
+            pvToDevicePmtIndex = 3      ' SCheque (С чек)
+        Case 5, ucsFscPmtCustom1
+            pvToDevicePmtIndex = 10     ' ST (Талони)
+        Case 6, ucsFscPmtCustom2
+            pvToDevicePmtIndex = 11     ' SOT (Външни талони)
+        Case 7, ucsFscPmtCustom3
+            pvToDevicePmtIndex = 4      ' SR1 (Програмируем тип плащане 1)
+        Case 8, ucsFscPmtCustom4
+            pvToDevicePmtIndex = 5      ' SR2 (Програмируем тип плащане 2)
+        Case Else
+            pvToDevicePmtIndex = -1     ' unsupported
+        End Select
+    End If
 End Function
 
 Private Sub pvGetCommandConfig( _

@@ -140,7 +140,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
@@ -208,6 +208,7 @@ Private Enum UcsInternalErrors
     ucsErrDeviceNotOnline
     ucsErrDeviceNotReady
     ucsErrPasswordNotSet
+    ucsErrUnsupportedPaymentType
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -1226,7 +1227,7 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
             "Format", sFormat, FORMAT_DATE_REPORT, _
             "PrintTimeout", lPrintTimeout, 0
     Case Else
-        pvSetLastError pvInternal(ucsErrInvalidReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
     End Select
     sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
@@ -1408,7 +1409,7 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Dim lPmtIndex       As Long
     
     On Error GoTo EH
-    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtCheque Then
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
         GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - ucsFscPmtCash)
     Else
         lPmtIndex = pvToDevicePmtIndex(PmtType)
@@ -2193,14 +2194,14 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 GoTo QH
             End If
             If .PmtType <> 0 Then
+                If pvToDevicePmtIndex(.PmtType) < 0 Then
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                    GoTo QH
+                End If
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & DEF_SEP & "0" & DEF_SEP & "%1", _
                     "FormatAmount", sFormatAmount, "0.00", _
                     "FormatZero", sFormatZero, "\"""
-                If Abs(.PmtAmount) < DBL_EPSILON Then
-                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatZero))
-                Else
-                    sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
-                End If
+                sParam = Printf(sParam, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
             ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
             End If
@@ -2443,34 +2444,37 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     Const FUNC_NAME     As String = "pvToDevicePmtIndex"
     
     On Error GoTo EH
-    If PmtType > 4 Then
-        PmtType = 4 - PmtType
-    End If
     If m_uConfig.ExtendedPmtTypes Then
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0   ' SCash (Cash)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 7   ' SCards (Card)
-        Case ucsFscPmtCheque
+        Case ucsFscPmtBank
             pvToDevicePmtIndex = 8   ' SW (Bank)
-        Case ucsFscPmtCustom1
+        Case 5, ucsFscPmtCustom1
             pvToDevicePmtIndex = 2   ' ST (Talon)
-        Case ucsFscPmtCustom2
+        Case 6, ucsFscPmtCustom2
             pvToDevicePmtIndex = 3   ' SOT (V.Talon)
-        Case ucsFscPmtCustom3
+        Case 7, ucsFscPmtCustom3
             pvToDevicePmtIndex = 9   ' SR1 (Prg Name1)
-        Case ucsFscPmtCustom4
+        Case 8, ucsFscPmtCustom4
             pvToDevicePmtIndex = 10  ' SR2 (Prg Name2)
         Case Else
             pvToDevicePmtIndex = -1  ' unsupported
         End Select
     Else
         Select Case PmtType
-        Case ucsFscPmtCash, ucsFscPmtCard, ucsFscPmtCheque
-            pvToDevicePmtIndex = PmtType - 1           ' 0, 1, 2
-        Case ucsFscPmtCustom1, ucsFscPmtCustom2
-            pvToDevicePmtIndex = 2 - PmtType           ' 3, 4
+        Case ucsFscPmtCash
+            pvToDevicePmtIndex = 0   ' SCash (Cash)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 1   ' SCards (Card)
+        Case ucsFscPmtBank
+            pvToDevicePmtIndex = 2   ' SW (Bank)
+        Case 7, ucsFscPmtCustom3
+            pvToDevicePmtIndex = 3   ' SR1 (Prg Name1)
+        Case 8, ucsFscPmtCustom4
+            pvToDevicePmtIndex = 4   ' SR2 (Prg Name2)
         Case Else
             pvToDevicePmtIndex = -1  ' unsupported
         End Select

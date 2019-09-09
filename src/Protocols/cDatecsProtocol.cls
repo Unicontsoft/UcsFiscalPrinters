@@ -1300,13 +1300,14 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         '--- custom payment types: 5, 6, 7 & 8
         Index = 4 - Index
     End If
-    If Index > 2 Then
+    If Index > 3 Then
         lIndex = pvToDevicePmtIndex(Index)
         pvGetCommandConfig CONF_NAME, "InfoSetting" & Index, 0, 0, sParam, "PayName", _
             "Index", lIndex, lIndex
         If lIndex >= 0 Then
             GetPaymentName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
         End If
+'        Debug.Print Index, lIndex, sParam, GetPaymentName
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
@@ -2344,10 +2345,10 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         pvToDevicePmtIndex = 0   ' SCash (б апни)
     Case ucsFscPmtCard
         pvToDevicePmtIndex = 2   ' SCards (деа.йюпрю)
-    Case ucsFscPmtCheque
-        pvToDevicePmtIndex = 3   ' SChecks (вей)
-    Case 4
+    Case ucsFscPmtBank
         pvToDevicePmtIndex = 1   ' ??? (йпедхр)
+    Case 4
+        pvToDevicePmtIndex = 3   ' SChecks (вей)
     Case ucsFscPmtCustom1, 5
         pvToDevicePmtIndex = 4   ' ST (йсонм)
     Case ucsFscPmtCustom2, 6

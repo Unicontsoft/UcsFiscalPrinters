@@ -63,13 +63,13 @@ Public Enum UcsFiscalDiscountTypeEnum
 End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
-    ucsFscPmtCash = 1
-    ucsFscPmtCard = 2
-    ucsFscPmtCheque = 3
-    ucsFscPmtCustom1 = -1
-    ucsFscPmtCustom2 = -2
-    ucsFscPmtCustom3 = -3
-    ucsFscPmtCustom4 = -4
+    ucsFscPmtCash = 1           ' SCash
+    ucsFscPmtCard = 2           ' SCards
+    ucsFscPmtBank = 3           ' SW
+    ucsFscPmtCustom1 = -1       ' ST
+    ucsFscPmtCustom2 = -2       ' SOT
+    ucsFscPmtCustom3 = -3       ' SR1
+    ucsFscPmtCustom4 = -4       ' SR2
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum
@@ -575,7 +575,7 @@ End Function
 ''
 ' Used to retrieve totals by payment types since last z-report
 '
-' @return Array of totals for each payment type (1-8): ucsFscPmtCash, ucsFscPmtCard, ucsFscPmtCheque,
+' @return Array of totals for each payment type (1-8): ucsFscPmtCash, ucsFscPmtCard, ucsFscPmtBank,
 '         reserved, ucsFscPmtCustom1, ucsFscPmtCustom2, ucsFscPmtCustom3 and ucsFscPmtCustom4
 ' @remark Index 4 in return array is unused and should be 0
 '
