@@ -1785,12 +1785,12 @@ Public Function GetTotalsStats() As Variant
     
     On Error GoTo EH
     If Not IsEcr Then
-        pvGetCommandConfig CONF_NAME, "ucsIslCmdInfoNap", eCmd, ucsIslCmdInfoNap, sParam, "1", _
+        pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsIslCmdInfoNap, sParam, "1", _
             "Index", lIndex, 2
         bPrevExceptions = pvSetExceptions(False)
         vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
         Exceptions = bPrevExceptions
-        If UBound(vSplit) >= 0 Then
+        If UBound(vSplit) >= lIndex Then
             lReceipts = C_Lng(At(vSplit, lIndex))
         Else
             vSplit = Empty
@@ -2470,19 +2470,6 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 End If
                 pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sParam, DefPmtTypes
                 sType = Mid$(sParam, lIndex, 1)
-                If lIndex > 4 Then
-                    bPrevExceptions = pvSetExceptions(False)
-                    If IsDaisy Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (56 + lIndex) & DEF_SEP & "%1"
-                    ElseIf IsIncotex Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & .PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "P" & (7 + lIndex) & DEF_SEP & "%1"
-                    Else
-                        pvGetCommandConfig CONF_NAME, "InitPaymentType" & .PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, sType & DEF_SEP & "%1"
-                    End If
-                    sParam = Printf(sParam, Left$(.PmtName, m_uConfig.MaxPaymentLen))
-                    SendCommand eCmd, sParam
-                    Exceptions = bPrevExceptions
-                End If
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab & sType & "%1", _
                     "FormatAmount", sFormatAmount, "0.00"
                 sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
