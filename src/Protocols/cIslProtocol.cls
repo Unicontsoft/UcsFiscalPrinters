@@ -211,7 +211,7 @@ Private Const STR_MEMORY                As String = "Write error|1|No memory mod
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CREDIT|SURCHARGE %1|DISCOUNT %1|Sales %1|EIC"
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|NHIF|SURCHARGE %1|DISCOUNT %1|Sales %1|EIC"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -524,6 +524,8 @@ Property Get DefPmtTypes() As String
 EH:
     RaiseError FUNC_NAME
 End Property
+
+'= private ===============================================================
 
 Private Property Get pvRowChars() As Long
     Const FUNC_NAME     As String = "pvRowChars"
