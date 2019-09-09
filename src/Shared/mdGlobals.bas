@@ -304,7 +304,7 @@ EH:
     Resume Next
 End Sub
 
-Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
+Public Property Get At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
     On Error GoTo QH
     At = sDefault
     If IsArray(vData) Then
@@ -317,7 +317,7 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
         End If
     End If
 QH:
-End Function
+End Property
 
 Public Property Let ValueAt(vData As Variant, ByVal lIdx As Long, vValue As Variant)
     On Error GoTo QH
@@ -414,14 +414,14 @@ Public Function GetApiErr(ByVal lLastDllError As Long) As String
     GetApiErr = Left$(GetApiErr, lRet)
 End Function
 
-Public Function IsNT() As Boolean
+Public Property Get IsNT() As Boolean
     Static lVersion     As Long
     
     If lVersion = 0 Then
         lVersion = GetVersion()
     End If
     IsNT = ((lVersion And &H80000000) = 0)
-End Function
+End Property
 
 Public Property Get OsVersion() As Long
     Static lVersion     As Long
