@@ -44,57 +44,40 @@ Public Enum UcsDatecsStatusBitsEnum
     ucsDcsStbSyntaxError = 2 ^ 0
     ucsDcsStbInvalidCommand = 2 ^ 1
     ucsDcsStbClockNotSet = 2 ^ 2
-    ucsDcsStbDeviceError = 2 ^ 4
-    ucsDcsStbPrintingError = 2 ^ 5
+    ucsDcsStbFailurePrintingMechanism = 2 ^ 4
+    ucsDcsStbGeneralError = 2 ^ 5
+    ucsDcsStbCoverOpen = 2 ^ 6
     ucsDcsStbSumOverflow = 2 ^ (8 + 0)
-    ucsDcsStbInvalidFiscalMode = 2 ^ (8 + 1)
-    ucsDcsStbRamCleared = 2 ^ (8 + 2)
-    ucsDcsStbRamCorrupted = 2 ^ (8 + 4)
+    ucsDcsStbCommandNotPermitted = 2 ^ (8 + 1)
     ucsDcsStbOutOfPaper = 2 ^ (16 + 0)
-    ucsDcsStbFiscalPrinting = 2 ^ (16 + 3)
-    ucsDcsStbNonFiscalPrinting = 2 ^ (16 + 5)
-End Enum
-
-Public Enum UcsDatecsDipSwitchesEnum
-    ucsDcsDipCenterHeaderFooter = 2 ^ 0
-    ucsDcsDipPrintHeader = 2 ^ 1
-    ucsDcsDipSwitch_1_3 = 2 ^ 2
-    ucsDcsDipSwitch_1_4 = 2 ^ 3
-    ucsDcsDipZeroMemory = 2 ^ 4
-    ucsDcsDipTransparentDisplay = 2 ^ 5
-    ucsDcsDipShowToDisplay = 2 ^ 6
+    ucsDcsStbNearOutOfPaper = 2 ^ (16 + 1)
+    ucsDcsStbEJFull = 2 ^ (16 + 2)
+    ucsDcsStbFiscalReceiptOpen = 2 ^ (16 + 3)
+    ucsDcsStbNearEJFull = 2 ^ (16 + 4)
+    ucsDcsStbNonFiscalReceiptOpen = 2 ^ (16 + 5)
 End Enum
 
 Public Enum UcsDatecsFiscalMemoryEnum
-    ucsDcsFmeWriteError = 2 ^ 0
-    ucsDcsFmeNoMemoryModule = 2 ^ 2
-    ucsDcsFmeLowMemory = 2 ^ 3
+    ucsDcsFmeAccessError = 2 ^ 0
+    ucsDcsFmeTaxNumberNotSet = 2 ^ 1
+    ucsDcsFmeSerialNoSet = 2 ^ 2
+    ucsDcsFmeNearOutOnMemory = 2 ^ 3
     ucsDcsFmeOutOfMemory = 2 ^ 4
     ucsDcsFmeMemoryError = 2 ^ 5
-    ucsDcsFmeReadOnly = 2 ^ (8 + 0)
     ucsDcsFmeFormatted = 2 ^ (8 + 1)
-    ucsDcsFmeFiscalMode = 2 ^ (8 + 3)
-    ucsDcsFmeTaxRatesSet = 2 ^ (8 + 4)
-    ucsDcsFmeIdentNoSet = 2 ^ (8 + 5)
+    ucsDcsFmeDeviceFiscalized = 2 ^ (8 + 3)
+    ucsDcsFmeVatRatesAreSetOnce = 2 ^ (8 + 4)
 End Enum
 
 Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdNoop = -1
     '--- init
-    ucsDcsCmdInitHeaderFooter = 43
     ucsDcsCmdInitDateTime = 61
     ucsDcsCmdInitInvoiceNo = 66
-    ucsDcsCmdInitDepartment = 87
-    ucsDcsCmdInitTaxRates = 96
     ucsDcsCmdInitBulstat = 98
     ucsDcsCmdInitOperatorPassword = 101
-    ucsDcsCmdInitOperatorReset = 104
     ucsDcsCmdInitItem = 107
     ucsDcsCmdInitOpenDrawer = 106
-    ucsDcsCmdExtendedInitText = 149                '-- command above &H7F
-    ucsDcsCmdExtendedInitSetting = 150             '-- command above &H7F
-    ucsDcsCmdExtendedInitCurrencyRate = 151        '-- command above &H7F
-    ucsDcsCmdExtendedInitInvoiceNo = 180           '-- command above &H7F
     '--- transaction
     ucsDcsCmdNonFiscalOpen = 38
     ucsDcsCmdNonFiscalClose = 39
@@ -104,17 +87,13 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdFiscalOpen = 48
     ucsDcsCmdFiscalSell = 49
     ucsDcsCmdFiscalSubtotal = 51
-    ucsDcsCmdFiscalSellAndDisplay = 52
     ucsDcsCmdFiscalPayment = 53
     ucsDcsCmdFiscalText = 54
     ucsDcsCmdFiscalClose = 56
     ucsDcsCmdFiscalCgInfo = 57
     ucsDcsCmdFiscalCancel = 60
     ucsDcsCmdFiscalServiceDeposit = 70
-    ucsDcsCmdExtendedFiscalCancel = 130            '-- command above &H7F
     '--- info
-    ucsDcsCmdInfoServiceContract = 34
-    ucsDcsCmdInfoNap = 37
     ucsDcsCmdInfoDateTime = 62
     ucsDcsCmdInfoLastFiscalBlock = 64
     ucsDcsCmdInfoTotalsByTaxGroups = 65
@@ -125,18 +104,15 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdInfoDepartment = 88
     ucsDcsCmdInfoDiagnostics = 90
     ucsDcsCmdInfoBulstat = 99
-    ucsDcsCmdInfoSums = 103
     ucsDcsCmdInfoTotalsByPayments = 110
     ucsDcsCmdInfoOperator = 112
     ucsDcsCmdInfoMemoryDump = 116
     ucsDcsCmdInfoDevice = 123
-    ucsDcsCmdExtendedInfoConsts = 128              '-- command above &H7F
     ucsDcsCmdInfoProgramming = 255                 '-- command above &H7F
     '--- print
     ucsDcsCmdPrintReportTaxRates = 50
     ucsDcsCmdPrintDailyReport = 69
     ucsDcsCmdPrintDiagnostics = 71
-    ucsDcsCmdPrintReportByNumberDetailed = 73
     ucsDcsCmdPrintBarcode = 84
     ucsDcsCmdPrintSeparator = 92
     ucsDcsCmdPrintReportByDateDetailed = 94
@@ -146,18 +122,14 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdPrintReportByItems = 111
     '--- paper
     ucsDcsCmdPaperLinefeed = 44
-    ucsDcsCmdPaperCut = 45
+    ucsDcsCmdPaperCut = 46
     '--- display
     ucsDcsCmdDisplayClear = 33
     ucsDcsCmdDisplaySecondLine = 35
     ucsDcsCmdDisplayFirstLine = 47
     ucsDcsCmdDisplayClock = 63
-    ucsDcsCmdDisplayText = 100
     '--- misc
     ucsDcsCmdMiscRingSound = 80
-    '--- ECR
-    ucsDcsCmdEcrReadRow = &HFF84&
-    ucsDcsCmdEcrWriteRow = &HFF86&
 End Enum
 
 '=========================================================================
@@ -192,11 +164,10 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1"
-Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
-Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
-Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
-Private Const STR_MEMORY                As String = "Write error|1|No memory module|Memory low|Out of memory|Fiscal memory error|6|7|Read only|Memory formatted|2|Fiscal mode|Tax rates set|Tax number set|6|7"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
+Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|Out of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open|6|7"
+Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|Out of paper|1|2|3|4|5|6|7"
+Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in FM|FM is full|FM error|FM is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once|5|6|7"
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
@@ -228,7 +199,6 @@ Private m_oConnector                As IDeviceConnector
 Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
 Private m_eStatus                   As UcsDatecsStatusBitsEnum
-Private m_eDip                      As UcsDatecsDipSwitchesEnum
 Private m_eMemory                   As UcsDatecsFiscalMemoryEnum
 Private m_eLastErrNo                As UcsFiscalErrorsEnum
 Private m_sLastError                As String
@@ -253,6 +223,7 @@ Private Enum UcsInternalErrors
     ucsErrInvalidReportType
     ucsErrUnknownError
     ucsErrUnknownMemory
+    ucsErrUnsupportedPaymentType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -399,14 +370,6 @@ Property Get ErrorText() As String
     ErrorText = pvGetFlagsText(m_eStatus, m_uConfig.LocalizedText(ucsFscLciPrinterErrors))
 End Property
 
-Property Get Dip(ByVal eValue As UcsDatecsDipSwitchesEnum) As Boolean
-    Dip = (m_eDip And eValue) <> 0
-End Property
-
-Property Get DipText() As String
-    DipText = pvGetFlagsText(m_eDip, m_uConfig.LocalizedText(ucsFscLciDipSwitchesTexts))
-End Property
-
 Property Get Memory(ByVal eValue As UcsDatecsFiscalMemoryEnum) As Boolean
     Memory = (m_eMemory And eValue) <> 0
 End Property
@@ -447,6 +410,8 @@ Property Get IsEcr() As Boolean
     End If
     IsEcr = (m_uConfig.IsEcr = vbTrue)
 End Property
+
+'= private ===============================================================
 
 Private Property Get pvRowChars() As Long
     Const FUNC_NAME     As String = "pvRowChars"
@@ -747,7 +712,7 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data A
         pvSetLastError sError
         GoTo QH
     End If
-    If Status(ucsDcsStbPrintingError) Then
+    If Status(ucsDcsStbGeneralError) Then
         pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus)))
         GoTo QH
     End If
@@ -1336,9 +1301,12 @@ Public Function GetPaymentName(ByVal Index As Long) As String
         Index = 4 - Index
     End If
     If Index > 2 Then
+        lIndex = pvToDevicePmtIndex(Index)
         pvGetCommandConfig CONF_NAME, "InfoSetting" & Index, 0, 0, sParam, "PayName", _
-            "Index", lIndex, IIf(Index = 3, Index, Index - 1)
-        GetPaymentName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
+            "Index", lIndex, lIndex
+        If lIndex >= 0 Then
+            GetPaymentName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
+        End If
     Else
         GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
     End If
@@ -1377,10 +1345,10 @@ Public Function CancelReceipt() As Boolean
         "Index", lTransIndex, 1, _
         "StatusClosed", lStatusClosed, 0
     If C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) <> lStatusClosed Then
-        If Status(ucsDcsStbFiscalPrinting) Then
+        If Status(ucsDcsStbFiscalReceiptOpen) Then
             pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsDcsCmdFiscalCancel, sParam, vbNullString
             SendCommand eCmd, sParam
-            If Status(ucsDcsStbFiscalPrinting) Then
+            If Status(ucsDcsStbFiscalReceiptOpen) Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsDcsCmdFiscalPayment, sParam, DEF_SEP & DEF_SEP & DEF_SEP
                 SendCommand eCmd, sParam
                 '--- {Seller}<SEP>{Receiver}<SEP>{Buyer}<SEP>{Address1}<SEP>{Address2}<SEP>{TypeTAXN}<SEP>{TAXN}<SEP>{VATN}<SEP>
@@ -1444,7 +1412,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     pvSendCommand m_oConnector, m_lTimeout, eCmd, sParam, m_sLastError
     If LenB(m_sLastError) <> 0 Then
         '--- do nothing
-    ElseIf Status(ucsDcsStbPrintingError) Then
+    ElseIf Status(ucsDcsStbGeneralError) Then
         pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus)))
     ElseIf Memory(ucsDcsFmeMemoryError) Then
         pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory)))
@@ -1467,18 +1435,16 @@ Public Function GetTotalsByPayments() As Variant
     Dim lJdx            As Long
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
-    Dim vIdxMap          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "0" & DEF_SEP
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
-        vIdxMap = Split("0|2|3|1|4|5|6|7", "|")
         ReDim vRetVal(0 To 7) As Double
         For lIdx = 0 To UBound(vRetVal)
-            lJdx = At(vIdxMap, lIdx, C_Str(lIdx))
-            If 0 <= lJdx And lIdx <= UBound(vSplit) Then
-                vRetVal(lJdx) = ParseSum(At(vSplit, lIdx))
+            lJdx = pvToDevicePmtIndex(lIdx + 1)
+            If lJdx >= 0 Then
+                vRetVal(lIdx) = ParseSum(At(vSplit, lJdx + 1))
             End If
         Next
         GetTotalsByPayments = vRetVal
@@ -1514,14 +1480,10 @@ Public Function GetTotalsByTaxGroups() As Variant
         vTaxRates(lIdx) = pvSettings(sParam, lIdx + lOffset)
     Next
     lOffset = 2
-    If UBound(vTotals) > 0 Or UBound(vVatSums) > 0 Then
+    If UBound(vTotals) > 0 And UBound(vVatSums) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            If UBound(vVatSums) >= lIdx + lOffset Then
-                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset, At(vVatSums, lIdx + lOffset))), C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + lOffset)))
-            Else
-                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset)), C_Dbl(At(vTaxRates, lIdx)))
-            End If
+            vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset)), ParseSum(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + lOffset)))
         Next
         GetTotalsByTaxGroups = vRetVal
     Else
@@ -1542,7 +1504,7 @@ Public Function GetTotalsStats() As Variant
     Dim dLastDate       As Date
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDailyStats", 0, 0, sParam, "nFBonDailyCount"
+    pvGetCommandConfig CONF_NAME, "InfoDailyStats", 0, 0, sParam, "nFBon" ' "nFBonDailyCount"
     lReceipts = C_Lng(pvSettings(sParam))
     pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
         "Index", lIndex, 4
@@ -1747,7 +1709,7 @@ RetryParse:
                 End If
                 pvSendCommand = pvTranscode(Mid$(sText, 11, lSize - 10), False)
                 DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
-                    IIf(Status(ucsDcsStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
+                    IIf(Status(ucsDcsStbGeneralError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
                     IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
                 GoTo QH
             Else
@@ -1804,11 +1766,6 @@ Private Sub pvSetStatus(sStatus As String)
         Call CopyMemory(m_eStatus, baStatus(0), 3)
     Else
         m_eStatus = 0
-    End If
-    If UBound(baStatus) >= 3 Then
-        Call CopyMemory(m_eDip, baStatus(3), 1)
-    Else
-        m_eDip = 0
     End If
     If UBound(baStatus) >= 5 Then
         Call CopyMemory(m_eMemory, baStatus(4), 2)
@@ -2066,6 +2023,10 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam, _
                     "FormatAmount", sFormatAmount, "0.00", _
                     "FormatZero", sFormatZero, "\"
+                lIndex = pvToDevicePmtIndex(.PmtType)
+                If lIndex < 0 Then
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                End If
                 sParam = Printf(sParam, pvToDevicePmtIndex(.PmtType), SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
                 SendCommand eCmd, sParam
                 uCtx.PmtPrinted = True
@@ -2085,7 +2046,7 @@ Private Function pvPrintReceipt(uCtx As UcsContext, uRow() As UcsRowData, ByVal 
                         pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
                         sParam = Printf(sParam, pvToDevicePmtIndex(.PmtType))
                         SendCommand eCmd, sParam
-                        If Not Status(ucsDcsStbPrintingError) Then
+                        If Not Status(ucsDcsStbGeneralError) Then
                             uCtx.PmtPrinted = True
                         End If
                     End If
@@ -2376,12 +2337,12 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         pvToDevicePmtIndex = 2   ' SCards (деа.йюпрю)
     Case ucsFscPmtCheque
         pvToDevicePmtIndex = 3   ' SChecks (вей)
-    Case ucsFscPmtCustom1
-        pvToDevicePmtIndex = 5   ' ST (йсонм)
-    Case ucsFscPmtCustom2
-        pvToDevicePmtIndex = 6   ' SOT (бюсвеп)
-    Case ucsFscPmtCustom3
+    Case 4
         pvToDevicePmtIndex = 1   ' ??? (йпедхр)
+    Case ucsFscPmtCustom1, 5
+        pvToDevicePmtIndex = 4   ' ST (йсонм)
+    Case ucsFscPmtCustom2, 6
+        pvToDevicePmtIndex = 5   ' SOT (бюсвеп)
     Case Else
         pvToDevicePmtIndex = -1  ' unsupported
     End Select
@@ -2424,7 +2385,6 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS_ONLY
-    LocalizedText(ucsFscLciDipSwitchesTexts) = STR_DIP_SWITCHES
     LocalizedText(ucsFscLciMemoryTexts) = STR_MEMORY
     LocalizedText(ucsFscLciExtendedErrors) = STR_EXT_ERRORS
     m_uConfig.CommEventTimeout = DEF_COMM_EVENT_TIMEOUT * 2

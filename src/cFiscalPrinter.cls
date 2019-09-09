@@ -48,12 +48,17 @@ End Enum
 '--- strings
 Private Const STR_TEXTS                 As String = "Касиер"
 Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Командата не се поддържа от протокола|Невалидна JSON заявка"
-Private Const STR_DATECS_FP_INTERNAL    As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
-Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
-Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
-Private Const STR_DATECS_FP_DIP_SWITCHES As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
-Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
-Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|С КАРТА|НЗОК|КРЕДИТ|НАДБАВКА %1|ОТСТЪПКА %1|Продажби %1|ЕИК"
+Private Const STR_DATECS_FP_INTERNAL    As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1|Неподдържан вид плащане %1"
+Private Const STR_DATECS_FP_STATUSES    As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|Отворен капак|7|Аритметично препълване|Непозволена команда|2|3|4|5|6|7|Няма хартия|Остава малко хартия|КЛЕН е пълен|Отворен фискален бон|Малко свободно място в КЛЕН|Отворен нефискален бон|6|7"
+Private Const STR_DATECS_FP_ERRORS      As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|2|3|4|5|6|7|Няма хартия|1|2|3|4|5|6|7"
+Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при достъп до ФП|Няма данъчен номер|Програмирани индивидуален номер и номер на ФП|Малко свободно място във ФП|Пълна ФП|Грешка във ФП|ФП не е намерена или повредена|7|0|Форматирана ФП|2|Принтерът е фискализирав|Зададени данъчни ставки|5|6|7"
+Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|С КАРТА|ЧЕК|КРЕДИТ|НАДБАВКА %1|ОТСТЪПКА %1|Продажби %1|ЕИК"
+Private Const STR_ISL_FP_INTERNAL       As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1"
+Private Const STR_ISL_FP_STATUSES       As String = "Синтактична грешка|Невалидна команда|Неустановени дата и час|3|Неизправност в механизма на печатащото устройство|5|6|7|Аритметично препълване|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|Отворен фискален бон|4|Отворен служебен (нефискален) бон|6|7"
+Private Const STR_ISL_FP_ERRORS         As String = "Синтактична грешка|Невалидна команда|2|3|Неизправност в механизма на печатащото устройство|5|6|7|1|Непозволена команда|Зануляване на оперативна памет|3|Разрушено съдържание на оперативна памет|5|6|7|Няма хартия|1|2|3|4|5|6|7"
+Private Const STR_ISL_FP_DIP_SWITCHES   As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
+Private Const STR_ISL_FP_MEMORY         As String = "Грешка при запис|1|Няма модул фискална памет|Малко свободно място във фискалната памет|Пълна фискална памет|5|6|7|Фискалната памет забранена за запис|Форматирана фискална памет|2|Принтерът е във фискален режим|Зададени данъчни ставки|Програмирани индивидуален номер и номер на фискалната памет|6|7"
+Private Const STR_ISL_FP_TEXTS          As String = "В БРОЙ|С КАРТА|НЗОК|КРЕДИТ|НАДБАВКА %1|ОТСТЪПКА %1|Продажби %1|ЕИК"
 Private Const STR_TREMOL_FP_INTERNAL    As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка|Грешка на ред %1: %2|Невалиден тип справка|Устройството е недостъпно|Устройството е заето| или невъзможно установяване парола на оператор"
 Private Const STR_TREMOL_FP_STATUSES    As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_TREMOL_FP_ERRORS      As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
@@ -690,18 +695,17 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)
         pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
-        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_DATECS_FP_DIP_SWITCHES)
         pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_FP_MEMORY)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY, STR_PROTOCOL_INCOTEX
         Set pvInit = New cIslProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_FP_INTERNAL)
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_FP_STATUSES)
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_FP_ERRORS)
-        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_DATECS_FP_DIP_SWITCHES)
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_FP_MEMORY)
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_FP_TEXTS)
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ISL_FP_INTERNAL)
+        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_ISL_FP_STATUSES)
+        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_ISL_FP_ERRORS)
+        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_ISL_FP_DIP_SWITCHES)
+        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_ISL_FP_MEMORY)
+        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ISL_FP_TEXTS)
         pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol, CFG_EXTENDED_ERRORS, STR_DAISY_FP_EXT_ERRORS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
     Case STR_PROTOCOL_TREMOL
