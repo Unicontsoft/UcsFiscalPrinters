@@ -547,7 +547,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
+    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAllTotals"))
     If C_Bool(JsonItem(oJson, "IncludeStats")) Or bIncludeAll Then
         vTotals = oFP.GetTotalsStats()
         If IsArray(vTotals) Then
@@ -567,11 +567,14 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
         vTotals = oFP.GetTotalsByTaxGroups()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
-                Set oItem = Nothing
-                JsonItem(oItem, "TaxGroup") = lIdx + 1
-                JsonItem(oItem, "VatPercent") = vTotals(lIdx)(1)
-                JsonItem(oItem, "Amount") = vTotals(lIdx)(0)
-                JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
+                If IsArray(vTotals(lIdx)) Then
+                    Set oItem = Nothing
+                    JsonItem(oItem, "TaxGroup") = lIdx + 1
+                    JsonItem(oItem, "VatPercent") = vTotals(lIdx)(0)
+                    JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
+                    JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                    JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
+                End If
             Next
         End If
     End If
@@ -579,11 +582,14 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
         vTotals = oFP.GetTotalsByPayments()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
-                Set oItem = Nothing
-                JsonItem(oItem, "PaymentType") = lIdx + 1
-                JsonItem(oItem, "PaymentName") = oFP.GetPaymentName(lIdx + 1)
-                JsonItem(oItem, "Amount") = vTotals(lIdx)
-                JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
+                If IsArray(vTotals(lIdx)) Then
+                    Set oItem = Nothing
+                    JsonItem(oItem, "PaymentType") = lIdx + 1
+                    JsonItem(oItem, "PaymentName") = vTotals(lIdx)(0)
+                    JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
+                    JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                    JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
+                End If
             Next
         End If
     End If

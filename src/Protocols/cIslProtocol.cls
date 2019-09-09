@@ -1710,11 +1710,11 @@ Public Function GetTotalsByPayments() As Variant
         Else
             vIdxMap = Split("0|3|1|2", "|")
         End If
-        ReDim vRetVal(0 To 7) As Double
+        ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
             lJdx = At(vIdxMap, lIdx, C_Str(lIdx))
             If 0 <= lJdx And lIdx <= UBound(vSplit) - IIf(Not IsDaisy, 2, 3) Then
-                vRetVal(lJdx) = ParseSum(At(vSplit, lIdx))
+                vRetVal(lJdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vSplit, lIdx)), 0)
             End If
         Next
         GetTotalsByPayments = vRetVal
@@ -1730,33 +1730,31 @@ Public Function GetTotalsByTaxGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Const CONF_NAME     As String = FUNC_NAME
     Dim bPrevExceptions As Boolean
-    Dim vTotals         As Variant
-    Dim vVatSums        As Variant
     Dim vTaxRates       As Variant
+    Dim vPmtSum         As Variant
+    Dim vRevSum         As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lOffset         As Long
+    Dim lRevOffset      As Long
     
     On Error GoTo EH
     bPrevExceptions = pvSetExceptions(False)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, IIf(IsDaisy, "T", vbNullString)
-    vTotals = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups1", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, IIf(IsIncotex, vbNullString, "1")
-    vVatSums = Split(SendCommand(eCmd, sParam), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsIslCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, IIf(IsDaisy, "T", "0"), _
+        "Offset", lOffset, IIf(IsIncotex Or IsDaisy, 1, 0)
+    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups5", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "5", _
+        "RevOffset", lRevOffset, IIf(IsIncotex Or IsDaisy, 1, 0)
+    vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     Exceptions = bPrevExceptions
-    lOffset = IIf(IsIncotex Or IsDaisy, 1, 0)
-    If UBound(vTotals) > 0 Or UBound(vVatSums) > 0 Then
+    If UBound(vPmtSum) > 0 Or UBound(vRevSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            If UBound(vVatSums) >= lIdx + lOffset Then
-                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset, At(vVatSums, lIdx + lOffset))), C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + lOffset)))
-            Else
-                vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset)), C_Dbl(At(vTaxRates, lIdx)))
-            End If
+            vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
         Next
         GetTotalsByTaxGroups = vRetVal
     Else

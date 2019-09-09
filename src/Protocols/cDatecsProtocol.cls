@@ -1429,22 +1429,29 @@ End Function
 Public Function GetTotalsByPayments() As Variant
     Const FUNC_NAME     As String = "GetTotalsByPayments"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim vSplit          As Variant
+    Dim vPmtSum         As Variant
+    Dim vRevSum         As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim lJdx            As Long
+    Dim lPmtIndex       As Long
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
+    Dim lOffset         As Long
+    Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "0" & DEF_SEP
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 7) As Double
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "0" & DEF_SEP, _
+        "Offset", lOffset, 1
+    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "1" & DEF_SEP, _
+        "RevOffset", lRevOffset, 1
+    vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If UBound(vPmtSum) > 0 Then
+        ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            lJdx = pvToDevicePmtIndex(lIdx + 1)
-            If lJdx >= 0 Then
-                vRetVal(lIdx) = ParseSum(At(vSplit, lJdx + 1))
+            lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
+            If lPmtIndex >= 0 Then
+                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
             End If
         Next
         GetTotalsByPayments = vRetVal
@@ -1459,31 +1466,33 @@ End Function
 Public Function GetTotalsByTaxGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim vTotals         As Variant
-    Dim vVatSums        As Variant
     Dim vTaxRates       As Variant
+    Dim vPmtSum         As Variant
+    Dim vRevSum         As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim lOffset         As Long
+    Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsDcsCmdInfoTotalsByTaxGroups, sParam, "0" & DEF_SEP
-    vTotals = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups1", eCmd, ucsDcsCmdInfoTotalsByTaxGroups, sParam, "1" & DEF_SEP
-    vVatSums = Split(SendCommand(eCmd, sParam), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", 0, 0, sParam, "valVat", _
         "Offset", lOffset, 0
     ReDim vTaxRates(0 To 7) As String
     For lIdx = 0 To UBound(vTaxRates)
         vTaxRates(lIdx) = pvSettings(sParam, lIdx + lOffset)
     Next
-    lOffset = 2
-    If UBound(vTotals) > 0 And UBound(vVatSums) > 0 Then
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsDcsCmdInfoTotalsByTaxGroups, sParam, "0" & DEF_SEP, _
+        "Offset", lOffset, 2
+    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups2", eCmd, ucsDcsCmdInfoTotalsByTaxGroups, sParam, "2" & DEF_SEP, _
+        "RevOffset", lRevOffset, 2
+    vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If UBound(vPmtSum) > 0 And UBound(vRevSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = Array(ParseSum(At(vTotals, lIdx + lOffset)), ParseSum(At(vTaxRates, lIdx)), ParseSum(At(vVatSums, lIdx + lOffset)))
+            vRetVal(lIdx) = Array(ParseSum(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
         Next
         GetTotalsByTaxGroups = vRetVal
     Else

@@ -1545,18 +1545,20 @@ Public Function GetTotalsByPayments() As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim lPmtIndex       As Long
+    Dim lOffset         As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "4"
+    pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "4", _
+        "Offset", lOffset, 1
     vPayments = Split(SendCommand(eCmd, sParam), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoRegisters6", eCmd, ucsZekCmdInfoRegisters, sParam, "6"
     vChanges = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPayments) > 0 Then
-        ReDim vRetVal(0 To 7) As Double
+        ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = ParseSum(At(vPayments, lPmtIndex + 1)) - ParseSum(At(vChanges, lPmtIndex + 1))
+                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)), 0)
             End If
         Next
         GetTotalsByPayments = vRetVal
@@ -1571,22 +1573,24 @@ End Function
 Public Function GetTotalsByTaxGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim vTaxGroups      As Variant
     Dim vTaxRates       As Variant
+    Dim vPmtSum         As Variant
     Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
+    Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString
-    vTaxGroups = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
-    If UBound(vTaxGroups) > 0 Then
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
+        "RevOffset", lRevOffset, 13
+    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
+    If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = Array(ParseSum(At(vTaxGroups, lIdx)), C_Dbl(At(vTaxRates, lIdx)))
+            vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx)), ParseSum(At(vPmtSum, lIdx + lRevOffset)))
         Next
         GetTotalsByTaxGroups = vRetVal
     Else
