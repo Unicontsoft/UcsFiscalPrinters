@@ -98,6 +98,8 @@ Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination
 Private Declare Function lstrlen Lib "kernel32" Alias "lstrlenA" (ByVal lpString As Long) As Long
 Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
+Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSADATA As Any) As Long
+Private Declare Function WSACleanup Lib "ws2_32" () As Long
 Private Declare Function ws_socket Lib "ws2_32" Alias "socket" (ByVal af As Long, ByVal s_type As Long, ByVal Protocol As Long) As Long
 Private Declare Function ws_closesocket Lib "ws2_32" Alias "closesocket" (ByVal s As Long) As Long
 Private Declare Function ws_connect Lib "ws2_32" Alias "connect" (ByVal s As Long, ByRef Name As SOCKADDR_IN, ByVal namelen As Long) As Long
@@ -537,11 +539,14 @@ End Function
 '=========================================================================
 
 Private Sub Class_Initialize()
+    ReDim baWSAData(0 To 1000) As Byte
+    Call WSAStartup(&H101, baWSAData(0))
     m_hSocket = INVALID_SOCKET
 End Sub
 
 Private Sub Class_Terminate()
     Close_
+    Call WSACleanup
 End Sub
 
 '=========================================================================
