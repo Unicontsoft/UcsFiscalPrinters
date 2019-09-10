@@ -1514,7 +1514,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Sub pvPrintLine(vText As Variant)
+Private Function pvPrintLine(vText As Variant) As Boolean
     Const FUNC_NAME     As String = "pvPrintLine"
     Const CONF_NAME     As String = "PrintLine"
     Dim vElem               As Variant
@@ -1526,14 +1526,23 @@ Private Sub pvPrintLine(vText As Variant)
     If IsArray(vText) Then
         For Each vElem In vText
             SendCommand eCmd, Printf(sParam, C_Str(vElem))
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
         Next
     Else
         SendCommand eCmd, Printf(sParam, C_Str(vText))
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
     End If
-    Exit Sub
+    '--- success
+    pvPrintLine = True
+QH:
+    Exit Function
 EH:
     RaiseError FUNC_NAME
-End Sub
+End Function
 
 Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
     Const FUNC_NAME     As String = "pvPrintReceipt"
