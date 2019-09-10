@@ -2650,9 +2650,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             txtTaxCountry.Text = At(vResult, 3)
             labTaxCountry.Caption = Split(STR_TAXCOUNTRY, "|")(1)
         End If
-        m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsIslCmdInitDecimals), ",")
-        m_oFP.Exceptions = True
         If UBound(vResult) > 0 Then
             txtTaxDecimals.Text = C_Lng(At(vResult, 1))
             txtTaxCurrency.Text = Trim(At(vResult, 2))
@@ -2673,7 +2671,6 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         txtDateTime.Text = At(vResult, 1)
         tmrDate_Timer
     Case ucsCmdHeaderFooter
-        m_oFP.Exceptions = False
         txtHeadHeader1.Text = m_oFP.SendCommand(ucsIslCmdInitHeaderFooter, "I0")
         LockControl(txtHeadHeader1) = m_oFP.Status(ucsIslStbPrintingError)
         txtHeadHeader2.Text = m_oFP.SendCommand(ucsIslCmdInitHeaderFooter, "I1")
@@ -2715,9 +2712,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         LockControl(chkHeadSumDivider) = m_oFP.Status(ucsIslStbPrintingError)
         chkHeadVat.Value = -(m_oFP.SendCommand(ucsIslCmdInitHeaderFooter, "IT") = "1")
         LockControl(chkHeadVat) = m_oFP.Status(ucsIslStbPrintingError)
-        m_oFP.Exceptions = True
     Case ucsCmdInvoiceNo
-        m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsIslCmdInitInvoiceNo), ",")
         txtInvStart.Text = C_Dbl(At(vResult, 0))
         txtInvEnd.Text = C_Dbl(At(vResult, 1))
@@ -2766,9 +2761,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
             LockControl(lstSettings) = True
             LockControl(txtSettValue) = True
         End If
-        m_oFP.Exceptions = True
     Case ucsCmdPaymentTypes
-        m_oFP.Exceptions = False
         If m_oFP.IsDaisy Then
             For lIdx = 0 To 7
                 txtPmtType(lIdx).Text = m_oFP.SendCommand(ucsIslCmdExtendedInitText, "R" & (60 + lIdx))
@@ -2811,9 +2804,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                 txtPmtRate(lIdx).Visible = False
             Next
         End If
-        m_oFP.Exceptions = True
     Case ucsCmdOperators
-        m_oFP.Exceptions = False
         If Not IsArray(m_vOpers) Then
             ReDim m_vOpers(0 To LNG_NUM_OPERS) As Variant
         End If
@@ -2835,9 +2826,7 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         Next
         lstOpers_Click
         pvStatus = vbNullString
-        m_oFP.Exceptions = True
     Case ucsCmdDepartments
-        m_oFP.Exceptions = False
         If Not IsArray(m_vDeps) Then
             ReDim m_vDeps(0 To LNG_NUM_DEPS) As Variant
         End If
@@ -2865,7 +2854,6 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         Next
         lstDeps_Click
         pvStatus = vbNullString
-        m_oFP.Exceptions = True
     Case ucsCmdItems
         If Not IsArray(m_vItems) Then
             lstItems.Clear
@@ -2894,7 +2882,6 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
         Next
         lstItems_Click
     Case ucsCmdGraphicalLogo
-        m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsIslCmdInitHeaderFooter, "IL"), ",")
         chkLogoPrint.Value = IIf(At(vResult, UBound(vResult)) = "1", vbChecked, vbUnchecked)
         LockControl(chkLogoPrint) = m_oFP.Status(ucsIslStbPrintingError)
@@ -2954,15 +2941,12 @@ Private Function pvFetchData(ByVal eCmd As UcsCommands) As Boolean
                 Call SetPixel(picLogo.hDC, lIdx, lRow, IIf(pvLogoPixel(lIdx, lRow), LNG_LOGO_FORECOLOR, vbWhite))
             Next
         Next
-        m_oFP.Exceptions = True
     Case ucsCmdCashOper
-        m_oFP.Exceptions = False
         vResult = Split(m_oFP.SendCommand(ucsIslCmdFiscalServiceDeposit), ",")
         txtCashTotal.Text = Format$(C_Dbl(At(vResult, 1)) / 100, FORMAT_CURRENCY)
         txtCashIn.Text = Format$(C_Dbl(At(vResult, 2)) / 100, FORMAT_CURRENCY)
         txtCashOut.Text = Format$(C_Dbl(At(vResult, 3)) / 100, FORMAT_CURRENCY)
         LockControl(txtCashSum) = m_oFP.Status(ucsIslStbPrintingError)
-        m_oFP.Exceptions = True
     Case ucsCmdReports
         '--- do nothing
     Case ucsCmdStatus
@@ -3059,7 +3043,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
     Case ucsCmdDateTime
         m_oFP.SendCommand ucsIslCmdInitDateTime, txtDateDate.Text & " " & txtDateTime.Text
     Case ucsCmdHeaderFooter
-        m_oFP.Exceptions = False
         If Not LockControl(txtHeadHeader1) Then
             m_oFP.SendCommand ucsIslCmdInitHeaderFooter, "0" & RTrim(txtHeadHeader1.Text)
         End If
@@ -3102,7 +3085,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         If Not LockControl(chkHeadVat) Then
             m_oFP.SendCommand ucsIslCmdInitHeaderFooter, "T" & chkHeadVat.Value
         End If
-        m_oFP.Exceptions = True
     Case ucsCmdDepartments
         If LenB(txtDepNo.Text) = 0 Then
             pvStatus = STR_STATUS_NO_DEP_SELECTED
@@ -3182,7 +3164,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
             Else
                 eCmd = ucsIslCmdPrintDailyReport
             End If
-            m_oFP.Exceptions = False
             '--- "rychno" razpechatwane na elektronna kontrolna lenta
             If chkReportClosure.Value = vbChecked Then
                 vResult = Split(m_oFP.SendCommand(ucsIslCmdInitEcTape, "I"), ",")
@@ -3204,7 +3185,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                     vResult = m_oFP.SendCommand(ucsIslCmdPrintDailyReportItems, IIf(chkReportClosure.Value = vbChecked, "8", "9") & "N")
                 End If
             End If
-            m_oFP.Exceptions = True
         ElseIf optReportType(2).Value Then '--- by number
             If chkReportDetailed1.Value Then
                 eCmd = ucsIslCmdPrintReportByNumberDetailed
@@ -3246,13 +3226,11 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                 End If
             Next
         Else
-            m_oFP.Exceptions = False
             For lIdx = 4 To 7
                 If Not LockControl(txtPmtType(lIdx)) Then
                     m_oFP.SendCommand ucsIslCmdInitPaymentType, Chr$(69 + lIdx) & "," & txtPmtType(lIdx).Text
                 End If
             Next
-            m_oFP.Exceptions = True
         End If
     Case ucsCmdItems
         If LenB(cobItemGroup.Text) = 0 Then
@@ -3285,7 +3263,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
         m_vItems(lIdx) = txtItemPLU.Text
     Case ucsCmdGraphicalLogo
         If Not LockControl(chkLogoPrint) Then
-            m_oFP.Exceptions = False
             m_oFP.SendCommand ucsIslCmdInitHeaderFooter, "L" & chkLogoPrint.Value
             If m_oFP.Status(ucsIslStbPrintingError) Then
                 m_oFP.SendCommand ucsIslCmdInitHeaderFooter, "L" & (UBound(m_vLogo) + 1) & "," & chkLogoPrint.Value
@@ -3297,7 +3274,6 @@ Private Function pvSaveData(ByVal eCommand As UcsCommands) As Boolean
                     End If
                 End If
             End If
-            m_oFP.Exceptions = False
         End If
         If Not m_picLogo Is Nothing Then
             For lIdx = 0 To UBound(m_vLogo)
@@ -3809,7 +3785,6 @@ Private Sub cmdStatusReset_Click()
         End If
     End If
     pvStatus = STR_STATUS_RESETTING
-    m_oFP.Exceptions = False
 '    If Left$(m_oFP.SendCommand(ucsIslCmdInfoTransaction), 1) = "1" Then
 '        If m_oFP.Status(ucsIslStbFiscalPrinting) Then
             '--- note: when printing invoice, if no contragent info set then cancel fails!
@@ -3822,7 +3797,6 @@ Private Sub cmdStatusReset_Click()
             m_oFP.SendCommand ucsIslCmdNonFiscalClose
 '        End If
 '    End If
-    m_oFP.Exceptions = True
     pvFetchData ucsCmdStatus
     pvStatus = vbNullString
     If m_oFP.IsConnected Then
