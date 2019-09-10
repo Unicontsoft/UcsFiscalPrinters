@@ -553,7 +553,7 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 4999)
     Else
         m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
