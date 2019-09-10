@@ -16,6 +16,7 @@ Class=IDeviceConnector; Connectors\IDeviceConnector.cls
 Class=cSocketConnector; Connectors\cSocketConnector.cls
 Class=cSerialPortConnector; Connectors\cSerialPortConnector.cls
 Class=cDatecsProtocol; Protocols\cDatecsProtocol.cls
+Module=mdProtocolPrintData; Protocols\mdProtocolPrintData.bas
 Startup="Sub Main"
 HelpFile=""
 Title="Fiscal Printers"
