@@ -178,11 +178,14 @@ Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|576
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0000"
+Private Const DEF_SOCKET_PORT           As Long = 4999
+Private Const DEF_SERIAL_PORT           As String = "COM1"
+Private Const DEF_SERIAL_SPEED          As Long = 115200
 Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_ITEM_CHARS            As Long = 72
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
+Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 16
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
@@ -562,10 +565,10 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 4999)
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DEF_SOCKET_PORT)
     Else
-        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DEF_SERIAL_PORT) & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
             "," & JsonItem(oOptions, "Persistent") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
             "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _

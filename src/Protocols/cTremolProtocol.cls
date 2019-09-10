@@ -152,6 +152,9 @@ Private Const DEF_PRINT_TIMEOUT         As Long = 30000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_ECR_PASSWORD          As String = "0"
 Private Const DEF_FP_PASSWORD           As String = "0000"
+Private Const DEF_SOCKET_PORT           As Long = 8000
+Private Const DEF_SERIAL_PORT           As String = "COM1"
+Private Const DEF_SERIAL_SPEED          As Long = 115200
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
@@ -596,10 +599,10 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), 9100)
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DEF_SOCKET_PORT)
     Else
-        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), "COM1") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), 9600) & _
+        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DEF_SERIAL_PORT) & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
             "," & JsonItem(oOptions, "Persistent") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
             "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
