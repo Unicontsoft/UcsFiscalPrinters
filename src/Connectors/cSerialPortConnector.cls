@@ -38,7 +38,7 @@ Implements IDeviceConnector
 Private Const INVALID_HANDLE_VALUE          As Long = -1
 Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- for WaitCommEvent
-Private Const EV_RXCHAR                     As Long = &H1                '  Any Character received
+Private Const EV_RXCHAR                     As Long = &H1
 Private Const EV_ERR                        As Long = &H80
 '--- for WaitForMultipleObjects
 Private Const WAIT_OBJECT_0                 As Long = 0
@@ -47,8 +47,8 @@ Private Const WAIT_TIMEOUT                  As Long = 258
 Private Const ERROR_IO_PENDING              As Long = 997
 Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
-Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
-Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
+Private Const PURGE_TXCLEAR                 As Long = &H4
+Private Const PURGE_RXCLEAR                 As Long = &H8
 
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
@@ -106,7 +106,7 @@ End Type
 Private Type OVERLAPPED
     Internal                    As Long
     InternalHigh                As Long
-    offset                      As Long
+    Offset                      As Long
     OffsetHigh                  As Long
     hEvent                      As Long
 End Type

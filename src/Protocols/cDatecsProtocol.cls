@@ -139,8 +139,8 @@ End Enum
 '--- error codes
 Private Const ERROR_IO_PENDING              As Long = 997
 '--- for PurgeComm
-Private Const PURGE_TXCLEAR                 As Long = &H4     '  Kill the transmit queue if there.
-Private Const PURGE_RXCLEAR                 As Long = &H8     '  Kill the typeahead buffer if there.
+Private Const PURGE_TXCLEAR                 As Long = &H4
+Private Const PURGE_RXCLEAR                 As Long = &H8
 
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
