@@ -69,9 +69,11 @@ Public Type UcsPpdRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
+    InitTableNo         As String
     InitUniqueSaleNo    As String
     InitInvData         As Variant
     InitRevData         As Variant
+    InitOwnData         As Variant
     PluName             As String
     PluPrice            As Double
     PluQuantity         As Double
