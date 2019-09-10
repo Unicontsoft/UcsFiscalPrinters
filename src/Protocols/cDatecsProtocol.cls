@@ -958,9 +958,7 @@ Public Function EndReceipt(sResumeTicket As String) As Boolean
         .Row = C_Lng(At(vSplit, lPos)): lPos = lPos + 1
     End With
     '--- fix fiscal receipts with for more than m_uConfig.MaxReceiptRows PLUs
-    If m_uRow(0).InitReceiptType = ucsFscRcpSale Or m_uRow(0).InitReceiptType = ucsFscRcpInvoice Then
-        pvConvertExtraRows
-    End If
+    pvConvertExtraRows
     '--- append final payment (total)
     With m_uRow(pvAddRow())
         .RowType = ucsRowPayment
@@ -983,18 +981,15 @@ Public Function GetResumeTicket() As String
         pvSetLastError pvInternal(ucsErrNoReceiptStarted)
         GoTo QH
     End If
-    '--- only fiscal receipts need resume ticket if payment processed
-    Select Case m_uRow(0).InitReceiptType
-    Case ucsFscRcpSale, ucsFscRcpInvoice
-        With m_uCtxPrint
-            If .PmtPrinted Then
-                For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                    GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & STR_CHR1
-                Next
-                GetResumeTicket = GetResumeTicket & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
-            End If
-        End With
-    End Select
+    '--- need resume ticket only if payment processed
+    With m_uCtxPrint
+        If .PmtPrinted Then
+            For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
+                GetResumeTicket = GetResumeTicket & .GrpTotal(lIdx) & STR_CHR1
+            Next
+            GetResumeTicket = GetResumeTicket & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
+        End If
+    End With
 QH:
     Exit Function
 EH:
