@@ -476,76 +476,76 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
     Do While lRow < uData.RowCount
         '--- note: 'With' locks uData.Row array and fails if auto-grow needed in PpdAddPLU
 '        With uData.Row(lRow)
-            If uData.Row(lRow).RowType = ucsRowPlu Then
-                dblPrice = uData.Row(lRow).PluPrice
-                dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, 2)
-                dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, 2)
-                If Not uData.Config.NegativePrices And dblPrice <= 0 Then
-                    vSplit = WrapText(uData.Row(lRow).PluName, uData.Config.ItemChars)
-                    lIdx = LimitLong(UBound(vSplit), , 1)
-                    vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
-                    uData.Row(lRow).RowType = ucsRowLine
-                    uData.Row(lRow).LineText = vSplit(0)
-                    If lIdx > 0 Then
-                        PpdAddLine uData, At(vSplit, 1), False, lRow + 1
-                        lRow = lRow + 1
-                    ElseIf lIdx = 0 And uData.Row(lRow).PluQuantity <> 1 Then
-                        PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, "0.000") & " x " & SafeFormat(uData.Row(lRow).PluPrice, "0.00"), pvCommentChars(uData) - 2), False, lRow
-                    End If
-                    If dblPrice < -DBL_EPSILON Then
-                        PpdAddDiscount uData, ucsFscDscSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
-                    End If
-                ElseIf (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) Then
-                    dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
-                    If uData.Config.AbsoluteDiscount Then
-                        uData.Row(lRow).DiscType = ucsFscDscPluAbs
-                        uData.Row(lRow).DiscValue = dblDiscTotal
-                    ElseIf dblDiscTotal = Round(dblTotal * dblDiscount / 100#, 2) Then
-                        uData.Row(lRow).DiscValue = dblDiscount
-                    Else
-                        dblDiscount = uData.Row(lRow).DiscValue
-                        uData.Row(lRow).DiscType = 0
-                        uData.Row(lRow).DiscValue = 0
-                        PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                            dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
-                    End If
-                ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
-                    '--- convert PLU discount on void rows
-                    If uData.Config.AbsoluteDiscount Then
-                        uData.Row(lRow).DiscType = ucsFscDscPluAbs
-                        uData.Row(lRow).DiscValue = dblDiscTotal
-                    Else
-                        dblDiscount = uData.Row(lRow).DiscValue
-                        uData.Row(lRow).DiscType = 0
-                        uData.Row(lRow).DiscValue = 0
-                        PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                                dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
-                    End If
+        If uData.Row(lRow).RowType = ucsRowPlu Then
+            dblPrice = uData.Row(lRow).PluPrice
+            dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, 2)
+            dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, 2)
+            If Not uData.Config.NegativePrices And dblPrice <= 0 Then
+                vSplit = WrapText(uData.Row(lRow).PluName, uData.Config.ItemChars)
+                lIdx = LimitLong(UBound(vSplit), , 1)
+                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
+                uData.Row(lRow).RowType = ucsRowLine
+                uData.Row(lRow).LineText = vSplit(0)
+                If lIdx > 0 Then
+                    PpdAddLine uData, At(vSplit, 1), False, lRow + 1
+                    lRow = lRow + 1
+                ElseIf lIdx = 0 And uData.Row(lRow).PluQuantity <> 1 Then
+                    PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, "0.000") & " x " & SafeFormat(uData.Row(lRow).PluPrice, "0.00"), pvCommentChars(uData) - 2), False, lRow
                 End If
-            ElseIf uData.Row(lRow).RowType = ucsRowDiscount Then
-                If (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) And uData.Row(lRow).DiscType = ucsFscDscSubtotal Then
-                    pvGetSubtotals uData, lRow, uSum
-                    dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
-                    lCount = 0
-                    For lIdx = 1 To UBound(uSum.GrpTotal)
-                        If Round(uSum.GrpTotal(lIdx) * uData.Row(lRow).DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
-                            lCount = lCount + 1
-                        End If
-                    Next
-                    If lCount = 0 Then
-                        uData.Row(lRow).DiscValue = dblDiscount
-                    Else
-                        dblDiscount = uData.Row(lRow).DiscValue
-                        uData.Row(lRow).DiscValue = 0
-                        For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
-                            If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
-                                PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
-                                    Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
-                            End If
-                        Next
-                    End If
+                If dblPrice < -DBL_EPSILON Then
+                    PpdAddDiscount uData, ucsFscDscSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
+                End If
+            ElseIf (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) Then
+                dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
+                If uData.Config.AbsoluteDiscount Then
+                    uData.Row(lRow).DiscType = ucsFscDscPluAbs
+                    uData.Row(lRow).DiscValue = dblDiscTotal
+                ElseIf dblDiscTotal = Round(dblTotal * dblDiscount / 100#, 2) Then
+                    uData.Row(lRow).DiscValue = dblDiscount
+                Else
+                    dblDiscount = uData.Row(lRow).DiscValue
+                    uData.Row(lRow).DiscType = 0
+                    uData.Row(lRow).DiscValue = 0
+                    PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                        dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
+                End If
+            ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
+                '--- convert PLU discount on void rows
+                If uData.Config.AbsoluteDiscount Then
+                    uData.Row(lRow).DiscType = ucsFscDscPluAbs
+                    uData.Row(lRow).DiscValue = dblDiscTotal
+                Else
+                    dblDiscount = uData.Row(lRow).DiscValue
+                    uData.Row(lRow).DiscType = 0
+                    uData.Row(lRow).DiscValue = 0
+                    PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                            dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
                 End If
             End If
+        ElseIf uData.Row(lRow).RowType = ucsRowDiscount Then
+            If (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) And uData.Row(lRow).DiscType = ucsFscDscSubtotal Then
+                pvGetSubtotals uData, lRow, uSum
+                dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
+                lCount = 0
+                For lIdx = 1 To UBound(uSum.GrpTotal)
+                    If Round(uSum.GrpTotal(lIdx) * uData.Row(lRow).DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
+                        lCount = lCount + 1
+                    End If
+                Next
+                If lCount = 0 Then
+                    uData.Row(lRow).DiscValue = dblDiscount
+                Else
+                    dblDiscount = uData.Row(lRow).DiscValue
+                    uData.Row(lRow).DiscValue = 0
+                    For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
+                        If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
+                            PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                                Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
+                        End If
+                    Next
+                End If
+            End If
+        End If
 '        End With
         lRow = lRow + 1
     Loop
