@@ -209,6 +209,7 @@ Private Function pvCollectPrinters() As Object
     Dim oRetVal         As Object
     Dim sDeviceString   As String
     Dim sKey            As String
+    Dim oAliases        As Object
     
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
@@ -259,14 +260,17 @@ Private Function pvCollectPrinters() As Object
                         JsonItem(oJson, "Host") = GetErrorComputerName()
                         JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
-                        JsonItem(oRetVal, "Aliases/Count") = JsonItem(oRetVal, "Aliases/Count") + 1
-                        JsonItem(oRetVal, "Aliases/" & vKey & "/DeviceSerialNo") = sKey
                         JsonItem(oRetVal, sKey) = oJson
+                        JsonItem(oAliases, "Count") = JsonItem(oRetVal, "Aliases/Count") + 1
+                        JsonItem(oAliases, vKey & "/DeviceSerialNo") = sKey
                     End If
                 End If
             End If
         End If
     Next
+    If Not oAliases Is Nothing Then
+        JsonItem(oRetVal, "Aliases") = oAliases
+    End If
     Set pvCollectPrinters = oRetVal
     Exit Function
 EH:
