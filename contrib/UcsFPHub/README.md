@@ -51,7 +51,7 @@ Currently the `UcsFPHub` service supports these environment variables:
  - `_UCS_FISCAL_PRINTER_DATA_DUMP` set to `1` to dump data transfer too
  - `_UCS_FP_HUB_LOG` to specify client connections `c:\path\to\UcsFPHub.log` log file
  
-### DeviceString
+### Device string
 
 The device strings are used to configure the connection used for communication with the fiscal device through a list of `Name=Value` pairs separated by `;` delimiter very similar to database connection strings.
 
@@ -59,7 +59,7 @@ Here is a (short) list of supported `Name` entries:
 
 Name             | Type   | Description
 ----             | ----   | -----------
-`Protocol`       | string | Whether to use ISL protocol (`DATECS FP/ECR`, `DAISY FP/ECR` and `INCOTEX FP/ECR`), Tremol protocol (`TREMOL ECR`) or ESP/POS protocol (`ESC/POS`) for communication with the device
+`Protocol`       | string | See **Available protocols** below
 `Port`           | string | Serial port the device is attached to (e.g. `COM1`)
 `Speed`          | number | Controls serial port speed to use (e.g. `9600`)
 `Persistent`     | bool   | Controls if serial port is closed after each operation or not (e.g. `Y` or `N`)
@@ -68,12 +68,25 @@ Name             | Type   | Description
 `CodePage`       | number | Code page to use when encoding strings to/from the device (e.g. `866` or `1251`)
 `RowChars`       | number | Max number of characters on line (depends on the device model and paper loaded)
 `ItemChars`      | number | Max number of characters in a product name (defaults to `RowChars - 5`)
-`MaxReceiptRows` | number | ISL/Tremol
-`MinDiscount`    | number | ISL/Tremol
-`MaxDiscount`    | number | ISL/Tremol
-`MaxPaymentLen`  | number | ISL
-`PingTimeout`    | number | Tremol
-`DetailedReceipt`| bool   | Tremol
+`MinDiscount`    | number | e.g. -99%
+`MaxDiscount`    | number | e.g. 99%
+`MaxReceiptRows` | number | Max number of rows on the receipt supported
+`MaxPaymentLen`  | number | Max number of symbols in a payment name
+`PingTimeout`    | number | Tremol only
+`DetailedReceipt`| bool   | Tremol only
+
+### Available protocols
+
+Here is a complete list of implemented protocols with corresponding tested and supported models:
+
+Name             | Manufacturer | Tested models  | Other supported models
+----             | ------------ | -------------  | ----------------------
+`TREMOL ECR`     | Tremol Ltd.  | M20            | M23
+`DATECS X`       | Datecs Ltd.  | DP-25X         | All X models
+`DATECS FP/ECR`  | Datecs Ltd.  | DP-25, FP-650  | All A and B models
+`DAISY FP/ECR`   | Daisy Ltd.   | N/A            |
+`INCOTEX FP/ECR` | Incotex Ltd. | 777            |
+`ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
 
 ### Command-line options
 
