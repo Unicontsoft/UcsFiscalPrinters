@@ -233,6 +233,15 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtTaxNo
 End Enum
 
+Private Enum UcsProtocolMarkers
+    SYM_PREAMBLE = &H1
+    SYM_TERMINATOR = &H3
+    SYM_SEPARATOR = &H4
+    SYM_POSTAMBLE = &H5
+    SYM_NAK = &H15
+    SYM_SYN = &H16
+End Enum
+
 Private Type UcsAutodetect
     Connector           As cSerialPortConnector
     WriteOver           As OVERLAPPED
@@ -426,8 +435,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(&H1) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3B) & Chr$(&H20) & Chr$(&H30) & Chr$(&H30) & Chr$(&H35) & Chr$(&H3A) & Chr$(&H9) & Chr$(&H5) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H3A) & Chr$(&H3))
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H16))  '--- SYN (&H16)
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3B) & Chr$(&H20) & Chr$(&H30) & Chr$(&H30) & Chr$(&H35) & Chr$(&H3A) & Chr$(&H9) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H3A) & Chr$(SYM_TERMINATOR))
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN)) ' SYN (&H16)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_X, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -744,7 +753,7 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Case ucsFscRstDailyByDepartment
         pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsDcsCmdPrintDailyReport, sParam, "D" & DEF_SEP
     Case Else
-        pvSetLastError pvInternal(ucsErrInvalidReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
     End Select
     SendCommand eCmd, sParam
@@ -771,7 +780,7 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Case ucsFscRstDaily
         pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsDcsCmdPrintDailyReport, sParam, "Z" & DEF_SEP
     Case Else
-        pvSetLastError pvInternal(ucsErrInvalidReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
     End Select
     SendCommand eCmd, sParam
@@ -908,7 +917,7 @@ Public Function GetTaxNo() As String
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoSetting", 0, 0, sParam, "TAXnumber"
+    pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "TAXnumber"
     GetTaxNo = RTrim$(pvSettings(sParam))
     Exit Function
 EH:
@@ -921,7 +930,7 @@ Public Function GetTaxCaption() As String
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoSetting", 0, 0, sParam, "TAXlabel"
+    pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "TAXlabel"
     GetTaxCaption = RTrim$(pvSettings(sParam))
     Exit Function
 EH:
@@ -935,7 +944,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     
     On Error GoTo EH
     If Index >= 1 And Index <= 10 Then
-        pvGetCommandConfig CONF_NAME, "InfoSetting", 0, 0, sParam, "Header"
+        pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "Header"
         GetHeaderText = RTrim$(pvSettings(sParam, Index - 1))
     End If
     Exit Function
@@ -950,7 +959,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     
     On Error GoTo EH
     If Index >= 1 And Index <= 10 Then
-        pvGetCommandConfig CONF_NAME, "InfoSetting", 0, 0, sParam, "Footer"
+        pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "Footer"
         GetFooterText = RTrim$(pvSettings(sParam, Index - 1))
     End If
     Exit Function
@@ -971,7 +980,7 @@ Public Function GetPaymentName(ByVal Index As Long) As String
     End If
     If Index > 3 Then
         lIndex = pvToDevicePmtIndex(Index)
-        pvGetCommandConfig CONF_NAME, "InfoSetting" & Index, 0, 0, sParam, "PayName", _
+        pvGetCommandConfig CONF_NAME, "InfoSettings" & Index, 0, 0, sParam, "PayName", _
             "Index", lIndex, lIndex
         If lIndex >= 0 Then
             GetPaymentName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
@@ -1289,7 +1298,7 @@ Public Function GetOperatorName(OperatorCode As String) As String
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoSetting", 0, 0, sParam, "OperName"
+    pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "OperName"
     GetOperatorName = pvSettings(sParam, C_Lng(OperatorCode))
     Exit Function
 EH:
@@ -1326,7 +1335,7 @@ Private Function pvSendCommand( _
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     '--- prepare command and transcode cyrillic
     sSend = pvTranscode(Data, True)
-    sSend = STR_CHR1 & pvToWireLong(&H20 + 10 + Len(sSend)) & Chr$(m_lSequence) & pvToWireLong(eCmd) & sSend & Chr$(5)
+    sSend = STR_CHR1 & pvToWireLong(&H20 + 10 + Len(sSend)) & Chr$(m_lSequence) & pvToWireLong(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
@@ -1335,7 +1344,7 @@ Private Function pvSendCommand( _
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
-    sSend = sSend & pvToWireLong(lSum) & Chr$(3)
+    sSend = sSend & pvToWireLong(lSum) & Chr$(SYM_TERMINATOR)
     '--- send request
     dblTimer = TimerEx + lTimeout / 1000
 RetrySend:
@@ -1348,7 +1357,7 @@ RetrySend:
     End If
     '--- read response
     sText = vbNullString
-    Do While Right$(sText, 1) <> Chr$(3)
+    Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
         If TimerEx > dblTimer Then
             Error = pvInternal(ucsErrTimeoutWaitingForResponse)
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
@@ -1362,24 +1371,24 @@ RetrySend:
         sBuffer = FromAscii(baText)
         DebugDataDump FUNC_NAME, "recv ", sBuffer
         '--- check for NAK (&H15)
-        If InStr(sBuffer, Chr$(&H15)) > 0 Then
+        If InStr(sBuffer, Chr$(SYM_NAK)) > 0 Then
             DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
             GoTo RetrySend
         End If
         '--- remove SYN (&H16)
-        sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
+        sText = sText & Replace(sBuffer, Chr$(SYM_SYN), vbNullString)
     Loop
 RetryParse:
-    '--- response complete w/ 3 = Terminator
-    Debug.Assert Right$(sText, 1) = Chr$(3)
+    '--- response complete w/ TERMINATOR (&H3)
+    Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
     If Left$(sText, 1) = STR_CHR1 Then
-        lIdx = InStr(sText, Chr$(5))
+        lIdx = InStr(sText, Chr$(SYM_POSTAMBLE))
         If lIdx > 5 Then
             lSize = pvFromWireLong(Mid$(sText, 2, 4)) - &H20
             '--- check message length
             If lSize >= 10 And lSize < lIdx Then
                 '--- check for status info
-                lIdx = InStrRev(sText, Chr$(4), lIdx)
+                lIdx = InStrRev(sText, Chr$(SYM_SEPARATOR), lIdx)
                 If lIdx > 10 Then
                     pvSetStatus Mid$(sText, lIdx + 1, 8)
                     lSize = lIdx - 1

@@ -347,6 +347,15 @@ Private Enum UcsCharset
     ucsCrsMik
 End Enum
 
+Private Enum UcsProtocolMarkers
+    SYM_PREAMBLE = &H1
+    SYM_TERMINATOR = &H3
+    SYM_SEPARATOR = &H4
+    SYM_POSTAMBLE = &H5
+    SYM_NAK = &H15
+    SYM_SYN = &H16
+End Enum
+
 Private Type UcsAutodetect
     Connector           As cSerialPortConnector
     WriteOver           As OVERLAPPED
@@ -589,7 +598,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lIdx            As Long
     Dim sProbeText      As String
     Dim sReplyText      As String
-    Dim sReplyText2     As String
+    Dim sReplyAlt     As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
@@ -607,9 +616,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(&H1) & Chr$(&H25) & Chr$(&H20) & Chr$(&H5A) & Chr$(&H30) & Chr$(&H5) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3D) & Chr$(&H34) & Chr$(&H3))
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(&H16))  '--- SYN (&H16)
-    sReplyText2 = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText2", Chr$(&H1))
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H20) & Chr$(&H5A) & Chr$(&H30) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3D) & Chr$(&H34) & Chr$(SYM_TERMINATOR))
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN))  '--- SYN (&H16)
+    sReplyAlt = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyAlt", Chr$(SYM_PREAMBLE))
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -684,7 +693,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     End If
                     If LenB(.Buffer) <> 0 Then
 '                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
-                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyText2)) = sReplyText2 Then
+                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyAlt)) = sReplyAlt Then
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
                             End If
@@ -1994,7 +2003,7 @@ Private Function pvSendCommand( _
         sSend = Chr$(eCmd Mod &H100) & sSend
         eCmd = eCmd \ &H100
     Loop
-    sSend = STR_CHR1 & Chr$(&H20 + 4 + Len(sSend)) & Chr$(m_lSequence) & Chr$(eCmd) & sSend & Chr$(5)
+    sSend = STR_CHR1 & Chr$(&H20 + 4 + Len(sSend)) & Chr$(m_lSequence) & Chr$(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
     '--- calc checksum
@@ -2003,7 +2012,7 @@ Private Function pvSendCommand( _
         lSum = lSum + baText(lIdx)
     Next
     '--- append checksum and terminator
-    sSend = sSend & Chr$((lSum \ &H1000 Mod &H10) + &H30) & Chr$((lSum \ &H100 Mod &H10) + &H30) & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(3)
+    sSend = sSend & pvToWireLong(lSum) & Chr$(SYM_TERMINATOR)
     '--- send request
     dblTimer = TimerEx + lTimeout / 1000
 RetrySend:
@@ -2016,7 +2025,7 @@ RetrySend:
     End If
     '--- read response
     sText = vbNullString
-    Do While Right$(sText, 1) <> Chr$(3)
+    Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
         If TimerEx > dblTimer Then
             Error = pvInternal(ucsErrTimeoutWaitingForResponse)
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
@@ -2038,16 +2047,16 @@ RetrySend:
         sText = sText & Replace(sBuffer, Chr$(&H16), vbNullString)
     Loop
 RetryParse:
-    '--- response complete w/ 3 = Terminator
-    Debug.Assert Right$(sText, 1) = Chr$(3)
+    '--- response complete w/ TERMINATOR (&H3)
+    Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
     If Left$(sText, 1) = STR_CHR1 Then
-        lIdx = InStr(sText, Chr$(5))
+        lIdx = InStr(sText, Chr$(SYM_POSTAMBLE))
         If lIdx > 2 Then
             lSize = Asc(Mid$(sText, 2, 1)) - &H20
             '--- check message length
             If lSize >= 4 And lSize < lIdx Then
                 '--- check for status info
-                lIdx = InStrRev(sText, Chr$(4), lIdx)
+                lIdx = InStrRev(sText, Chr$(SYM_SEPARATOR), lIdx)
                 If lIdx > 4 Then
                     pvSetStatus Mid$(sText, lIdx + 1, 6)
                     lSize = lIdx - 1
@@ -2081,6 +2090,10 @@ QH:
 EH:
     PrintError FUNC_NAME
     Resume Next
+End Function
+
+Private Function pvToWireLong(ByVal lValue As Long) As String
+    pvToWireLong = Chr$((lValue \ &H1000 Mod &H10) + &H30) & Chr$((lValue \ &H100 Mod &H10) + &H30) & Chr$((lValue \ &H10 Mod &H10) + &H30) & Chr$((lValue \ &H1 Mod &H10) + &H30)
 End Function
 
 Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As String
