@@ -76,8 +76,8 @@ Public Enum UcsFiscalLocalizedIndexesEnum
     ucsFscLciInternalErrors
     ucsFscLciPrinterStatuses
     ucsFscLciPrinterErrors
-    ucsFscLciDipSwitchesTexts
     ucsFscLciMemoryTexts
+    ucsFscLciDipSwitchesTexts
     ucsFscLciReceiptTexts
     ucsFscLciExtendedErrors
     ucsFscLciConnectorErrors
@@ -420,7 +420,7 @@ End Function
 '
 ' @param `Index`            [input] type of localized strings. See `UcsFiscalLocalizedIndexesEnum`
 '
-Public Sub SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
+Public Sub SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String, Optional ByVal ConfigIndex As Long)
 Attribute SetLocalizedText.VB_Description = "Used to set localized strings used for non-fiscal receipt texts and component internal errors"
 
 End Sub

@@ -2465,7 +2465,7 @@ Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean
     IDeviceProtocol_SetClock = SetClock(NewDate)
 End Function
 
-Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String)
+Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String, Optional ByVal ConfigIndex As Long)
     LocalizedText(Index) = Text
 End Sub
 
