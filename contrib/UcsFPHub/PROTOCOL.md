@@ -450,15 +450,16 @@ Name                  | Value   | Description
 
 Supported `PaymentType` values:
 
-Name                  | Value | Alt  | Description
-----                  | ----- | ---- | -----------
-`ucsFscPmtCash`       | 1     |      | Payment in cash
-`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card
-`ucsFscPmtCheque`     | 3     |      | Bank payment (if available)
-`ucsFscPmtCustom1`    | -1    | 5    | First custom payment (Талони)
-`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment (В.Талони)
-`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment (Резерв.1)
-`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment (Резерв.2)
+Name                  | Value | Alt  | Description                       | Device text              | XML code
+----                  | ----- | ---- | -----------                       | ----                     | ----
+`ucsFscPmtCash`       | 1     |      | Payment in cash                   | "В БРОЙ"                 | `SCash`
+`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card    | "ДЕБ.КАРТА", "С карта"   | `SCards`
+`ucsFscPmtBank`       | 3     |      | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"        | `SW`
+N/A                   | 4     |      | Payment by cheque                 | "ЧЕК", "С чек"           | `SChecks`
+`ucsFscPmtCustom1`    | -1    | 5    | First custom payment              | "КУПОН", "Талони"        | `ST`
+`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment             | "ВАУЧЕР", "В.Талони"     | `SOT`
+`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment              | "НЗОК", "Резерв.1"       | `SR1`
+`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment             | "Резерв.2"               | `SR2`
 
 Supported `ReversalType` values:
 
