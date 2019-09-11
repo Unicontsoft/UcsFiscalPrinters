@@ -193,6 +193,11 @@ Public Function NtServiceInstall(sServiceName As String, sDisplayName As String,
         Error = GetErrorDescription(lExitCode)
         GoTo QH
     End If
+    sParams = "failure " & ArgvQuote(sServiceName) & " actions= restart/0/restart/0/restart/0 reset= 0"
+    If Not ShellWait("sc", sParams, StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
+        Error = GetErrorDescription(lExitCode)
+        GoTo QH
+    End If
     If Not ShellWait("net", "start " & ArgvQuote(sServiceName), StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
         Error = GetErrorDescription(lExitCode)
         GoTo QH
