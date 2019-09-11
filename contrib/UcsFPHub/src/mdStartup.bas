@@ -261,7 +261,7 @@ Private Function pvCollectPrinters() As Object
                         JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         JsonItem(oRetVal, sKey) = oJson
-                        JsonItem(oAliases, "Count") = JsonItem(oRetVal, "Aliases/Count") + 1
+                        JsonItem(oAliases, "Count") = JsonItem(oAliases, "Count") + 1
                         JsonItem(oAliases, vKey & "/DeviceSerialNo") = sKey
                     End If
                 End If
