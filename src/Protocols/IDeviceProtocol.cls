@@ -288,12 +288,12 @@ End Function
 ''
 ' Used to finalize receipt payments and batch print the complete receipt
 '
-' @param `ResumeTicket`     [in, optional] if previous invocation failed can be used to resume printing on the same line
+' @param `ResumeToken`     [in, optional] if previous invocation failed can be used to resume printing on the same line
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
 '
-Public Function EndReceipt(Optional ResumeTicket As String) As Boolean
+Public Function EndReceipt(Optional ResumeToken As String) As Boolean
 Attribute EndReceipt.VB_Description = "Used to finalize receipt payments and batch print the complete receipt"
 
 End Function
@@ -636,15 +636,15 @@ Attribute PrintServiceDeposit.VB_Description = "Used to debit (and credit) cashd
 End Function
 
 ''
-' Used to retrieve resume-ticket after failed `EndReceipt`
+' Used to retrieve resume-token after failed `EndReceipt`
 '
 ' @return String encoded resume-ticket
 ' @remark Result can be passed to `EndReceipt` to resume printing exactly from the previsouly failed row e.g. if the
 ' device ran out-of-paper the operator can change the roll and resume printing and later print a brand new duplicate
 ' receipt for the end client.
 '
-Public Function GetResumeTicket() As String
-Attribute GetResumeTicket.VB_Description = "Used to retrieve resume-ticket after failed `EndReceipt`"
+Public Function GetResumeToken() As String
+Attribute GetResumeToken.VB_Description = "Used to retrieve resume-ticket after failed `EndReceipt`"
 
 End Function
 

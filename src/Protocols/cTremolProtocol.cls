@@ -2055,10 +2055,10 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_EndReceipt(Optional ResumeTicket As String) As Boolean
+Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
     m_uPrintData.Config.RowChars = pvRowChars
     m_uPrintData.Config.ItemChars = pvItemChars
-    If PpdEndReceipt(m_uPrintData, ResumeTicket) Then
+    If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
 End Function
@@ -2132,8 +2132,8 @@ Private Function IDeviceProtocol_GetPaymentName(ByVal Index As Long) As String
     IDeviceProtocol_GetPaymentName = GetPaymentName(Index)
 End Function
 
-Private Function IDeviceProtocol_GetResumeTicket() As String
-    IDeviceProtocol_GetResumeTicket = PpdGetResumeTicket(m_uPrintData)
+Private Function IDeviceProtocol_GetResumeToken() As String
+    IDeviceProtocol_GetResumeToken = PpdGetResumeToken(m_uPrintData)
 End Function
 
 Private Function IDeviceProtocol_GetDeviceSerialNo() As String

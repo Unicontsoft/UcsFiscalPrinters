@@ -259,7 +259,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vElem           As Variant
     Dim lIdx            As Long
-    Dim sResumeTicket   As String
+    Dim sResumeToken   As String
     Dim sPrevReceiptNo  As String
     Dim dLastDateTime   As Date
     
@@ -267,8 +267,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    sResumeTicket = JsonItem(oJson, "ResumeTicket")
-    If LenB(sResumeTicket) = 0 Then
+    sResumeToken = JsonItem(oJson, "ResumeToken")
+    If LenB(sResumeToken) = 0 Then
         If Not oFP.CancelReceipt() Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
@@ -334,7 +334,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 End Select
             End With
         Next
-        If Not oFP.EndReceipt(sResumeTicket) Then
+        If Not oFP.EndReceipt(sResumeToken) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -363,7 +363,7 @@ QH:
     Exit Function
 EH:
     If Not oFP Is Nothing Then
-        JsonItem(oRetVal, "ResumeTicket") = Zn(oFP.GetResumeTicket(), Empty)
+        JsonItem(oRetVal, "ResumeToken") = Zn(oFP.GetResumeToken(), Empty)
     End If
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
         Resume QH

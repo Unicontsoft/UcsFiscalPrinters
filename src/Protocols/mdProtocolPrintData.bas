@@ -352,7 +352,7 @@ End Function
 
 Public Function PpdEndReceipt( _
             uData As UcsProtocolPrintData, _
-            sResumeTicket As String) As Boolean
+            sResumeToken As String) As Boolean
     Const FUNC_NAME     As String = "PpdEndReceipt"
     Dim vSplit          As Variant
     Dim lIdx            As Long
@@ -365,7 +365,7 @@ Public Function PpdEndReceipt( _
         GoTo QH
     End If
     '--- restore context
-    vSplit = Split(sResumeTicket, STR_CHR1)
+    vSplit = Split(sResumeToken, STR_CHR1)
     With uData.ExecCtx
         For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
             .GrpTotal(lIdx) = C_Dbl(At(vSplit, lPos)): lPos = lPos + 1
@@ -391,8 +391,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PpdGetResumeTicket(uData As UcsProtocolPrintData) As String
-    Const FUNC_NAME     As String = "PpdGetResumeTicket"
+Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
+    Const FUNC_NAME     As String = "PpdGetResumeToken"
     Dim lIdx            As Long
 
     On Error GoTo EH
@@ -401,13 +401,13 @@ Public Function PpdGetResumeTicket(uData As UcsProtocolPrintData) As String
         pvSetLastError uData, Zn(uData.LocalizedText.ErrNoReceiptStarted, ERR_NO_RECEIPT_STARTED)
         GoTo QH
     End If
-    '--- need resume ticket only if payment processed
+    '--- need resume token only if payment processed
     With uData.ExecCtx
         If .PmtPrinted Then
             For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                PpdGetResumeTicket = PpdGetResumeTicket & .GrpTotal(lIdx) & STR_CHR1
+                PpdGetResumeToken = PpdGetResumeToken & .GrpTotal(lIdx) & STR_CHR1
             Next
-            PpdGetResumeTicket = PpdGetResumeTicket & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
+            PpdGetResumeToken = PpdGetResumeToken & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
         End If
     End With
 QH:
