@@ -171,6 +171,14 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdEcrWriteRow = &HFF86&
 End Enum
 
+Public Enum UcsIslConfigIndexEnum
+    ucsIslCfgDatecsModelA
+    ucsIslCfgDatecsModelB
+    ucsIslCfgDaisy
+    ucsIslCfgIncotex
+    [_ucsIslCfgMax]
+End Enum
+
 '=========================================================================
 ' API
 '=========================================================================
@@ -204,10 +212,13 @@ End Type
 '=========================================================================
 
 Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
-Private Const STR_STATUSES              As String = "Syntax error|Invalid command|Clock not set|3|Feed error|5|6|7|Overflow|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|Fiscal printing|4|Nonfiscal printing|6|7"
-Private Const STR_ERRORS_ONLY           As String = "Syntax error|Invalid command|2|3|Feed error|5|6|7|1|Command not allowed|Memory reset|3|Memory corrupt|5|6|7|Out of paper|1|2|3|4|5|6|7"
+Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|General error|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
+Private Const STR_ERRORS_A              As String = "Syntax error in the received data|Invalid command code received|2|3|Printing unit fault|5|6|7|0|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|4|5|6|7|No paper"
+Private Const STR_MEMORY_A              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|The printing head is overheated|7|The fiscal memory is set in READONLY mode (locked)|The fiscal memory is formatted|The last fiscal memory store operation is not successful|The printer is in fiscal mode|The tax rates are set at least once|Fiscal memory read error"
+Private Const STR_STATUSES_B            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|4|General error|6|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|2|3|4|Unsend documents for more than duration set|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open"
+Private Const STR_ERRORS_B              As String = "Syntax error in the received data|Invalid command code received|2|3|4|5|6|7|0|The command is not allowed in the current fiscal mode|2|3|4|5|6|7|No paper"
+Private Const STR_MEMORY_B              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|6|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
-Private Const STR_MEMORY                As String = "Write error|1|No memory module|Memory low|Out of memory|Fiscal memory error|6|7|Read only|Memory formatted|2|Fiscal mode|Tax rates set|Tax number set|6|7"
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
@@ -250,6 +261,7 @@ Private m_sCommandLog               As String
 Private m_vInfoDiagnostics          As Variant
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
+Private m_uLConfig(0 To [_ucsIslCfgMax] - 1) As UcsLocalizedConfigType
 
 Private Enum UcsInternalErrors
     ucsErrTimeoutWaitingForResponse
@@ -313,6 +325,9 @@ Private Type UcsConfigValues
     DefPmtTypes         As String
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
+End Type
+
+Private Type UcsLocalizedConfigType
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -356,14 +371,14 @@ Property Get Status(ByVal eValue As UcsIslStatusBitsEnum) As Boolean
 End Property
 
 Property Get StatusText() As String
-    StatusText = pvGetFlagsText(m_eStatus, m_uConfig.LocalizedText(ucsFscLciPrinterStatuses))
+    StatusText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterStatuses))
 End Property
 
 Property Get ErrorText() As String
-    ErrorText = pvGetFlagsText(m_eStatus, m_uConfig.LocalizedText(ucsFscLciPrinterErrors))
+    ErrorText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterErrors))
     If IsDaisy And (m_eDip And &H7F) <> 0 Then
         ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
-            Zn(At(m_uConfig.LocalizedText(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
+            Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
     End If
 End Property
 
@@ -373,7 +388,7 @@ End Property
 
 Property Get DipText() As String
     If Not IsDaisy Then
-        DipText = pvGetFlagsText(m_eDip, m_uConfig.LocalizedText(ucsFscLciDipSwitchesTexts))
+        DipText = pvGetFlagsText(m_eDip, pvLocalizedTextArray(ucsFscLciDipSwitchesTexts))
     End If
 End Property
 
@@ -382,7 +397,7 @@ Property Get Memory(ByVal eValue As UcsIslFiscalMemoryEnum) As Boolean
 End Property
 
 Property Get MemoryText() As String
-    MemoryText = pvGetFlagsText(m_eMemory, m_uConfig.LocalizedText(ucsFscLciMemoryTexts))
+    MemoryText = pvGetFlagsText(m_eMemory, pvLocalizedTextArray(ucsFscLciMemoryTexts))
 End Property
 
 Property Get LastErrNo() As UcsFiscalErrorsEnum
@@ -401,14 +416,14 @@ Property Get IsConnected() As Boolean
     IsConnected = Not m_oConnector Is Nothing
 End Property
 
-Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
-    If IsArray(m_uConfig.LocalizedText(eIdx)) Then
-        LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
+Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, Optional ByVal ConfigIndex As Long) As String
+    If IsArray(m_uLConfig(ConfigIndex).LocalizedText(eIdx)) Then
+        LocalizedText = Join(m_uLConfig(ConfigIndex).LocalizedText(eIdx), "|")
     End If
 End Property
 
-Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
-    m_uConfig.LocalizedText(eIdx) = SplitOrReindex(sValue, "|")
+Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, Optional ByVal ConfigIndex As Long, sValue As String)
+    m_uLConfig(ConfigIndex).LocalizedText(eIdx) = SplitOrReindex(sValue, "|")
 End Property
 
 Property Get IsEcr() As Boolean
@@ -504,6 +519,17 @@ Private Property Get pvItemChars() As Long
     pvItemChars = m_uPrintData.Config.ItemChars
     If pvItemChars = 0 Then
         pvItemChars = pvRowChars - IIf(IsEcr, 20, 6)
+    End If
+End Property
+
+Property Get pvLocalizedTextArray(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As Variant
+    Dim lCurrentIdx     As Long
+    
+    lCurrentIdx = IIf(m_uConfig.IsEcr, 1, 0)
+    pvLocalizedTextArray = m_uLConfig(lCurrentIdx).LocalizedText(eIdx)
+    '--- fallback to default localization config
+    If Not IsArray(pvLocalizedTextArray) And lCurrentIdx <> 0 Then
+        pvLocalizedTextArray = m_uLConfig(0).LocalizedText(eIdx)
     End If
 End Property
 
@@ -1750,13 +1776,8 @@ Private Function pvGetFlagsText(ByVal lFlags As Long, vTexts As Variant) As Stri
     
     On Error GoTo EH
     For lIdx = 0 To UBound(vTexts)
-        If (lFlags And (2 ^ lIdx)) <> 0 Then
-            If Len(vTexts(lIdx)) > 1 Then
-                If LenB(pvGetFlagsText) <> 0 Then
-                    pvGetFlagsText = pvGetFlagsText & ", "
-                End If
-                pvGetFlagsText = pvGetFlagsText & vTexts(lIdx)
-            End If
+        If (lFlags And (2 ^ lIdx)) <> 0 And Len(vTexts(lIdx)) > 1 Then
+            pvGetFlagsText = IIf(LenB(pvGetFlagsText) <> 0, pvGetFlagsText & ", ", vbNullString) & vTexts(lIdx)
         End If
     Next
     Exit Function
@@ -1768,7 +1789,7 @@ Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
     Const FUNC_NAME     As String = "pvInternal"
     
     On Error GoTo EH
-    pvInternal = At(m_uConfig.LocalizedText(ucsFscLciInternalErrors), lIdx)
+    pvInternal = At(pvLocalizedTextArray(ucsFscLciInternalErrors), lIdx)
     If LenB(pvInternal) = 0 Then
         pvInternal = At(Split(STR_INTERNAL, "|"), lIdx)
     End If
@@ -1781,7 +1802,7 @@ Private Function pvText(ByVal lIdx As UcsReceiptTextsEnum) As String
     Const FUNC_NAME     As String = "pvText"
     
     On Error GoTo EH
-    pvText = At(m_uConfig.LocalizedText(ucsFscLciReceiptTexts), lIdx)
+    pvText = At(pvLocalizedTextArray(ucsFscLciReceiptTexts), lIdx)
     If LenB(pvText) = 0 Then
         pvText = At(Split(STR_RECEIPT_TEXTS, "|"), lIdx)
     End If
@@ -2275,15 +2296,22 @@ End Function
 '=========================================================================
 
 Private Sub Class_Initialize()
+    Dim eIdx            As UcsIslConfigIndexEnum
+    
     m_lTimeout = DEF_TIMEOUT
     m_lSequence = &H20
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
-    LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
-    LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS_ONLY
     LocalizedText(ucsFscLciDipSwitchesTexts) = STR_DIP_SWITCHES
-    LocalizedText(ucsFscLciMemoryTexts) = STR_MEMORY
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
     LocalizedText(ucsFscLciExtendedErrors) = STR_EXT_ERRORS
+    eIdx = ucsIslCfgDatecsModelA
+    LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_A
+    LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_A
+    LocalizedText(ucsFscLciMemoryTexts, eIdx) = STR_MEMORY_A
+    eIdx = ucsIslCfgDatecsModelB
+    LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_B
+    LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_B
+    LocalizedText(ucsFscLciMemoryTexts, eIdx) = STR_MEMORY_B
     m_uConfig.CommEventTimeout = DEF_COMM_EVENT_TIMEOUT * 2
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
 End Sub
