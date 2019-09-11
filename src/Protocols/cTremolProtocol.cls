@@ -437,7 +437,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
                     Set .Connector = New cSerialPortConnector
-                    If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed) Then
+                    If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed, lTimeout) Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
                         .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
                     Else
