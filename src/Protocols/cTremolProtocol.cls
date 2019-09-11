@@ -143,7 +143,7 @@ End Type
 Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
-Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Cheque|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
+Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -222,7 +222,7 @@ End Enum
 Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
     ucsTxtPaymentCard
-    ucsTxtPaymentCheque
+    ucsTxtPaymentBank
     ucsTxtSurcharge
     ucsTxtDiscount
     ucsTxtSubTotal
@@ -1927,6 +1927,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 7   ' SCards (Card)
         Case ucsFscPmtBank
             pvToDevicePmtIndex = 8   ' SW (Bank)
+        Case 4
+            pvToDevicePmtIndex = 1   ' SChecks (Check)
         Case 5, ucsFscPmtCustom1
             pvToDevicePmtIndex = 2   ' ST (Talon)
         Case 6, ucsFscPmtCustom2

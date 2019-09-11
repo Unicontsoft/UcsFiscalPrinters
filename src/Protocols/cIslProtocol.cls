@@ -2244,7 +2244,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Case ucsFscPmtBank
             pvToDevicePmtIndex = 2      ' ??? (С кредит)
         Case 4
-            pvToDevicePmtIndex = 3      ' SCheque (С чек)
+            pvToDevicePmtIndex = 3      ' SChecks (С чек)
         Case 5, ucsFscPmtCustom1
             pvToDevicePmtIndex = 10     ' ST (Талони)
         Case 6, ucsFscPmtCustom2
