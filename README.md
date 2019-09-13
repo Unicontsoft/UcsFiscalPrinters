@@ -1,11 +1,11 @@
 ## Unicontsoft Fiscal Printers Component 2.0
 
 
-UcsFP is a COM component that can be used to configure and operate fiscal printers that are popular in Bulgaria.
+`UcsFP20` is a COM component that can be used to configure and operate fiscal printers that are popular in Bulgaria.
 
-UcsFP implements lowest-level protocols that are supported by the fiscal printers, usually sending native commands directly to the COM port the device is attached to.
+`UcsFP20` implements lowest-level protocols that are supported by the fiscal printers, usually sending native commands directly to the COM port the device is attached to.
 
-UcsFP support ESP/POS protocol for "kitchen" order lists and non-fiscal receipts. ESC/POS protocol supports serial and TCP/IP (LAN) connectivity.
+`UcsFP20` support ESP/POS protocol for "kitchen" order lists and non-fiscal receipts. ESC/POS protocol supports serial and TCP/IP (LAN) connectivity.
 
 ### Available protocols
 
@@ -22,7 +22,7 @@ Name             | Manufacturer | Tested models  | Other supported models
 
 ### Sub-projects
 
-[`UcsFPHub`](/wqweto/UcsFiscalPrinters/tree/master/contrib/UcsFPHub): [Unicontsoft Fiscal Printers Hub](/wqweto/UcsFiscalPrinters/tree/master/contrib/UcsFPHub) -- a REST service to provide remote access to locally attached fiscal devices
+[`UcsFPHub`](contrib/UcsFPHub): [Unicontsoft Fiscal Printers Hub](contrib/UcsFPHub) -- a REST service to provide remote access to locally attached fiscal devices
  
 ### ToDo
 
