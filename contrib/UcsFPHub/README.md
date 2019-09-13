@@ -50,7 +50,7 @@ Here is a sample settings file:
         },
     ],
     "Environment": {
-        "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP.log",
+        "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP20.log",
         "_UCS_SSH_PASSWORD": "s3cr3t"
     }
 }
@@ -73,7 +73,7 @@ Currently the `UcsFPHub` service also checks these environment variables:
 Name                            | Description
 ----                            | -----------
 `_UCS_FP_HUB_LOG`               | Set to `c:\path\to\UcsFPHub.log` to log client connections and requests
-`_UCS_FISCAL_PRINTER_LOG`       | Set to `c:\path\to\UcsFP.log` for `UcsFP20` component to log communication with fiscal devices
+`_UCS_FISCAL_PRINTER_LOG`       | Set to `c:\path\to\UcsFP20.log` for `UcsFP20` component to log communication with fiscal devices
 `_UCS_FISCAL_PRINTER_DATA_DUMP` | Set to `1` to include data transfer dump in `_UCS_FISCAL_PRINTER_LOG`
  
 ### Device string
