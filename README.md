@@ -22,7 +22,8 @@ Name             | Manufacturer | Tested models  | Other supported models
 
 ### Sub-projects
 
-[`UcsFPHub`](contrib/UcsFPHub): [Unicontsoft Fiscal Printers Hub](contrib/UcsFPHub) -- a REST service to provide remote access to locally attached fiscal devices
+`UcsFPHub`: [Unicontsoft Fiscal Printers Hub](contrib/UcsFPHub) -- a REST service to provide remote access to locally attached fiscal devices
+`UcsFPHub`: [PROTOCOL.md](contrib/UcsFPHub/PROTOCOL.md) -- REST service protocol description
  
 ### ToDo
 
