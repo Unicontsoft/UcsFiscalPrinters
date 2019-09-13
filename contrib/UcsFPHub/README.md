@@ -38,7 +38,7 @@ Here is a sample settings file:
     "Endpoints": [
         {
             "Binding": "RestHttp", 
-            "Address": "192.168.10.11:8192" 
+            "Address": "0.0.0.0:8192" 
         },
         { 
             "Binding": "MssqlServiceBroker", 
@@ -58,7 +58,17 @@ Here is a sample settings file:
 
 `%VAR_NAME%` placeholders are expanded with values from current process environment. `Printers` object defines available fiscal devices while `Endpoints` array defines where the service will listen for connections from. `Environment` object can be used to setup values in current services environment.
 
-Currently the `UcsFPHub` service supports these environment variables:
+Currently the `UcsFPHub` service supports these endpoint bindings:
+
+Binding                 | Description
+----                    | -----------
+`RestHttp`              | (Optional) Starts a REST service to listen on HTTP endpoint on local IP and TCP port.
+`MssqlServiceBroker`    | (Optional) Starts a Service Broker service on a Service Broker queue in a designated SQL Server database.
+`Local`                 | Always registers a local out-of-process COM server on `UcsFPHub.LocalEndpoint` file moniker (e.g. accessible w/ `GetObject("UcsFPHub.LocalEndpoint")` in VBA).
+
+For instance it is possible to setup none, one or several `RestHttp` endpoints to listen and be accessible on different IP addresses/TCP ports. Similarly you can setup several `MssqlServiceBroker` queues in different SQL Server databases to simultaneously share all (or some) locally attached fiscal devices.
+
+Currently the `UcsFPHub` service also checks these environment variables:
 
 Name                            | Description
 ----                            | -----------
