@@ -153,6 +153,7 @@ Public Function PpdStartReceipt( _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
             Optional OperatorPassword As String, _
+            Optional TableNo As String, _
             Optional UniqueSaleNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
@@ -167,7 +168,8 @@ Public Function PpdStartReceipt( _
             Optional RevReceiptDate As Date, _
             Optional RevFiscalMemoryNo As String, _
             Optional RevInvoiceNo As String, _
-            Optional RevReason As String) As Boolean
+            Optional RevReason As String, _
+            Optional OwnData As String) As Boolean
     Const FUNC_NAME     As String = "PpdStartReceipt"
     Dim uCtxEmpty       As UcsPpdExecuteContext
     Dim sCity           As String
@@ -183,12 +185,14 @@ Public Function PpdStartReceipt( _
         .InitOperatorCode = SafeText(OperatorCode)
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
+        .InitTableNo = TableNo
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars(uData)
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
             SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), SafeText(RevInvoiceNo), SafeText(RevReason))
+        .InitOwnData = Split(OwnData, STR_CHR1)
     End With
     '--- success
     PpdStartReceipt = True
