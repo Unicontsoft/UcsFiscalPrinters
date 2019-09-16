@@ -99,8 +99,11 @@ Public Sub Terminate()
     End If
 End Sub
 
-Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest As String, sResponse As String) As Boolean
-    ServiceRequest = m_oController.ServiceRequest(sPath, sQueryString, sRequest, sResponse)
+Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse As String) As Boolean
+    Dim vSplit          As Variant
+    
+    vSplit = Split2(sRawUrl, "?")
+    ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 End Function
 
 '=========================================================================
