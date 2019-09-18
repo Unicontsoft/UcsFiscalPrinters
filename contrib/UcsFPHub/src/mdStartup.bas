@@ -68,7 +68,7 @@ End Sub
 ' Functions
 '=========================================================================
 
-Private Sub Main()
+Public Sub Main()
     Dim lExitCode       As Long
     
     lExitCode = Process(SplitArgs(Command$))

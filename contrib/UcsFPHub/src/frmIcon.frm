@@ -135,7 +135,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на '%1'!" & vbCrLf & vbCrLf & "Моля рестартирайте %2 за да активирате промените"
+Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на '%1'!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
 
 Private m_oOpt                      As Object
 Private m_sConfFile                 As String
@@ -148,7 +148,7 @@ Private Enum UcsMenuItems
     ucsMnuFileRestart
     ucsMnuFileSep2
     ucsMnuFileExit
-    ucsMnuPopupSettings = 0
+    ucsMnuPopupConfig = 0
     ucsMnuPopupSep1
     ucsMnuPopupRestart
     ucsMnuPopupSep2
@@ -194,22 +194,46 @@ QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
-    GoTo QH
+    Resume QH
 End Function
 
+Public Sub ShowConfig()
+    Const FUNC_NAME     As String = "ShowConfig"
+    
+    On Error GoTo EH
+    Show
+    txtConfig.SetFocus
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
 Public Sub Restart(Optional AddParam As String)
+    Const FUNC_NAME     As String = "Restart"
     Dim uShell          As SHELLEXECUTEINFO
     
+    On Error GoTo EH
     TerminateEndpoints
     FlushDebugLog
-    With uShell
-        .cbSize = Len(uShell)
-        .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
-        .lpFile = GetProcessName()
-        .lpParameters = Trim$(Command$ & " " & ArgvQuote(AddParam))
-    End With
-    Call ShellExecuteEx(uShell)
     Unload Me
+    If InIde Then
+        Main
+    Else
+        With uShell
+            .cbSize = Len(uShell)
+            .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
+            .lpFile = GetProcessName()
+            .lpParameters = Trim$(Command$ & " " & ArgvQuote(AddParam))
+        End With
+        Call ShellExecuteEx(uShell)
+    End If
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
 End Sub
 
 '=========================================================================
@@ -231,7 +255,9 @@ Private Sub mnuFile_Click(Index As Integer)
             GoTo QH
         End If
         WriteTextFile m_sConfFile, txtConfig.Text, ucsFltUtf8
-        MsgBox Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName), vbExclamation
+        If MsgBox(Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName), vbQuestion Or vbYesNo) = vbYes Then
+            Restart
+        End If
     Case ucsMnuFileRestart
         Restart
     Case ucsMnuFileExit
@@ -249,9 +275,8 @@ Private Sub mnuPopup_Click(Index As Integer)
     
     On Error GoTo EH
     Select Case Index
-    Case ucsMnuPopupSettings
-        Show
-        txtConfig.SetFocus
+    Case ucsMnuPopupConfig
+        ShowConfig
     Case ucsMnuPopupRestart
         Restart
     Case ucsMnuPopupExit
@@ -268,7 +293,7 @@ Private Sub m_oSysTray_Click()
     Const FUNC_NAME     As String = "m_oSysTray_Click"
     
     On Error GoTo EH
-    mnuPopup_Click ucsMnuPopupSettings
+    mnuPopup_Click ucsMnuPopupConfig
 QH:
     Exit Sub
 EH:
