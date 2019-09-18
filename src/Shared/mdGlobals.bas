@@ -228,7 +228,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Public Const LIB_NAME               As String = "UcsFiscalPrinters"
+Public Const LIB_NAME               As String = "UcsFP20"
 Public Const STR_NONE               As String = "(Няма)"
 Public Const STR_PROTOCOL_DATECS_X  As String = "DATECS X"
 Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
