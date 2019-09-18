@@ -573,7 +573,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                 If IsArray(vTotals(lIdx)) Then
                     Set oItem = Nothing
                     JsonItem(oItem, "TaxGroup") = lIdx + 1
-                    JsonItem(oItem, "VatPercent") = vTotals(lIdx)(0)
+                    JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
                     JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
                     JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
                     JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
