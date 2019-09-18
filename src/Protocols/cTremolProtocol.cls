@@ -1095,16 +1095,12 @@ End Function
 
 Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
     Const FUNC_NAME     As String = "GetPaymentName"
-    Dim lPmtIndex       As Long
     
     On Error GoTo EH
     If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
         GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - ucsFscPmtCash)
     Else
-        lPmtIndex = pvToDevicePmtIndex(PmtType)
-        If lPmtIndex >= 0 Then
-            GetPaymentName = RTrim$(At(Split(m_sPaymentTypes, DEF_SEP), lPmtIndex))
-        End If
+        GetPaymentName = pvToDevicePmtName(PmtType)
     End If
     Exit Function
 EH:
@@ -1225,8 +1221,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetTotalsByPayments() As Variant
-    Const FUNC_NAME     As String = "GetTotalsByPayments"
+Public Function GetTotalsByPaymentTypes() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByPaymentTypes"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -1248,12 +1244,12 @@ Public Function GetTotalsByPayments() As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)), 0)
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)), 0)
             End If
         Next
-        GetTotalsByPayments = vRetVal
+        GetTotalsByPaymentTypes = vRetVal
     Else
-        GetTotalsByPayments = Array()
+        GetTotalsByPaymentTypes = Array()
     End If
     Exit Function
 EH:
@@ -1272,11 +1268,11 @@ Public Function GetTotalsByTaxGroups() As Variant
     Dim lRevOffset      As Long
     
     On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
         "RevOffset", lRevOffset, 13
     vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
     If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
@@ -1961,6 +1957,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Dim lPmtIndex       As Long
+    
+    lPmtIndex = pvToDevicePmtIndex(PmtType)
+    If lPmtIndex >= 0 Then
+        pvToDevicePmtName = RTrim$(At(Split(m_sPaymentTypes, DEF_SEP), lPmtIndex))
+    End If
+End Function
+
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
@@ -2148,8 +2153,8 @@ Private Function IDeviceProtocol_GetTaxNo() As String
     IDeviceProtocol_GetTaxNo = GetTaxNo()
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
-    IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
+Private Function IDeviceProtocol_GetTotalsByPaymentTypes() As Variant
+    IDeviceProtocol_GetTotalsByPaymentTypes = GetTotalsByPaymentTypes()
 End Function
 
 Private Function IDeviceProtocol_GetTotalsByTaxGroups() As Variant

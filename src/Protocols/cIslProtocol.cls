@@ -1173,46 +1173,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetPaymentName(ByVal Index As Long) As String
+Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
     Const FUNC_NAME     As String = "GetPaymentName"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIslCommandsEnum
-    Dim sParam          As String
-    Dim lIndex          As Long
     
     On Error GoTo EH
-    If Index < 0 Then
-        '--- custom payment types: 5, 6, 7 & 8
-        Index = 4 - Index
-    End If
-    If Index > 3 Then
-        lIndex = pvToDevicePmtIndex(Index)
-        If lIndex >= 0 Then
-            If IsDaisy Then
-                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (58 + lIndex)
-            ElseIf IsIncotex Then
-                If Index >= 7 Then
-                    GoTo QH
-                End If
-                pvGetCommandConfig CONF_NAME, "ExtendedInitText" & Index, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (7 + lIndex)
-            Else
-                pvGetCommandConfig CONF_NAME, "InitPaymentType" & Index, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
-            End If
-            GetPaymentName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
-'            Debug.Print Index, lIndex, sParam, GetPaymentName
-            '--- check for failure (returns 'F')
-            If GetPaymentName = "F" Then
-                If Index <= 4 Then
-                    GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
-                Else
-                    GetPaymentName = vbNullString
-                End If
-            End If
-        End If
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
+        GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - 1)
     Else
-        GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
+        GetPaymentName = pvToDevicePmtName(PmtType)
     End If
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1341,8 +1310,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetTotalsByPayments() As Variant
-    Const FUNC_NAME     As String = "GetTotalsByPayments"
+Public Function GetTotalsByPaymentTypes() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByPaymentTypes"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
@@ -1366,12 +1335,12 @@ Public Function GetTotalsByPayments() As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
             End If
         Next
-        GetTotalsByPayments = vRetVal
+        GetTotalsByPaymentTypes = vRetVal
     Else
-        GetTotalsByPayments = Array()
+        GetTotalsByPaymentTypes = Array()
     End If
     Exit Function
 EH:
@@ -2259,6 +2228,42 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     End If
 End Function
 
+Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Const CONF_NAME     As String = "GetPaymentName"
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    
+    If PmtType < 0 Then
+        '--- re-map custom payment types
+        PmtType = 4 - PmtType
+    End If
+    lIndex = pvToDevicePmtIndex(PmtType)
+    If lIndex >= 0 Then
+        If IsDaisy Then
+            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (58 + lIndex)
+        ElseIf IsIncotex Then
+            If PmtType >= 7 Then
+                GoTo QH
+            End If
+            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (7 + lIndex)
+        Else
+            pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
+        End If
+        pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
+'        Debug.Print PmtType, lIndex, sParam, pvToDevicePmtName
+        '--- check for failure (returns 'F')
+        If pvToDevicePmtName = "F" Then
+            If PmtType <= 4 Then
+                pvToDevicePmtName = pvText(ucsTxtPaymentCash + PmtType - 1)
+            Else
+                pvToDevicePmtName = vbNullString
+            End If
+        End If
+    End If
+QH:
+End Function
+
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
@@ -2453,8 +2458,8 @@ Private Function IDeviceProtocol_GetTaxNo() As String
     IDeviceProtocol_GetTaxNo = GetTaxNo()
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
-    IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
+Private Function IDeviceProtocol_GetTotalsByPaymentTypes() As Variant
+    IDeviceProtocol_GetTotalsByPaymentTypes = GetTotalsByPaymentTypes()
 End Function
 
 Private Function IDeviceProtocol_GetTotalsByTaxGroups() As Variant

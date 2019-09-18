@@ -970,29 +970,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetPaymentName(ByVal Index As Long) As String
+Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
     Const FUNC_NAME     As String = "GetPaymentName"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim sParam          As String
-    Dim lIndex          As Long
     
     On Error GoTo EH
-    If Index < 0 Then
-        '--- custom payment types: 5, 6, 7 & 8
-        Index = 4 - Index
-    End If
-    If Index > 3 Then
-        lIndex = pvToDevicePmtIndex(Index)
-        pvGetCommandConfig CONF_NAME, "InfoSettings" & Index, 0, 0, sParam, "PayName", _
-            "Index", lIndex, lIndex
-        If lIndex >= 0 Then
-            GetPaymentName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
-        End If
-'        Debug.Print Index, lIndex, sParam, GetPaymentName
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
+        GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - 1)
     Else
-        GetPaymentName = pvText(ucsTxtPaymentCash + Index - 1)
+        GetPaymentName = pvToDevicePmtName(PmtType)
     End If
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1108,8 +1094,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetTotalsByPayments() As Variant
-    Const FUNC_NAME     As String = "GetTotalsByPayments"
+Public Function GetTotalsByPaymentTypes() As Variant
+    Const FUNC_NAME     As String = "GetTotalsByPaymentTypes"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
@@ -1133,12 +1119,12 @@ Public Function GetTotalsByPayments() As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = Array(GetPaymentName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
             End If
         Next
-        GetTotalsByPayments = vRetVal
+        GetTotalsByPaymentTypes = vRetVal
     Else
-        GetTotalsByPayments = Array()
+        GetTotalsByPaymentTypes = Array()
     End If
     Exit Function
 EH:
@@ -1821,6 +1807,24 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     End Select
 End Function
 
+Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Const CONF_NAME     As String = "GetPaymentName"
+    Dim sParam          As String
+    Dim lIndex          As Long
+    
+    If PmtType < 0 Then
+        '--- re-map custom payment types
+        PmtType = 4 - PmtType
+    End If
+    lIndex = pvToDevicePmtIndex(PmtType)
+    pvGetCommandConfig CONF_NAME, "InfoSettings" & PmtType, 0, 0, sParam, "PayName", _
+        "PmtType", lIndex, lIndex
+    If lIndex >= 0 Then
+        pvToDevicePmtName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
+    End If
+'    Debug.Print PmtType, lIndex, sParam, GetPaymentName
+End Function
+
 Private Sub pvGetCommandConfig( _
             sFunc As String, _
             sKey As String, _
@@ -2001,8 +2005,8 @@ Private Function IDeviceProtocol_GetTaxNo() As String
     IDeviceProtocol_GetTaxNo = GetTaxNo()
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
-    IDeviceProtocol_GetTotalsByPayments = GetTotalsByPayments()
+Private Function IDeviceProtocol_GetTotalsByPaymentTypes() As Variant
+    IDeviceProtocol_GetTotalsByPaymentTypes = GetTotalsByPaymentTypes()
 End Function
 
 Private Function IDeviceProtocol_GetTotalsByTaxGroups() As Variant
