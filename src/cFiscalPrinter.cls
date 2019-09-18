@@ -573,7 +573,9 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                 If IsArray(vTotals(lIdx)) Then
                     Set oItem = Nothing
                     JsonItem(oItem, "TaxGroup") = lIdx + 1
-                    JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
+                    If vTotals(lIdx)(0) >= 0 And vTotals(lIdx)(0) < 100 Then
+                        JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
+                    End If
                     JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
                     JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
                     JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
@@ -581,8 +583,8 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             Next
         End If
     End If
-    If C_Bool(JsonItem(oJson, "IncludePayments")) Or bIncludeAll Then
-        vTotals = oFP.GetTotalsByPayments()
+    If C_Bool(JsonItem(oJson, "IncludePaymentTypes")) Or bIncludeAll Then
+        vTotals = oFP.GetTotalsByPaymentTypes()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
                 If IsArray(vTotals(lIdx)) Then
@@ -591,7 +593,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                     JsonItem(oItem, "PaymentName") = vTotals(lIdx)(0)
                     JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
                     JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
-                    JsonItem(oRetVal, "TotalsByPayments/-1") = oItem
+                    JsonItem(oRetVal, "TotalsByPaymentTypes/-1") = oItem
                 End If
             Next
         End If
@@ -890,12 +892,12 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
     If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
         For lIdx = 1 To 6
-            JsonItem(oRetVal, "Header/-1") = oFP.GetHeaderText(lIdx)
+            JsonItem(oRetVal, "Headers/-1") = oFP.GetHeaderText(lIdx)
         Next
     End If
     If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
         For lIdx = 1 To 2
-            JsonItem(oRetVal, "Footer/-1") = oFP.GetFooterText(lIdx)
+            JsonItem(oRetVal, "Footers/-1") = oFP.GetFooterText(lIdx)
         Next
     End If
     If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
@@ -912,10 +914,10 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     End If
     If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
         For lIdx = 1 To 3
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+            JsonItem(oRetVal, "PaymentNames/-1") = oFP.GetPaymentName(lIdx)
         Next
         For lIdx = -1 To -4 Step -1
-            JsonItem(oRetVal, "PaymentName/-1") = oFP.GetPaymentName(lIdx)
+            JsonItem(oRetVal, "PaymentNames/-1") = oFP.GetPaymentName(lIdx)
         Next
     End If
 End Sub
