@@ -66,6 +66,7 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCash = 1           ' SCash
     ucsFscPmtCard = 2           ' SCards
     ucsFscPmtBank = 3           ' SW
+    ucsFscPmtCheque = 4         ' SChecks
     ucsFscPmtCustom1 = -1       ' ST
     ucsFscPmtCustom2 = -2       ' SOT
     ucsFscPmtCustom3 = -3       ' SR1
@@ -579,8 +580,8 @@ End Function
 '         reserved, ucsFscPmtCustom1, ucsFscPmtCustom2, ucsFscPmtCustom3 and ucsFscPmtCustom4
 ' @remark Index 4 in return array is unused and should be 0
 '
-Public Function GetTotalsByPayments() As Variant
-Attribute GetTotalsByPayments.VB_Description = "Used to retrieve totals by payment types since last z-report"
+Public Function GetTotalsByPaymentTypes() As Variant
+Attribute GetTotalsByPaymentTypes.VB_Description = "Used to retrieve totals by payment types since last z-report"
 
 End Function
 

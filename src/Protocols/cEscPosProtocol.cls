@@ -975,7 +975,7 @@ Private Function IDeviceProtocol_GetTaxNo() As String
 
 End Function
 
-Private Function IDeviceProtocol_GetTotalsByPayments() As Variant
+Private Function IDeviceProtocol_GetTotalsByPaymentTypes() As Variant
     
 End Function
 
