@@ -226,7 +226,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "Operator": {
     "Code": 1,
     "Name": "Оператор 1",
-    "Password": "****"
+    "DefaultPassword": "1"
   }
 }
 ```
