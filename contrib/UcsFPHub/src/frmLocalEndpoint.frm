@@ -47,6 +47,7 @@ Private m_lCookie                   As Long
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
+    m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
 End Sub
@@ -94,22 +95,39 @@ EH:
 End Function
 
 Friend Sub frTerminate()
+    Const FUNC_NAME     As String = "frTerminate"
+    
+    On Error GoTo EH
     If m_lCookie <> 0 Then
         RevokeObject m_lCookie
         m_lCookie = 0
     End If
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
 End Sub
 
 Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse As String) As Boolean
+    Const FUNC_NAME     As String = "ServiceRequest"
     Dim vSplit          As Variant
     
+    On Error GoTo EH
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
 End Function
 
 Public Function CreateObject(sProgID As String) As Object
+    Const FUNC_NAME     As String = "CreateObject"
     Const LIB_UCSFP     As String = "UcsFP20"
     
+    On Error GoTo EH
     Select Case LCase$(sProgID)
     Case LCase$(LIB_UCSFP & ".cFiscalPrinter")
         Set CreateObject = New cFiscalPrinter
@@ -122,7 +140,29 @@ Public Function CreateObject(sProgID As String) As Object
     Case Else
         Set CreateObject = VBA.CreateObject(sProgID)
     End Select
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
 End Function
+
+Public Sub ShowConfig()
+    Const FUNC_NAME     As String = "ShowConfig"
+    Dim oForm           As Object
+    
+    On Error GoTo EH
+    For Each oForm In Forms
+        If TypeOf oForm Is frmIcon Then
+            oForm.ShowConfig
+        End If
+    Next
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
 
 '=========================================================================
 ' Base class events
