@@ -5,7 +5,7 @@
 
 `UcsFP20` implements lowest-level protocols that are supported by the fiscal printers, usually sending native commands directly to the COM port the device is attached to.
 
-`UcsFP20` support ESP/POS protocol for "kitchen" order lists and non-fiscal receipts. ESC/POS protocol supports serial and TCP/IP (LAN) connectivity.
+`UcsFP20` support ESP/POS protocol for "kitchen" order lists. ESC/POS protocol supports serial and TCP/IP (LAN) connectivity.
 
 ### Available protocols
 
