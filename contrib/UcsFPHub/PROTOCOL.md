@@ -124,7 +124,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
   "CommentTextMaxLength": 28,
-  "Header": [
+  "Headers": [
     "               ИМЕ НА ФИРМА",
     "              АДРЕС НА ФИРМА",
     "               ИМЕ НА ОБЕКТ",
@@ -132,7 +132,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
     "",
     ""
   ],
-  "Footer": [
+  "Footers": [
     "",
     ""
   ],
@@ -140,7 +140,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
   "TaxCaption": "ЕИК",
   "ReceiptNo": "0000048",
   "DeviceDateTime": "2019-07-19 11:51:33",
-  "PaymentName": [
+  "PaymentNames": [
     "В БРОЙ",
     "С ДЕБИТНА КАРТА",
     "С ЧЕК",
@@ -166,25 +166,25 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <DeviceModel>DP-25</DeviceModel>
    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
    <CommentTextMaxLength>30</CommentTextMaxLength>
-   <Header>ИМЕ НА ФИРМА</Header>
-   <Header>АДРЕС НА ФИРМА</Header>
-   <Header>ИМЕ НА ОБЕКТ</Header>
-   <Header>АДРЕС НА ОБЕКТ</Header>
-   <Header />
-   <Header />
-   <Footer />
-   <Footer />
+   <Headers>ИМЕ НА ФИРМА</Headers>
+   <Headers>АДРЕС НА ФИРМА</Headers>
+   <Headers>ИМЕ НА ОБЕКТ</Headers>
+   <Headers>АДРЕС НА ОБЕКТ</Headers>
+   <Headers />
+   <Headers />
+   <Footers />
+   <Footers />
    <TaxNo>НЕЗАДАДЕН</TaxNo>
    <TaxCaption>ЕИК</TaxCaption>
    <ReceiptNo>0000081</ReceiptNo>
    <DeviceDateTime>2019-07-23 18:07:01</DeviceDateTime>
-   <PaymentName>В БРОЙ</PaymentName>
-   <PaymentName>С КАРТА</PaymentName>
-   <PaymentName>НЗОК</PaymentName>
-   <PaymentName>ВАУЧЕР</PaymentName>
-   <PaymentName>КУПОН</PaymentName>
-   <PaymentName />
-   <PaymentName />
+   <PaymentNames>В БРОЙ</PaymentNames>
+   <PaymentNames>С КАРТА</PaymentNames>
+   <PaymentNames>НЗОК</PaymentNames>
+   <PaymentNames>ВАУЧЕР</PaymentNames>
+   <PaymentNames>КУПОН</PaymentNames>
+   <PaymentNames />
+   <PaymentNames />
 </Root>
 ```
 
@@ -452,14 +452,14 @@ Supported `PaymentType` values:
 
 Name                  | Value | Alt  | Description                       | Device text              | XML code
 ----                  | ----- | ---- | -----------                       | ----                     | ----
-`ucsFscPmtCash`       | 1     |      | Payment in cash                   | "В БРОЙ"                 | `SCash`
-`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card    | "ДЕБ.КАРТА", "С карта"   | `SCards`
+`ucsFscPmtCash`       | 1     |      | Payment in cash                   | "В БРОЙ", "Лева"         | `SCash`
+`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"     | `SCards`
 `ucsFscPmtBank`       | 3     |      | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"        | `SW`
-N/A                   | 4     |      | Payment by cheque                 | "ЧЕК", "С чек"           | `SChecks`
-`ucsFscPmtCustom1`    | -1    | 5    | First custom payment              | "КУПОН", "Талони"        | `ST`
-`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment             | "ВАУЧЕР", "В.Талони"     | `SOT`
-`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment              | "НЗОК", "Резерв.1"       | `SR1`
-`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment             | "Резерв.2"               | `SR2`
+`ucsFscPmtCheque`     | 4     |      | Payment by cheque                 | "ЧЕК", "Чек"             | `SChecks`
+`ucsFscPmtCustom1`    | -1    | 5    | First custom payment              | "КУПОН", "Талон"         | `ST`
+`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment             | "ВАУЧЕР", "В.Талон"      | `SOT`
+`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment              | "НЗОК", "Резерв 1"       | `SR1`
+`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment             | "Резерв 2"               | `SR2`
 
 Supported `ReversalType` values:
 
@@ -628,7 +628,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
         { "TaxGroup": 7, "VatPercent": 0, "Amount": 0 },
         { "TaxGroup": 8, "VatPercent": 0, "Amount": 0 }
     ],
-    "TotalsByPayments": [
+    "TotalsByPaymentTypes": [
         { "PaymentType": 1, "PaymentName": "В БРОЙ", "Amount": 226.26 },
         { "PaymentType": 2, "PaymentName": "С КАРТА", "Amount": 195.2 },
         { "PaymentType": 3, "PaymentName": "НЗОК", "Amount": 0 },
@@ -638,5 +638,19 @@ C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
         { "PaymentType": 7, "PaymentName": "", "Amount": 0 },
         { "PaymentType": 8, "PaymentName": "", "Amount": 0 }
     ]
+}
+```
+
+#### `POST` `/printers/:printer_id/drawer`
+
+Send impulse from fiscal device to open connected drawer.
+
+```shell
+C:> curl -X POST http://localhost:8192/printers/DT518315/drawer ^
+         --data "{ \"IsOpen\": true }" -sS | jq
+```
+```json
+{
+    "Ok": true,
 }
 ```
