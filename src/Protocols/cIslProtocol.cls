@@ -2366,8 +2366,6 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
 End Function
 
 Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
-    m_uPrintData.Config.RowChars = pvRowChars
-    m_uPrintData.Config.ItemChars = pvItemChars
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
@@ -2506,6 +2504,8 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     Dim sOperCode       As String
     Dim sOperPass       As String
     
+    m_uPrintData.Config.RowChars = pvRowChars
+    m_uPrintData.Config.ItemChars = pvItemChars
     sOperCode = Zn(OperatorCode, DEF_OPERNO)
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, sOperCode, OperatorName, sOperPass, TableNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)

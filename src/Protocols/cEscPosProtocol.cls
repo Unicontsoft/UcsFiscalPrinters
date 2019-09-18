@@ -879,8 +879,6 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
 End Function
 
 Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
-    m_uPrintData.Config.RowChars = pvRowChars
-    m_uPrintData.Config.ItemChars = pvItemChars
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
@@ -1020,5 +1018,7 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
 End Sub
 
 Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
+    m_uPrintData.Config.RowChars = pvRowChars
+    m_uPrintData.Config.ItemChars = pvItemChars
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, TableNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
 End Function
