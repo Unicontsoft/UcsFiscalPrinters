@@ -24,6 +24,7 @@ Attribute VB_Exposed = False
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cRestEndpoint"
+Implements IEndpoint
 
 '=========================================================================
 ' Constants and member variables
@@ -163,3 +164,13 @@ End Sub
 Private Sub Class_Terminate()
     Set m_cClients = Nothing
 End Sub
+
+'=========================================================================
+' IEndpoint interface
+'=========================================================================
+
+Private Sub IEndpoint_Terminate()
+    Terminate
+End Sub
+
+

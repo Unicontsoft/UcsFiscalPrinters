@@ -365,11 +365,11 @@ Public Sub FlushDebugLog()
 End Sub
 
 Public Sub TerminateEndpoints()
-    Dim vElem           As Variant
+    Dim oElem           As IEndpoint
     
     If Not m_cEndpoints Is Nothing Then
-        For Each vElem In m_cEndpoints
-            vElem.Terminate
+        For Each oElem In m_cEndpoints
+            oElem.Terminate
         Next
         Set m_cEndpoints = Nothing
     End If

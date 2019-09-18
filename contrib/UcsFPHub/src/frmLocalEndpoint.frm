@@ -28,6 +28,7 @@ Attribute VB_Exposed = False
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "frmLocalEndpoint"
+Implements IEndpoint
 
 '=========================================================================
 ' Constants and member variables
@@ -128,5 +129,13 @@ End Function
 '=========================================================================
 
 Private Sub Form_Terminate()
+    frTerminate
+End Sub
+
+'=========================================================================
+' IEndpoint interface
+'=========================================================================
+
+Private Sub IEndpoint_Terminate()
     frTerminate
 End Sub

@@ -24,6 +24,7 @@ Attribute VB_Exposed = False
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cMssqlEndpoint"
+Implements IEndpoint
 
 #Const ImplNoIdeProtection = (MST_NO_IDE_PROTECTION <> 0)
 #Const ImplSelfContained = True
@@ -908,5 +909,13 @@ End Sub
 '=========================================================================
 
 Private Sub Class_Terminate()
+    Terminate
+End Sub
+
+'=========================================================================
+' IEndpoint interface
+'=========================================================================
+
+Private Sub IEndpoint_Terminate()
     Terminate
 End Sub
