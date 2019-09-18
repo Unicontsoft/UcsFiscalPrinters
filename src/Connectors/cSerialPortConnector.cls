@@ -144,11 +144,13 @@ End Enum
 '=========================================================================
 
 Private Sub PrintError(sFunc As String)
+    m_sLastError = Err.Description
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 Private Sub RaiseError(sFunc As String)
+    m_sLastError = Err.Description
     Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
     OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
