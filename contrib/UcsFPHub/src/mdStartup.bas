@@ -302,7 +302,7 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
             End If
         Case "local"
             Set oLocalEndpoint = New frmLocalEndpoint
-            If oLocalEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+            If oLocalEndpoint.frInit(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                 cRetVal.Add oLocalEndpoint
             End If
         End Select
@@ -310,7 +310,7 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     '--- always init local endpoint
     If oLocalEndpoint Is Nothing Then
         Set oLocalEndpoint = New frmLocalEndpoint
-        If oLocalEndpoint.Init(Nothing, oPrinters) Then
+        If oLocalEndpoint.frInit(Nothing, oPrinters) Then
             cRetVal.Add oLocalEndpoint
         End If
     End If

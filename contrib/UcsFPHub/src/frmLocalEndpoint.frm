@@ -62,8 +62,8 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
-    Const FUNC_NAME     As String = "Init"
+Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
+    Const FUNC_NAME     As String = "frInit"
     Dim oRequestsCache  As Object
     
     On Error GoTo EH
@@ -84,7 +84,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     End If
     DebugLog Printf(STR_COM_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", STR_MONIKER)
     '--- success
-    Init = True
+    frInit = True
 QH:
     Exit Function
 EH:
@@ -92,7 +92,7 @@ EH:
     Resume QH
 End Function
 
-Public Sub Terminate()
+Friend Sub frTerminate()
     If m_lCookie <> 0 Then
         RevokeObject m_lCookie
         m_lCookie = 0
@@ -106,10 +106,27 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 End Function
 
+Public Function CreateObject(sProgID As String) As Object
+    Const LIB_UCSFP     As String = "UcsFP20"
+    
+    Select Case LCase$(sProgID)
+    Case LCase$(LIB_UCSFP & ".cFiscalPrinter")
+        Set CreateObject = New cFiscalPrinter
+    Case LCase$(LIB_UCSFP & ".cIslProtocol")
+        Set CreateObject = New cIslProtocol
+    Case LCase$(LIB_UCSFP & ".cTremolProtocol")
+        Set CreateObject = New cTremolProtocol
+    Case LCase$(LIB_UCSFP & ".cEscPosProtocol")
+        Set CreateObject = New cEscPosProtocol
+    Case Else
+        Set CreateObject = VBA.CreateObject(sProgID)
+    End Select
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
 
 Private Sub Form_Terminate()
-    Terminate
+    frTerminate
 End Sub
