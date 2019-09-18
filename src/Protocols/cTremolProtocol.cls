@@ -1448,7 +1448,7 @@ Public Function GetOperatorName(OperatorCode As String) As String
     pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsZekCmdInfoOperator, sParam, "%1", _
         "Index", lIndex, 1
     sParam = Printf(sParam, Pad(OperatorCode, -m_uConfig.MaxOperCode))
-    GetOperatorName Trim$(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
+    GetOperatorName = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1900,8 +1900,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             "ModelIndex", lModelIndex, 3, _
             "FirmwareIndex", lFirmwareIndex, 4
         vSplit = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
-        sModel = Trim$(At(vSplit, lModelIndex))
-        sFirmware = Trim$(At(vSplit, lFirmwareIndex))
+        sModel = RTrim$(At(vSplit, lModelIndex))
+        sFirmware = RTrim$(At(vSplit, lFirmwareIndex))
         '--- success
         pvGetDeviceInfo = True
     End If

@@ -1111,7 +1111,7 @@ Public Function GetTaxNo() As String
     pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsIslCmdInfoBulstat, sParam, vbNullString, _
         "Index", lIndex, IIf(IsIncotex, -1, 0)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    GetTaxNo = Trim$(At(vSplit, lIndex))
+    GetTaxNo = RTrim$(At(vSplit, lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1132,7 +1132,7 @@ Public Function GetTaxCaption() As String
         pvGetCommandConfig CONF_NAME, "InfoBulstat", eCmd, ucsIslCmdInfoBulstat, sParam, vbNullString, _
             "Index", lIndex, 1
     End If
-    GetTaxCaption = Trim$(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
+    GetTaxCaption = RTrim$(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
     If IsNumeric(GetTaxCaption) Or LenB(GetTaxCaption) = 0 Then
         GetTaxCaption = pvText(ucsTxtTaxNo)
     End If
@@ -2159,11 +2159,11 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         sModel = At(vResult, lNameIndex)
         '-- lSwitchesIndex in older models -> country index (6 = BG)
         If Len(At(vResult, lSwitchesIndex)) > 2 Then
-            sModel = Trim$(At(vResult, lNameIndex))
-            sFirmware = Trim$(At(vResult, lNameIndex + 1))
+            sModel = RTrim$(At(vResult, lNameIndex))
+            sFirmware = RTrim$(At(vResult, lNameIndex + 1))
         Else
             sModel = "FP-3530?"
-            sFirmware = Trim$(At(vResult, lNameIndex))
+            sFirmware = RTrim$(At(vResult, lNameIndex))
         End If
         '--- success
         pvGetDeviceInfo = True
