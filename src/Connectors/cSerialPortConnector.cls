@@ -275,18 +275,19 @@ WaitEvent:
                     Select Case lLastErr
                     Case ERROR_IO_PENDING
                         lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-                        Select Case lResult
-                        Case WAIT_OBJECT_0
+                        If lResult = WAIT_OBJECT_0 Then
                             If GetOverlappedResult(m_hComm, uOver, lActual, 0) = 0 Then
-                                DebugLog FUNC_NAME, "GetOverlappedResult after WaitCommEvent, Err.LastDllError=" & Err.LastDllError
+                                DebugLog FUNC_NAME, "GetOverlappedResult#1, Err.LastDllError=" & Err.LastDllError
                                 lRetryCount = lRetryCount + 1
                                 If lRetryCount * m_lCommEventTimeout >= Timeout Then
                                     GoTo TimeoutReached
                                 End If
                             End If
-                        Case WAIT_TIMEOUT
+                        Else
                             lRetryCount = lRetryCount + 1
-                        End Select
+                            Call CancelIo(m_hComm)
+                            DebugLog FUNC_NAME, "CancelIo#1, lResult=" & lResult & ", lRetryCount= " & lRetryCount
+                        End If
                     Case Else
                         m_bClearPersistent = True
                         m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
@@ -301,18 +302,19 @@ WaitEvent:
                 Select Case lLastErr
                 Case ERROR_IO_PENDING
                     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
-                    Select Case lResult
-                    Case WAIT_OBJECT_0
+                    If lResult = WAIT_OBJECT_0 Then
                         If GetOverlappedResult(m_hComm, uOver, lActual, 0) = 0 Then
-                            DebugLog FUNC_NAME, "GetOverlappedResult after ReadFile, Err.LastDllError=" & Err.LastDllError
+                            DebugLog FUNC_NAME, "GetOverlappedResult#2, Err.LastDllError=" & Err.LastDllError
                             lRetryCount = lRetryCount + 1
                             If lRetryCount * m_lCommEventTimeout >= Timeout Then
                                 GoTo TimeoutReached
                             End If
                         End If
-                    Case WAIT_TIMEOUT
+                    Else
                         lRetryCount = lRetryCount + 1
-                    End Select
+                        Call CancelIo(m_hComm)
+                        DebugLog FUNC_NAME, "CancelIo#2, lResult=" & lResult & ", lRetryCount= " & lRetryCount
+                    End If
                 Case ERROR_HANDLE_EOF
                     GoTo WaitEvent
                 Case Else
@@ -325,7 +327,7 @@ WaitEvent:
             If lResult <> 0 And lRetryCount * m_lCommEventTimeout >= Timeout Then
 TimeoutReached:
                 Call CancelIo(m_hComm)
-                DebugLog FUNC_NAME, "CancelIo after ReadFile, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
+                DebugLog FUNC_NAME, "CancelIo#3, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
                 m_bClearPersistent = True
                 m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 GoTo QH
