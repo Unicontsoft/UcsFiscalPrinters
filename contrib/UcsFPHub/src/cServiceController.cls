@@ -34,6 +34,7 @@ Private Const ERR_INVALID_XML       As String = "Невалидна XML заявка"
 Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
 Private Const ERR_MISSING_PAYLOAD   As String = "Празна заявка"
 Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
+Private Const ERR_MISSING_PARAMETER As String = "Липсва параметър %1"
 
 Private m_lLastCode                 As Long
 Private m_sLastError                As String
@@ -111,7 +112,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             End If
         End If
     End If
-    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
+    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals|drawer))?$/i", sPath, vMatches) = 0 Then
         m_lLastCode = 404
         m_sLastError = ERR_INVALID_URL
         sResponse = pvEncodeErrorText(m_sLastError)
@@ -185,6 +186,16 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             End If
         Case "totals"
             If Not m_oFP.GetDailyTotals(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                GoTo QH
+            End If
+        Case "drawer"
+            If Not C_Bool(JsonItem(oRequest, "IsOpen")) Then
+                m_lLastCode = 400
+                m_sLastError = Printf(ERR_MISSING_PARAMETER, "IsOpen")
+                sResponse = pvEncodeErrorText(m_sLastError)
+                GoTo QH
+            End If
+            If Not m_oFP.OpenDrawer(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
         End Select
