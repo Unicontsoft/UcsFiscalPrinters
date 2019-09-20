@@ -564,6 +564,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
             JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
             JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
+            JsonItem(oRetVal, "TotalReversal") = vTotals(3)
         End If
     End If
     If C_Bool(JsonItem(oJson, "IncludeTaxGroups")) Or bIncludeAll Then
@@ -641,6 +642,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
+    JsonItem(oRetVal, "TotalReversal") = vTotals(3)
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintServiceDeposit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
@@ -913,7 +915,7 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         End If
     End If
     If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
-        For lIdx = 1 To 3
+        For lIdx = 1 To 4
             JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
         Next
         For lIdx = -1 To -4 Step -1

@@ -196,6 +196,7 @@ Private Const ucsFscDscSubtotalAbs      As Long = ucsFscDscSubtotal + 100
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
+Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -596,6 +597,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
+        .IsEcr = vbUseDefault
         .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
@@ -1179,13 +1181,14 @@ Public Function GetTotalsStats() As Variant
     Dim lIndex          As Long
     Dim lReceipts       As Long
     Dim dLastDate       As Date
+    Dim vSplit          As Variant
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDailyStats", 0, 0, sParam, "nFBon" ' "nFBonDailyCount"
-    lReceipts = C_Lng(pvSettings(sParam))
     pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
-        "Index", lIndex, 4
-    dLastDate = C_Date(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
+        "Index", lIndex, 3
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    lReceipts = C_Lng(At(vSplit, lIndex))
+    dLastDate = C_Date(At(vSplit, lIndex + 1))
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
 EH:
@@ -1201,6 +1204,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
+    Dim lIndex          As Long
 
     On Error GoTo EH
     '--- %1={Type}<SEP>%2={Amount}<SEP>
@@ -1210,10 +1214,13 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     sParam = Printf(sParam, IIf(Amount >= 0, "0", "1"), SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 2) As Double
-        For lIdx = 0 To UBound(vRetVal)
+        ReDim vRetVal(0 To 3) As Double
+        For lIdx = 0 To 2
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "1" & DEF_SEP, "Index", lIndex, 1
+        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        vRetVal(3) = ParseSum(At(vSplit, lIndex))
         PrintServiceDeposit = vRetVal
     Else
         PrintServiceDeposit = EmptyDoubleArray
@@ -1566,9 +1573,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If LenB(.InitInvData(ucsInvDocNo)) <> 0 Then
                 Select Case .InitReceiptType
                 Case ucsFscRcpInvoice, ucsFscRcpCreditNote
-                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, "%1" & DEF_SEP & "%1" & DEF_SEP
-                    sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
-                    SendCommand eCmd, sParam
+                    pvGetCommandConfig CONF_NAME, "InfoInvoiceRangeBeg", 0, 0, sParam, "InvoiceRangeBeg"
+                    pvSettings(sParam) = .InitInvData(ucsInvDocNo)
+                    pvGetCommandConfig CONF_NAME, "InfoInvoiceRangeEnd", 0, 0, sParam, "InvoiceRangeEnd"
+                    pvSettings(sParam) = .InitInvData(ucsInvDocNo)
                 End Select
             End If
             Select Case .InitReceiptType
@@ -1590,12 +1598,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & .InitUniqueSaleNo, vbNullString))
             End Select
-            bInLogin = True
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
+                bInLogin = InStr(m_uPrintData.LastError, ERR_OPER_WRONG_PASSWORD)
                 GoTo QH
             End If
-            bInLogin = False
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, 2)

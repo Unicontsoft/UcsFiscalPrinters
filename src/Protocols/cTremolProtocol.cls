@@ -1271,7 +1271,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
-        "RevOffset", lRevOffset, 13
+        "RevOffset", lRevOffset, 9
     vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
@@ -1340,7 +1340,7 @@ Public Function PrintServiceDeposit( _
             OperatorCode = DEF_OPERNO
             OperatorPassword = GetDefaultPassword(DEF_OPERNO)
         End If
-        pvGetCommandConfig CONF_NAME, "AdminPrintServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4@%5", _
+        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4@%5", _
             "Format", sFormat, "0.00", _
             "PrintTimeout", lPrintTimeout, 0
         sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
@@ -1364,7 +1364,7 @@ Public Function PrintServiceDeposit( _
         vRetVal = EmptyDoubleArray
         GoTo QH
     End If
-    ReDim vRetVal(0 To 2) As Double
+    ReDim vRetVal(0 To 3) As Double
     vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
     pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -1372,6 +1372,10 @@ Public Function PrintServiceDeposit( _
     pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
+        "Index", lIndex, 17
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vRetVal(3) = C_Dbl(At(vSplit, lIndex))
 QH:
     PrintServiceDeposit = vRetVal
     Exit Function

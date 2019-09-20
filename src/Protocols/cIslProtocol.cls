@@ -1324,11 +1324,11 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString), _
-        "Offset", lOffset, 1
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", "0"), _
+        "Offset", lOffset, -10
     vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
-        "RevOffset", lRevOffset, 1
+        "RevOffset", lRevOffset, -10
     vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
@@ -1452,13 +1452,13 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     sParam = Printf(sParam, SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 2) As Double
-        For lIdx = 0 To UBound(vRetVal)
+        ReDim vRetVal(0 To 3) As Double
+        For lIdx = 0 To 2
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
         '--- sParam=4 -> P,CashInN,CashInS,CashOutN,CashOutS,CashSum
         pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsIslCmdInfoNap, sParam, "4", _
-            "Indexes", sIndexes, "4,1,3"
+            "Indexes", sIndexes, "4" & DEF_SEP & "1" & DEF_SEP & "3"
         vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
         lIdx = 0
         If UBound(vSplit) > 0 Then
