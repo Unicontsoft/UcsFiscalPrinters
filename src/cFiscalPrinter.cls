@@ -429,6 +429,8 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     End If
     JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastReceiptNo())
     JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
+    JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintReport = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
@@ -638,6 +640,8 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     If Abs(C_Dbl(JsonItem(oJson, "Amount"))) > DBL_EPSILON Then
         JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastReceiptNo())
         JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+        JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
+        JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
     End If
     JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
