@@ -164,6 +164,22 @@ EH:
     Resume QH
 End Sub
 
+Public Sub Shutdown()
+    Const FUNC_NAME     As String = "Shutdown"
+    Dim oForm           As Object
+    
+    For Each oForm In Forms
+        If TypeOf oForm Is frmIcon Then
+            Unload oForm
+        End If
+    Next
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
 '=========================================================================
 ' Base class events
 '=========================================================================
