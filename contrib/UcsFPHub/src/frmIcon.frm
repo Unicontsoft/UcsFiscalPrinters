@@ -1,5 +1,4 @@
 VERSION 5.00
-Object = "{8405D0DF-9FDD-4829-AEAD-8E2B0A18FEA4}#1.0#0"; "Inked.dll"
 Begin VB.Form frmIcon 
    Caption         =   "Настройки на UcsHPHub"
    ClientHeight    =   8400
@@ -23,13 +22,24 @@ Begin VB.Form frmIcon
       TabStop         =   0   'False
       Top             =   84
       Width           =   7236
-      Begin INKEDLibCtl.InkEdit txtConfig 
-         Height          =   2364
-         Left            =   252
-         OleObjectBlob   =   "frmIcon.frx":0E42
+      Begin VB.TextBox txtConfig 
+         BorderStyle     =   0  'None
+         BeginProperty Font 
+            Name            =   "Courier New"
+            Size            =   10.2
+            Charset         =   204
+            Weight          =   400
+            Underline       =   0   'False
+            Italic          =   0   'False
+            Strikethrough   =   0   'False
+         EndProperty
+         Height          =   3960
+         Left            =   168
+         MultiLine       =   -1  'True
+         ScrollBars      =   3  'Both
          TabIndex        =   1
-         Top             =   0
-         Width           =   3792
+         Top             =   84
+         Width           =   4296
       End
    End
    Begin VB.Menu mnuMain 
