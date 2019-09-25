@@ -84,7 +84,7 @@ Private Function Process(vArgs As Variant) As Long
     Dim vKey            As Variant
     
     On Error GoTo EH
-    Set m_oOpt = GetOpt(vArgs, "conf:c")
+    Set m_oOpt = GetOpt(vArgs, "config:-config:c")
     '--- normalize options: convert -o and -option to proper long form (--option)
     For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden")
         vKey = Split(vKey, ":")
