@@ -17,11 +17,19 @@ Private Const MODULE_NAME As String = "mdStartup"
 ' API
 '=========================================================================
 
+Private Const HKEY_CLASSES_ROOT         As Long = &H80000000
+Private Const SAM_WRITE                 As Long = &H20007
+Private Const REG_SZ                    As Long = 1
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Private Declare Function RegOpenKeyEx Lib "advapi32" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
+Private Declare Function RegCreateKeyEx Lib "advapi32" Alias "RegCreateKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal Reserved As Long, ByVal lpClass As Long, ByVal dwOptions As Long, ByVal samDesired As Long, ByVal lpSecurityAttributes As Long, phkResult As Long, lpdwDisposition As Long) As Long
+Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
+Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long         ' Note that if you declare the lpData parameter as String, you must pass it By Value.
+Private Declare Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyA" (ByVal hKey As Long, ByVal szSubKey As String) As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -30,10 +38,12 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 Private Const STR_VERSION               As String = "0.1.21"
 Private Const STR_SERVICE_NAME          As String = "UcsFPHub"
 Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
+Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
 Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
 Private Const STR_SVC_UNINSTALL         As String = "Деинсталира NT услуга %1..."
 Private Const STR_SUCCESS               As String = "Успех"
 Private Const STR_FAILURE               As String = "Грешка: "
+Private Const STR_WARN                  As String = "Предупреждение: "
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
 Private Const STR_ENVIRON_VARS_FOUND    As String = "Конфигурирани %1 променливи на средата"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
@@ -44,6 +54,7 @@ Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен фай
 Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
 Private Const ERR_ENUM_PORTS            As String = "Грешка: Енумериране на серийни портове: %1"
 Private Const ERR_WARN_ACCESS           As String = "Предупреждение: Принтер %1: %2"
+Private Const ERR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 '--- formats
 Private Const FORMAT_DATETIME_LOG       As String = "yyyy.MM.dd hh:nn:ss"
 Private Const FORMAT_BASE_3             As String = "0.000"
@@ -159,6 +170,9 @@ Private Function Process(vArgs As Variant) As Long
         If LenB(sConfFile) <> 0 Then
             sConfFile = " --config " & ArgvQuote(sConfFile)
         End If
+        If Not pvRegisterServiceAppID(STR_SERVICE_NAME, STR_DISPLAY_NAME, App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
+            ConsoleError STR_WARN & sError & vbCrLf
+        End If
         If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
             ConsoleError STR_FAILURE
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
@@ -168,6 +182,9 @@ Private Function Process(vArgs As Variant) As Long
         GoTo QH
     ElseIf m_oOpt.Item("--uninstall") Then
         ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
+        If Not pvUnregisterServiceAppID(App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
+            ConsoleError STR_WARN & sError & vbCrLf
+        End If
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
             ConsoleError STR_FAILURE
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
@@ -384,3 +401,49 @@ Public Sub TerminateEndpoints()
     End If
 End Sub
 
+Private Function pvRegisterServiceAppID(sServiceName As String, sDisplayName As String, sExeFile As String, sGuid As String, Optional Error As String) As Boolean
+    If Not pvRegSetStringValue(HKEY_CLASSES_ROOT, "AppID\" & sExeFile, "AppID", sGuid) Then
+        GoTo QH
+    End If
+    If Not pvRegSetStringValue(HKEY_CLASSES_ROOT, "AppID\" & sGuid, vbNullString, sDisplayName) Then
+        GoTo QH
+    End If
+    If Not pvRegSetStringValue(HKEY_CLASSES_ROOT, "AppID\" & sGuid, "LocalService", sServiceName) Then
+        GoTo QH
+    End If
+    '--- success
+    pvRegisterServiceAppID = True
+QH:
+    If Not pvRegisterServiceAppID Then
+        Error = Printf(ERR_REGISTER_APPID_FAILED, GetErrorDescription(Err.LastDllError))
+    End If
+End Function
+
+Private Function pvRegSetStringValue(ByVal hRoot As Long, sSubKey As String, sName As String, sValue As String) As Boolean
+    Dim hKey            As Long
+    Dim dwDummy         As Long
+    
+    If RegCreateKeyEx(hRoot, sSubKey, 0, 0, 0, SAM_WRITE, 0, hKey, dwDummy) = 0 Then
+        Call RegCloseKey(hKey)
+    End If
+    If RegOpenKeyEx(hRoot, sSubKey, 0, SAM_WRITE, hKey) <> 0 Then
+        GoTo QH
+    End If
+    If RegSetValueEx(hKey, sName, 0, REG_SZ, ByVal sValue, Len(sValue)) <> 0 Then
+        GoTo QH
+    End If
+    '--- success
+    pvRegSetStringValue = True
+QH:
+    If hKey <> 0 Then
+        Call RegCloseKey(hKey)
+    End If
+End Function
+
+Private Function pvUnregisterServiceAppID(sExeFile As String, sGuid As String, Optional Error As String) As Boolean
+    SHDeleteKey HKEY_CLASSES_ROOT, "AppID\" & sExeFile
+    SHDeleteKey HKEY_CLASSES_ROOT, "AppID\" & sGuid
+    Error = vbNullString
+    '--- success
+    pvUnregisterServiceAppID = True
+End Function
