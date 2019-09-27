@@ -731,22 +731,34 @@ EH:
     Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
-Public Function PutObject(oObj As Object, sPathName As String) As Long
+Public Function PutObject(oObj As Object, sPathName As String, Optional ByVal Flags As Long) As Long
     Const ROTFLAGS_REGISTRATIONKEEPSALIVE As Long = 1
     Const IDX_REGISTER  As Long = 3
+    Dim hResult         As Long
     Dim pROT            As IUnknown
     Dim pMoniker        As IUnknown
     
-    Call GetRunningObjectTable(0, pROT)
-    Call CreateFileMoniker(StrPtr(sPathName), pMoniker)
-    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
+    hResult = CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    If hResult < 0 Then
+        Err.Raise hResult, "CreateFileMoniker"
+    End If
+    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE Or Flags, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
+QH:
 End Function
 
 Public Sub RevokeObject(ByVal lCookie As Long)
     Const IDX_REVOKE    As Long = 4
+    Dim hResult         As Long
     Dim pROT            As IUnknown
     
-    Call GetRunningObjectTable(0, pROT)
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
     DispCallByVtbl pROT, IDX_REVOKE, lCookie
 End Sub
 
@@ -765,7 +777,7 @@ Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArr
     Next
     hResult = DispCallFunc(ObjPtr(pUnk), lIndex * 4, CC_STDCALL, vbLong, lIdx, vType(0), vPtr(0), DispCallByVtbl)
     If hResult < 0 Then
-        Err.Raise hResult
+        Err.Raise hResult, "DispCallFunc"
     End If
 End Function
 

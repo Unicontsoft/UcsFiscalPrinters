@@ -66,6 +66,7 @@ End Property
 
 Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
     Const FUNC_NAME     As String = "frInit"
+    Const ROTFLAGS_ALLOWANYCLIENT As Long = 2
     Dim oRequestsCache  As Object
     
     On Error GoTo EH
@@ -78,16 +79,19 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    m_lCookie = PutObject(Me, STR_MONIKER)
+    m_lCookie = PutObject(Me, STR_MONIKER, IIf(IsRunningAsService, ROTFLAGS_ALLOWANYCLIENT, 0))
     If m_lCookie = 0 Then
         m_sLastError = Printf(ERR_REGISTATION_FAILED, STR_MONIKER)
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog Printf(STR_COM_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", STR_MONIKER)
+    DebugLog Printf(STR_COM_SETUP, STR_MONIKER) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     frInit = True
 QH:
+    If LenB(m_sLastError) <> 0 Then
+        DebugLog m_sLastError, vbLogEventTypeError
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
