@@ -1886,6 +1886,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
                         SendCommand eCmd, sParam
                     End If
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
+                    End If
                 End Select
             End If
             If IsDaisy And False Then
@@ -1998,6 +2001,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End Select
             sParam = Printf(sParam, sData)
             SendCommand eCmd, sParam
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
@@ -2025,6 +2031,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End Select
                 sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
                 SendCommand eCmd, sParam
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
+                End If
             End Select
             If .DiscType = ucsFscDscSubtotal Then
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
@@ -2054,6 +2063,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     "FormatAmount", sFormatAmount, "0.00"
                 sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
                 SendCommand eCmd, sParam
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
+                End If
                 uCtx.PmtPrinted = True
             Else
                 '--- check if anything left for payment
@@ -2097,9 +2109,15 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                                 sFormatAddr)
                         End With
                         SendCommand eCmd, sParam
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            GoTo QH
+                        End If
                     End Select
                     pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
                     SendCommand eCmd, sParam
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
+                    End If
                 End If
                 pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsIslCmdInfoStatus, sParam, "W"
                 SendCommand eCmd, sParam
