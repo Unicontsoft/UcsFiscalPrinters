@@ -1554,12 +1554,9 @@ RetryParse:
                     If Len(sText) > 1 Then
                         m_eError = Asc(Mid$(sText, 1)) - &H30
                         m_eStatus = Asc(Mid$(sText, 2)) - &H30
-                        If m_eError <> 0 Then
-                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
-                            Error = ErrorText
-                        ElseIf m_eStatus <> 0 Then
-                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", Received=0x" & ToHexDump(sText)
-                            Error = StatusText
+                        If m_eError <> 0 Or m_eStatus <> 0 Then
+                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
+                            Error = IIf(LenB(StatusText) <> 0, StatusText & ". ", vbNullString) & ErrorText
                         Else
                             Error = vbNullString
                         End If
