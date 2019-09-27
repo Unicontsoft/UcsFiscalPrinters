@@ -30,4 +30,6 @@ echo Embedding manifest in %output_exe%...
 %Ummm% %file_dir%\UcsFPHub.ini
 %mt%  -manifest "%file_dir%\UcsFPHub.ini.manifest" -outputresource:"%output_exe%;1"
 
+git checkout -- %bin_dir%\..\src\Shared\mdJson.bas
+
 echo Done.
