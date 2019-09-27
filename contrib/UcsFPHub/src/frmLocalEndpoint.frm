@@ -173,6 +173,9 @@ Public Sub Shutdown()
             Unload oForm
         End If
     Next
+    If IsRunningAsService Then
+        NtServiceStop
+    End If
 QH:
     Exit Sub
 EH:

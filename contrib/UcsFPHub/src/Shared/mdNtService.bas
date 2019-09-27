@@ -144,8 +144,16 @@ Public Function NtServiceQueryStop() As Boolean
     End If
 End Function
 
+Public Function NtServiceStop() As Boolean
+    If m_hStopPendingEvent <> 0 Then
+        Call SetEvent(m_hStopPendingEvent)
+        NtServiceStop = True
+    End If
+End Function
+
 Public Function NtServiceTerminate() As Boolean
     If m_hStopEvent <> 0 Then
+        pvSetStatus SERVICE_STOPPED
         Call SetEvent(m_hStopEvent)
         If pvMsgWaitWithDoEvents(1, m_hThread, m_lTimeout) = 0 Then
             NtServiceTerminate = True
@@ -262,32 +270,26 @@ End Sub
 
 Private Sub pvServiceProc(ByVal dwArgc As Long, ByVal lpszArgv As Long)
     m_hStatus = RegisterServiceCtrlHandlerW(m_lServiceNamePtr, AddressOf pvHandlerProc)
-    If m_hStatus = 0 Then
-        GoTo QH
+    If m_hStatus <> 0 Then
+        pvSetStatus SERVICE_START_PENDING
+        Call SetEvent(m_hStartEvent)
+        Call WaitForSingleObject(m_hStopEvent, INFINITE)
     End If
-    pvSetStatus SERVICE_START_PENDING
-    Call SetEvent(m_hStartEvent)
-    Call WaitForSingleObject(m_hStopEvent, INFINITE)
-    pvSetStatus SERVICE_STOPPED
-QH:
 End Sub
    
 Private Sub pvHandlerProc(ByVal dwControl As Long)
     Select Case dwControl
     Case SERVICE_CONTROL_SHUTDOWN, SERVICE_CONTROL_STOP
         Call SetEvent(m_hStopPendingEvent)
-    Case Else
-        pvSetStatus m_uService.dwCurrentState
     End Select
 End Sub
 
-Private Function pvSetStatus(ByVal eNewState As SERVICE_STATE) As Boolean
-    If m_hStatus <> 0 Then
+Private Sub pvSetStatus(ByVal eNewState As SERVICE_STATE)
+    If m_hStatus <> 0 And m_uService.dwCurrentState <> eNewState Then
         m_uService.dwCurrentState = eNewState
-        '--- success (or failure)
-        pvSetStatus = SetServiceStatus(m_hStatus, m_uService) <> 0
+        Call SetServiceStatus(m_hStatus, m_uService)
     End If
-End Function
+End Sub
 
 Private Function pvAddr(ByVal pfn As Long) As Long
     pvAddr = pfn
