@@ -214,6 +214,9 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     '--- success
     Init = True
 QH:
+    If LenB(m_sLastError) <> 0 Then
+        DebugLog m_sLastError, vbLogEventTypeError
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -282,7 +285,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         GoTo QH
     End If
     If LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
-        DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
+        DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     End If
     vSplit = Split2(sRawUrl, "?")
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
@@ -290,12 +293,12 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog Printf(STR_QUEUE_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, "0.000"))
+    DebugLog Printf(STR_QUEUE_ELAPSED, m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, "0.000")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     pvHandleRequest = True
 QH:
     If Not pvHandleRequest Then
-        DebugLog Printf(STR_QUEUE_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sResponse)
+        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     End If
     Exit Function
 EH:
@@ -350,7 +353,7 @@ Private Function pvQueueSetup() As Boolean
             lIdx = lIdx + 1
         End If
     Next
-    DebugLog Printf(STR_QUEUE_SETUP & " [" & MODULE_NAME & "." & FUNC_NAME & "]", lIdx, m_sQueueName)
+    DebugLog Printf(STR_QUEUE_SETUP, lIdx, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -468,7 +471,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
-    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", C_Str(m_oConn))
+    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), C_Str(m_oConn)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- start heart-beat timer
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
@@ -881,7 +884,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     sResponse = C_Str(pRecordset!ErrorText.Value)
                     If LenB(sResponse) <> 0 Then
                         sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog Printf(STR_QUEUE_ERROR & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sQueueName, sPrinterId, sResponse)
+                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
                     End If
                 End If
             End If

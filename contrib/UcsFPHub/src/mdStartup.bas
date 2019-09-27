@@ -127,14 +127,14 @@ Private Function Process(vArgs As Variant) As Long
         End If
     End If
     If LenB(sConfFile) <> 0 Then
-        DebugLog Printf(STR_LOADING_CONFIG, sConfFile)
+        DebugLog Printf(STR_LOADING_CONFIG, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
         If Not FileExists(sConfFile) Then
-            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile), vbLogEventTypeError
+            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
         If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
-            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
+            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
@@ -177,7 +177,7 @@ Private Function Process(vArgs As Variant) As Long
         GoTo QH
     End If
     If UBound(JsonKeys(m_oConfig, "Environment")) >= 0 Then
-        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1)
+        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
         For Each vKey In JsonKeys(m_oConfig, "Environment")
             Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
@@ -185,13 +185,14 @@ Private Function Process(vArgs As Variant) As Long
         m_nDebugLogFile = 0
     End If
     Set m_oPrinters = pvCollectPrinters()
-    DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count"))
+    DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
         Loop
         NtServiceTerminate
+        FlushDebugLog
     ElseIf Not m_oOpt.Item("--systray") Then
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
@@ -224,10 +225,10 @@ Private Function pvCollectPrinters() As Object
     JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "Count") = 0
     If JsonItem(m_oConfig, "Printers/Autodetect") Then
-        DebugLog STR_AUTODETECTING_PRINTERS
+        DebugLog STR_AUTODETECTING_PRINTERS & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
-                DebugLog Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeError
+                DebugLog Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
                     If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
@@ -259,7 +260,7 @@ Private Function pvCollectPrinters() As Object
             JsonItem(oRequest, "IncludeTaxNo") = True
             If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
                 If Not JsonItem(oJson, "Ok") Then
-                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeWarning
+                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oJson, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
                 Else
                     sKey = JsonItem(oJson, "DeviceSerialNo")
                     If LenB(sKey) <> 0 Then
