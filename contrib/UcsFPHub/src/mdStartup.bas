@@ -101,23 +101,30 @@ Private Function Process(vArgs As Variant) As Long
     Dim sConfFile       As String
     Dim sError          As String
     Dim vKey            As Variant
+    Dim lIdx            As Long
     
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "config:-config:c")
     '--- normalize options: convert -o and -option to proper long form (--option)
-    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden")
+    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden help:h:?")
         vKey = Split(vKey, ":")
-        If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 0))) Then
-            m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 0))
-        End If
-        If LenB(At(vKey, 1)) <> 0 Then
-            If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, 1))) Then
-                m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, 1))
+        For lIdx = 0 To UBound(vKey)
+            If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, lIdx))) Then
+                m_oOpt.Item("--" & At(vKey, 0)) = m_oOpt.Item("-" & At(vKey, lIdx))
             End If
-        End If
+        Next
     Next
     If Not m_oOpt.Item("--nologo") Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
+    End If
+    If m_oOpt.Item("--help") Then
+        ConsolePrint "Usage: " & App.EXEName & ".exe [options...]" & vbCrLf & vbCrLf & _
+                    "Options:" & vbCrLf & _
+                    "  -c, --config FILE   read configuration from FILE" & vbCrLf & _
+                    "  -i, --install       install NT service (with config file from -c option)" & vbCrLf & _
+                    "  -u, --uninstall     remove NT service" & vbCrLf & _
+                    "  -s, --systray       show icon in systray" & vbCrLf
+        GoTo QH
     End If
     If NtServiceInit(STR_SERVICE_NAME) Then
         m_bIsService = True
