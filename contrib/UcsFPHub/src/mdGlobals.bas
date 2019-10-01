@@ -827,3 +827,28 @@ Public Function GetSpecialFolder(ByVal eType As UcsOpenSaveDirectoryType) As Str
     GetSpecialFolder = Left$(GetSpecialFolder, InStr(GetSpecialFolder, vbNullChar) - 1)
 End Function
 
+Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
+    Const KEY_PATTERN   As String = "^([^=]+)="
+    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
+    Dim sKey            As String
+    Dim sValue          As String
+    Dim oRetVal         As Object
+    
+    Do
+        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
+        If LenB(sKey) = 0 Then
+            Exit Do
+        End If
+        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        If Len(sValue) >= 2 Then
+            If Left$(sValue, 1) = Right$(sValue, 1) Then
+                Select Case Asc(sValue)
+                Case 34, 39 '--- ' and "
+                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
+                End Select
+            End If
+        End If
+        JsonItem(oRetVal, sKey) = sValue
+    Loop
+    Set ParseDeviceString = oRetVal
+End Function

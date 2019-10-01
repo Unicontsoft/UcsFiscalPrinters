@@ -267,6 +267,8 @@ Private Function pvCollectPrinters() As Object
                             If LenB(sKey) <> 0 Then
                                 JsonItem(oJson, "Ok") = Empty
                                 JsonItem(oJson, "DeviceString") = sDeviceString
+                                JsonItem(oJson, "Host") = GetErrorComputerName()
+                                JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
                                 JsonItem(oRetVal, sKey) = oJson
                                 JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                             End If
@@ -291,6 +293,7 @@ Private Function pvCollectPrinters() As Object
                         JsonItem(oJson, "Ok") = Empty
                         JsonItem(oJson, "DeviceString") = sDeviceString
                         JsonItem(oJson, "Host") = GetErrorComputerName()
+                        JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
                         JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         JsonItem(oRetVal, sKey) = oJson
@@ -453,4 +456,22 @@ Private Function pvUnregisterServiceAppID(sExeFile As String, sGuid As String, O
     Error = vbNullString
     '--- success
     pvUnregisterServiceAppID = True
+End Function
+
+Private Function pvToSimpleDevice(sDeviceString As String) As String
+    Dim oJson           As Object
+    Dim sDevice         As String
+    
+    Set oJson = ParseDeviceString(sDeviceString)
+    If IsEmpty(JsonItem(oJson, "IP")) Then
+        sDevice = JsonItem(oJson, "Speed")
+        If sDevice = "115200" Then
+            sDevice = vbNullString
+        End If
+        sDevice = JsonItem(oJson, "Port") & IIf(LenB(sDevice) <> 0, "," & sDevice, vbNullString)
+    Else
+        sDevice = JsonItem(oJson, "Port")
+        sDevice = JsonItem(oJson, "IP") & IIf(LenB(sDevice) <> 0, ":" & sDevice, vbNullString)
+    End If
+    pvToSimpleDevice = sDevice
 End Function
