@@ -140,7 +140,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
@@ -200,6 +200,7 @@ Private Enum UcsInternalErrors
     [__ucsErrTimeoutWaitingForResponse]
     ucsErrInvalidMessageFormatOrChecksum
     ucsErrInvalidResponseLength
+    ucsErrInvalidResponseChecksum
     ucsErrResponseMissingPreamble
     ucsErrNoReceiptStarted
     ucsErrErrorInLine
@@ -1482,7 +1483,6 @@ Private Function pvSendCommand( _
     Dim sText           As String
     Dim baText()        As Byte
     Dim lIdx            As Long
-    Dim lSum            As Long
     Dim lSize           As Long
     Dim bLogging        As Boolean
     
@@ -1502,13 +1502,8 @@ RetrySend:
         sText = Chr$(ZFP_STX) & Chr$(ZFP_BASEDATA + 3 + Len(Data)) & Chr$(m_lSequence) & Chr$(eCmd) & Data
         '--- increment sequence
         m_lSequence = IIf(m_lSequence >= &H9F, ZFP_BASEDATA, m_lSequence + 1)
-        '--- calc checksum
-        baText = ToAscii(sText)
-        For lIdx = 1 To Len(sText) - 1
-            lSum = lSum Xor baText(lIdx)
-        Next
         '--- append checksum and terminator
-        sText = sText & Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30) & Chr$(ZFP_ETX)
+        sText = sText & pvCheckSum(sText) & Chr$(ZFP_ETX)
     End If
     '--- send request
     DebugDataDump FUNC_NAME, "send ", sText
@@ -1533,35 +1528,41 @@ RetryParse:
             Select Case Asc(sText)
             Case ZFP_STX            ' &H2
                 '--- check if response complete
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then      ' &HA
                     lSize = Asc(Mid$(sText, 2, 1)) - ZFP_BASEDATA - 3
                     '--- check message length
-                    If Len(sText) - 7 = lSize Then
-                        pvSendCommand = Mid$(sText, 5, lSize)
-                        If bLogging Then
-                            DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
-                        End If
-                    Else
+                    If Len(sText) - 7 <> lSize Then
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
+                        Exit Do
+                    End If
+                    '--- check sum
+                    If pvCheckSum(Mid$(sText, 1, Len(sText) - 3)) <> Mid$(sText, lSize + 5, 2) Then
+                        Error = Printf(pvInternal(ucsErrInvalidResponseChecksum), "0x" & ToHexDump(sText))
+                        Exit Do
+                    End If
+                    pvSendCommand = Mid$(sText, 5, lSize)
+                    If bLogging Then
+                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
                     End If
                     Exit Do
                 End If
             Case ZFP_ACK            ' &H6
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then
+                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then      ' &HA
                     lSize = Len(sText) - 5
                     '--- parse respone
                     sText = Mid$(sText, 3, lSize)
-                    If Len(sText) > 1 Then
-                        m_eError = Asc(Mid$(sText, 1)) - &H30
-                        m_eStatus = Asc(Mid$(sText, 2)) - &H30
-                        If m_eError <> 0 Or m_eStatus <> 0 Then
-                            DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
-                            Error = IIf(LenB(StatusText) <> 0, StatusText & ". ", vbNullString) & ErrorText
-                        Else
-                            Error = vbNullString
-                        End If
-                    Else
+                    '--- need at least 2 bytes
+                    If Len(sText) < 2 Then
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
+                        Exit Do
+                    End If
+                    m_eError = Asc(Mid$(sText, 1)) - &H30
+                    m_eStatus = Asc(Mid$(sText, 2)) - &H30
+                    If m_eError <> 0 Or m_eStatus <> 0 Then
+                        DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
+                        Error = IIf(LenB(StatusText) <> 0, StatusText & ". ", vbNullString) & ErrorText
+                    Else
+                        Error = vbNullString
                     End If
                     Exit Do
                 End If
@@ -2002,6 +2003,24 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
     End If
     m_uPrintData.LastError = sError
 End Sub
+
+Private Function pvCheckSum(sText As String) As String
+    Const FUNC_NAME     As String = "pvCheckSum"
+    Dim baText()        As Byte
+    Dim lIdx            As Long
+    Dim lSum            As Long
+    
+    On Error GoTo EH
+    baText = ToAscii(sText)
+    For lIdx = 1 To Len(sText) - 1
+        lSum = lSum Xor baText(lIdx)
+    Next
+    pvCheckSum = Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30)
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
 
 '=========================================================================
 ' Base class events

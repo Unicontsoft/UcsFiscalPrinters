@@ -211,7 +211,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
 Private Const STR_ERRORS_A              As String = "Syntax error in the received data|Invalid command code received|2|3|Printing unit fault|5|6|7|0|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|4|5|6|7|No paper"
 Private Const STR_MEMORY_A              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|The printing head is overheated|7|The fiscal memory is set in READONLY mode (locked)|The fiscal memory is formatted|The last fiscal memory store operation is not successful|The printer is in fiscal mode|The tax rates are set at least once|Fiscal memory read error"
@@ -265,8 +265,8 @@ Private m_uLConfig(0 To [_ucsIslCfgMax] - 1) As UcsLocalizedConfigType
 
 Private Enum UcsInternalErrors
     ucsErrTimeoutWaitingForResponse
-    [__ucsErrInvalidMessageFormatOrChecksum]
     ucsErrInvalidResponseLength
+    ucsErrInvalidResponseChecksum
     ucsErrResponseMissingPostamble
     ucsErrResponseMissingPreamble
     ucsErrNoReceiptStarted
@@ -1581,7 +1581,6 @@ Private Function pvSendCommand( _
     Dim sText           As String
     Dim baText()        As Byte
     Dim lIdx            As Long
-    Dim lSum            As Long
     Dim lSize           As Long
     Dim sBuffer         As String
     Dim dblTimer        As Double
@@ -1597,13 +1596,8 @@ Private Function pvSendCommand( _
     sSend = STR_CHR1 & Chr$(&H20 + 4 + Len(sSend)) & Chr$(m_lSequence) & Chr$(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
-    '--- calc checksum
-    baText = ToAscii(sSend)
-    For lIdx = 1 To UBound(baText)
-        lSum = lSum + baText(lIdx)
-    Next
     '--- append checksum and terminator
-    sSend = sSend & pvToWireLong(lSum) & Chr$(SYM_TERMINATOR)
+    sSend = sSend & pvCheckSum(sSend) & Chr$(SYM_TERMINATOR)
     '--- send request
     dblTimer = TimerEx + lTimeout / 1000
 RetrySend:
@@ -1642,29 +1636,33 @@ RetryParse:
     Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
     If Left$(sText, 1) = STR_CHR1 Then
         lIdx = InStr(sText, Chr$(SYM_POSTAMBLE))
-        If lIdx > 2 Then
-            lSize = Asc(Mid$(sText, 2, 1)) - &H20
-            '--- check message length
-            If lSize >= 4 And lSize < lIdx Then
-                '--- check for status info
-                lIdx = InStrRev(sText, Chr$(SYM_SEPARATOR), lIdx)
-                If lIdx > 4 Then
-                    pvSetStatus Mid$(sText, lIdx + 1, 6)
-                    lSize = lIdx - 1
-                Else
-                    pvSetStatus vbNullString '--- clear
-                End If
-                pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
-                DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
-                    IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
-                    IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
-                GoTo QH
-            Else
-                Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
-            End If
-        Else
+        If lIdx <= 2 Then
             Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
+            GoTo QH
         End If
+        lSize = Asc(Mid$(sText, 2, 1)) - &H20
+        '--- check message length
+        If lSize < 4 Or lSize >= lIdx Then
+            Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
+            GoTo QH
+        End If
+        '--- check sum
+        If pvCheckSum(Mid$(sText, 1, lSize + 1)) <> Mid$(sText, lSize + 2, 4) Then
+            Error = Printf(pvInternal(ucsErrInvalidResponseChecksum), "0x" & ToHexDump(sText))
+            GoTo QH
+        End If
+        '--- check for status info
+        lIdx = InStrRev(sText, Chr$(SYM_SEPARATOR), lIdx)
+        If lIdx > 4 Then
+            pvSetStatus Mid$(sText, lIdx + 1, 6)
+            lSize = lIdx - 1
+        Else
+            pvSetStatus vbNullString '--- clear
+        End If
+        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
+        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
+            IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
+            IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
         lIdx = InStr(sText, STR_CHR1)
@@ -1674,13 +1672,25 @@ RetryParse:
             GoTo RetryParse
         End If
         Error = Printf(pvInternal(ucsErrResponseMissingPreamble), "0x" & ToHexDump(sText))
+        pvSetStatus vbNullString '--- clear
     End If
-    pvSetStatus vbNullString '--- clear
 QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
+End Function
+
+Private Function pvCheckSum(sText As String) As String
+    Dim baText()        As Byte
+    Dim lIdx            As Long
+    Dim lSum            As Long
+    
+    baText = ToAscii(sText)
+    For lIdx = 1 To UBound(baText)
+        lSum = lSum + baText(lIdx)
+    Next
+    pvCheckSum = pvToWireLong(lSum)
 End Function
 
 Private Function pvToWireLong(ByVal lValue As Long) As String
