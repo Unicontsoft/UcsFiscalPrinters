@@ -1570,7 +1570,7 @@ Public Function GetErrorTempPath() As String
     End If
 End Function
 
-Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+Private Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
     Dim oCol            As Object
     
     Set oCol = pvInitRegExp(sPattern).Execute(sText)

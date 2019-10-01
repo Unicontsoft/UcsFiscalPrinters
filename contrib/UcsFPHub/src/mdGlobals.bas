@@ -597,7 +597,7 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
 QH:
 End Sub
 
-Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+Private Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
     Dim oCol            As Object
     
     Set oCol = InitRegExp(sPattern).Execute(sText)
