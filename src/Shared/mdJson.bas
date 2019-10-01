@@ -580,8 +580,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             Next
             If lSize > 100 And Not Minimize Then
                 JsonDump = Left$(sCompound, 1) & vbCrLf & _
-                    Space$((Level + 1) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$((Level + 1) * LNG_INDENT)) & vbCrLf & _
-                    Space$(Level * LNG_INDENT) & Right$(sCompound, 1)
+                    Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT)) & vbCrLf & _
+                    Space$(IIf(Level > 0, Level, 0) * LNG_INDENT) & Right$(sCompound, 1)
             Else
                 JsonDump = Left$(sCompound, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(sCompound, 1)
             End If
@@ -686,8 +686,10 @@ Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
                 End If
                 lJdx = 0
                 For Each vSplit In JsonKeys(oParam)
-                    AssignVariant vItem(lJdx), JsonItem(oParam, vSplit & vKey)
-                    lJdx = lJdx + 1
+                    If IsObject(JsonItem(oParam, vSplit)) Or LenB(vKey) = 0 Then
+                        AssignVariant vItem(lJdx), JsonItem(oParam, vSplit & vKey)
+                        lJdx = lJdx + 1
+                    End If
                 Next
                 If lJdx = 0 Then
                     JsonItem = Array()
@@ -1454,5 +1456,3 @@ QH:
     Call CopyMemory(ByVal VarPtr(sTemp), NULL_PTR, PTR_SIZE)
 End Function
 #End If
-
-
