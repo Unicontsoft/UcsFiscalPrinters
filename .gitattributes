@@ -10,3 +10,5 @@
 *.gz binary
 *.frx binary
 *.ico binary
+*.ods binary
+*.xls binary
