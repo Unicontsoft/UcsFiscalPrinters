@@ -270,6 +270,7 @@ Private Function pvCollectPrinters() As Object
                                 JsonItem(oJson, "DeviceString") = sDeviceString
                                 JsonItem(oJson, "Host") = GetErrorComputerName()
                                 JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
+                                JsonItem(oJson, "Autodetected") = True
                                 JsonItem(oRetVal, sKey) = oJson
                                 JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                             End If
