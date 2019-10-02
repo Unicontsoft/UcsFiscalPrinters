@@ -164,7 +164,7 @@ Private Function Process(vArgs As Variant) As Long
     End If
     If m_oOpt.Item("--systray") Then
         If Not m_oOpt.Item("--hidden") And Not InIde Then
-            frmIcon.Restart "--hidden"
+            frmIcon.Restart AddParam:="--hidden"
             GoTo QH
         ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
             Process = 1
@@ -215,6 +215,7 @@ Private Function Process(vArgs As Variant) As Long
         Do While Not NtServiceQueryStop()
             '--- do nothing
         Loop
+        TerminateEndpoints
         NtServiceTerminate
         FlushDebugLog
     ElseIf Not m_oOpt.Item("--systray") Then

@@ -174,12 +174,28 @@ Public Sub Shutdown()
     
     For Each oForm In Forms
         If TypeOf oForm Is frmIcon Then
-            Unload oForm
+            oForm.Shutdown
         End If
     Next
     If IsRunningAsService Then
         NtServiceStop
     End If
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
+Public Sub Restart(Optional AddParam As Variant)
+    Const FUNC_NAME     As String = "Restart"
+    Dim oForm           As Object
+    
+    For Each oForm In Forms
+        If TypeOf oForm Is frmIcon Then
+            oForm.Restart AddParam
+        End If
+    Next
 QH:
     Exit Sub
 EH:

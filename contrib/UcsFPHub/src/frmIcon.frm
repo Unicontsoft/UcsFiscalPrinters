@@ -220,22 +220,34 @@ EH:
     Resume QH
 End Sub
 
-Public Sub Restart(Optional AddParam As String)
-    Const FUNC_NAME     As String = "Restart"
-    Dim uShell          As SHELLEXECUTEINFO
+Public Sub Shutdown()
+    Const FUNC_NAME     As String = "Shutdown"
     
     On Error GoTo EH
     TerminateEndpoints
     FlushDebugLog
     Unload Me
-    If InIde Then
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
+Public Sub Restart(Optional AddParam As Variant)
+    Const FUNC_NAME     As String = "Restart"
+    Dim uShell          As SHELLEXECUTEINFO
+    
+    On Error GoTo EH
+    Shutdown
+    If IsMissing(AddParam) Or InIde Then
         Main
     Else
         With uShell
             .cbSize = Len(uShell)
             .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
             .lpFile = GetProcessName()
-            .lpParameters = Trim$(Command$ & " " & ArgvQuote(AddParam))
+            .lpParameters = Trim$(Command$ & IIf(LenB(AddParam) <> 0, " " & ArgvQuote(AddParam & vbNullString), vbNullString))
         End With
         Call ShellExecuteEx(uShell)
     End If
@@ -269,7 +281,7 @@ Private Sub mnuFile_Click(Index As Integer)
             Restart
         End If
     Case ucsMnuFileRestart
-        Restart
+        Restart vbNullString
     Case ucsMnuFileExit
         Unload Me
     End Select
@@ -288,9 +300,9 @@ Private Sub mnuPopup_Click(Index As Integer)
     Case ucsMnuPopupConfig
         ShowConfig
     Case ucsMnuPopupRestart
-        Restart
+        Restart vbNullString
     Case ucsMnuPopupExit
-        Unload Me
+        Shutdown
     End Select
 QH:
     Exit Sub
