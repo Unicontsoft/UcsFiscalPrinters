@@ -85,6 +85,7 @@ End Type
 Private Const STR_CONN_OPEN             As String = "Свързан с %1"
 Private Const STR_CONN_REOPEN           As String = "Възстановена връзка с %1"
 Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 услуги"
+Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
@@ -224,6 +225,7 @@ EH:
 End Function
 
 Public Sub Terminate()
+    pvQueueTerminate
     Set m_pTimer = Nothing
     Set m_oConn = Nothing
     Set m_oSshTunnel = Nothing
@@ -369,6 +371,26 @@ Private Function pvQueueLoopAsync() As Boolean
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
     pvQueueLoopAsync = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Function
+
+Private Function pvQueueTerminate() As Boolean
+    Const FUNC_NAME     As String = "pvQueueTerminate"
+    
+    On Error GoTo EH
+    If Not m_oConn Is Nothing Then
+        If (m_oConn.State And adStateExecuting) <> 0 Then
+            m_oConn.Cancel
+        End If
+        m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, Len(STR_QUEUE_PREFIX) + 1), "DROP_ONLY"
+        DebugLog Printf(STR_QUEUE_TERMINATE, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    End If
+    '--- success
+    pvQueueTerminate = True
 QH:
     Exit Function
 EH:
