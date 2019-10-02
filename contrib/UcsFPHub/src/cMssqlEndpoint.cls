@@ -89,7 +89,7 @@ Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
-Private Const STR_DATETIME_SETUP        As String = "Установен час %2 на принтер %1"
+Private Const STR_DATETIME_SETUP        As String = "Установен час %2 (предишен час %3) на принтер %1"
 Private Const STR_DATETIME_ERROR        As String = "Грешка от принтер %1: %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
 Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
@@ -327,7 +327,9 @@ Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) 
             If m_oController.ServiceRequest(Printf(URL_DATETIME, vElem), vbNullString, JsonDump(oRequest, Minimize:=True), sResponse) Then
                 If JsonParse(sResponse, vJson) Then
                     If JsonItem(C_Obj(vJson), "Ok") Then
-                        DebugLog Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+                        If Not IsEmpty(JsonItem(C_Obj(vJson), "PreviousDateTime")) Then
+                            DebugLog Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime"), JsonItem(C_Obj(vJson), "PreviousDateTime")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+                        End If
                     Else
                         DebugLog Printf(STR_DATETIME_ERROR, vElem, JsonItem(C_Obj(vJson), "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
                     End If
