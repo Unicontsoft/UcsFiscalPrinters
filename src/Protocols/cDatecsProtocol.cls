@@ -108,6 +108,7 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdInfoOperator = 112
     ucsDcsCmdInfoMemoryDump = 116
     ucsDcsCmdInfoDevice = 123
+    ucsIslCmdInfoEJ = 125
     ucsDcsCmdInfoProgramming = 255                 '-- command above &H7F
     '--- print
     ucsDcsCmdPrintReportTaxRates = 50
@@ -688,17 +689,15 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const CONF_NAME     As String = "CopyLastReceipt"
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
-'    Dim sFormat         As String
     
     On Error GoTo EH_Cancel
     If LenB(ReceiptNumber) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
         SendCommand eCmd, sParam
     Else
-'        sParam = "P"
-'        pvGetCommandConfig CONF_NAME, "InitEcTape" & sParam, eCmd, ucsDcsCmdInitEcTape, sParam, sParam, _
-'            "Format", sFormat, "%1,%2"
-'        SendCommand eCmd, Printf(sFormat, sParam, ReceiptNumber)
+        pvGetCommandConfig CONF_NAME, "ucsIslCmdInfoEJ" & sParam, eCmd, ucsIslCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
+        sParam = Printf(sParam, ReceiptNumber)
+        SendCommand eCmd, sParam
     End If
     '--- success
     CopyLastReceipt = True
