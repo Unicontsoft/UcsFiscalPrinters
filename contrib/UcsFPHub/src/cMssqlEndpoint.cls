@@ -47,7 +47,7 @@ Private Const CRYPT_STRING_BASE64           As Long = 1
 
 Private Declare Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As String, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSADATA As Any) As Long
+Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSAData As Any) As Long
 Private Declare Function WSACleanup Lib "ws2_32" () As Long
 Private Declare Function SocketInit Lib "ws2_32" Alias "socket" (ByVal lAf As Long, ByVal lSocketType As Long, ByVal lProtocol As Long) As Long
 Private Declare Function SocketBind Lib "ws2_32" Alias "bind" (ByVal lSocket As Long, ByRef uName As SOCKADDR_IN, ByRef lNameLen As Long) As Long
