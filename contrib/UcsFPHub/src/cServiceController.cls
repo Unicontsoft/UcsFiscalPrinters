@@ -219,7 +219,7 @@ QH:
     End If
     Exit Function
 EH:
-    PrintError FUNC_NAME
+    PrintError FUNC_NAME & "(sPath=" & sPath & ", sQueryString=" & sQueryString & ", sRequest=" & sRequest & ", sResponse=" & sResponse & ")"
     Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
