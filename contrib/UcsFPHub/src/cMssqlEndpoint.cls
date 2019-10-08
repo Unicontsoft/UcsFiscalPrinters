@@ -795,6 +795,14 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
+    On Error GoTo QH
+    cn.Execute "SELECT @@TRANCOUNT"
+    '--- success
+    pvIsConnAlive = True
+QH:
+End Function
+
 '=========================================================================
 ' MST
 '=========================================================================
@@ -921,14 +929,16 @@ EH:
     Resume NextLine
 NextLine:
     On Error Resume Next
-    If vErr(0) = ERR_DB_E_NOTABLE Then
-        pvQueueSetup
+    If pvIsConnAlive(m_oConn) Then
+        If vErr(0) = ERR_DB_E_NOTABLE Then
+            pvQueueSetup
+        End If
+        If LenB(sHandle) <> 0 Then
+            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
+        End If
+        pvQueueLoopAsync
     End If
-    If LenB(sHandle) <> 0 Then
-        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
-            Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
-    End If
-    pvQueueLoopAsync
 End Sub
 
 '=========================================================================
