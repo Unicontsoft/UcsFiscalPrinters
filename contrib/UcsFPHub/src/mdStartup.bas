@@ -297,9 +297,13 @@ Private Function pvCollectPrinters() As Object
                         JsonItem(oJson, "Host") = GetErrorComputerName()
                         JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
                         JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
-                        JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+                        If IsEmpty(JsonItem(oRetVal, sKey)) Then
+                            JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+                        End If
                         JsonItem(oRetVal, sKey) = oJson
-                        JsonItem(oAliases, "Count") = JsonItem(oAliases, "Count") + 1
+                        If IsEmpty(JsonItem(oAliases, vKey)) Then
+                            JsonItem(oAliases, "Count") = JsonItem(oAliases, "Count") + 1
+                        End If
                         JsonItem(oAliases, vKey & "/DeviceSerialNo") = sKey
                     End If
                 End If
