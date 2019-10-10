@@ -512,13 +512,13 @@ EH:
 End Property
 
 Private Property Get pvCommentChars() As Long
-    pvCommentChars = pvRowChars - IIf(IsEcr, 6, 0)
+    pvCommentChars = pvRowChars - IIf(IsEcr, 6, 2)
 End Property
 
 Private Property Get pvItemChars() As Long
     pvItemChars = m_uPrintData.Config.ItemChars
     If pvItemChars = 0 Then
-        pvItemChars = pvRowChars - IIf(IsEcr, 20, 6)
+        pvItemChars = pvRowChars - IIf(IsEcr, 20, 8)
     End If
 End Property
 
