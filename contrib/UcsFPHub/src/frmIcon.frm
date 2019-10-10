@@ -171,7 +171,7 @@ End Enum
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -220,7 +220,7 @@ EH:
     Resume QH
 End Sub
 
-Public Sub Shutdown()
+Public Sub ShutDown()
     Const FUNC_NAME     As String = "Shutdown"
     
     On Error GoTo EH
@@ -239,7 +239,7 @@ Public Sub Restart(Optional AddParam As Variant)
     Dim uShell          As SHELLEXECUTEINFO
     
     On Error GoTo EH
-    Shutdown
+    ShutDown
     If IsMissing(AddParam) Or InIde Then
         Main
     Else
@@ -302,7 +302,7 @@ Private Sub mnuPopup_Click(Index As Integer)
     Case ucsMnuPopupRestart
         Restart vbNullString
     Case ucsMnuPopupExit
-        Shutdown
+        ShutDown
     End Select
 QH:
     Exit Sub
