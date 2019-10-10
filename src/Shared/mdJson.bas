@@ -161,7 +161,7 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
         End If
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
     #End If
 End Function
 
@@ -194,7 +194,7 @@ Public Function JsonParse( _
         End With
         Call CopyMemory(ByVal ArrPtr(.Text), VarPtr(.TextArray), PTR_SIZE)
         AssignVariant RetVal, pvJsonParse(uCtx)
-        If LenB(.Error) Then
+        If LenB(.Error) <> 0 Then
             Error = .Error
             GoTo QH
         End If
@@ -375,7 +375,7 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
                 Mid$(sText, 1, 2) = "&H"
             End If
             On Error GoTo ErrorConvert
-            pvJsonParse = CDbl(sText)
+            pvJsonParse = Val(sText)
             On Error GoTo 0
             .Pos = .Pos + lIdx
         Case 0
@@ -620,6 +620,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Case Else
         If IsArray(vJson) Then
             JsonDump = Join(vJson)
+        ElseIf IsNumeric(vJson) Then
+            JsonDump = Trim$(Str$(vJson))
         Else
             JsonDump = vJson & vbNullString
         End If
