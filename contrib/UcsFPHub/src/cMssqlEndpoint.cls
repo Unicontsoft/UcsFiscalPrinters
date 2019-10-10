@@ -153,7 +153,7 @@ End Enum
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
 End Sub
 
 Private Sub RaiseError(sFunction As String)
@@ -262,6 +262,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
+    DebugDataDump "sSvcName=" & sSvcName & ", sRequest=" & sRequest & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     sPrinterId = At(Split(sSvcName, "/"), 1)
     If LenB(sPrinterId) = 0 Then
         lErrorCode = 400
@@ -302,6 +303,7 @@ QH:
     If Not pvHandleRequest Then
         DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     End If
+    DebugDataDump "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
 EH:
     PrintError FUNC_NAME

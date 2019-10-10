@@ -74,7 +74,7 @@ Private m_dblStartTimerEx           As Double
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -175,8 +175,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     Dim baBody()        As Byte
     
     On Error GoTo EH
-    #If sQueryString Then '--- touch args
-    #End If
+    DebugDataDump "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & m_sBody & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
         sStatusCode = STR_STATUS_CODE_BAD_REQUEST
         sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
@@ -221,6 +220,7 @@ QH:
             HDR_CONTENT_LENGTH & ": " & UBound(baBody) + 1 & vbCrLf & vbCrLf
         m_oSocket.SendArray baBody
     End If
+    DebugDataDump "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
 EH:
     PrintError FUNC_NAME

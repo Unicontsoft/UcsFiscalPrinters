@@ -49,7 +49,7 @@ Private m_lCookie                   As Long
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
 End Sub
 
 '=========================================================================
@@ -118,9 +118,11 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     Dim vSplit          As Variant
     
     On Error GoTo EH
+    DebugDataDump "sRawUrl=" & sRawUrl & ", sRequest=" & sRequest & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 QH:
+    DebugDataDump "sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -168,13 +170,13 @@ EH:
     Resume QH
 End Sub
 
-Public Sub Shutdown()
+Public Sub ShutDown()
     Const FUNC_NAME     As String = "Shutdown"
     Dim oForm           As Object
     
     For Each oForm In Forms
         If TypeOf oForm Is frmIcon Then
-            oForm.Shutdown
+            oForm.ShutDown
         End If
     Next
     If IsRunningAsService Then

@@ -363,6 +363,18 @@ EH:
     Resume Next
 End Function
 
+Public Sub DebugDataDump(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
+    Static lLogging     As Long
+    
+    If lLogging = 0 Then
+        lLogging = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
+    End If
+    If lLogging < 0 Then
+        Exit Sub
+    End If
+    DebugLog sText, eType
+End Sub
+
 Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
     Dim sFile           As String
     Dim sPrefix         As String
