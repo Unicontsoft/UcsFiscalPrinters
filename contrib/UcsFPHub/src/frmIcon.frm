@@ -69,11 +69,12 @@ Begin VB.Form frmIcon
          Shortcut        =   ^W
       End
    End
-   Begin VB.Menu mnuSysTray 
+   Begin VB.Menu mnuMain 
       Caption         =   "UcsFPHub"
+      Index           =   99
       Visible         =   0   'False
       Begin VB.Menu mnuPopup 
-         Caption         =   "Настройки"
+         Caption         =   "Настройки..."
          Index           =   0
       End
       Begin VB.Menu mnuPopup 
@@ -163,6 +164,7 @@ Private Enum UcsMenuItems
     ucsMnuPopupRestart
     ucsMnuPopupSep2
     ucsMnuPopupExit
+    ucsMnuSysTray = 99
 End Enum
 
 '=========================================================================
@@ -327,7 +329,7 @@ Private Sub m_oSysTray_ContextMenu()
     Const FUNC_NAME     As String = "m_oSysTray_ContextMenu"
     
     On Error GoTo EH
-    PopupMenu mnuSysTray
+    PopupMenu mnuMain(ucsMnuSysTray), DefaultMenu:=mnuPopup(ucsMnuPopupConfig)
 QH:
     Exit Sub
 EH:
