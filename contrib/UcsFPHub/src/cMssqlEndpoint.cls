@@ -82,8 +82,8 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_CONN_OPEN             As String = "Свързан с %1"
-Private Const STR_CONN_REOPEN           As String = "Възстановена връзка с %1"
+Private Const STR_CONN_OPEN             As String = "Свързан с %2 на %1"
+Private Const STR_CONN_REOPEN           As String = "Възстановена връзка с %2 на %1"
 Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 услуги"
 Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
 Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
@@ -128,6 +128,8 @@ Private m_oPrinters                 As Object
 Private m_pTimer                    As IUnknown
 Private WithEvents m_oConn          As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
+Private m_sSqlInstance              As String
+Private m_sSqlDatabase              As String
 Private m_sQueueName                As String
 Private m_lQueueTimeout             As Long
 Private m_oController               As cServiceController
@@ -152,8 +154,11 @@ End Enum
 
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")]", vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Sub
 
 Private Sub RaiseError(sFunction As String)
@@ -208,7 +213,8 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
-    m_sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6))
+    m_sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
+    m_sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), m_sQueueName)
     m_lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
     pvQueueSetup
     pvQueueLoopAsync
@@ -497,11 +503,13 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
-    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), C_Str(m_oConn)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    '--- success
-    pvOpenConn = True
+    If pvIsConnAlive(m_oConn) Then
+        DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        '--- start heart-beat timer
+        Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+        '--- success
+        pvOpenConn = True
+    End If
 QH:
     If Not pvOpenConn Then
         Set m_pTimer = Nothing
@@ -799,7 +807,10 @@ End Function
 
 Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
-    cn.Execute "SELECT @@TRANCOUNT"
+    With cn.Execute("SELECT @@SERVERNAME, DB_NAME()")
+        m_sSqlInstance = .Fields(0).Value
+        m_sSqlDatabase = .Fields(1).Value
+    End With
     '--- success
     pvIsConnAlive = True
 QH:
