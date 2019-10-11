@@ -73,8 +73,11 @@ Private m_dblStartTimerEx           As Double
 
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & m_sID & ")(" & Erl & ")]", vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Sub
 
 '=========================================================================
