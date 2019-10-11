@@ -335,23 +335,23 @@ End Type
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
-Private Sub RaiseError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
-    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+Private Sub RaiseError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
-Private Sub DebugLog(sFunc As String, sText As String)
-    OutputDebugLog MODULE_NAME, sFunc, sText
+Private Sub DebugLog(sFunction As String, sText As String)
+    OutputDebugLog MODULE_NAME, sFunction, sText
 End Sub
 
-Private Sub DebugDataDump(sFunc As String, sPrefix As String, sData As String)
-    OutputDebugDataDump MODULE_NAME, sFunc, sPrefix, sData
+Private Sub DebugDataDump(sFunction As String, sPrefix As String, sData As String)
+    OutputDebugDataDump MODULE_NAME, sFunction, sPrefix, sData
 End Sub
 
 '=========================================================================
@@ -636,7 +636,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Left$(.Buffer, InStr(.Buffer, vbNullChar) - 1)
                     End If
                     If LenB(.Buffer) <> 0 Then
-'                        Debug.Print lIdx, ToHexDump(.Buffer), Timer
                         If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyAlt)) = sReplyAlt Then
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
@@ -2279,7 +2278,6 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
             pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
         End If
         pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
-'        Debug.Print PmtType, lIndex, sParam, pvToDevicePmtName
         '--- check for failure (returns 'F')
         If pvToDevicePmtName = "F" Then
             If PmtType <= 4 Then
@@ -2293,7 +2291,7 @@ QH:
 End Function
 
 Private Sub pvGetCommandConfig( _
-            sFunc As String, _
+            sFunction As String, _
             sKey As String, _
             eCmd As UcsIslCommandsEnum, _
             ByVal eCmdDefault As UcsIslCommandsEnum, _
@@ -2302,10 +2300,10 @@ Private Sub pvGetCommandConfig( _
             ParamArray A() As Variant)
     Dim lIdx            As Long
     
-    eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey, eCmdDefault)
-    sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & "Param", sParamDefault)
+    eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey, eCmdDefault)
+    sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
-        A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunc, sKey & A(lIdx + 0), A(lIdx + 2))
+        A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
 End Sub
 

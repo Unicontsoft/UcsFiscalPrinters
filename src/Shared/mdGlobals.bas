@@ -250,15 +250,15 @@ Private m_nDebugLogFile         As Integer
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
-Private Sub RaiseError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
-    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+Private Sub RaiseError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 '=========================================================================
@@ -289,8 +289,8 @@ Private Sub Main()
     If LenB(sFile) <> 0 Then
         OutputDebugLog MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
         If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
-            OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
             Debug.Print "Error in config: " & sError
+            OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
         End If
     End If
     If Not IsObject(vJson) Then
@@ -491,7 +491,7 @@ Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstan
     #End If
 End Sub
 
-Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
+Public Sub OutputDebugLog(sModule As String, sFunction As String, sText As String)
     Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
     Dim vErr            As Variant
     Dim sFile           As String
@@ -524,7 +524,7 @@ Public Sub OutputDebugLog(sModule As String, sFunc As String, sText As String)
         m_nDebugLogFile = FreeFile
         Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): " & sText & " [" & sModule & "." & sFunc & "]"
+    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): " & sText & " [" & sModule & "." & sFunction & "]"
     If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
@@ -536,7 +536,7 @@ QH:
     Err.Source = vErr(2)
 End Sub
 
-Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As String, sData As String)
+Public Sub OutputDebugDataDump(sModule As String, sFunction As String, sPrefix As String, sData As String)
     Static lLogging     As Long
     Dim vErr            As Variant
     Dim baData()        As Byte
@@ -558,7 +558,7 @@ Public Sub OutputDebugDataDump(sModule As String, sFunc As String, sPrefix As St
     baData = StrConv(sData, vbFromUnicode)
     For lIdx = 0 To ((UBound(baData) + 16) \ 16) * 16
         If lIdx Mod 16 = 0 And LenB(sHext) <> 0 Then
-            OutputDebugLog sModule, sFunc, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
+            OutputDebugLog sModule, sFunction, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
             sHext = vbNullString
             sText = vbNullString
         End If
@@ -1273,11 +1273,11 @@ Private Function pvInitRegExp(sPattern As String) As Object
     End With
 End Function
 
-Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As Collection, sFunc As String, sKey As String, Optional Default As Variant) As Variant
+Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As Collection, sFunction As String, sKey As String, Optional Default As Variant) As Variant
     Dim sMerged         As String
     Dim vItem           As Variant
     
-    sMerged = "\" & sFunc & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
+    sMerged = "\" & sFunction & IIf(LenB(sKey) <> 0, "\" & sKey, vbNullString)
     If Not SearchCollection(oConfigCmd, sMerged, vItem) Then
         If Not SearchCollection(oLocalizedCmd, sMerged, vItem) Then
             If Not IsMissing(Default) Then

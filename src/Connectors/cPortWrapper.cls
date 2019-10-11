@@ -55,9 +55,9 @@ Private m_bReleased         As Boolean
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 '=========================================================================

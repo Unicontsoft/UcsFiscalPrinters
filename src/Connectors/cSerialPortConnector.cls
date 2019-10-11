@@ -143,21 +143,21 @@ End Enum
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
+Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
-Private Sub RaiseError(sFunc As String)
+Private Sub RaiseError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
-    Err.Raise Err.Number, MODULE_NAME & "." & sFunc & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
-Private Sub DebugLog(sFunc As String, sText As String)
-    OutputDebugLog MODULE_NAME, sFunc, sText
+Private Sub DebugLog(sFunction As String, sText As String)
+    OutputDebugLog MODULE_NAME, sFunction, sText
 End Sub
 
 '=========================================================================
