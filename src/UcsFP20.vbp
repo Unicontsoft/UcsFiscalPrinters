@@ -37,6 +37,7 @@ VersionCompanyName="Unicontsoft"
 VersionFileDescription="Unicontsoft Fiscal Printers Component 2.0 (2.0.15)"
 VersionLegalCopyright="Copyright © 2008-2019 Unicontsoft"
 VersionProductName="UcsFP20"
+CondComp="USE_DEBUG_LOG = 1"
 CompilationType=0
 OptimizationType=2
 FavorPentiumPro(tm)=0

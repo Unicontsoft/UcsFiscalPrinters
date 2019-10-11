@@ -17,8 +17,9 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "mdJson"
 
-#Const ImplScripting = JSON_USE_SCRIPTING <> 0
-#Const ImplUseShared = DebugMode <> 0
+#Const ImplScripting = (JSON_USE_SCRIPTING <> 0)
+#Const ImplUseShared = (DebugMode <> 0)
+#Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
 
 #Const HasPtrSafe = (VBA7 <> 0)
 #Const LargeAddressAware = (Win64 = 0 And VBA7 = 0 And VBA6 = 0 And VBA5 = 0)
@@ -159,9 +160,10 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
         If PrintError <> vbRetry Then
             PopPrintError sFunction, MODULE_NAME, vErr
         End If
+    #ElseIf ImplUseDebugLog Then
+        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
     #End If
 End Function
 
