@@ -46,6 +46,7 @@ Private Const STR_FAILURE               As String = "Грешка: "
 Private Const STR_WARN                  As String = "Предупреждение: "
 Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
 Private Const STR_ENVIRON_VARS_FOUND    As String = "Конфигурирани %1 променливи на средата"
+Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
@@ -212,7 +213,8 @@ Private Function Process(vArgs As Variant) As Long
         m_nDebugLogFile = 0
     End If
     Set m_oPrinters = pvCollectPrinters()
-    DebugLog Printf(STR_PRINTERS_FOUND, JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
+        JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If m_bIsService Then
         Do While Not NtServiceQueryStop()
@@ -382,7 +384,7 @@ Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstan
     Dim sFile           As String
     Dim sPrefix         As String
     
-    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): "
+    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): "
     If m_nDebugLogFile <> -1 Then
         If m_nDebugLogFile = 0 Then
             sFile = GetEnvironmentVar("_UCS_FP_HUB_LOG")
