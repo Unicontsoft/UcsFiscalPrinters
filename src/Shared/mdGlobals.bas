@@ -524,7 +524,7 @@ Public Sub OutputDebugLog(sModule As String, sFunction As String, sText As Strin
         m_nDebugLogFile = FreeFile
         Open sFile For Append Access Write Shared As #m_nDebugLogFile
     End If
-    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): " & sText & " [" & sModule & "." & sFunction & "]"
+    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): " & sText & " [" & sModule & "." & sFunction & "]"
     If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
         Close #m_nDebugLogFile
         m_nDebugLogFile = 0
