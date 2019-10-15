@@ -750,7 +750,6 @@ Public Function PutObject(oObj As Object, sPathName As String, Optional ByVal Fl
         Err.Raise hResult, "CreateFileMoniker"
     End If
     DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE Or Flags, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
-QH:
 End Function
 
 Public Sub RevokeObject(ByVal lCookie As Long)
