@@ -82,15 +82,16 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_CONN_OPEN             As String = "Свързан с %2 на %1"
-Private Const STR_CONN_REOPEN           As String = "Възстановена връзка с %2 на %1"
-Private Const STR_QUEUE_SETUP           As String = "Слуша на опашка %2 за %1 услуги"
+Private Const STR_CONN_OPEN             As String = "Връзка с %2 на %1 е отворена"
+Private Const STR_CONN_REOPEN           As String = "Връзка с %2 на %1 е възстановена"
+Private Const STR_QUEUE_SETUP           As String = "Опашка %1 слуша за %2 услуги"
 Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
-Private Const STR_QUEUE_ELAPSED         As String = "%1 на принтер %2 изпълни заявка %3 за %4 сек."
-Private Const STR_QUEUE_ERROR           As String = "Грешка в %1 на принтер %2: %3"
-Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към устройството на услуга %2"
-Private Const STR_DATETIME_SETUP        As String = "Установен час %2 (предишен час %3) на принтер %1"
-Private Const STR_DATETIME_ERROR        As String = "Грешка от принтер %1: %2"
+Private Const STR_QUEUE_HEARTBEAT       As String = "Oпашка %1 е рестартирана (не отговори в рамките на %2 сек.)"
+Private Const STR_QUEUE_ELAPSED         As String = "Oпашка %1 за принтер %2 изпълни заявка %3 за %4 сек."
+Private Const STR_QUEUE_ERROR           As String = "Опашка %1 за принтер %2 върна грешка %3"
+Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към принтер на услуга %2"
+Private Const STR_DATETIME_SETUP        As String = "Принтер %1 е с установен час %2 (предишен час %3)"
+Private Const STR_DATETIME_ERROR        As String = "Принтер %1 върна грешка %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
 Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
 '--- errors
@@ -246,6 +247,8 @@ Attribute TimerProc.VB_MemberFlags = "40"
     
     On Error GoTo EH
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
+    DebugLog Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    pvQueueTerminate
     If pvOpenConn(m_oConfig) Then
         pvQueueLoopAsync
     End If
@@ -365,7 +368,7 @@ Private Function pvQueueSetup() As Boolean
             lIdx = lIdx + 1
         End If
     Next
-    DebugLog Printf(STR_QUEUE_SETUP, lIdx, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
 EH:
     PrintError FUNC_NAME
