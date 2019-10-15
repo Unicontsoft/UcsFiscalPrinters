@@ -178,7 +178,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     Dim baBody()        As Byte
     
     On Error GoTo EH
-    DebugDataDump "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & m_sBody & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
         sStatusCode = STR_STATUS_CODE_BAD_REQUEST
         sContentType = STR_CONTENT_TYPE_TEXT_PLAIN

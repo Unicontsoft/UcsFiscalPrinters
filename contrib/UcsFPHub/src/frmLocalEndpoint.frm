@@ -121,7 +121,7 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    DebugDataDump "sRawUrl=" & sRawUrl & ", sRequest=" & sRequest & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 QH:

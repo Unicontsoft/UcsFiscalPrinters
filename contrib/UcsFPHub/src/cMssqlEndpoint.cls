@@ -268,7 +268,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
-    DebugDataDump "sSvcName=" & sSvcName & ", sRequest=" & sRequest & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     sPrinterId = At(Split(sSvcName, "/"), 1)
     If LenB(sPrinterId) = 0 Then
         lErrorCode = 400
