@@ -55,7 +55,7 @@ WAITFOR (   RECEIVE     TOP (1) @Handle = conversation_handle
                         , @Request = CONVERT(NVARCHAR(MAX), message_body)
                         , @MsgType = message_type_name
                         , @SvcName = service_name
-            FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+            FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
 RepeatWait:
 SELECT      @Handle = NULL, @Request = NULL, @MsgType = NULL, @SvcName = NULL, @ErrorText = NULL
 EXEC        dbo.sp_executesql @SQL

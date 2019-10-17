@@ -137,7 +137,7 @@ BEGIN
                         SET         @SQL = N'
                         WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                 , @MsgType = message_type_name
-                                    FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
+                                    FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
 
                         EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
                                         @Response OUTPUT, @MsgType OUTPUT
@@ -150,7 +150,7 @@ BEGIN
                                     SET         @SQL = N'
                                     WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                             , @MsgType = message_type_name
-                                                FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+                                                FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
                         RepeatWait:
                                     SELECT      @Response = NULL, @MsgType = NULL
                                     EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',

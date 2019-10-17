@@ -10,7 +10,7 @@ CREATE PROC usp_sys_ServiceBrokerSetupService (
             @QueueName      SYSNAME         = NULL OUTPUT 
             , @SvcName      SYSNAME         = NULL OUTPUT 
             , @Mode         VARCHAR(20)     = NULL
-) AS
+) WITH EXECUTE AS OWNER AS
 /*------------------------------------------------------------------------
 '
 ' UcsFPHub (c) 2019 by Unicontsoft
@@ -69,12 +69,12 @@ BEGIN
             EXEC        (@SQL)
 END
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
+IF EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
 BEGIN
             SET         @CrsClean = CURSOR FAST_FORWARD FOR 
             SELECT      name
             FROM        sys.services
-            WHERE       service_queue_id IN (SELECT object_id FROM sys.service_queues WHERE name = @QueueName)
+            WHERE       service_queue_id IN (SELECT object_id FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName)
 
             OPEN        @CrsClean
 
@@ -90,19 +90,22 @@ BEGIN
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = N'DROP QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'DROP QUEUE dbo.' + QUOTENAME(@QueueName)
             EXEC        (@SQL)
 END
 
-IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
+IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = N'CREATE QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'CREATE QUEUE dbo.' + QUOTENAME(@QueueName)
+            EXEC        (@SQL)
+
+            SET         @SQL = N'GRANT RECEIVE ON dbo.' + QUOTENAME(@QueueName) + N' TO public'
             EXEC        (@SQL)
 END
 
 IF NOT EXISTS (SELECT * FROM sys.services WHERE name = @SvcName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE ' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
+            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE dbo.' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
             EXEC        (@SQL)
 END
 GO

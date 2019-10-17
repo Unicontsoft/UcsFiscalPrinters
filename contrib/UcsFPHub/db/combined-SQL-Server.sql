@@ -12,7 +12,7 @@ CREATE PROC usp_sys_ServiceBrokerSetupService (
             @QueueName      SYSNAME         = NULL OUTPUT 
             , @SvcName      SYSNAME         = NULL OUTPUT 
             , @Mode         VARCHAR(20)     = NULL
-) AS
+) WITH EXECUTE AS OWNER AS
 /*------------------------------------------------------------------------
 '
 ' UcsFPHub (c) 2019 by Unicontsoft
@@ -71,12 +71,12 @@ BEGIN
             EXEC        (@SQL)
 END
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
+IF EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
 BEGIN
             SET         @CrsClean = CURSOR FAST_FORWARD FOR 
             SELECT      name
             FROM        sys.services
-            WHERE       service_queue_id IN (SELECT object_id FROM sys.service_queues WHERE name = @QueueName)
+            WHERE       service_queue_id IN (SELECT object_id FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName)
 
             OPEN        @CrsClean
 
@@ -92,19 +92,22 @@ BEGIN
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = N'DROP QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'DROP QUEUE dbo.' + QUOTENAME(@QueueName)
             EXEC        (@SQL)
 END
 
-IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
+IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = N'CREATE QUEUE ' + QUOTENAME(@QueueName)
+            SET         @SQL = N'CREATE QUEUE dbo.' + QUOTENAME(@QueueName)
+            EXEC        (@SQL)
+
+            SET         @SQL = N'GRANT RECEIVE ON dbo.' + QUOTENAME(@QueueName) + N' TO public'
             EXEC        (@SQL)
 END
 
 IF NOT EXISTS (SELECT * FROM sys.services WHERE name = @SvcName) AND @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE ' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
+            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE dbo.' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
             EXEC        (@SQL)
 END
 GO
@@ -247,7 +250,7 @@ BEGIN
                         SET         @SQL = N'
                         WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                 , @MsgType = message_type_name
-                                    FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
+                                    FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
 
                         EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
                                         @Response OUTPUT, @MsgType OUTPUT
@@ -260,7 +263,7 @@ BEGIN
                                     SET         @SQL = N'
                                     WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                             , @MsgType = message_type_name
-                                                FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+                                                FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
                         RepeatWait:
                                     SELECT      @Response = NULL, @MsgType = NULL
                                     EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
@@ -394,7 +397,7 @@ WAITFOR (   RECEIVE     TOP (1) @Handle = conversation_handle
                         , @Request = CONVERT(NVARCHAR(MAX), message_body)
                         , @MsgType = message_type_name
                         , @SvcName = service_name
-            FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+            FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
 RepeatWait:
 SELECT      @Handle = NULL, @Request = NULL, @MsgType = NULL, @SvcName = NULL, @ErrorText = NULL
 EXEC        dbo.sp_executesql @SQL
