@@ -312,7 +312,7 @@ Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As O
                         Else
                             .Item("error") = "Option -" & vElem & " requires an argument"
                         End If
-                        GoTo Conitnue
+                        GoTo Continue
                     End If
                 Next
                 .Item("-" & Mid$(At(vArgs, lIdx), 2)) = True
@@ -320,7 +320,7 @@ Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As O
                 .Item("numarg") = .Item("numarg") + 1
                 .Item("arg" & .Item("numarg")) = At(vArgs, lIdx)
             End Select
-Conitnue:
+Continue:
         Next
     End With
     Set GetOpt = oRetVal
