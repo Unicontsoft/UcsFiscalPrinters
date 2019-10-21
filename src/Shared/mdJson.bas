@@ -1460,3 +1460,12 @@ QH:
     Call CopyMemory(ByVal VarPtr(sTemp), NULL_PTR, PTR_SIZE)
 End Function
 #End If
+
+#If False Then
+Private Sub Test()
+    Dim vJson As Variant
+
+    JsonParse "{""d"": 1}", vJson
+    Debug.Print JsonDump(vJson)
+End Sub
+#End If
