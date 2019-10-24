@@ -1,0 +1,31 @@
+trigger:
+- master
+
+pr:
+- master
+
+pool: UCSBUILD02
+
+steps:
+- script: 'call $(Build.SourcesDirectory)\scripts\build.bat'
+  displayName: 'Build UcsFP20.dll'
+  workingDirectory:  '$(Build.SourcesDirectory)\scripts'
+
+- script: 'call $(Build.SourcesDirectory)\contrib\UcsFPHub\scripts\build.bat'
+  displayName: 'Build UcsFPHub.exe'
+  workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
+
+- task: CopyFiles@2
+  displayName: 'Copy files to $(Build.ArtifactStagingDirectory)'
+  inputs:
+    sourceFolder: '$(Build.SourcesDirectory)\bin'
+    contents: |
+      UcsFP20.dll
+      UcsFPHub.exe
+    targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish MyBuildOutputs'
+  inputs:
+    pathToPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: MyBuildOutputs
