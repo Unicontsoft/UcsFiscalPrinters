@@ -30,6 +30,7 @@ steps:
   inputs:
     rootFolderOrFile: '$(Build.BinariesDirectory)'
     archiveFile: '$(Build.ArtifactStagingDirectory)/UcsFPHub-latest.zip' 
+    includeRootFolder: false
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish UcsFPHub'
