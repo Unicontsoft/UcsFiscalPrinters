@@ -9,8 +9,8 @@ trigger:
 pool: UCSBUILD02
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- script: call scripts\build.bat
+  displayName: 'Run build.bat'
 
 - script: |
     echo Add other tasks to build, test, and deploy your project.
