@@ -4,17 +4,17 @@ trigger:
 pool: UCSBUILD02
 
 steps:
-- script: 'call $(Agent.BuildDirectory)\scripts\build.bat'
+- script: 'call $(Build.SourcesDirectory)\scripts\build.bat'
   displayName: 'Build UcsFP20.dll'
-  workingDirectory:  '$(Agent.BuildDirectory)\scripts'
+  workingDirectory:  '$(Build.SourcesDirectory)\scripts'
 
-- script: 'call $(Agent.BuildDirectory)\contrib\UcsFPHub\scripts\build.bat'
+- script: 'call $(Build.SourcesDirectory)\contrib\UcsFPHub\scripts\build.bat'
   displayName: 'Build UcsFPHub.exe'
-  workingDirectory: '$(Agent.BuildDirectory)\contrib\UcsFPHub\scripts'
+  workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
 
 - task: CopyFiles@2
   inputs:
-    contents: '$(Agent.BuildDirectory)\bin\(UcsFP20.dll|UcsFPHub.exe)'
+    contents: '$(Build.SourcesDirectory)\bin\(UcsFP20.dll|UcsFPHub.exe)'
     targetFolder: '$(Build.ArtifactStagingDirectory)'
 
 - task: PublishBuildArtifacts@1
