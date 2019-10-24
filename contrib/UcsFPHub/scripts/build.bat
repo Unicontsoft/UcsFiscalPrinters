@@ -6,14 +6,15 @@ for %%i in ("%file_dir%\..\..\..\bin\.") do set bin_dir=%%~dpnxi
 set output_exe=%bin_dir%\UcsFPHub.exe
 set VbCodeLines="%bin_dir%\VbCodeLines.exe"
 set Ummm="%bin_dir%\UMMM.exe"
-set mt=C:\Work\BuildTools\UMMM\mt.exe -nologo
-if not exist %mt% set mt=mt.exe -nologo
+set mt=C:\Work\BuildTools\UMMM\mt.exe
+if not exist "%mt%" set mt=mt.exe
 set Vb6="%ProgramFiles%\Microsoft Visual Studio\VB98\VB6.EXE"
 if not exist %Vb6% set Vb6="%ProgramFiles(x86)%\Microsoft Visual Studio\VB98\VB6.EXE"
+set log_file=%file_dir%\compile.out
 
 echo Cleanup %file_dir%...
 for %%i in (%file_dir%\*.*) do (if not "%%~nxi"=="build.bat" if not "%%~nxi"=="UcsFPHub.ini" del %%i > nul)
-rd /s /q %file_dir%\Shared
+rd /s /q %file_dir%\Shared 2>&1
 mkdir %file_dir%\Shared
 
 echo Copy sources from %src_dir%...
@@ -24,11 +25,15 @@ echo Put lines to sources in %file_dir%...
 for %%i in (%file_dir%\*.vbp) do (%VbCodeLines% %%i)
 
 echo Compiling to %bin_dir%...
-for %%i in (%file_dir%\*.vbp) do (%Vb6% /m %%i)
+for %%i in (%file_dir%\*.vbp) do (
+    del %log_file% > nul 2>&1
+    %Vb6% /make %%i /out %log_file%
+    findstr /r /C:"Build of '.*' succeeded" %log_file% || (type %log_file% 1>&2 & exit /b 1)
+)
 
 echo Embedding manifest in %output_exe%...
 %Ummm% %file_dir%\UcsFPHub.ini
-%mt%  -manifest "%file_dir%\UcsFPHub.ini.manifest" -outputresource:"%output_exe%;1"
+%mt% -nologo -manifest "%file_dir%\UcsFPHub.ini.manifest" -outputresource:"%output_exe%;1"
 
 git checkout -- %bin_dir%\..\src\Shared\mdJson.bas
 

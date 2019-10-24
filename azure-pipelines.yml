@@ -3,17 +3,19 @@ trigger:
 
 pr:
   - master
-
-pool: UCSBUILD02
+  
+pool: Default
 
 steps:
   - script: 'call $(Build.SourcesDirectory)\scripts\build.bat'
     displayName: 'Build UcsFP20.dll'
     workingDirectory:  '$(Build.SourcesDirectory)\scripts'
+    failOnStderr: true
   
   - script: 'call $(Build.SourcesDirectory)\contrib\UcsFPHub\scripts\build.bat'
     displayName: 'Build UcsFPHub.exe'
     workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
+    failOnStderr: true
   
   - task: CopyFiles@2
     displayName: 'Copy files to $(Build.BinariesDirectory)'
@@ -41,7 +43,7 @@ steps:
   
   - task: GithubRelease@0
     displayName: 'Edit release `UcsFPHub latest build` on github.com'
-    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/pull'))
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     inputs:
       githubConnection: wqweto
       repositoryName: wqweto/UcsFiscalPrinters
