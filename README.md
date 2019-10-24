@@ -1,7 +1,8 @@
-## Unicontsoft Fiscal Printers Component 2.0
-
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
+[![Download UcsFPHub-0.1.24.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.24.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.24/UcsFPHub-0.1.24.zip)
+[![Download UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 
+## Unicontsoft Fiscal Printers Component 2.0
 
 `UcsFP20` is a COM component that can be used to configure and operate fiscal printers that are popular in Bulgaria.
 
