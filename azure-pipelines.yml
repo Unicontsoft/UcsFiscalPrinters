@@ -15,9 +15,10 @@ steps:
 - task: CopyFiles@2
   displayName: 'Copy files to $(Build.ArtifactStagingDirectory)'
   inputs:
+    sourceFolder: '$(Build.SourcesDirectory)\bin'
     contents: |
-      bin\UcsFP20.dll
-      bin\UcsFPHub.exe
+      UcsFP20.dll
+      UcsFPHub.exe
     targetFolder: '$(Build.ArtifactStagingDirectory)'
 
 - task: PublishBuildArtifacts@1
