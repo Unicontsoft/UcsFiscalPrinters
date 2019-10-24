@@ -16,16 +16,33 @@ steps:
   workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
 
 - task: CopyFiles@2
-  displayName: 'Copy files to $(Build.ArtifactStagingDirectory)'
+  displayName: Copy files to $(Build.BinariesDirectory)
   inputs:
     sourceFolder: '$(Build.SourcesDirectory)\bin'
     contents: |
       UcsFP20.dll
       UcsFPHub.exe
-    targetFolder: '$(Build.ArtifactStagingDirectory)'
+    targetFolder: '$(Build.BinariesDirectory)'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.BinariesDirectory)'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/UcsFPHub-latest.zip' 
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish MyBuildOutputs'
+  displayName: 'Publish UcsFPHub'
   inputs:
     pathToPublish: '$(Build.ArtifactStagingDirectory)'
-    artifactName: MyBuildOutputs
+    artifactName: UcsFPHub
+
+- task: GithubRelease@0
+  displayName: 'Edit GitHub Release'
+  inputs:
+    githubConnection: wqweto
+    repositoryName: wqweto/UcsFiscalPrinters
+    action: edit
+    tag: UcsFPHub-latest
+    title: 'UcsFPHub latest build'
+    assets: $(Build.ArtifactStagingDirectory)/*
+    addChangeLog: true
+    isDraft: true
