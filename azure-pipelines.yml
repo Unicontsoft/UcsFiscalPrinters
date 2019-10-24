@@ -14,3 +14,14 @@ steps:
 
 - script: call contrib\UcsFPHub\scripts\build.bat 
   displayName: 'Build UcsFPHub.exe'
+
+- task: CopyFiles@2
+  inputs:
+    sourceFolder: '$(Build.SourcesDirectory)\bin'
+    contents: '(UcsFP20.dll|UcsFPHub.exe)'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: MyBuildOutputs
