@@ -1,6 +1,9 @@
 trigger:
 - master
 
+pr:
+- master
+
 pool: UCSBUILD02
 
 steps:
