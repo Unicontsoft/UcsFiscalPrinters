@@ -1,5 +1,7 @@
 ## Unicontsoft Fiscal Printers Component 2.0
 
+[![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
+
 
 `UcsFP20` is a COM component that can be used to configure and operate fiscal printers that are popular in Bulgaria.
 
