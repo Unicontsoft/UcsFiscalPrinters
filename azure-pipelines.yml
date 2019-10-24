@@ -10,9 +10,7 @@ pool: UCSBUILD02
 
 steps:
 - script: call scripts\build.bat
-  displayName: 'Run build.bat'
+  displayName: 'Build UcsFP20.dll'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- script: call contrib\UcsFPHub\scripts\build.bat 
+  displayName: 'Build UcsFPHub.exe'
