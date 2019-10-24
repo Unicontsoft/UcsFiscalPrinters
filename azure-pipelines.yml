@@ -6,8 +6,7 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
+pool: UCSBUILD02
 
 steps:
 - script: echo Hello, world!
