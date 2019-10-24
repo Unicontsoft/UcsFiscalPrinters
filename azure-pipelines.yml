@@ -21,7 +21,9 @@ steps:
     sourceFolder: '$(Build.SourcesDirectory)\bin'
     contents: |
       UcsFP20.dll
+      UcsFP20.pdb
       UcsFPHub.exe
+      UcsFPHub.pdb
     targetFolder: '$(Build.BinariesDirectory)'
 
 - task: ArchiveFiles@2
@@ -45,4 +47,4 @@ steps:
     title: 'UcsFPHub latest build'
     assets: $(Build.ArtifactStagingDirectory)/*
     addChangeLog: true
-    isDraft: true
+    isPreRelease: true
