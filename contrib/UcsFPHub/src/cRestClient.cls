@@ -294,7 +294,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
         pvClearState
     End If
 QH:

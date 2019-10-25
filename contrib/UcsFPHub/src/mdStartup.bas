@@ -58,7 +58,8 @@ Private Const ERR_WARN_ACCESS           As String = "Предупреждение: Принтер %1:
 Private Const ERR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 '--- formats
 Private Const FORMAT_DATETIME_LOG       As String = "yyyy.MM.dd hh:nn:ss"
-Private Const FORMAT_BASE_3             As String = "0.000"
+Public Const FORMAT_BASE_2              As String = "0.00"
+Public Const FORMAT_BASE_3              As String = "0.000"
 
 Private m_oOpt                      As Object
 Private m_oPrinters                 As Object

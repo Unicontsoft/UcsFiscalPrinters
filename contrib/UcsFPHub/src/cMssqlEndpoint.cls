@@ -86,7 +86,7 @@ Private Const STR_CONN_OPEN             As String = "Връзка с %2 на %1 е отворен
 Private Const STR_CONN_REOPEN           As String = "Връзка с %2 на %1 е възстановена"
 Private Const STR_QUEUE_SETUP           As String = "Опашка %1 слуша за %2 услуги"
 Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
-Private Const STR_QUEUE_HEARTBEAT       As String = "Oпашка %1 е рестартирана (не отговори в рамките на %2 сек.)"
+Private Const STR_QUEUE_HEARTBEAT       As String = "Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)"
 Private Const STR_QUEUE_ELAPSED         As String = "Oпашка %1 за принтер %2 изпълни заявка %3 за %4 сек."
 Private Const STR_QUEUE_ERROR           As String = "Опашка %1 за принтер %2 върна грешка %3"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към принтер на услуга %2"
@@ -305,7 +305,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog Printf(STR_QUEUE_ELAPSED, m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, "0.000")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(STR_QUEUE_ELAPSED, m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     pvHandleRequest = True
 QH:
@@ -679,7 +679,7 @@ Private Function pvMakeSshTunnel( _
                 #If DebugMode Then
                     DebugPrint FUNC_NAME, MODULE_NAME, "plink.exe output: " & sLine, 2
                 #End If
-                sInput = sInput & Format$(TimerEx - dblTimer, "0.000") & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, "0.000") & ": ") & Right$(sLine, 1)
+                sInput = sInput & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
             If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
                 lExtraTimeout = lTimeout
