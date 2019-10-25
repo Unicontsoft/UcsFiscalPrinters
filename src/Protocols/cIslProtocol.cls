@@ -1439,7 +1439,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim lOffset         As Long
     
     On Error GoTo EH
-    sFormat = IIf(Abs(Amount) > DBL_EPSILON, "0.00", "\")
+    sFormat = IIf(Abs(Amount) > DBL_EPSILON, FORMAT_BASE_2, "\")
     pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > DBL_EPSILON), eCmd, ucsIslCmdFiscalServiceDeposit, sParam, "%1", _
         "Format", sFormat, sFormat
     sParam = Printf(sParam, SafeFormat(Amount, sFormat))
@@ -1983,9 +1983,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, 2)
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsIslCmdFiscalSell, sParam, "%1", _
-                "FormatPrice", sFormatPrice, "0.00", _
-                "FormatQty", sFormatQty, "0.000", _
-                "FormatDisc", sFormatDisc, "0.00"
+                "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                "FormatDisc", sFormatDisc, FORMAT_BASE_2
             vSplit = WrapText(.PluName, pvItemChars)
             For lIdx = 0 To UBound(vSplit) - 2
                 pvPrintLine C_Str(vSplit(lIdx))
@@ -1995,7 +1995,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sData = At(vSplit, UBound(vSplit) - 1) & vbLf & sData
             End If
             sData = sData & vbTab & Chr$(191 + .PluTaxGroup) & SafeFormat(.PluPrice, sFormatPrice)
-            If .PluQuantity <> 1 Then
+            If Abs(.PluQuantity - 1) > DBL_EPSILON Then
                 sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
             End If
             Select Case .DiscType
@@ -2012,8 +2012,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case ucsFscRcpNonfiscal
                 If .DiscType = ucsFscDscSubtotal Then
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
-                        "FormatDisc", sFormatDisc, "0.00", _
-                        "FormatAmount", sFormatAmount, "0.00"
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
+                        "FormatAmount", sFormatAmount, FORMAT_BASE_2
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
@@ -2027,10 +2027,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Select Case .DiscType
                 Case ucsFscDscSubtotal
                     pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsIslCmdFiscalSubtotal, sParam, "10" & DEF_SEP & "%1", _
-                        "FormatDisc", sFormatDisc, "0.00"
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 Case ucsFscDscSubtotalAbs
                     pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsIslCmdFiscalSubtotal, sParam, "10" & ";" & "%1", _
-                        "FormatDisc", sFormatDisc, "0.00"
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 End Select
                 sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
                 SendCommand eCmd, sParam
@@ -2063,7 +2063,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sParam, DefPmtTypes
                 sType = Mid$(sParam, lIndex + 1, 1)
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab & sType & "%1", _
-                    "FormatAmount", sFormatAmount, "0.00"
+                    "FormatAmount", sFormatAmount, FORMAT_BASE_2
                 sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
                 SendCommand eCmd, sParam
                 If LenB(m_uPrintData.LastError) <> 0 Then

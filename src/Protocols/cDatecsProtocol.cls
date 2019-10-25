@@ -1208,7 +1208,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     '--- %1={Type}<SEP>%2={Amount}<SEP>
     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
     pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > DBL_EPSILON), eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _
-        "Format", sFormat, "0.00"
+        "Format", sFormat, FORMAT_BASE_2
     sParam = Printf(sParam, IIf(Amount >= 0, "0", "1"), SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
@@ -1639,11 +1639,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>{Department}<SEP>[ {Unit}<SEP> ]
             sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "0" & DEF_SEP
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsDcsCmdFiscalSell, sParam, sParam, _
-                "FormatPrice", sFormatPrice, "0.00", _
-                "FormatQty", sFormatQty, "0.000", _
-                "FormatDisc", sFormatDisc, "0.00"
+                "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                "FormatDisc", sFormatDisc, FORMAT_BASE_2
             sParam = Printf(sParam, sData, .PluTaxGroup, SafeFormat(.PluPrice, sFormatPrice), _
-                IIf(.PluQuantity <> 1, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
+                IIf(Abs(.PluQuantity - 1) > DBL_EPSILON, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
                 sDiscType, _
                 IIf(LenB(sDiscType) <> 0, SafeFormat(.DiscValue, sFormatDisc), vbNullString))
             SendCommand eCmd, sParam
@@ -1652,8 +1652,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case ucsFscRcpNonfiscal
                 If .DiscType = ucsFscDscSubtotal Then
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
-                        "FormatDisc", sFormatDisc, "0.00", _
-                        "FormatAmount", sFormatAmount, "0.00"
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
+                        "FormatAmount", sFormatAmount, FORMAT_BASE_2
                     pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
@@ -1673,7 +1673,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 '--- %1={Print}<SEP>{Display}<SEP>%2={DiscountType}<SEP>%3={DiscountValue}<SEP>
                 sParam = "%1" & DEF_SEP & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP
                 pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsDcsCmdFiscalSubtotal, sParam, sParam, _
-                    "FormatDisc", sFormatDisc, "0.00"
+                    "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 sParam = Printf(sParam, IIf(LenB(sDiscType) = 0, "1", vbNullString), _
                     sDiscType, _
                     IIf(LenB(sDiscType) <> 0, SafeFormat(.DiscValue, sFormatDisc), vbNullString))
@@ -1699,7 +1699,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 '--- %1={PaidMode}<SEP>%2={Amount}<SEP>{Type}<SEP>
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & DEF_SEP
                 pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam, _
-                    "FormatAmount", sFormatAmount, "0.00", _
+                    "FormatAmount", sFormatAmount, FORMAT_BASE_2, _
                     "FormatZero", sFormatZero, "\"
                 lIndex = pvToDevicePmtIndex(.PmtType)
                 If lIndex < 0 Then

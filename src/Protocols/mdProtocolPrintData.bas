@@ -492,14 +492,14 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             If Not uData.Config.NegativePrices And dblPrice <= 0 Then
                 vSplit = WrapText(uData.Row(lRow).PluName, uData.Config.ItemChars)
                 lIdx = LimitLong(UBound(vSplit), , 1)
-                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, "0.00") & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
+                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
                 uData.Row(lRow).RowType = ucsRowLine
                 uData.Row(lRow).LineText = vSplit(0)
                 If lIdx > 0 Then
                     PpdAddLine uData, At(vSplit, 1), False, lRow + 1
                     lRow = lRow + 1
-                ElseIf lIdx = 0 And uData.Row(lRow).PluQuantity <> 1 Then
-                    PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, "0.000") & " x " & SafeFormat(uData.Row(lRow).PluPrice, "0.00"), pvCommentChars(uData) - 2), False, lRow
+                ElseIf lIdx = 0 And Abs(uData.Row(lRow).PluQuantity - 1) > DBL_EPSILON Then
+                    PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, FORMAT_BASE_3) & " x " & SafeFormat(uData.Row(lRow).PluPrice, FORMAT_BASE_2), pvCommentChars(uData) - 2), False, lRow
                 End If
                 If dblPrice < -DBL_EPSILON Then
                     PpdAddDiscount uData, ucsFscDscSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
@@ -515,7 +515,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     dblDiscount = uData.Row(lRow).DiscValue
                     uData.Row(lRow).DiscType = 0
                     uData.Row(lRow).DiscValue = 0
-                    PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                    PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                         dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
                 End If
             ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
@@ -527,7 +527,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     dblDiscount = uData.Row(lRow).DiscValue
                     uData.Row(lRow).DiscType = 0
                     uData.Row(lRow).DiscValue = 0
-                    PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                    PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                             dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
                 End If
             End If
@@ -548,7 +548,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     uData.Row(lRow).DiscValue = 0
                     For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
                         If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
-                            PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), "0.00") & " %"), _
+                            PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                                 Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
                         End If
                     Next

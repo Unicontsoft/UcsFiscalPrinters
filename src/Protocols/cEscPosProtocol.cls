@@ -562,7 +562,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Select Case .PrintRowType
             Case ucsFscRcpOrderList
                 pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
-                    "FormatQty", sFormatQty, "0.000"
+                    "FormatQty", sFormatQty, FORMAT_BASE_3
                 vSplit = WrapMultiline(.PluName, pvCommentChars - 7)
                 If UBound(vSplit) = 0 Then
                     ReDim Preserve vSplit(0 To 1) As Variant
@@ -578,16 +578,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvPrintLine vSplit
             Case Else
                 pvGetCommandConfig CONF_NAME, "NonFiscalSell" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
-                    "FormatPrice", sFormatPrice, "0.00", _
-                    "FormatQty", sFormatQty, "0.000", _
-                    "FormatDisc", sFormatDisc, "0.00", _
-                    "FormatAmount", sFormatAmount, "0.00"
+                    "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                    "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                    "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
+                    "FormatAmount", sFormatAmount, FORMAT_BASE_2
                 If uCtx.PluCount = 1 Then
                     pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(1, "00"), pvCommentChars)
                 End If
                 If .PrintRowType = ucsFscRcpSale Then
                     vSplit = WrapMultiline(.PluName, pvCommentChars - 7)
-                    If .PluQuantity <> 1 Then
+                    If Abs(.PluQuantity - 1) > DBL_EPSILON Then
                         If UBound(vSplit) = 0 Then
                             ReDim Preserve vSplit(0 To 1) As Variant
                             vSplit(1) = vSplit(0)
@@ -622,8 +622,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End Select
         Case ucsRowDiscount
             pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal", 0, 0, vbNullString, vbNullString, _
-                "FormatDisc", sFormatDisc, "0.00", _
-                "FormatAmount", sFormatAmount, "0.00"
+                "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
+                "FormatAmount", sFormatAmount, FORMAT_BASE_2
             Select Case .DiscType
             Case ucsFscDscSubtotal
                 pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars - 2)
@@ -657,7 +657,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case Else
                 If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
                     pvGetCommandConfig CONF_NAME, "NonFiscalFooter", 0, 0, vbNullString, vbNullString, _
-                        "FormatAmount", sFormatAmount, "0.00"
+                        "FormatAmount", sFormatAmount, FORMAT_BASE_2
                     dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
                     If dblTotal > DBL_EPSILON Then
                         pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvCommentChars - 2)
@@ -687,7 +687,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             Case Else
                 pvGetCommandConfig CONF_NAME, "NonFiscalFooter", 0, 0, vbNullString, vbNullString, _
-                    "FormatAmount", sFormatAmount, "0.00"
+                    "FormatAmount", sFormatAmount, FORMAT_BASE_2
                 If Not uCtx.PmtPrinted Then
                     If uCtx.PluCount > 0 Or .PmtType <> 0 Then
                         pvPrintLine String$(pvCommentChars, "-")
