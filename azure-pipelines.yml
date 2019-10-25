@@ -40,16 +40,28 @@ steps:
     inputs:
       pathToPublish: '$(Build.ArtifactStagingDirectory)'
       artifactName: UcsFPHub
+
+  - task: GithubRelease@0
+    displayName: 'Remove release `UcsFPHub-latest` on github.com'
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
+    continueOnError: true
+    inputs:
+      githubConnection: wqweto
+      repositoryName: wqweto/UcsFiscalPrinters
+      action: delete
+      tag: UcsFPHub-latest
   
   - task: GithubRelease@0
-    displayName: 'Edit release `UcsFPHub latest build` on github.com'
+    displayName: 'Create release `UcsFPHub-latest` on github.com'
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     inputs:
       githubConnection: wqweto
       repositoryName: wqweto/UcsFiscalPrinters
-      action: edit
+      action: create
+      tagSource: manual
       tag: UcsFPHub-latest
       title: 'UcsFPHub latest build'
       assets: $(Build.ArtifactStagingDirectory)/*
       addChangeLog: true
+      compareWith: lastRelease
       isPreRelease: true
