@@ -916,7 +916,13 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Dim vErr            As Variant
     
     On Error GoTo EH
-    If Not pRecordset Is Nothing Then
+    If Not pError Is Nothing Then
+        vErr = Array(pError.Number, pError.Source, pError.Description)
+        If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
+            DebugLog pError.Description & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        End If
+        GoTo NextLine
+    ElseIf Not pRecordset Is Nothing Then
         If (pRecordset.State And adStateOpen) <> 0 Then
             If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
                 pvQueueLoopAsync
@@ -932,7 +938,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     sResponse = C_Str(pRecordset!ErrorText.Value)
                     If LenB(sResponse) <> 0 Then
                         sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
                     End If
                 End If
             End If
@@ -941,7 +947,9 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Exit Sub
 EH:
     vErr = Array(Err.Number, Err.Source, Err.Description)
-    PrintError FUNC_NAME
+    If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
+        PrintError FUNC_NAME
+    End If
     Resume NextLine
 NextLine:
     On Error Resume Next
