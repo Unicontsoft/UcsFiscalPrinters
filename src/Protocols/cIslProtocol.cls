@@ -673,7 +673,6 @@ Public Function Init(sDeviceString As String) As Boolean
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
-    Dim eHasSwitchesInfo As VbTriState
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
     Dim lSerialIndex    As Long
@@ -719,16 +718,11 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     '--- load config values
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
-    eHasSwitchesInfo = GetConfigNumber(sSerial, "HasSwitchesInfo", vbUseDefault)
-    If eHasSwitchesInfo = vbUseDefault Then
-        '--- heuristic check for recent version of firmware
-        eHasSwitchesInfo = IIf(Len(At(m_vInfoDiagnostics, lSwitchesIndex)) > 2, vbTrue, vbFalse)
-    End If
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
-        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", eHasSwitchesInfo = vbTrue))
-        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", eHasSwitchesInfo = vbFalse))
+        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", True))
+        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", True))
         .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
