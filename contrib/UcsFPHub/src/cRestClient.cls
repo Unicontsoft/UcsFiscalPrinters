@@ -74,7 +74,7 @@ Private m_dblStartTimerEx           As Double
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "(" & m_sID & ")(" & Erl & ")]", vbLogEventTypeError
+        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sID & ")(" & Erl & ")]", vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
