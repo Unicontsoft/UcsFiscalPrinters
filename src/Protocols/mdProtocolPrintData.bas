@@ -63,6 +63,17 @@ End Enum
 ' Public Types
 '=========================================================================
 
+Private Const ERR_NO_RECEIPT_STARTED    As String = "No receipt started"
+Private Const TXT_SURCHARGE             As String = "Surcharge %1"
+Private Const TXT_DISCOUNT              As String = "Discount %1"
+Private Const TXT_PLUSALES              As String = "Sales %1"
+Public Const ucsFscDscPluAbs            As Long = ucsFscDscPlu + 100
+Public Const ucsFscDscSubtotalAbs       As Long = ucsFscDscSubtotal + 100
+Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
+Public Const MIN_TAX_GROUP              As Long = 1
+Public Const MAX_TAX_GROUP              As Long = 8
+Public Const DEF_TAX_GROUP              As Long = 2
+
 Public Type UcsPpdRowData
     RowType             As UcsPpdRowTypeEnum
     InitReceiptType     As UcsFiscalReceiptTypeEnum
@@ -90,7 +101,7 @@ Public Type UcsPpdRowData
 End Type
 
 Public Type UcsPpdExecuteContext
-    GrpTotal(1 To 8)    As Double
+    GrpTotal(MIN_TAX_GROUP To MAX_TAX_GROUP) As Double
     Paid                As Double
     PluCount            As Long
     PmtPrinted          As Boolean
@@ -124,14 +135,6 @@ Public Type UcsProtocolPrintData
     Config              As UcsPpdConfigValues
     LocalizedText       As UcsPpdLocalizedTexts
 End Type
-
-Private Const ERR_NO_RECEIPT_STARTED    As String = "No receipt started"
-Private Const TXT_SURCHARGE             As String = "Surcharge %1"
-Private Const TXT_DISCOUNT              As String = "Discount %1"
-Private Const TXT_PLUSALES              As String = "Sales %1"
-Public Const ucsFscDscPluAbs            As Long = ucsFscDscPlu + 100
-Public Const ucsFscDscSubtotalAbs       As Long = ucsFscDscSubtotal + 100
-Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
 
 '=========================================================================
 ' Error handling
@@ -232,7 +235,7 @@ Public Function PpdAddPLU( _
         bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(IIf(bNegative Or uData.Config.NegativePrices, Abs(Quantity), Quantity), 3)
-        .PluTaxGroup = LimitLong(TaxGroup, 1, 8)
+        .PluTaxGroup = LimitLong(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
         .PrintRowType = uData.Row(0).InitReceiptType
     End With
     pvInsertRow uData, BeforeIndex, uRow

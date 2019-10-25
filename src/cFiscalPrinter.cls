@@ -812,10 +812,10 @@ End Function
 
 Private Function pvGetTaxGroup(sTaxGroup As String) As Long
     pvGetTaxGroup = Asc(sTaxGroup & " ") - 191 '--- 191 = Asc("À") - 1
-    If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
+    If pvGetTaxGroup < MIN_TAX_GROUP Or pvGetTaxGroup > MAX_TAX_GROUP Then
         pvGetTaxGroup = C_Lng(sTaxGroup)
-        If pvGetTaxGroup < 1 Or pvGetTaxGroup > 8 Then
-            pvGetTaxGroup = 2
+        If pvGetTaxGroup < MIN_TAX_GROUP Or pvGetTaxGroup > MAX_TAX_GROUP Then
+            pvGetTaxGroup = DEF_TAX_GROUP
         End If
     End If
 End Function
