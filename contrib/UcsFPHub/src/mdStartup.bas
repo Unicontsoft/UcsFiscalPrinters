@@ -215,10 +215,18 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         FlushDebugLog
         m_nDebugLogFile = 0
     End If
-    Set m_oPrinters = pvCollectPrinters()
+    '--- first register endpoints
+    Set m_oPrinters = Nothing
+    JsonItem(m_oPrinters, vbNullString) = Empty
+    If Not pvCreateEndpoints(m_oPrinters, m_cEndpoints) Then
+        GoTo QH
+    End If
+    '--- leave longer to complete auto-detection for last step
+    If Not pvCollectPrinters(m_oPrinters) Then
+        GoTo QH
+    End If
     DebugLog Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
         JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    Set m_cEndpoints = pvCreateEndpoints(m_oPrinters)
     If m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
@@ -241,14 +249,13 @@ EH:
     Process = 100
 End Function
 
-Private Function pvCollectPrinters() As Object
+Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     Const FUNC_NAME     As String = "pvCollectPrinters"
     Dim oFP             As cFiscalPrinter
     Dim sResponse       As String
     Dim oJson           As Object
     Dim vKey            As Variant
     Dim oRequest        As Object
-    Dim oRetVal         As Object
     Dim sDeviceString   As String
     Dim sKey            As String
     Dim oAliases        As Object
@@ -321,16 +328,16 @@ Private Function pvCollectPrinters() As Object
     If Not oAliases Is Nothing Then
         JsonItem(oRetVal, "Aliases") = oAliases
     End If
-    Set pvCollectPrinters = oRetVal
+    '--- success
+    pvCollectPrinters = True
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
 
-Private Function pvCreateEndpoints(oPrinters As Object) As Collection
+Private Function pvCreateEndpoints(oPrinters As Object, cRetVal As Collection) As Boolean
     Const FUNC_NAME     As String = "pvCreateEndpoints"
-    Dim cRetVal         As Collection
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
     Dim oMssqlEndpoint  As cMssqlEndpoint
@@ -338,18 +345,9 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
     
     On Error GoTo EH
     Set cRetVal = New Collection
+    '--- first local endpoint (faster registration)
     For Each vKey In JsonKeys(m_oConfig, "Endpoints")
         Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
-        Case "resthttp"
-            Set oRestEndpoint = New cRestEndpoint
-            If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                cRetVal.Add oRestEndpoint
-            End If
-        Case "mssqlservicebroker"
-            Set oMssqlEndpoint = New cMssqlEndpoint
-            If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                cRetVal.Add oMssqlEndpoint
-            End If
         Case "local"
             Set oLocalEndpoint = New frmLocalEndpoint
             If oLocalEndpoint.frInit(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
@@ -364,7 +362,23 @@ Private Function pvCreateEndpoints(oPrinters As Object) As Collection
             cRetVal.Add oLocalEndpoint
         End If
     End If
-    Set pvCreateEndpoints = cRetVal
+    '--- then restful and service broker endpoints
+    For Each vKey In JsonKeys(m_oConfig, "Endpoints")
+        Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
+        Case "resthttp"
+            Set oRestEndpoint = New cRestEndpoint
+            If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oRestEndpoint
+            End If
+        Case "mssqlservicebroker"
+            Set oMssqlEndpoint = New cMssqlEndpoint
+            If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                cRetVal.Add oMssqlEndpoint
+            End If
+        End Select
+    Next
+    '--- success
+    pvCreateEndpoints = True
     Exit Function
 EH:
     PrintError FUNC_NAME
