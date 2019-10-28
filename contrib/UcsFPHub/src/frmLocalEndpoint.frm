@@ -41,6 +41,7 @@ Private Const ERR_REGISTATION_FAILED    As String = "Невъзможна COM регистрация 
 Private m_sLastError                As String
 Private m_oController               As cServiceController
 Private m_lCookie                   As Long
+Private m_pTimerAutodetect          As IUnknown
 
 '=========================================================================
 ' Error handling
@@ -61,6 +62,10 @@ End Sub
 
 Property Get LastError() As String
     LastError = m_sLastError
+End Property
+
+Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
+    Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
 '=========================================================================
@@ -109,6 +114,7 @@ Friend Sub frTerminate()
         RevokeObject m_lCookie
         m_lCookie = 0
     End If
+    Set m_pTimerAutodetect = Nothing
 QH:
     Exit Sub
 EH:
@@ -207,6 +213,42 @@ EH:
     PrintError FUNC_NAME
     Resume QH
 End Sub
+
+Public Function Autodetect(Optional ByVal Async As Boolean) As Boolean
+    Const FUNC_NAME     As String = "AutodetectAsync"
+    Dim vElem           As Variant
+    
+    On Error GoTo EH
+    For Each vElem In JsonItem(m_oController.Printers, "*/Autodetected")
+        If C_Bool(vElem) Then
+            '--- success
+            Autodetect = True
+            Exit For
+        End If
+    Next
+    If Autodetect Then
+        If Async Then
+            Set m_pTimerAutodetect = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerAutodetect)
+        Else
+            Restart
+        End If
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function TimerAutodetect() As Long
+    Const FUNC_NAME     As String = "TimerAutodetect"
+    
+    On Error GoTo EH
+    Restart
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
 
 '=========================================================================
 ' Base class events
