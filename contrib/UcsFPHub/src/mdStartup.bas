@@ -67,6 +67,7 @@ Private m_oConfig                   As Object
 Private m_cEndpoints                As Collection
 Private m_bIsService                As Boolean
 Private m_nDebugLogFile             As Integer
+Private m_bStarted                  As Boolean
 
 '=========================================================================
 ' Error handling
@@ -95,13 +96,14 @@ End Property
 Public Sub Main()
     Dim lExitCode       As Long
     
-    lExitCode = Process(SplitArgs(Command$))
+    lExitCode = Process(SplitArgs(Command$), m_bStarted)
+    m_bStarted = True
     If Not InIde And lExitCode <> -1 Then
         Call ExitProcess(lExitCode)
     End If
 End Sub
 
-Private Function Process(vArgs As Variant) As Long
+Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     Const FUNC_NAME     As String = "Process"
     Dim sConfFile       As String
     Dim sError          As String
@@ -119,7 +121,7 @@ Private Function Process(vArgs As Variant) As Long
             End If
         Next
     Next
-    If Not m_oOpt.Item("--nologo") Then
+    If Not m_oOpt.Item("--nologo") And Not bNoLogo Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
     If m_oOpt.Item("--help") Then
