@@ -27,6 +27,7 @@ steps:
         UcsFPHub.exe
         UcsFPHub.pdb
       targetFolder: '$(Build.BinariesDirectory)'
+      cleanTargetFolder: true
   
   - task: ArchiveFiles@2
     displayName: 'Archive $(Build.BinariesDirectory)'
