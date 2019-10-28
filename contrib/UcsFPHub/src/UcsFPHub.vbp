@@ -19,6 +19,7 @@ Class=cExec; Shared\cExec.cls
 Form=frmLocalEndpoint.frm
 Class=IEndpoint; IEndpoint.cls
 Module=mdJson; ..\..\..\src\Shared\mdJson.bas
+Module=mdMST; Shared\mdMST.bas
 IconForm="frmIcon"
 Startup="Sub Main"
 HelpFile=""
