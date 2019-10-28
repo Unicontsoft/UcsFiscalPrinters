@@ -3,7 +3,7 @@ setlocal
 for %%i in ("%~dp0.") do set file_dir=%%~dpnxi
 for %%i in ("%file_dir%\..\src\.") do set src_dir=%%~dpnxi
 for %%i in ("%file_dir%\..\bin\.") do set bin_dir=%%~dpnxi
-set VbCodeLines="%bin_dir%\VbCodeLines.exe"
+set VbCodeLines=start /w "%bin_dir%\VbCodeLines.exe"
 set Vb6="%ProgramFiles%\Microsoft Visual Studio\VB98\VB6.EXE"
 if not exist %Vb6% set Vb6="%ProgramFiles(x86)%\Microsoft Visual Studio\VB98\VB6.EXE"
 set log_file=%file_dir%\compile.out
