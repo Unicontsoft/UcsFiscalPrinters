@@ -764,6 +764,27 @@ Public Sub RevokeObject(ByVal lCookie As Long)
     DispCallByVtbl pROT, IDX_REVOKE, lCookie
 End Sub
 
+Public Function IsObjectRunning(sPathName As String) As Boolean
+    Const IDX_ISRUNNING As Long = 5
+    Const S_OK          As Long = 0
+    Dim hResult         As Long
+    Dim pROT            As IUnknown
+    Dim pMoniker        As IUnknown
+    
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
+    hResult = CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    If hResult < 0 Then
+        Err.Raise hResult, "CreateFileMoniker"
+    End If
+    If DispCallByVtbl(pROT, IDX_ISRUNNING, ObjPtr(pMoniker)) = S_OK Then
+        '--- success
+        IsObjectRunning = True
+    End If
+End Function
+
 Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArray A() As Variant) As Variant
     Const CC_STDCALL    As Long = 4
     Dim lIdx            As Long
