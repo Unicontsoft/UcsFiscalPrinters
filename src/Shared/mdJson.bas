@@ -216,6 +216,9 @@ EH:
         Resume
     End If
     Resume Next
+    #If False Then '--- silence MZ-Tools
+        Test
+    #End If
 End Function
 
 Private Function pvJsonParse(uCtx As JsonContext) As Variant
@@ -1421,12 +1424,18 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
             Call CopyMemory(lEofPtr, ByVal ObjPtr(oCol) + o_pEndTreePtr, PTR_SIZE)
         #End If
     End If
+    If StrPtr(sKey) = 0 Then
+        sKey = ""
+    End If
     Do While lItemPtr <> lEofPtr
         #If LargeAddressAware Then
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal (lItemPtr Xor SIGN_BIT) + o_KeyPtr Xor SIGN_BIT, PTR_SIZE)
         #Else
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal lItemPtr + o_KeyPtr, PTR_SIZE)
         #End If
+        If StrPtr(sTemp) = 0 Then
+            sTemp = ""
+        End If
         Select Case CompareStringW(LOCALE_USER_DEFAULT, -IgnoreCase * NORM_IGNORECASE, ByVal StrPtr(sKey), Len(sKey), ByVal StrPtr(sTemp), Len(sTemp))
         Case CSTR_LESS_THAN
             #If LargeAddressAware Then
@@ -1453,7 +1462,7 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
             GoTo QH
         Case Else
             Call CopyMemory(ByVal VarPtr(sTemp), NULL_PTR, PTR_SIZE)
-            Err.Raise vbObjectError, , "Unexpected result from CompareStringW"
+            Err.Raise vbObjectError, , "Error " & Err.LastDllError & " from CompareStringW"
         End Select
     Loop
 QH:
