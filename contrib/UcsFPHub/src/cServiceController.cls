@@ -67,6 +67,10 @@ Property Get LastError() As String
     LastError = m_sLastError
 End Property
 
+Property Get Printers() As Object
+    Set Printers = m_oPrinters
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
