@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin VB.Form frmIcon 
-   Caption         =   "Настройки на UcsHPHub"
+   Caption         =   "Настройки"
    ClientHeight    =   8400
    ClientLeft      =   192
    ClientTop       =   540
@@ -146,6 +146,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
+Private Const STR_CAPTION               As String = "Настройки на %1 v%2"
 Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на '%1'!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
 
 Private m_oOpt                      As Object
@@ -333,6 +334,18 @@ Private Sub m_oSysTray_ContextMenu()
     
     On Error GoTo EH
     PopupMenu mnuMain(ucsMnuSysTray), DefaultMenu:=mnuPopup(ucsMnuPopupConfig)
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
+Private Sub Form_Load()
+    Const FUNC_NAME     As String = "Form_Load"
+    
+    On Error GoTo EH
+    Caption = Printf(STR_CAPTION, STR_SERVICE_NAME, STR_VERSION)
 QH:
     Exit Sub
 EH:
