@@ -1437,6 +1437,8 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim sIndexes        As String
     Dim vElem           As Variant
     Dim lOffset         As Long
+    Dim lRevOffset      As Long
+    Dim vRevSum         As Variant
     
     On Error GoTo EH
     sFormat = IIf(Abs(Amount) > DBL_EPSILON, FORMAT_BASE_2, "\")
@@ -1467,6 +1469,13 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
                     End If
                 End If
                 lIdx = lIdx + 1
+            Next
+        Else
+            pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups5", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "5", _
+                "RevOffset", lRevOffset, IIf(IsIncotex Or IsDaisy, 1, 0)
+            vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+            For lIdx = 0 To 7
+                vRetVal(3) = vRetVal(3) + ParseSum(At(vRevSum, lIdx + lRevOffset))
             Next
         End If
         PrintServiceDeposit = vRetVal
