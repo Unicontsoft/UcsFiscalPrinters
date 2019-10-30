@@ -277,7 +277,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
-        JsonItem(oRetVal, "PrevReceiptNo") = Trim$(oFP.GetLastReceiptNo())
+        JsonItem(oRetVal, "PrevReceiptNo") = pvTrimReceiptNo(oFP.GetLastReceiptNo())
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceiptNo)) <> 0 Then
             If Pad(sPrevReceiptNo, -Len(JsonItem(oRetVal, "PrevReceiptNo"))) <> JsonItem(oRetVal, "PrevReceiptNo") And C_Lng(JsonItem(oRetVal, "PrevReceiptCount")) <> 0 Then
@@ -349,10 +349,10 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
 ReturnReceiptInfo:
-    JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastQRCodeInfo(dLastDateTime))
+    JsonItem(oRetVal, "ReceiptNo") = pvTrimReceiptNo(oFP.GetLastQRCodeInfo(dLastDateTime))
     JsonItem(oRetVal, "ReceiptDateTime") = dLastDateTime
     If LenB(JsonItem(oRetVal, "ReceiptNo")) = 0 Then
-        JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastReceiptNo())
+        JsonItem(oRetVal, "ReceiptNo") = pvTrimReceiptNo(oFP.GetLastReceiptNo())
         JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     End If
     JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
@@ -427,7 +427,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastReceiptNo())
+    JsonItem(oRetVal, "ReceiptNo") = pvTrimReceiptNo(oFP.GetLastReceiptNo())
     JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
     JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
     JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
@@ -504,7 +504,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     If lTolerance = 0 Then
         bResult = oFP.SetClock(dDateTime)
     ElseIf Abs(DateDiff("s", dCurrent, dDateTime)) >= lTolerance Then
-        bResult = oFP.SetClock(dDateTime)
+'        bResult = oFP.SetClock(dDateTime)
     Else
         GoTo SkipSetClock
     End If
@@ -638,7 +638,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         GoTo QH
     End If
     If Abs(C_Dbl(JsonItem(oJson, "Amount"))) > DBL_EPSILON Then
-        JsonItem(oRetVal, "ReceiptNo") = Trim$(oFP.GetLastReceiptNo())
+        JsonItem(oRetVal, "ReceiptNo") = pvTrimReceiptNo(oFP.GetLastReceiptNo())
         JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
         JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
         JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
@@ -911,10 +911,10 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         Next
     End If
     If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
-        JsonItem(oRetVal, "LastReceiptNo") = Trim$(oFP.GetLastQRCodeInfo(dLastDateTime))
+        JsonItem(oRetVal, "LastReceiptNo") = pvTrimReceiptNo(oFP.GetLastQRCodeInfo(dLastDateTime))
         JsonItem(oRetVal, "LastReceiptDateTime") = dLastDateTime
         If LenB(JsonItem(oRetVal, "LastReceiptNo")) = 0 Then
-            JsonItem(oRetVal, "LastReceiptNo") = Trim$(oFP.GetLastReceiptNo())
+            JsonItem(oRetVal, "LastReceiptNo") = pvTrimReceiptNo(oFP.GetLastReceiptNo())
             JsonItem(oRetVal, "LastReceiptDateTime") = oFP.GetClock()
         End If
     End If
@@ -927,6 +927,17 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         Next
     End If
 End Sub
+
+Private Function pvTrimReceiptNo(sText As String) As String
+    Dim lTemp           As Long
+    
+    lTemp = C_Lng(Trim$(sText))
+    If lTemp <> 0 Then
+        pvTrimReceiptNo = lTemp
+    Else
+        pvTrimReceiptNo = sText
+    End If
+End Function
 
 '=========================================================================
 ' Base class events
