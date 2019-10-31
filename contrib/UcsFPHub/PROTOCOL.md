@@ -24,15 +24,20 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
 ```json
 {
   "Ok": true,
-  "Count": 2,
-  "Aliases": {
-    "Count": 2,
-    "PrinterID1": {
-      "DeviceSerialNo": "DT518315"
-    },
-    "PrinterID2": {
-      "DeviceSerialNo": "ZK133759"
-    }
+  "Count": 3,
+  "ZK133759": {
+    "DeviceSerialNo": "ZK133759",
+    "FiscalMemoryNo": "50170895",
+    "DeviceProtocol": "TREMOL ECR",
+    "DeviceModel": "TREMOL M20",
+    "FirmwareVersion": "Ver. 1.01 TRA20 C.S. 2541",
+    "CommentTextMaxLength": 30,
+    "TaxNo": "",
+    "TaxCaption": "ЕИК",
+    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
+    "Host": "WQW-PC",
+    "Device": "COM1",
+    "Autodetected": true
   },
   "DT518315": {
     "DeviceSerialNo": "DT518315",
@@ -45,19 +50,29 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
     "Host": "WQW-PC",
-    "Description": "Втори етаж, счетоводството"
+    "Device": "COM2"
   },
-  "ZK133759": {
-    "DeviceSerialNo": "ZK133759",
-    "FiscalMemoryNo": "50170895",
-    "DeviceProtocol": "TREMOL ECR",
-    "DeviceModel": "TREMOL M20",
-    "FirmwareVersion": "Ver. 1.01 TRA20 C.S. 2541",
-    "CommentTextMaxLength": 30,
-    "TaxNo": "",
+  "DT577430": {
+    "DeviceSerialNo": "DT577430",
+    "FiscalMemoryNo": "02577430",
+    "DeviceProtocol": "DATECS X",
+    "DeviceModel": "DP-25X",
+    "FirmwareVersion": "264205 22Jan19 1629",
+    "CommentTextMaxLength": 40,
+    "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
-    "Host": "WQW-PC"
+    "DeviceString": "Protocol=DATECS X;IP=192.168.0.20",
+    "Host": "WQW-PC",
+    "Device": "192.168.0.20"
+  },
+  "Aliases": {
+    "Count": 2,
+    "PrinterID1": {
+      "DeviceSerialNo": "DT518315"
+    },
+    "PrinterID2": {
+      "DeviceSerialNo": "DT577430"
+    }
   }
 }
 ```
@@ -70,29 +85,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
 ```xml
 <Root>
    <Ok __json__bool="1">1</Ok>
-   <Count>2</Count>
-   <Aliases>
-      <Count>2</Count>
-      <PrinterID1>
-         <DeviceSerialNo>DT518315</DeviceSerialNo>
-      </PrinterID1>
-      <PrinterID2>
-         <DeviceSerialNo>ZK133759</DeviceSerialNo>
-      </PrinterID2>
-   </Aliases>
-   <DT518315>
-      <DeviceSerialNo>DT518315</DeviceSerialNo>
-      <FiscalMemoryNo>02518315</FiscalMemoryNo>
-      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
-      <DeviceModel>DP-25</DeviceModel>
-      <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-      <CommentTextMaxLength>36</CommentTextMaxLength>
-      <TaxNo>НЕЗАДАДЕН</TaxNo>
-      <TaxCaption>ЕИК</TaxCaption>
-      <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
-      <Host>WQW-PC</Host>
-      <Description>Втори етаж, счетоводството</Description>
-   </DT518315>
+   <Count>3</Count>
    <ZK133759>
       <DeviceSerialNo>ZK133759</DeviceSerialNo>
       <FiscalMemoryNo>50170895</FiscalMemoryNo>
@@ -104,7 +97,44 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
       <Host>WQW-PC</Host>
+      <Device>COM1</Device>
+      <Autodetected __json__bool="1">1</Autodetected>
    </ZK133759>
+   <DT518315>
+      <DeviceSerialNo>DT518315</DeviceSerialNo>
+      <FiscalMemoryNo>02518315</FiscalMemoryNo>
+      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+      <DeviceModel>DP-25</DeviceModel>
+      <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+      <CommentTextMaxLength>36</CommentTextMaxLength>
+      <TaxNo>НЕЗАДАДЕН</TaxNo>
+      <TaxCaption>ЕИК</TaxCaption>
+      <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+      <Host>WQW-PC</Host>
+      <Device>COM2</Device>
+   </DT518315>
+   <DT577430>
+      <DeviceSerialNo>DT577430</DeviceSerialNo>
+      <FiscalMemoryNo>02577430</FiscalMemoryNo>
+      <DeviceProtocol>DATECS X</DeviceProtocol>
+      <DeviceModel>DP-25X</DeviceModel>
+      <FirmwareVersion>264205 22Jan19 1629</FirmwareVersion>
+      <CommentTextMaxLength>40</CommentTextMaxLength>
+      <TaxNo>НЕЗАДАДЕН</TaxNo>
+      <TaxCaption>ЕИК</TaxCaption>
+      <DeviceString>Protocol=DATECS X;IP=192.168.0.20</DeviceString>
+      <Host>WQW-PC</Host>
+      <Device>192.168.0.20</Device>
+   </DT577430>
+   <Aliases>
+      <Count>2</Count>
+      <PrinterID1>
+         <DeviceSerialNo>DT518315</DeviceSerialNo>
+      </PrinterID1>
+      <PrinterID2>
+         <DeviceSerialNo>DT577430</DeviceSerialNo>
+      </PrinterID2>
+   </Aliases>
 </Root>
 ```
 
@@ -123,12 +153,14 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CommentTextMaxLength": 28,
+  "CommentTextMaxLength": 36,
+  "TaxNo": "НЕЗАДАДЕН",
+  "TaxCaption": "ЕИК",
   "Headers": [
-    "               ИМЕ НА ФИРМА",
-    "              АДРЕС НА ФИРМА",
-    "               ИМЕ НА ОБЕКТ",
-    "              АДРЕС НА ОБЕКТ",
+    "ИМЕ НА ФИРМА",
+    "АДРЕС НА ФИРМА",
+    "ИМЕ НА ОБЕКТ",
+    "АДРЕС НА ОБЕКТ",
     "",
     ""
   ],
@@ -136,17 +168,16 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
     "",
     ""
   ],
-  "TaxNo": "НЕЗАДАДЕН",
-  "TaxCaption": "ЕИК",
-  "ReceiptNo": "0000048",
-  "DeviceDateTime": "2019-07-19 11:51:33",
+  "LastReceiptNo": "171",
+  "LastReceiptDateTime": "2019-10-31 10:20:58",
   "PaymentNames": [
     "В БРОЙ",
-    "С ДЕБИТНА КАРТА",
-    "С ЧЕК",
-    "ВАУЧЕР",
-    "КУПОН",
+    "С КАРТА",
+    "ПО БАНКА",
     "",
+    "КУПОН",
+    "ВАУЧЕР",
+    "НЗОК",
     ""
   ]
 }
@@ -165,7 +196,9 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
    <DeviceModel>DP-25</DeviceModel>
    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
-   <CommentTextMaxLength>30</CommentTextMaxLength>
+   <CommentTextMaxLength>36</CommentTextMaxLength>
+   <TaxNo>НЕЗАДАДЕН</TaxNo>
+   <TaxCaption>ЕИК</TaxCaption>
    <Headers>ИМЕ НА ФИРМА</Headers>
    <Headers>АДРЕС НА ФИРМА</Headers>
    <Headers>ИМЕ НА ОБЕКТ</Headers>
@@ -174,16 +207,15 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <Headers />
    <Footers />
    <Footers />
-   <TaxNo>НЕЗАДАДЕН</TaxNo>
-   <TaxCaption>ЕИК</TaxCaption>
-   <ReceiptNo>0000081</ReceiptNo>
-   <DeviceDateTime>2019-07-23 18:07:01</DeviceDateTime>
+   <LastReceiptNo>171</LastReceiptNo>
+   <LastReceiptDateTime>2019-10-31 10:21:34</LastReceiptDateTime>
    <PaymentNames>В БРОЙ</PaymentNames>
    <PaymentNames>С КАРТА</PaymentNames>
-   <PaymentNames>НЗОК</PaymentNames>
-   <PaymentNames>ВАУЧЕР</PaymentNames>
-   <PaymentNames>КУПОН</PaymentNames>
+   <PaymentNames>ПО БАНКА</PaymentNames>
    <PaymentNames />
+   <PaymentNames>КУПОН</PaymentNames>
+   <PaymentNames>ВАУЧЕР</PaymentNames>
+   <PaymentNames>НЗОК</PaymentNames>
    <PaymentNames />
 </Root>
 ```
@@ -313,7 +345,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000056",
+  "ReceiptNo": "56",
   "ReceiptDateTime": "2019-07-19 14:05:18",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
@@ -332,7 +364,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
     },
     "Reversal": {
         "ReversalType": 1,
-        "ReceiptNo": "0000056",
+        "ReceiptNo": "56",
         "ReceiptDate": "2019-07-19 14:05:18",
         "FiscalMemoryNo": "02518315",
     },
@@ -353,7 +385,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000061",
+  "ReceiptNo": "61",
   "ReceiptDateTime": "2019-07-22 11:46:23",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
@@ -405,7 +437,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000065",
+  "ReceiptNo": "65",
   "ReceiptDateTime": "2019-07-22 12:05:55",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
@@ -506,7 +538,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/deposit ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000050",
+  "ReceiptNo": "50",
   "ReceiptDateTime": "2019-07-19 12:02:08",
   "TotalAvailable": 362.02,
   "TotalDeposits": 393.68,
@@ -523,7 +555,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/deposit ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "0000052",
+  "ReceiptNo": "52",
   "ReceiptDateTime": "2019-07-19 12:03:41",
   "TotalAvailable": 248.46,
   "TotalDeposits": 393.68,
@@ -612,31 +644,34 @@ Get device totals since last Z report grouped by payment types and tax groups.
 C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
 ```
 ```json
+? JsonDump(oResponse)
 {
     "Ok": true,
-    "NumReceipts": 29,
-    "TotalAvailable": 361.04,
-    "TotalDeposits": 393.68,
-    "TotalWithdraws": 236.56,
+    "NumReceipts": 68,
+    "LastZReportDateTime": "2018-01-01 00:00:00",
+    "TotalAvailable": 1111.17,
+    "TotalDeposits": 451,
+    "TotalWithdraws": 20,
+    "TotalReversal": 314.08,
     "TotalsByTaxGroups": [
-        { "TaxGroup": 1, "VatPercent": 0, "Amount": 0 },
-        { "TaxGroup": 2, "VatPercent": 20, "Amount": 421.46 },
-        { "TaxGroup": 3, "VatPercent": 20, "Amount": 0 },
-        { "TaxGroup": 4, "VatPercent": 9, "Amount": 0 },
-        { "TaxGroup": 5, "VatPercent": 0, "Amount": 0 },
-        { "TaxGroup": 6, "VatPercent": 0, "Amount": 0 },
-        { "TaxGroup": 7, "VatPercent": 0, "Amount": 0 },
-        { "TaxGroup": 8, "VatPercent": 0, "Amount": 0 }
+        { "TaxGroup": 1, "VatRate": 0, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 2, "VatRate": 20, "Amount": 1462.73, "Reversal": 314.08 },
+        { "TaxGroup": 3, "VatRate": 20, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 4, "VatRate": 9, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 5, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 6, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 7, "Amount": 0, "Reversal": 0 },
+        { "TaxGroup": 8, "Amount": 0, "Reversal": 0 }
     ],
     "TotalsByPaymentTypes": [
-        { "PaymentType": 1, "PaymentName": "В БРОЙ", "Amount": 226.26 },
-        { "PaymentType": 2, "PaymentName": "С КАРТА", "Amount": 195.2 },
-        { "PaymentType": 3, "PaymentName": "НЗОК", "Amount": 0 },
-        { "PaymentType": 4, "PaymentName": "КРЕДИТ", "Amount": 0 },
-        { "PaymentType": 5, "PaymentName": "ВАУЧЕР", "Amount": 0 },
-        { "PaymentType": 6, "PaymentName": "КУПОН", "Amount": 0 },
-        { "PaymentType": 7, "PaymentName": "", "Amount": 0 },
-        { "PaymentType": 8, "PaymentName": "", "Amount": 0 }
+        { "PaymentType": 1, "PaymentName": "Лева", "Amount": 824.25, "Reversal": 0 },
+        { "PaymentType": 2, "PaymentName": "Карта", "Amount": 293.07, "Reversal": 0 },
+        { "PaymentType": 3, "PaymentName": "Банка", "Amount": 311.46, "Reversal": 0 },
+        { "PaymentType": 4, "PaymentName": "Чек", "Amount": 11, "Reversal": 0 },
+        { "PaymentType": 5, "PaymentName": "Талон", "Amount": 22.95, "Reversal": 0 },
+        { "PaymentType": 6, "PaymentName": "В.Талон", "Amount": 0, "Reversal": 0 },
+        { "PaymentType": 7, "PaymentName": "Резерв 1", "Amount": 0, "Reversal": 0 },
+        { "PaymentType": 8, "PaymentName": "Резерв 2", "Amount": 0, "Reversal": 0 }
     ]
 }
 ```
