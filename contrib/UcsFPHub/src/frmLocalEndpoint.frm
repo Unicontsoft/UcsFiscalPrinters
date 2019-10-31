@@ -68,6 +68,17 @@ Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
+Private Property Get pvMainForm() As frmIcon
+    Dim oForm       As Object
+    
+    For Each oForm In Forms
+        If TypeOf oForm Is frmIcon Then
+            Set pvMainForm = oForm
+            Exit Property
+        End If
+    Next
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -164,14 +175,13 @@ End Function
 
 Public Sub ShowConfig()
     Const FUNC_NAME     As String = "ShowConfig"
-    Dim oForm           As Object
+    Dim oForm           As frmIcon
     
     On Error GoTo EH
-    For Each oForm In Forms
-        If TypeOf oForm Is frmIcon Then
-            oForm.ShowConfig
-        End If
-    Next
+    Set oForm = pvMainForm
+    If Not oForm Is Nothing Then
+        oForm.ShowConfig
+    End If
 QH:
     Exit Sub
 EH:
@@ -181,13 +191,13 @@ End Sub
 
 Public Sub ShutDown()
     Const FUNC_NAME     As String = "Shutdown"
-    Dim oForm           As Object
+    Dim oForm           As frmIcon
     
-    For Each oForm In Forms
-        If TypeOf oForm Is frmIcon Then
-            oForm.ShutDown
-        End If
-    Next
+    On Error GoTo EH
+    Set oForm = pvMainForm
+    If Not oForm Is Nothing Then
+        oForm.ShutDown
+    End If
     If IsRunningAsService Then
         NtServiceStop
     End If
@@ -200,13 +210,13 @@ End Sub
 
 Public Sub Restart(Optional AddParam As Variant)
     Const FUNC_NAME     As String = "Restart"
-    Dim oForm           As Object
+    Dim oForm           As frmIcon
     
-    For Each oForm In Forms
-        If TypeOf oForm Is frmIcon Then
-            oForm.Restart AddParam
-        End If
-    Next
+    On Error GoTo EH
+    Set oForm = pvMainForm
+    If Not oForm Is Nothing Then
+        oForm.Restart AddParam
+    End If
 QH:
     Exit Sub
 EH:
