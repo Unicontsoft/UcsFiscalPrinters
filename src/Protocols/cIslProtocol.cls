@@ -1317,12 +1317,18 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lRevOffset      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", "0"), _
-        "Offset", lOffset, -10
-    vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
-        "RevOffset", lRevOffset, -10
-    vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If Not IsEcr And Not IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+            "Offset", lOffset, 0
+        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", "0"), _
+            "Offset", lOffset, -10
+        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
+            "RevOffset", lRevOffset, -10
+        vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    End If
     If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To 7) As Variant
         For lIdx = 0 To UBound(vRetVal)
