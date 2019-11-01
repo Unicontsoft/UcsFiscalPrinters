@@ -215,10 +215,10 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         FlushDebugLog
         m_nDebugLogFile = 0
     End If
-    '--- first register endpoints
+    '--- first register local endpoints
     Set m_oPrinters = Nothing
     JsonItem(m_oPrinters, vbNullString) = Empty
-    If Not pvCreateEndpoints(m_oPrinters, m_cEndpoints) Then
+    If Not pvCreateEndpoints(m_oPrinters, "local", m_cEndpoints) Then
         GoTo QH
     End If
     '--- leave longer to complete auto-detection for last step
@@ -227,6 +227,10 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     End If
     DebugLog Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
         JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    '--- then register http/mssql endpoints
+    If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker", m_cEndpoints) Then
+        GoTo QH
+    End If
     If m_bIsService Then
         Do While Not NtServiceQueryStop()
             '--- do nothing
@@ -336,7 +340,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvCreateEndpoints(oPrinters As Object, cRetVal As Collection) As Boolean
+Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRetVal As Collection) As Boolean
     Const FUNC_NAME     As String = "pvCreateEndpoints"
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
@@ -347,36 +351,33 @@ Private Function pvCreateEndpoints(oPrinters As Object, cRetVal As Collection) A
     Set cRetVal = New Collection
     '--- first local endpoint (faster registration)
     For Each vKey In JsonKeys(m_oConfig, "Endpoints")
-        Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
-        Case "local"
-            Set oLocalEndpoint = New frmLocalEndpoint
-            If oLocalEndpoint.frInit(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                cRetVal.Add oLocalEndpoint
-            End If
-        End Select
+        If InStr(sBindings, LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))) > 0 Then
+            Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
+            Case "local"
+                Set oLocalEndpoint = New frmLocalEndpoint
+                If oLocalEndpoint.frInit(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                    cRetVal.Add oLocalEndpoint
+                End If
+            Case "resthttp"
+                Set oRestEndpoint = New cRestEndpoint
+                If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                    cRetVal.Add oRestEndpoint
+                End If
+            Case "mssqlservicebroker"
+                Set oMssqlEndpoint = New cMssqlEndpoint
+                If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                    cRetVal.Add oMssqlEndpoint
+                End If
+            End Select
+        End If
     Next
     '--- always init local endpoint
-    If oLocalEndpoint Is Nothing Then
+    If oLocalEndpoint Is Nothing And InStr(sBindings, "local") > 0 Then
         Set oLocalEndpoint = New frmLocalEndpoint
         If oLocalEndpoint.frInit(Nothing, oPrinters) Then
             cRetVal.Add oLocalEndpoint
         End If
     End If
-    '--- then restful and service broker endpoints
-    For Each vKey In JsonKeys(m_oConfig, "Endpoints")
-        Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
-        Case "resthttp"
-            Set oRestEndpoint = New cRestEndpoint
-            If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                cRetVal.Add oRestEndpoint
-            End If
-        Case "mssqlservicebroker"
-            Set oMssqlEndpoint = New cMssqlEndpoint
-            If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                cRetVal.Add oMssqlEndpoint
-            End If
-        End Select
-    Next
     '--- success
     pvCreateEndpoints = True
     Exit Function
