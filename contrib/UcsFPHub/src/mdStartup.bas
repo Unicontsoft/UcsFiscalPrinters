@@ -263,6 +263,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     Dim sDeviceString   As String
     Dim sKey            As String
     Dim oAliases        As Object
+    Dim oInfo           As Object
     
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
@@ -282,15 +283,15 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                         Set oRequest = Nothing
                         JsonItem(oRequest, "DeviceString") = sDeviceString
                         JsonItem(oRequest, "IncludeTaxNo") = True
-                        If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
-                            sKey = JsonItem(oJson, "DeviceSerialNo")
+                        If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
+                            sKey = JsonItem(oInfo, "DeviceSerialNo")
                             If LenB(sKey) <> 0 Then
-                                JsonItem(oJson, "Ok") = Empty
-                                JsonItem(oJson, "DeviceString") = sDeviceString
-                                JsonItem(oJson, "Host") = GetErrorComputerName()
-                                JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
-                                JsonItem(oJson, "Autodetected") = True
-                                JsonItem(oRetVal, sKey) = oJson
+                                JsonItem(oInfo, "Ok") = Empty
+                                JsonItem(oInfo, "DeviceString") = sDeviceString
+                                JsonItem(oInfo, "Host") = GetErrorComputerName()
+                                JsonItem(oInfo, "Device") = pvToSimpleDevice(sDeviceString)
+                                JsonItem(oInfo, "Autodetected") = True
+                                JsonItem(oRetVal, sKey) = oInfo
                                 JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                             End If
                         End If
@@ -305,21 +306,21 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
             Set oRequest = Nothing
             JsonItem(oRequest, "DeviceString") = sDeviceString
             JsonItem(oRequest, "IncludeTaxNo") = True
-            If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oJson) Then
-                If Not JsonItem(oJson, "Ok") Then
-                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oJson, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
+            If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
+                If Not JsonItem(oInfo, "Ok") Then
+                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
                 Else
-                    sKey = JsonItem(oJson, "DeviceSerialNo")
+                    sKey = JsonItem(oInfo, "DeviceSerialNo")
                     If LenB(sKey) <> 0 Then
-                        JsonItem(oJson, "Ok") = Empty
-                        JsonItem(oJson, "DeviceString") = sDeviceString
-                        JsonItem(oJson, "Host") = GetErrorComputerName()
-                        JsonItem(oJson, "Device") = pvToSimpleDevice(sDeviceString)
-                        JsonItem(oJson, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
+                        JsonItem(oInfo, "Ok") = Empty
+                        JsonItem(oInfo, "DeviceString") = sDeviceString
+                        JsonItem(oInfo, "Host") = GetErrorComputerName()
+                        JsonItem(oInfo, "Device") = pvToSimpleDevice(sDeviceString)
+                        JsonItem(oInfo, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         If IsEmpty(JsonItem(oRetVal, sKey)) Then
                             JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
                         End If
-                        JsonItem(oRetVal, sKey) = oJson
+                        JsonItem(oRetVal, sKey) = oInfo
                         If IsEmpty(JsonItem(oAliases, vKey)) Then
                             JsonItem(oAliases, "Count") = JsonItem(oAliases, "Count") + 1
                         End If
