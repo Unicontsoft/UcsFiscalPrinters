@@ -15,11 +15,11 @@ Here is a complete list of implemented protocols with corresponding tested and s
 
 Name             | Manufacturer | Tested models  | Other supported models
 ----             | ------------ | -------------  | ----------------------
-`TREMOL ECR`     | Tremol Ltd.  | M20            | M23
-`DATECS X`       | Datecs Ltd.  | DP-25X         | All X models
-`DATECS FP/ECR`  | Datecs Ltd.  | DP-25, FP-650  | All A and B models
-`DAISY FP/ECR`   | Daisy Ltd.   | N/A            |
-`INCOTEX FP/ECR` | Incotex Ltd. | 777            |
+`TREMOL ECR`     | Tremol Ltd.  | M20            | All
+`DATECS X`       | Datecs Ltd.  | DP-25X         | X models
+`DATECS FP/ECR`  | Datecs Ltd.  | DP-25, FP-650  | A models, B models
+`DAISY FP/ECR`   | Daisy Ltd.   | CompactM       | All
+`INCOTEX FP/ECR` | Incotex Ltd. | 777            | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
 
 ### Sub-projects

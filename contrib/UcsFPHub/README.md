@@ -1,5 +1,5 @@
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
-[![Download stable UcsFPHub-0.1.26.zip](https://img.shields.io/badge/install-UcsFPHub--0.1.26.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.26/UcsFPHub-0.1.26.zip)
+[![Download stable UcsFPHub-0.1.27.zip](https://img.shields.io/badge/install-UcsFPHub--0.1.27.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.27/UcsFPHub-0.1.27.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/wqweto/UcsFiscalPrinters/blob/master/LICENSE)
 
@@ -113,11 +113,11 @@ Here is a complete list of implemented protocols with corresponding tested and s
 
 Name             | Manufacturer | Tested models  | Other supported models
 ----             | ------------ | -------------  | ----------------------
-`TREMOL ECR`     | Tremol Ltd.  | M20            | M23
-`DATECS X`       | Datecs Ltd.  | DP-25X         | All X models
-`DATECS FP/ECR`  | Datecs Ltd.  | DP-25, FP-650  | All A and B models
-`DAISY FP/ECR`   | Daisy Ltd.   | N/A            |
-`INCOTEX FP/ECR` | Incotex Ltd. | 777            |
+`TREMOL ECR`     | Tremol Ltd.  | M20            | All
+`DATECS X`       | Datecs Ltd.  | DP-25X         | X models
+`DATECS FP/ECR`  | Datecs Ltd.  | DP-25, FP-650  | A models, B models
+`DAISY FP/ECR`   | Daisy Ltd.   | CompactM       | All
+`INCOTEX FP/ECR` | Incotex Ltd. | 777            | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
 
 ### REST service protocol description
