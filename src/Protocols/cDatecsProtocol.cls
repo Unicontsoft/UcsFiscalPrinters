@@ -380,7 +380,10 @@ EH:
 End Property
 
 Private Property Get pvCommentChars() As Long
-    pvCommentChars = pvRowChars - 2
+    pvCommentChars = m_uPrintData.Config.CommentChars
+    If pvCommentChars = 0 Then
+        pvCommentChars = pvRowChars - 2
+    End If
 End Property
 
 Private Property Get pvItemChars() As Long
@@ -435,7 +438,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sProtocol       As String
     Dim sModel          As String
     Dim sFirmware       As String
-    Dim sError          As String
     Dim vSpeeds         As Variant
     Dim baText()        As Byte
     
@@ -456,7 +458,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
-                    sError = vbNullString
                     Set .Connector = New cSerialPortConnector
                     If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed, lTimeout) Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
@@ -589,6 +590,7 @@ Public Function Init(sDeviceString As String) As Boolean
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sSerial, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", True))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", True))
@@ -2066,6 +2068,7 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     Dim sOperPass       As String
     
     m_uPrintData.Config.RowChars = pvRowChars
+    m_uPrintData.Config.CommentChars = pvCommentChars
     m_uPrintData.Config.ItemChars = pvItemChars
     sOperCode = Zn(OperatorCode, DEF_OPERNO)
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))

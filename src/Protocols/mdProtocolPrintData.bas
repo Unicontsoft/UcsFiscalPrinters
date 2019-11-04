@@ -111,6 +111,7 @@ End Type
 
 Public Type UcsPpdConfigValues
     RowChars            As Long
+    CommentChars        As Long
     ItemChars           As Long
     AbsoluteDiscount    As Boolean
     NegativePrices      As Boolean
@@ -670,5 +671,5 @@ EH:
 End Sub
 
 Private Property Get pvCommentChars(uData As UcsProtocolPrintData) As Long
-    pvCommentChars = uData.Config.RowChars - 2
+    pvCommentChars = uData.Config.CommentChars
 End Property

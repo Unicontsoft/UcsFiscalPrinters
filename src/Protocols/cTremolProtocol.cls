@@ -382,11 +382,17 @@ Private Property Get pvRowChars() As Long
 End Property
 
 Private Property Get pvCommentChars() As Long
-    pvCommentChars = pvRowChars - 2
+    pvCommentChars = m_uPrintData.Config.CommentChars
+    If pvCommentChars = 0 Then
+        pvCommentChars = pvRowChars - 2
+    End If
 End Property
 
 Private Property Get pvItemChars() As Long
-    pvItemChars = pvRowChars - 6
+    pvItemChars = m_uPrintData.Config.ItemChars
+    If pvItemChars = 0 Then
+        pvItemChars = pvRowChars - 6
+    End If
 End Property
 
 Private Property Get pvPingTimeout() As Long
@@ -572,6 +578,7 @@ Public Function Init(sDeviceString As String) As Boolean
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sSerial, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", True))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", True))
@@ -2220,6 +2227,7 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     Dim sOperPass       As String
     
     m_uPrintData.Config.RowChars = pvRowChars
+    m_uPrintData.Config.CommentChars = pvCommentChars
     m_uPrintData.Config.ItemChars = pvItemChars
     sOperCode = Zn(OperatorCode, DEF_OPERNO)
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))

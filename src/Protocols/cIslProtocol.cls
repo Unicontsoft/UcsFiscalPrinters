@@ -483,16 +483,24 @@ Private Property Get pvRowChars() As Long
     Dim sParam          As String
     Dim lIndex          As Long
     Dim sResult         As String
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     If m_uPrintData.Config.RowChars = 0 Then
         pvGetCommandConfig CONF_NAME, "ExtendedInfoConsts", eCmd, ucsIslCmdExtendedInfoConsts, sParam, vbNullString, _
-            "Index", lIndex, 9, _
+            "Index", lIndex, 8, _
             "DaisyPrefix", sDaisyPrefix, "DY", _
             "IncotexPrefix", sIncotexPrefix, "IN"
         If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Or _
                 Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
-            m_uPrintData.Config.RowChars = C_Lng(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex))
+            vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+            m_uPrintData.Config.RowChars = C_Lng(At(vSplit, lIndex + 0))
+            If m_uPrintData.Config.CommentChars = 0 Then
+                m_uPrintData.Config.CommentChars = C_Lng(At(vSplit, lIndex + 1))
+            End If
+            If m_uPrintData.Config.ItemChars = 0 Then
+                m_uPrintData.Config.ItemChars = C_Lng(At(vSplit, lIndex + 2))
+            End If
         Else
             pvGetCommandConfig CONF_NAME, "InitLogo", eCmd, ucsIslCmdInitLogo, sParam, "R0"
             sResult = SendCommand(eCmd, sParam)
@@ -512,7 +520,10 @@ EH:
 End Property
 
 Private Property Get pvCommentChars() As Long
-    pvCommentChars = pvRowChars - IIf(IsEcr, 6, 2)
+    pvCommentChars = m_uPrintData.Config.CommentChars
+    If pvCommentChars = 0 Then
+        pvCommentChars = pvRowChars - IIf(IsEcr, 6, 2)
+    End If
 End Property
 
 Private Property Get pvItemChars() As Long
@@ -555,7 +566,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sProtocol       As String
     Dim sModel          As String
     Dim sFirmware       As String
-    Dim sError          As String
     Dim vSpeeds         As Variant
     Dim baText()        As Byte
     
@@ -577,7 +587,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
-                    sError = vbNullString
                     Set .Connector = New cSerialPortConnector
                     If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed, lTimeout) Then
                         .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
@@ -720,6 +729,7 @@ Public Function Init(sDeviceString As String) As Boolean
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sSerial, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
         .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
         .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", True))
         .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", True))
@@ -2166,15 +2176,14 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
     Dim lNameIndex      As Long
-    Dim lSwitchesIndex  As Long
     Dim lSerialIndex    As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsIslCmdInfoDiagnostics, sParam, "0", _
         "DaisyPrefix", sDaisyPrefix, "DY", _
         "IncotexPrefix", sIncotexPrefix, "IN", _
         "NameIndex", lNameIndex, 0, _
-        "SwitchesIndex", lSwitchesIndex, 3, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
         vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
@@ -2540,6 +2549,7 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     Dim sOperPass       As String
     
     m_uPrintData.Config.RowChars = pvRowChars
+    m_uPrintData.Config.CommentChars = pvCommentChars
     m_uPrintData.Config.ItemChars = pvItemChars
     sOperCode = Zn(OperatorCode, DEF_OPERNO)
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))
