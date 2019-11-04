@@ -2201,15 +2201,9 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         ElseIf LenB(At(vResult, lSerialIndex)) <> 0 Then
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
-        sModel = At(vResult, lNameIndex)
-        '-- lSwitchesIndex in older models -> country index (6 = BG)
-        If Len(At(vResult, lSwitchesIndex)) > 2 Then
-            sModel = RTrim$(At(vResult, lNameIndex))
-            sFirmware = RTrim$(At(vResult, lNameIndex + 1))
-        Else
-            sModel = "FP-3530?"
-            sFirmware = RTrim$(At(vResult, lNameIndex))
-        End If
+        vSplit = Split2(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), " ")
+        sModel = vSplit(0)
+        sFirmware = vSplit(1)
         '--- success
         pvGetDeviceInfo = True
     End If
