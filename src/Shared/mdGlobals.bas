@@ -1625,3 +1625,15 @@ Public Function Split2(sText As String, sDelim As String) As Variant
         Split2 = Array(sText)
     End If
 End Function
+
+Public Function StripZeros(ByVal sText As String) As String
+    Dim lIdx        As Long
+    
+    sText = Trim$(sText)
+    For lIdx = 1 To Len(sText) - 1
+        If Mid$(sText, lIdx, 1) <> "0" Then
+            Exit For
+        End If
+    Next
+    StripZeros = Trim$(Mid$(sText, lIdx))
+End Function
