@@ -197,6 +197,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     m_lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
     pvQueueSetup
     pvQueueLoopAsync
+    pvRestartTimer
     '--- success
     Init = True
 QH:
@@ -230,11 +231,17 @@ Attribute TimerProc.VB_MemberFlags = "40"
     If pvOpenConn(m_oConfig) Then
         pvQueueLoopAsync
     End If
+    pvRestartTimer
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
+
+Private Sub pvRestartTimer()
+    '--- start heart-beat timer
+    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+End Sub
 
 '= private ===============================================================
 
@@ -358,8 +365,6 @@ Private Function pvQueueLoopAsync() As Boolean
     
     On Error GoTo EH
     m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     '--- success
     pvQueueLoopAsync = True
 QH:
@@ -486,14 +491,11 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     m_oConn.Open sLocalConnStr
     If pvIsConnAlive(m_oConn) Then
         DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-        '--- start heart-beat timer
-        Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
         '--- success
         pvOpenConn = True
     End If
 QH:
     If Not pvOpenConn Then
-        Set m_pTimer = Nothing
         Set m_oConn = Nothing
         Set m_oSshTunnel = Nothing
     End If
@@ -820,6 +822,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
         If (pRecordset.State And adStateOpen) <> 0 Then
             If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
                 pvQueueLoopAsync
+                pvRestartTimer
                 sHandle = C_Str(pRecordset!Handle.Value)
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
@@ -856,6 +859,7 @@ NextLine:
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
+        pvRestartTimer
     End If
 End Sub
 
