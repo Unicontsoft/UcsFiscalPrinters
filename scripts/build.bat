@@ -9,6 +9,7 @@ if not exist "%Vb6%" set "Vb6=%ProgramFiles(x86)%\Microsoft Visual Studio\VB98\V
 set "log_file=%file_dir%\compile.out"
 
 echo Cleanup %file_dir%...
+if exist "%bin_dir%\UcsFP20.dll" start "" /w regsvr32 /u /s "%bin_dir%\UcsFP20.dll"
 for %%i in ("%file_dir%\*.*") do (if not "%%~nxi"=="build.bat" del "%%i" > nul)
 rd /s /q "%file_dir%\Connectors" 2>&1
 mkdir "%file_dir%\Connectors"
