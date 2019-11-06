@@ -239,8 +239,15 @@ EH:
 End Function
 
 Private Sub pvRestartTimer()
+    Const FUNC_NAME     As String = "pvRestartTimer"
+    
+    On Error GoTo EH
     '--- start heart-beat timer
     Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Sub
 
 '= private ===============================================================
@@ -805,6 +812,7 @@ End Function
 
 Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
     Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
+    Static bHere        As Boolean
     Dim sHandle         As String
     Dim sResponse       As String
     Dim lErrorCode      As Long
@@ -812,6 +820,10 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Dim vErr            As Variant
     
     On Error GoTo EH
+    If bHere Then
+        Exit Sub
+    End If
+    bHere = True
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
         If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
@@ -841,6 +853,8 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
             End If
         End If
     End If
+QH:
+    bHere = False
     Exit Sub
 EH:
     vErr = Array(Err.Number, Err.Source, Err.Description)
@@ -861,6 +875,7 @@ NextLine:
         pvQueueLoopAsync
         pvRestartTimer
     End If
+    GoTo QH
 End Sub
 
 '=========================================================================
