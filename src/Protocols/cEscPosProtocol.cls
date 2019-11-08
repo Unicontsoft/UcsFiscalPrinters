@@ -54,8 +54,6 @@ Private Const DEF_ROW_CHARS             As Long = 48
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
-Private Const ucsFscDscPluAbs           As Long = ucsFscDscPlu + 100
-Private Const ucsFscDscSubtotalAbs      As Long = ucsFscDscSubtotal + 100
 Private Const STR_GS                    As String = "" ' Chr$(29)
 Private Const STR_ESC                   As String = "" ' Chr$(27)
 
@@ -193,7 +191,7 @@ End Property
 Private Property Get pvItemChars() As Long
     pvItemChars = m_uPrintData.Config.ItemChars
     If pvItemChars = 0 Then
-        pvItemChars = pvRowChars - 6
+        pvItemChars = pvRowChars - 7
     End If
 End Property
 
@@ -532,8 +530,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvPrintLine vbNullString
                 pvPrintLine Printf(pvText(ucsTxtHeaderDate), Now())
                 pvPrintLine Printf(pvText(ucsTxtHeaderOper), .InitOperatorName)
-                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitTableNo)
-                pvPrintLine String(pvCommentChars, "-")
+                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitDepartmentNo)
+                pvPrintLine String(pvRowChars, "-")
             Case Else
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnName), pvCommentChars)
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnAddress), pvCommentChars)
@@ -567,7 +565,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case ucsFscRcpOrderList
                 pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
                     "FormatQty", sFormatQty, FORMAT_BASE_3
-                vSplit = WrapMultiline(.PluName, pvCommentChars - 7)
+                vSplit = WrapMultiline(.PluItemName, pvItemChars)
                 If UBound(vSplit) = 0 Then
                     ReDim Preserve vSplit(0 To 1) As Variant
                 End If
@@ -590,7 +588,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvPrintLine AlignText(Format$(uRow(0).InitOperatorCode, "0000") & " " & uRow(0).InitOperatorName, Format$(1, "00"), pvCommentChars)
                 End If
                 If .PrintRowType = ucsFscRcpSale Then
-                    vSplit = WrapMultiline(.PluName, pvCommentChars - 7)
+                    vSplit = WrapMultiline(.PluItemName, pvItemChars)
                     If Abs(.PluQuantity - 1) > DBL_EPSILON Then
                         If UBound(vSplit) = 0 Then
                             ReDim Preserve vSplit(0 To 1) As Variant
@@ -609,7 +607,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     vSplit(UBound(vSplit)) = AlignText(vSplit(UBound(vSplit)), " " & SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvCommentChars)
                     pvPrintLine vSplit
                 Else
-                    vSplit = WrapMultiline(.PluName, pvCommentChars - 2)
+                    vSplit = WrapMultiline(.PluItemName, pvCommentChars - 2)
                     For lIdx = 0 To UBound(vSplit)
                         pvPrintLine C_Str(vSplit(lIdx))
                     Next
@@ -854,8 +852,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentType
     IDeviceProtocol_AddPayment = PpdAddPayment(m_uPrintData, Number, Name, Amount)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long) As Boolean
-    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup)
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long, UnitOfMeasure As String) As Boolean
+    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
@@ -889,7 +887,15 @@ Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As B
 End Function
 
 Private Function IDeviceProtocol_GetCharsPerLine() As Long
-    IDeviceProtocol_GetCharsPerLine = pvCommentChars
+    IDeviceProtocol_GetCharsPerLine = pvRowChars
+End Function
+
+Private Function IDeviceProtocol_GetCommentTextMaxLength() As Long
+    IDeviceProtocol_GetCommentTextMaxLength = pvCommentChars
+End Function
+
+Private Function IDeviceProtocol_GetItemNameMaxLength() As Long
+    IDeviceProtocol_GetItemNameMaxLength = pvItemChars
 End Function
 
 Private Function IDeviceProtocol_GetClock() As Date
@@ -1021,9 +1027,9 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional DepartmentNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
     m_uPrintData.Config.RowChars = pvRowChars
     m_uPrintData.Config.CommentChars = pvCommentChars
     m_uPrintData.Config.ItemChars = pvItemChars
-    IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, TableNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
+    IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, DepartmentNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
 End Function

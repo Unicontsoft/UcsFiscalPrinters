@@ -94,11 +94,12 @@ End Enum
 
 Private Type UcsRowData
     RowType         As UcsRowTypeEnum
-    Item            As String
+    ItemName        As String
     Price           As String
     Discount        As String
     TaxGroup        As String
     Quantity        As String
+    UnitOfMeasure   As String
     PmtType         As String
     Amount          As String
 End Type
@@ -118,11 +119,12 @@ Private Enum UcsReceiptTextsEnum
 End Enum
 
 Private Enum UcsFiscalParamIndexesEnum
-    ucsFscPixItem = 0
+    ucsFscPixItemName = 0
     ucsFscPixPrice
     ucsFscPixTaxGroup
     ucsFscPixQuantity
     ucsFscPixDiscount
+    ucsFscPixUnitOfMeasure
     ucsFscPixWayOfPmt = ucsFscPixPrice
     ucsFscPixAmount
 End Enum
@@ -231,7 +233,9 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     JsonItem(oRetVal, "DeviceProtocol") = Trim$(oFP.GetDeviceProtocol())
     JsonItem(oRetVal, "DeviceModel") = Trim$(oFP.GetDeviceModel())
     JsonItem(oRetVal, "FirmwareVersion") = Trim$(oFP.GetDeviceFirmware())
-    JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCharsPerLine()
+    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
+    JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCommentTextMaxLength()
+    JsonItem(oRetVal, "ItemNameMaxLength") = oFP.GetItemNameMaxLength()
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
         JsonItem(oRetVal, "Operator/Code") = JsonItem(oJson, "Operator/Code")
         JsonItem(oRetVal, "Operator/Name") = Trim$(oFP.GetOperatorName(JsonItem(oJson, "Operator/Code")))
@@ -294,7 +298,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
                 UniqueSaleNo:=JsonItem(oJson, "UniqueSaleNo"), _
-                TableNo:=JsonItem(oJson, "TableNo"), _
+                DepartmentNo:=JsonItem(oJson, "DepartmentNo"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
                 InvCgTaxNoType:=C_Lng(JsonItem(oJson, "Invoice/CgTaxNoType")), _
@@ -317,12 +321,12 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             With pvGetRowData(JsonItem(oJson, "Rows/" & vElem))
                 Select Case .RowType
                 Case ucsRwtSell
-                    oFP.AddPLU .Item, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup)
+                    oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure
                     If C_Dbl(.Discount) <> 0 Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
                 Case ucsRwtText
-                    oFP.AddLine .Item
+                    oFP.AddLine .ItemName
                 Case ucsRwtPayment
                     lIdx = C_Lng(.PmtType)
                     If lIdx < 0 Then
@@ -330,7 +334,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                     Else
                         lIdx = LimitLong(lIdx, 1, 8)
                     End If
-                    oFP.AddPayment lIdx, Zn(.Item, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
+                    oFP.AddPayment lIdx, Zn(.ItemName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 End Select
             End With
         Next
@@ -765,44 +769,46 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
     On Error GoTo EH
     If Not IsEmpty(JsonItem(oRow, "Price")) Then
         pvGetRowData.RowType = ucsRwtSell
-        pvGetRowData.Item = C_Str(JsonItem(oRow, "ItemName"))
+        pvGetRowData.ItemName = C_Str(JsonItem(oRow, "ItemName"))
         pvGetRowData.Price = C_Str(JsonItem(oRow, "Price"))
         pvGetRowData.TaxGroup = C_Str(JsonItem(oRow, "TaxGroup"))
         pvGetRowData.Quantity = C_Str(JsonItem(oRow, "Quantity"))
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
+        pvGetRowData.UnitOfMeasure = C_Str(JsonItem(oRow, "UnitOfMeasure"))
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "PaymentType")) Then
         pvGetRowData.RowType = ucsRwtPayment
         pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
         pvGetRowData.PmtType = C_Str(JsonItem(oRow, "PaymentType"))
-        pvGetRowData.Item = C_Str(JsonItem(oRow, "PaymentName"))
+        pvGetRowData.ItemName = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "Text")) Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.Item = C_Str(JsonItem(oRow, "Text"))
+        pvGetRowData.ItemName = C_Str(JsonItem(oRow, "Text"))
         GoTo QH
     End If
     vRow = JsonItem(oRow, "*")
-    If UBound(vRow) = ucsFscPixItem Then
+    If UBound(vRow) = ucsFscPixItemName Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.Item = At(vRow, ucsFscPixItem)
+        pvGetRowData.ItemName = At(vRow, ucsFscPixItemName)
         GoTo QH
     End If
     If UBound(vRow) = ucsFscPixAmount Then
         pvGetRowData.RowType = ucsRwtPayment
-        pvGetRowData.Item = At(vRow, ucsFscPixItem)
+        pvGetRowData.ItemName = At(vRow, ucsFscPixItemName)
         pvGetRowData.PmtType = At(vRow, ucsFscPixWayOfPmt)
         pvGetRowData.Amount = At(vRow, ucsFscPixAmount)
         GoTo QH
     End If
     pvGetRowData.RowType = ucsRwtSell
-    pvGetRowData.Item = At(vRow, ucsFscPixItem)
+    pvGetRowData.ItemName = At(vRow, ucsFscPixItemName)
     pvGetRowData.Price = At(vRow, ucsFscPixPrice)
     pvGetRowData.TaxGroup = At(vRow, ucsFscPixTaxGroup)
     pvGetRowData.Quantity = At(vRow, ucsFscPixQuantity)
     pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
+    pvGetRowData.UnitOfMeasure = At(vRow, ucsFscPixUnitOfMeasure)
 QH:
     Exit Function
 EH:

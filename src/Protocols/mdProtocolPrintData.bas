@@ -80,15 +80,16 @@ Public Type UcsPpdRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
-    InitTableNo         As String
+    InitDepartmentNo    As String
     InitUniqueSaleNo    As String
     InitInvData         As Variant
     InitRevData         As Variant
     InitOwnData         As Variant
-    PluName             As String
+    PluItemName         As String
     PluPrice            As Double
     PluQuantity         As Double
     PluTaxGroup         As Long
+    PluUnitOfMeasure    As String
     LineText            As String
     LineCommand         As String
     LineWordWrap        As Boolean
@@ -157,7 +158,7 @@ Public Function PpdStartReceipt( _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
             Optional OperatorPassword As String, _
-            Optional TableNo As String, _
+            Optional DepartmentNo As String, _
             Optional UniqueSaleNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
@@ -189,7 +190,7 @@ Public Function PpdStartReceipt( _
         .InitOperatorCode = SafeText(OperatorCode)
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
-        .InitTableNo = TableNo
+        .InitDepartmentNo = DepartmentNo
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars(uData)
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
@@ -211,6 +212,7 @@ Public Function PpdAddPLU( _
             ByVal Price As Double, _
             Optional ByVal Quantity As Double = 1, _
             Optional ByVal TaxGroup As Long = 2, _
+            Optional UnitOfMeasure As String, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "PpdAddPLU"
     Dim uRow            As UcsPpdRowData
@@ -224,7 +226,7 @@ Public Function PpdAddPLU( _
     End If
     With uRow
         .RowType = ucsRowPlu
-        .PluName = RTrim$(SafeText(Name))
+        .PluItemName = RTrim$(SafeText(Name))
         Select Case uData.Row(0).InitReceiptType
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
             If Price < 0 Then
@@ -237,6 +239,7 @@ Public Function PpdAddPLU( _
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
         .PluQuantity = Round(IIf(bNegative Or uData.Config.NegativePrices, Abs(Quantity), Quantity), 3)
         .PluTaxGroup = LimitLong(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
+        .PluUnitOfMeasure = UnitOfMeasure
         .PrintRowType = uData.Row(0).InitReceiptType
     End With
     pvInsertRow uData, BeforeIndex, uRow
@@ -294,7 +297,8 @@ Public Function PpdAddDiscount( _
     End If
     Select Case DiscType
     Case ucsFscDscTotal
-        PpdAddPLU uData, Printf(IIf(Value > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), vbNullString), Value, BeforeIndex:=BeforeIndex
+        PpdAddPLU uData, Printf(IIf(Value > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), _
+            Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), vbNullString), Value, BeforeIndex:=BeforeIndex
     Case ucsFscDscPlu
         For lIdx = IIf(BeforeIndex <> 0, BeforeIndex, uData.RowCount) - 1 To 0 Step -1
             With uData.Row(lIdx)
@@ -491,7 +495,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, 2)
             dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, 2)
             If Not uData.Config.NegativePrices And dblPrice <= 0 Then
-                vSplit = WrapText(uData.Row(lRow).PluName, uData.Config.ItemChars)
+                vSplit = WrapText(uData.Row(lRow).PluItemName, uData.Config.ItemChars)
                 lIdx = LimitLong(UBound(vSplit), , 1)
                 vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
                 uData.Row(lRow).RowType = ucsRowLine
@@ -517,7 +521,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     uData.Row(lRow).DiscType = 0
                     uData.Row(lRow).DiscValue = 0
                     PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
-                        dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
+                        dblDiscTotal, TaxGroup:=uData.Row(lRow).PluTaxGroup, BeforeIndex:=lRow + 1
                 End If
             ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
                 '--- convert PLU discount on void rows
@@ -529,7 +533,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     uData.Row(lRow).DiscType = 0
                     uData.Row(lRow).DiscValue = 0
                     PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
-                            dblDiscTotal, 1, uData.Row(lRow).PluTaxGroup, lRow + 1
+                        dblDiscTotal, TaxGroup:=uData.Row(lRow).PluTaxGroup, BeforeIndex:=lRow + 1
                 End If
             End If
         ElseIf uData.Row(lRow).RowType = ucsRowDiscount Then
@@ -550,7 +554,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
                         If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
                             PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
-                                Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), 1, lIdx, lRow + 1
+                                Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), TaxGroup:=lIdx, BeforeIndex:=lRow + 1
                         End If
                     Next
                 End If
@@ -615,7 +619,8 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
         '--- append fiscal rows for GrpTotal by VAT groups
         For lIdx = 1 To UBound(uCtx.GrpTotal)
             If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                PpdAddPLU uData, Printf(Zn(uData.LocalizedText.TxtPluSales, TXT_PLUSALES), Chr$(191 + lIdx)), uCtx.GrpTotal(lIdx), 1, lIdx, lRow
+                PpdAddPLU uData, Printf(Zn(uData.LocalizedText.TxtPluSales, TXT_PLUSALES), Chr$(191 + lIdx)), _
+                    uCtx.GrpTotal(lIdx), TaxGroup:=lIdx, BeforeIndex:=lRow
                 lRow = lRow + 1
             End If
         Next

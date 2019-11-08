@@ -198,7 +198,7 @@ Public Function StartReceipt( _
             OperatorName As String, _
             OperatorPassword As String, _
             Optional UniqueSaleNo As String, _
-            Optional TableNo As String, _
+            Optional DepartmentNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
             Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
@@ -232,8 +232,8 @@ Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
             ByVal Quantity As Double, _
-            ByVal TaxGroup As Long) As Boolean
-Attribute AddPLU.VB_Description = "Used to print a row on the final receipt with product description, price and quantity"
+            ByVal TaxGroup As Long, _
+            UnitOfMeasure As String) As Boolean
             
 End Function
 
@@ -498,6 +498,14 @@ End Function
 '
 Public Function GetCharsPerLine() As Long
 Attribute GetCharsPerLine.VB_Description = "Used to retrieve width of the paper roll in device characters for free text rows"
+
+End Function
+
+Public Function GetCommentTextMaxLength() As Long
+
+End Function
+
+Public Function GetItemNameMaxLength() As Long
 
 End Function
 
