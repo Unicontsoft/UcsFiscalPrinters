@@ -35,8 +35,8 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "TaxNo": "",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
-    "Host": "WQW-PC",
-    "Device": "COM1",
+    "DeviceHost": "WQW-PC",
+    "DevicePort": "COM1",
     "Autodetected": true
   },
   "DT518315": {
@@ -49,8 +49,8 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
-    "Host": "WQW-PC",
-    "Device": "COM2"
+    "DeviceHost": "WQW-PC",
+    "DevicePort": "COM2"
   },
   "DT577430": {
     "DeviceSerialNo": "DT577430",
@@ -62,8 +62,8 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS X;IP=192.168.0.20",
-    "Host": "WQW-PC",
-    "Device": "192.168.0.20"
+    "DeviceHost": "WQW-PC",
+    "DevicePort": "192.168.0.20"
   },
   "Aliases": {
     "Count": 2,
@@ -96,8 +96,8 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <TaxNo />
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
-      <Host>WQW-PC</Host>
-      <Device>COM1</Device>
+      <DevoceHost>WQW-PC</DeviceHost>
+      <DevicePort>COM1</DevicePort>
       <Autodetected __json__bool="1">1</Autodetected>
    </ZK133759>
    <DT518315>
@@ -110,8 +110,8 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
-      <Host>WQW-PC</Host>
-      <Device>COM2</Device>
+      <DeviceHost>WQW-PC</DeviceHost>
+      <DevicePort>COM2</DevicePort>
    </DT518315>
    <DT577430>
       <DeviceSerialNo>DT577430</DeviceSerialNo>
@@ -123,8 +123,8 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS X;IP=192.168.0.20</DeviceString>
-      <Host>WQW-PC</Host>
-      <Device>192.168.0.20</Device>
+      <DeviceHost>WQW-PC</DeviceHost>
+      <DevicePort>192.168.0.20</DevicePort>
    </DT577430>
    <Aliases>
       <Count>2</Count>
@@ -365,7 +365,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
     "Reversal": {
         "ReversalType": 1,
         "ReceiptNo": "56",
-        "ReceiptDate": "2019-07-19 14:05:18",
+        "ReceiptDateTime": "2019-07-19 14:05:18",
         "FiscalMemoryNo": "02518315",
     },
     "UniqueSaleNo": "DT518315-0001-1234567",
@@ -644,7 +644,6 @@ Get device totals since last Z report grouped by payment types and tax groups.
 C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
 ```
 ```json
-? JsonDump(oResponse)
 {
     "Ok": true,
     "NumReceipts": 68,
