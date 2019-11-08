@@ -288,8 +288,8 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                             If LenB(sKey) <> 0 Then
                                 JsonItem(oInfo, "Ok") = Empty
                                 JsonItem(oInfo, "DeviceString") = sDeviceString
-                                JsonItem(oInfo, "Host") = GetErrorComputerName()
-                                JsonItem(oInfo, "Device") = pvToSimpleDevice(sDeviceString)
+                                JsonItem(oInfo, "DeviceHost") = GetErrorComputerName()
+                                JsonItem(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
                                 JsonItem(oInfo, "Autodetected") = True
                                 JsonItem(oRetVal, sKey) = oInfo
                                 JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
@@ -314,8 +314,8 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                     If LenB(sKey) <> 0 Then
                         JsonItem(oInfo, "Ok") = Empty
                         JsonItem(oInfo, "DeviceString") = sDeviceString
-                        JsonItem(oInfo, "Host") = GetErrorComputerName()
-                        JsonItem(oInfo, "Device") = pvToSimpleDevice(sDeviceString)
+                        JsonItem(oInfo, "DeviceHost") = GetErrorComputerName()
+                        JsonItem(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
                         JsonItem(oInfo, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
                         If IsEmpty(JsonItem(oRetVal, sKey)) Then
                             JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
@@ -500,20 +500,20 @@ Private Function pvUnregisterServiceAppID(sExeFile As String, sGuid As String, O
     pvUnregisterServiceAppID = True
 End Function
 
-Private Function pvToSimpleDevice(sDeviceString As String) As String
+Private Function pvGetDevicePort(sDeviceString As String) As String
     Dim oJson           As Object
-    Dim sDevice         As String
+    Dim sRetVal         As String
     
     Set oJson = ParseDeviceString(sDeviceString)
     If IsEmpty(JsonItem(oJson, "IP")) Then
-        sDevice = JsonItem(oJson, "Speed")
-        If sDevice = "115200" Then
-            sDevice = vbNullString
+        sRetVal = JsonItem(oJson, "Speed")
+        If sRetVal = "115200" Then
+            sRetVal = vbNullString
         End If
-        sDevice = JsonItem(oJson, "Port") & IIf(LenB(sDevice) <> 0, "," & sDevice, vbNullString)
+        sRetVal = JsonItem(oJson, "Port") & IIf(LenB(sRetVal) <> 0, "," & sRetVal, vbNullString)
     Else
-        sDevice = JsonItem(oJson, "Port")
-        sDevice = JsonItem(oJson, "IP") & IIf(LenB(sDevice) <> 0, ":" & sDevice, vbNullString)
+        sRetVal = JsonItem(oJson, "Port")
+        sRetVal = JsonItem(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
     End If
-    pvToSimpleDevice = sDevice
+    pvGetDevicePort = sRetVal
 End Function
