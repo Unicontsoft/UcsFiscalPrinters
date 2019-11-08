@@ -305,7 +305,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 OwnData:=JsonItem(oJson, "OwnData"), _
                 RevType:=C_Lng(JsonItem(oJson, "Reversal/ReversalType")), _
                 RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
-                RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDate")), _
+                RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDateTime")), _
                 RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
                 RevInvoiceNo:=JsonItem(oJson, "Reversal/InvoiceNo"), _
                 RevReason:=JsonItem(oJson, "Reversal/Reason")) Then
