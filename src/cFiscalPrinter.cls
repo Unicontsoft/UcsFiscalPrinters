@@ -302,7 +302,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
     If IsObject(JsonItem(oJson, "Rows")) Then
-        If Not oFP.StartReceipt(C_Lng(JsonItem(oJson, "ReceiptType")), _
+        If Not oFP.StartReceipt(ToEnumValue(JsonItem(oJson, "ReceiptType"), "|Sale|Reversal|Invoice|CreditNote|OrderList"), _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
@@ -310,13 +310,13 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 TableNo:=JsonItem(oJson, "TableNo"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
-                InvCgTaxNoType:=C_Lng(JsonItem(oJson, "Invoice/CgTaxNoType")), _
+                InvCgTaxNoType:=ToEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), "EIC|CitizenNo|ForeignerNo|OfficialNo"), _
                 InvCgVatNo:=JsonItem(oJson, "Invoice/CgVatNo"), _
                 InvCgName:=JsonItem(oJson, "Invoice/CgName"), _
                 InvCgAddress:=JsonItem(oJson, "Invoice/CgAddress"), _
                 InvCgPrsReceive:=JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 OwnData:=JsonItem(oJson, "OwnData"), _
-                RevType:=C_Lng(JsonItem(oJson, "Reversal/ReversalType")), _
+                RevType:=ToEnumValue(JsonItem(oJson, "Reversal/ReversalType"), "OperatorError|Refund|TaxBaseReduction"), _
                 RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
                 RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDateTime")), _
                 RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
@@ -337,9 +337,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtText
                     oFP.AddLine .Text
                 Case ucsRwtBarcode
-                    oFP.AddBarcode C_Lng(.BarcodeType), .Text, C_Lng(.Height)
+                    oFP.AddBarcode ToEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
-                    lIdx = C_Lng(.PaymentType)
+                    lIdx = ToEnumValue(.PaymentType, "|Cash|Card|Bank|Cheque|Custom1|Custom2|Custom3|Custom4")
                     If lIdx < 0 Then
                         lIdx = LimitLong(lIdx, -4, -1)
                     Else
@@ -401,7 +401,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    Select Case JsonItem(oJson, "ReportType")
+    Select Case ToEnumValue(JsonItem(oJson, "ReportType"), "|Daily|Number|Date|Operator")
     Case ucsFscRptDaily
         If C_Bool(JsonItem(oJson, "IsItems")) And C_Bool(JsonItem(oJson, "IsDepartments")) Then
             If C_Bool(JsonItem(oJson, "IsClear")) Then

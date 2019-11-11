@@ -1627,7 +1627,7 @@ Public Function Split2(sText As String, sDelim As String) As Variant
 End Function
 
 Public Function StripZeros(ByVal sText As String) As String
-    Dim lIdx        As Long
+    Dim lIdx            As Long
     
     sText = Trim$(sText)
     For lIdx = 1 To Len(sText) - 1
@@ -1636,4 +1636,22 @@ Public Function StripZeros(ByVal sText As String) As String
         End If
     Next
     StripZeros = Trim$(Mid$(sText, lIdx))
+End Function
+
+Public Function ToEnumValue(sText As String, sList As String) As Long
+    Dim vElem           As Variant
+    Dim lIdx            As Long
+    
+    If LenB(sText) <> 0 Then
+        If InStr(1, "|" & sList & "|", "|" & sText & "|", vbTextCompare) > 0 Then
+            For Each vElem In Split(LCase$(sList), "|")
+                If LCase$(sText) = vElem Then
+                    ToEnumValue = lIdx
+                    Exit Function
+                End If
+                lIdx = lIdx + 1
+            Next
+        End If
+    End If
+    ToEnumValue = C_Lng(sText)
 End Function
