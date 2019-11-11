@@ -495,9 +495,8 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     End If
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
-    m_oConn.ConnectionTimeout = 10
-    m_oConn.CommandTimeout = 10
     m_oConn.Open sLocalConnStr
+    m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
     If pvIsConnAlive(m_oConn) Then
         DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
         '--- success
