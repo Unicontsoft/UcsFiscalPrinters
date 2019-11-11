@@ -198,7 +198,7 @@ Public Function StartReceipt( _
             OperatorName As String, _
             OperatorPassword As String, _
             Optional UniqueSaleNo As String, _
-            Optional DepartmentNo As String, _
+            Optional TableNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
             Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
@@ -233,7 +233,8 @@ Public Function AddPLU( _
             ByVal Price As Double, _
             ByVal Quantity As Double, _
             ByVal TaxGroup As Long, _
-            UnitOfMeasure As String) As Boolean
+            UnitOfMeasure As String, _
+            ByVal DepartmentNo As Long) As Boolean
             
 End Function
 

@@ -530,7 +530,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvPrintLine vbNullString
                 pvPrintLine Printf(pvText(ucsTxtHeaderDate), Now())
                 pvPrintLine Printf(pvText(ucsTxtHeaderOper), .InitOperatorName)
-                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitDepartmentNo)
+                pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitTableNo)
                 pvPrintLine String(pvRowChars, "-")
             Case Else
                 pvPrintLine CenterText(At(.InitOwnData, ucsOwnName), pvCommentChars)
@@ -852,8 +852,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentType
     IDeviceProtocol_AddPayment = PpdAddPayment(m_uPrintData, Number, Name, Amount)
 End Function
 
-Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long, UnitOfMeasure As String) As Boolean
-    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure)
+Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long, UnitOfMeasure As String, ByVal DepartmentNo As Long) As Boolean
+    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure, DepartmentNo)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
@@ -1027,9 +1027,9 @@ Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIn
     LocalizedText(Index) = Text
 End Sub
 
-Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional DepartmentNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
+Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
     m_uPrintData.Config.RowChars = pvRowChars
     m_uPrintData.Config.CommentChars = pvCommentChars
     m_uPrintData.Config.ItemChars = pvItemChars
-    IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, DepartmentNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
+    IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, TableNo, UniqueSaleNo, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
 End Function

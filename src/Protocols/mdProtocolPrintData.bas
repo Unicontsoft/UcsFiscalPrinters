@@ -80,7 +80,7 @@ Public Type UcsPpdRowData
     InitOperatorCode    As String
     InitOperatorName    As String
     InitOperatorPassword As String
-    InitDepartmentNo    As String
+    InitTableNo         As String
     InitUniqueSaleNo    As String
     InitInvData         As Variant
     InitRevData         As Variant
@@ -90,6 +90,7 @@ Public Type UcsPpdRowData
     PluQuantity         As Double
     PluTaxGroup         As Long
     PluUnitOfMeasure    As String
+    PluDepartmentNo     As Long
     LineText            As String
     LineCommand         As String
     LineWordWrap        As Boolean
@@ -158,7 +159,7 @@ Public Function PpdStartReceipt( _
             Optional OperatorCode As String, _
             Optional OperatorName As String, _
             Optional OperatorPassword As String, _
-            Optional DepartmentNo As String, _
+            Optional TableNo As String, _
             Optional UniqueSaleNo As String, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
@@ -190,7 +191,7 @@ Public Function PpdStartReceipt( _
         .InitOperatorCode = SafeText(OperatorCode)
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
-        .InitDepartmentNo = DepartmentNo
+        .InitTableNo = TableNo
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars(uData)
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
@@ -213,6 +214,7 @@ Public Function PpdAddPLU( _
             Optional ByVal Quantity As Double = 1, _
             Optional ByVal TaxGroup As Long = 2, _
             Optional UnitOfMeasure As String, _
+            Optional ByVal DepartmentNo As Long, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "PpdAddPLU"
     Dim uRow            As UcsPpdRowData
@@ -240,6 +242,7 @@ Public Function PpdAddPLU( _
         .PluQuantity = Round(IIf(bNegative Or uData.Config.NegativePrices, Abs(Quantity), Quantity), 3)
         .PluTaxGroup = LimitLong(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
         .PluUnitOfMeasure = UnitOfMeasure
+        .PluDepartmentNo = DepartmentNo
         .PrintRowType = uData.Row(0).InitReceiptType
     End With
     pvInsertRow uData, BeforeIndex, uRow

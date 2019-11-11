@@ -100,8 +100,11 @@ Private Type UcsRowData
     TaxGroup        As String
     Quantity        As String
     UnitOfMeasure   As String
-    PmtType         As String
+    DepartmentNo    As String
+    PaymentName     As String
+    PaymentType     As String
     Amount          As String
+    Text            As String
 End Type
 
 Private Type UcsConfigValues
@@ -125,8 +128,11 @@ Private Enum UcsFiscalParamIndexesEnum
     ucsFscPixQuantity
     ucsFscPixDiscount
     ucsFscPixUnitOfMeasure
-    ucsFscPixWayOfPmt = ucsFscPixPrice
+    ucsFscPixDepartmentNo
+    ucsFscPixPaymentName = 0
+    ucsFscPixPaymentType
     ucsFscPixAmount
+    ucsFscPixText = 0
 End Enum
 
 '=========================================================================
@@ -298,7 +304,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
                 UniqueSaleNo:=JsonItem(oJson, "UniqueSaleNo"), _
-                DepartmentNo:=JsonItem(oJson, "DepartmentNo"), _
+                TableNo:=JsonItem(oJson, "TableNo"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
                 InvCgTaxNoType:=C_Lng(JsonItem(oJson, "Invoice/CgTaxNoType")), _
@@ -321,20 +327,20 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             With pvGetRowData(JsonItem(oJson, "Rows/" & vElem))
                 Select Case .RowType
                 Case ucsRwtSell
-                    oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure
+                    oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure, C_Lng(.DepartmentNo)
                     If C_Dbl(.Discount) <> 0 Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
                 Case ucsRwtText
-                    oFP.AddLine .ItemName
+                    oFP.AddLine .Text
                 Case ucsRwtPayment
-                    lIdx = C_Lng(.PmtType)
+                    lIdx = C_Lng(.PaymentType)
                     If lIdx < 0 Then
                         lIdx = LimitLong(lIdx, -3, -1)
                     Else
                         lIdx = LimitLong(lIdx, 1, 8)
                     End If
-                    oFP.AddPayment lIdx, Zn(.ItemName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
+                    oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 End Select
             End With
         Next
@@ -775,30 +781,31 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.Quantity = C_Str(JsonItem(oRow, "Quantity"))
         pvGetRowData.Discount = C_Str(JsonItem(oRow, "Discount"))
         pvGetRowData.UnitOfMeasure = C_Str(JsonItem(oRow, "UnitOfMeasure"))
+        pvGetRowData.DepartmentNo = C_Str(JsonItem(oRow, "DepartmentNo"))
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "PaymentType")) Then
         pvGetRowData.RowType = ucsRwtPayment
         pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
-        pvGetRowData.PmtType = C_Str(JsonItem(oRow, "PaymentType"))
-        pvGetRowData.ItemName = C_Str(JsonItem(oRow, "PaymentName"))
+        pvGetRowData.PaymentType = C_Str(JsonItem(oRow, "PaymentType"))
+        pvGetRowData.PaymentName = C_Str(JsonItem(oRow, "PaymentName"))
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "Text")) Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.ItemName = C_Str(JsonItem(oRow, "Text"))
+        pvGetRowData.Text = C_Str(JsonItem(oRow, "Text"))
         GoTo QH
     End If
     vRow = JsonItem(oRow, "*")
-    If UBound(vRow) = ucsFscPixItemName Then
+    If UBound(vRow) = ucsFscPixText Then
         pvGetRowData.RowType = ucsRwtText
-        pvGetRowData.ItemName = At(vRow, ucsFscPixItemName)
+        pvGetRowData.Text = At(vRow, ucsFscPixText)
         GoTo QH
     End If
     If UBound(vRow) = ucsFscPixAmount Then
         pvGetRowData.RowType = ucsRwtPayment
-        pvGetRowData.ItemName = At(vRow, ucsFscPixItemName)
-        pvGetRowData.PmtType = At(vRow, ucsFscPixWayOfPmt)
+        pvGetRowData.PaymentName = At(vRow, ucsFscPixPaymentName)
+        pvGetRowData.PaymentType = At(vRow, ucsFscPixPaymentType)
         pvGetRowData.Amount = At(vRow, ucsFscPixAmount)
         GoTo QH
     End If
@@ -809,6 +816,7 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
     pvGetRowData.Quantity = At(vRow, ucsFscPixQuantity)
     pvGetRowData.Discount = At(vRow, ucsFscPixDiscount)
     pvGetRowData.UnitOfMeasure = At(vRow, ucsFscPixUnitOfMeasure)
+    pvGetRowData.DepartmentNo = At(vRow, ucsFscPixDepartmentNo)
 QH:
     Exit Function
 EH:
