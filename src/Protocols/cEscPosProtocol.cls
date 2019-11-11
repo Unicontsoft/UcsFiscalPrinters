@@ -852,8 +852,8 @@ Private Function IDeviceProtocol_AddLine(Line As String, Optional Command As Str
     IDeviceProtocol_AddLine = PpdAddLine(m_uPrintData, Line, WordWrap)
 End Function
 
-Private Function IDeviceProtocol_AddPayment(ByVal Number As UcsFiscalPaymentTypeEnum, Name As String, ByVal Amount As Double, Optional ByVal Rate As Double) As Boolean
-    IDeviceProtocol_AddPayment = PpdAddPayment(m_uPrintData, Number, Name, Amount)
+Private Function IDeviceProtocol_AddPayment(ByVal PmtType As UcsFiscalPaymentTypeEnum, Name As String, ByVal Amount As Double, Optional ByVal Rate As Double) As Boolean
+    IDeviceProtocol_AddPayment = PpdAddPayment(m_uPrintData, PmtType, Name, Amount)
 End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, ByVal Quantity As Double, ByVal TaxGroup As Long, UnitOfMeasure As String, ByVal DepartmentNo As Long) As Boolean

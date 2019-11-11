@@ -67,6 +67,7 @@ Public Enum UcsFiscalBarcodeTypeEnum
     ucsFscBrcEan13
     ucsFscBrcCode128
     ucsFscBrcQRcode
+    [_ucsFscBrcMax]
 End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
@@ -78,6 +79,7 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCustom2 = -2       ' SOT
     ucsFscPmtCustom3 = -3       ' SR1
     ucsFscPmtCustom4 = -4       ' SR2
+    [_ucsFscPmtMax] = 4 - ucsFscPmtCustom4 + 1
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum
@@ -278,8 +280,8 @@ End Function
 ''
 ' Used to finalize PLU rows and print payment information
 '
-' @param `Number`           [input] payment type. See `UcsFiscalPaymentTypeEnum`
-' @param `Name              [input] payment name if `Number` is one of custom payment types
+' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
+' @param `Name`             [input] payment name if `PmtType` is one of custom payment types
 ' @param `Amount`           [input] payment amount rounded to 0.00. Cannot be negative
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark After adding a payment no more PLUs can be printed. Several payments can be accumulated on a single receipt

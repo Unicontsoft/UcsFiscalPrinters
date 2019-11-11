@@ -348,7 +348,7 @@ Public Function PpdAddBarcode( _
     End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowBarcode
-        .BarcodeType = BarcodeType
+        .BarcodeType = LimitLong(BarcodeType, 1, [_ucsFscBrcMax] - 1)
         .BarcodeText = Text
         .BarcodeHeight = Height
     End With
@@ -363,7 +363,7 @@ End Function
 
 Public Function PpdAddPayment( _
             uData As UcsProtocolPrintData, _
-            ByVal Number As UcsFiscalPaymentTypeEnum, _
+            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
             Name As String, _
             ByVal Amount As Double) As Boolean
     Const FUNC_NAME     As String = "PpdAddPayment"
@@ -374,13 +374,13 @@ Public Function PpdAddPayment( _
         pvSetLastError uData, Zn(uData.LocalizedText.ErrNoReceiptStarted, ERR_NO_RECEIPT_STARTED)
         GoTo QH
     End If
-    If Number < 0 Then
+    If PmtType < 0 Then
         '--- custom payment types: 5, 6, 7 & 8
-        Number = 4 - Number
+        PmtType = 4 - PmtType
     End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowPayment
-        .PmtType = LimitLong(Number, 1, 8)
+        .PmtType = LimitLong(PmtType, 1, [_ucsFscPmtMax] - 1)
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, 2)
         .PrintRowType = uData.Row(0).InitReceiptType

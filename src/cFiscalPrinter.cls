@@ -895,10 +895,16 @@ Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVa
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorText") = sLastErr
     End If
-    If eLastNo = ucsFerInvalidPassword Then
+    Select Case eLastNo
+    Case ucsFerGeneralError
+        JsonItem(oRetVal, "Ok") = False
+    Case ucsFerInvalidPassword
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorCode") = "InvalidPassword"
-    End If
+    Case ucsFerPasswordNotSet
+        JsonItem(oRetVal, "Ok") = False
+        JsonItem(oRetVal, "ErrorCode") = "PasswordNotSet"
+    End Select
     sResponse = JsonDump(oRetVal, Minimize:=True)
     '--- success
     pvCommonEpilog = True
