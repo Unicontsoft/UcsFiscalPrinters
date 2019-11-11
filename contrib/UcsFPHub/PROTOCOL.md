@@ -472,43 +472,52 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 
 Supported `ReceiptType` values:
 
-Name                  | Value   | Description
-----                  | -----   | -----------
-`ucsFscRcpSale`       | 1       | Print fiscal receipt
-`ucsFscRcpReversal`   | 2       | Print reversal receipt
-`ucsFscRcpInvoice`    | 3       | Print extended fiscal receipt for invoice
-`ucsFscRcpCreditNote` | 4       | Print extended reversal receipt for credit note
-`ucsFscRcpOrderList`  | 5       | Print order-list on kitchen printer
+Name            | Value | Description
+----            | ----- | -----------
+`Sale`          | 1     | Print fiscal receipt
+`Reversal`      | 2     | Print reversal receipt
+`Invoice`       | 3     | Print extended fiscal receipt for invoice
+`CreditNote`    | 4     | Print extended reversal receipt for credit note
+`OrderList`     | 5     | Print order-list on kitchen printer
 
 Supported `PaymentType` values:
 
-Name                  | Value | Alt  | Description                       | Device text              | XML code
-----                  | ----- | ---- | -----------                       | ----                     | ----
-`ucsFscPmtCash`       | 1     |      | Payment in cash                   | "В БРОЙ", "Лева"         | `SCash`
-`ucsFscPmtCard`       | 2     |      | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"     | `SCards`
-`ucsFscPmtBank`       | 3     |      | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"        | `SW`
-`ucsFscPmtCheque`     | 4     |      | Payment by cheque                 | "ЧЕК", "Чек"             | `SChecks`
-`ucsFscPmtCustom1`    | -1    | 5    | First custom payment              | "КУПОН", "Талон"         | `ST`
-`ucsFscPmtCustom2`    | -2    | 6    | Second custom payment             | "ВАУЧЕР", "В.Талон"      | `SOT`
-`ucsFscPmtCustom3`    | -3    | 7    | Third custom payment              | "НЗОК", "Резерв 1"       | `SR1`
-`ucsFscPmtCustom4`    | -4    | 8    | Fourth custom payment             | "Резерв 2"               | `SR2`
+Name            | Value | Alt   | Description                       | Device text           | XML code
+----            | ----- | ----  | -----------                       | ----                  | ----
+`Cash`          | 1     |       | Payment in cash                   | "В БРОЙ", "Лева"      | `SCash`
+`Card`          | 2     |       | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"  | `SCards`
+`Bank`          | 3     |       | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"     | `SW`
+`Cheque`        | 4     |       | Payment by cheque                 | "ЧЕК", "Чек"          | `SChecks`
+`Custom1`       | -1    | 5     | First custom payment              | "КУПОН", "Талон"      | `ST`
+`Custom2`       | -2    | 6     | Second custom payment             | "ВАУЧЕР", "В.Талон"   | `SOT`
+`Custom3`       | -3    | 7     | Third custom payment              | "НЗОК", "Резерв 1"    | `SR1`
+`Custom4`       | -4    | 8     | Fourth custom payment             | "Резерв 2"            | `SR2`
 
 Supported `ReversalType` values:
 
-Name                        | Value | Description
-----                        | ----- | -----------
-`ucsFscRevOperatorError`    | 0     | Operator entry error (default)
-`ucsFscRevRefund`           | 1     | Refund defective/returned goods
-`ucsFscRevTaxBaseReduction` | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
+Name                | Value | Description
+----                | ----- | -----------
+`OperatorError`     | 0     | Operator entry error (default)
+`Refund`            | 1     | Refund defective/returned goods
+`TaxBaseReduction`  | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
 
 Supported `TaxNoType` values
 
-Name                        | Value | Description
-----                        | ----- | -----------
-`ucsFscTxnEIC`              | 0     | ЕИК a.k.a Bulstat (default)
-`ucsFscTxnCitizenNo`        | 1     | ЕГН
-`ucsFscTxnForeignerNo`      | 2     | ЛНЧ
-`ucsFscTxnOfficialNo`       | 3     | Служебен номер
+Name            | Value | Description
+----            | ----- | -----------
+`EIC`           | 0     | ЕИК a.k.a Bulstat (default)
+`CitizenNo`     | 1     | ЕГН
+`ForeignerNo`   | 2     | ЛНЧ
+`OfficialNo`    | 3     | Служебен номер
+
+Supported `BarcodeType` values:
+
+Name            | Value | Description
+----            | ----- | -----------
+`Ean8`          | 1     | EAN 8, Exactly 7 digits
+`Ean13`         | 2     | EAN 13, Exactly 12 digits
+`Code128`       | 3     | CODE 128, Up to 20 latin letters and digits
+`QRcode`        | 4     | QR Code, Up to 45 latin letters and digits
 
 
 #### `GET` `/printers/:printer_id/deposit`
@@ -569,7 +578,7 @@ Print device reports. Supports daily X or Z reports and monthly (by date range) 
 
 ```shell
 C:> curl -X POST http://localhost:8192/printers/DT518315/report ^
-         --data "{ \"ReportType\": 1 }" -sS | jq
+         --data "{ \"ReportType\": "daily" }" -sS | jq
 ```
 ```json
 {
@@ -581,12 +590,12 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/report ^
 
 Supported `ReportType` values:
 
-Name                | Value | Description
-----                | ----- | -----------
-`ucsFscRptDaily`    | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.
-`ucsFscRptNumber`   | 2     | Not implemented
-`ucsFscRptDate`     | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.
-`ucsFscRptOperator` | 4     | Not implemented
+Name        | Value | Description
+----        | ----- | -----------
+`Daily`     | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.
+`Number`    | 2     | Not implemented
+`Date`      | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.
+`Operator`  | 4     | Not implemented
 
 
 #### `GET` `/printers/:printer_id/datetime`
