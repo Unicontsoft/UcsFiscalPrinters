@@ -100,6 +100,7 @@ Public Enum UcsTremolCommandsEnum
     ucsZekCmdInfoReportLastDate = &H73
     '--- print
     ucsZekCmdPrintDiagnostics = &H22
+    ucsZekCmdPrintBarcode = &H51
     ucsZekCmdPrintReportDailyDepartments = &H76
     ucsZekCmdPrintReportSpecial = &H77
     ucsZekCmdPrintReportByNumberDetailed = &H78
@@ -1392,6 +1393,44 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function PrintBarcode(ByVal eType As UcsFiscalBarcodeTypeEnum, ByVal sCodeData As String, Optional ByVal Height As Long) As Boolean
+    Const FUNC_NAME     As String = "PrintBarcode"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim sCodeType       As String
+    
+    On Error GoTo EH
+    #If Height Then '--- touch args
+    #End If
+    Select Case eType
+    Case ucsFscBrcEan8
+        sCodeType = "D"
+        sCodeData = Pad(sCodeData, 7, "0")
+    Case ucsFscBrcEan13
+        sCodeType = "C"
+        sCodeData = Pad(sCodeData, 12, "0")
+    Case ucsFscBrcCode128
+        sCodeType = "I"
+    Case Else
+        pvSetLastError Printf("Barcode type %1 not supported", eType)
+        GoTo QH
+    End Select
+    pvGetCommandConfig CONF_NAME, "PrintBarcode", eCmd, ucsZekCmdPrintBarcode, sParam, "P" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP & "%3"
+    sParam = Printf(sParam, sCodeType, Len(sCodeData), sCodeData)
+    SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    '--- success
+    PrintBarcode = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 Public Sub SetLocalizedCommand( _
             sFunction As String, _
             sKey As String, _
@@ -1685,6 +1724,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         With uRow(uCtx.Row)
         Select Case .RowType
         Case ucsRowInit
+            '--- note: cannot print barcodes in fiscal receipt, so print all barcodes in advance
+            For lIdx = uCtx.Row + 1 To lRowCount
+                With uRow(lIdx)
+                If .RowType = ucsRowBarcode Then
+                    If Not PrintBarcode(.BarcodeType, .BarcodeText, .BarcodeHeight) Then
+                        GoTo QH
+                    End If
+                End If
+                End With
+            Next
             pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
                 "Index", lIndex, 9
             vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -1832,12 +1881,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
-                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)
+                    If Not pvPrintLine(AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)) Then
+                        GoTo QH
+                    End If
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                            pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                                SafeFormat(dblTotal, sFormatAmount), pvCommentChars)
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                                    SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
+                                GoTo QH
+                            End If
                         End If
                     Next
                 End If
@@ -1863,7 +1916,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Else
                 vSplit = Array(Left$(.LineText, pvCommentChars))
             End If
-            pvPrintLine vSplit
+            If Not pvPrintLine(vSplit) Then
+                GoTo QH
+            End If
+        Case ucsRowBarcode
+            '--- do nothing
         Case ucsRowPayment
             pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
                 "Index", lIndex, 0
@@ -2070,6 +2127,10 @@ End Sub
 '=========================================================================
 ' IDeviceProtocol interface
 '=========================================================================
+
+Private Function IDeviceProtocol_AddBarcode(ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, Text As String, Optional ByVal Height As Long) As Boolean
+    IDeviceProtocol_AddBarcode = PpdAddBarcode(m_uPrintData, BarcodeType, Text, Height)
+End Function
 
 Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, ByVal Value As Double) As Boolean
     IDeviceProtocol_AddDiscount = PpdAddDiscount(m_uPrintData, DiscType, Value)

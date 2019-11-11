@@ -90,6 +90,7 @@ Private Enum UcsRowTypeEnum
     ucsRwtSell = 1
     ucsRwtPayment
     ucsRwtText
+    ucsRwtBarcode
 End Enum
 
 Private Type UcsRowData
@@ -105,6 +106,8 @@ Private Type UcsRowData
     PaymentType     As String
     Amount          As String
     Text            As String
+    BarcodeType     As String
+    Height          As String
 End Type
 
 Private Type UcsConfigValues
@@ -328,15 +331,17 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Select Case .RowType
                 Case ucsRwtSell
                     oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure, C_Lng(.DepartmentNo)
-                    If C_Dbl(.Discount) <> 0 Then
+                    If Abs(C_Dbl(.Discount)) > DBL_EPSILON Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
                 Case ucsRwtText
                     oFP.AddLine .Text
+                Case ucsRwtBarcode
+                    oFP.AddBarcode C_Lng(.BarcodeType), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
                     lIdx = C_Lng(.PaymentType)
                     If lIdx < 0 Then
-                        lIdx = LimitLong(lIdx, -3, -1)
+                        lIdx = LimitLong(lIdx, -4, -1)
                     Else
                         lIdx = LimitLong(lIdx, 1, 8)
                     End If
@@ -786,9 +791,16 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
     End If
     If Not IsEmpty(JsonItem(oRow, "PaymentType")) Then
         pvGetRowData.RowType = ucsRwtPayment
-        pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
-        pvGetRowData.PaymentType = C_Str(JsonItem(oRow, "PaymentType"))
         pvGetRowData.PaymentName = C_Str(JsonItem(oRow, "PaymentName"))
+        pvGetRowData.PaymentType = C_Str(JsonItem(oRow, "PaymentType"))
+        pvGetRowData.Amount = C_Str(JsonItem(oRow, "Amount"))
+        GoTo QH
+    End If
+    If Not IsEmpty(JsonItem(oRow, "BarcodeType")) Then
+        pvGetRowData.RowType = ucsRwtBarcode
+        pvGetRowData.Text = C_Str(JsonItem(oRow, "Text"))
+        pvGetRowData.BarcodeType = C_Str(JsonItem(oRow, "BarcodeType"))
+        pvGetRowData.Height = C_Str(JsonItem(oRow, "Height"))
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "Text")) Then

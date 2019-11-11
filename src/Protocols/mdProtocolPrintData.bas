@@ -56,6 +56,7 @@ Public Enum UcsPpdRowTypeEnum
     ucsRowPlu
     ucsRowLine
     ucsRowDiscount
+    ucsRowBarcode
     ucsRowPayment
 End Enum
 
@@ -96,6 +97,9 @@ Public Type UcsPpdRowData
     LineWordWrap        As Boolean
     DiscType            As UcsFiscalDiscountTypeEnum
     DiscValue           As Double
+    BarcodeType         As UcsFiscalBarcodeTypeEnum
+    BarcodeText         As String
+    BarcodeHeight       As Long
     PmtType             As UcsFiscalPaymentTypeEnum
     PmtName             As String
     PmtAmount           As Double
@@ -328,6 +332,34 @@ QH:
 EH:
     RaiseError FUNC_NAME
 End Function
+
+Public Function PpdAddBarcode( _
+            uData As UcsProtocolPrintData, _
+            ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, _
+            Text As String, _
+            Optional ByVal Height As Long) As Boolean
+    Const FUNC_NAME     As String = "PpdAddBarcode"
+    
+    On Error GoTo EH
+    '--- sanity check
+    If uData.RowCount = 0 Then
+        pvSetLastError uData, Zn(uData.LocalizedText.ErrNoReceiptStarted, ERR_NO_RECEIPT_STARTED)
+        GoTo QH
+    End If
+    With uData.Row(pvAddRow(uData))
+        .RowType = ucsRowBarcode
+        .BarcodeType = BarcodeType
+        .BarcodeText = Text
+        .BarcodeHeight = Height
+    End With
+    '--- success
+    PpdAddBarcode = True
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 
 Public Function PpdAddPayment( _
             uData As UcsProtocolPrintData, _

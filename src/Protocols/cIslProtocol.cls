@@ -1899,6 +1899,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sRevType        As String
     Dim sTaxNoPrefix    As String
     Dim sTaxNoSuffix    As String
+    Dim sCodeType       As String
+    Dim sCodeData       As String
     
     On Error GoTo EH
     '--- ring sale
@@ -2071,7 +2073,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             vSplit = WrapText(.PluItemName & IIf(LenB(.PluUnitOfMeasure) <> 0, " (" & .PluUnitOfMeasure & ")", vbNullString), _
                 LimitLong(pvCommentChars, , pvItemChars))
             For lIdx = 0 To UBound(vSplit) - 2
-                pvPrintLine C_Str(vSplit(lIdx))
+                If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
+                    GoTo QH
+                End If
             Next
             sData = At(vSplit, UBound(vSplit))
             If UBound(vSplit) > 0 Then
@@ -2106,12 +2110,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
-                    pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)
+                    If Not pvPrintLine(AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)) Then
+                        GoTo QH
+                    End If
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                            pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                                SafeFormat(dblTotal, sFormatAmount), pvCommentChars)
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                                    SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
+                                GoTo QH
+                            End If
                         End If
                     Next
                 End If
@@ -2144,7 +2152,42 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Else
                 vSplit = Array(Left$(.LineText, pvCommentChars))
             End If
-            pvPrintLine vSplit
+            If Not pvPrintLine(vSplit) Then
+                GoTo QH
+            End If
+        Case ucsRowBarcode
+            If .BarcodeHeight > 0 And Not IsDaisy Then
+                pvGetCommandConfig CONF_NAME, "InitHeaderFooter", eCmd, ucsIslCmdInitHeaderFooter, sParam, "B" & DEF_SEP & "%1"
+                sParam = Printf(sParam, LimitLong(.BarcodeHeight * 6, 24, 240))
+                SendCommand eCmd, sParam
+            End If
+            sCodeData = .BarcodeText
+            Select Case .BarcodeType
+            Case ucsFscBrcEan8
+                sCodeType = "1"
+                sCodeData = Pad(sCodeData, 7, "0")
+            Case ucsFscBrcEan13
+                sCodeType = "2"
+                sCodeData = Pad(sCodeData, 12, "0")
+            Case ucsFscBrcCode128
+                sCodeType = "3"
+            Case ucsFscBrcQRcode
+                If IsDaisy Or IsEcr Then
+                    pvSetLastError Printf("Barcode type %1 not supported", .BarcodeType)
+                    GoTo QH
+                End If
+                sCodeType = "Q"
+            End Select
+            If IsDaisy Then
+                sParam = "%1" & DEF_SEP & "%2" & vbTab & "C,0,%3,0"
+            ElseIf IsEcr Then
+                sParam = "%1" & ";" & "%2"
+            Else
+                sParam = "%1" & "C;" & "%2"
+            End If
+            pvGetCommandConfig CONF_NAME, "PrintBarcode", eCmd, ucsIslCmdPrintBarcode, sParam, sParam
+            sParam = Printf(sParam, sCodeType, sCodeData, .BarcodeHeight)
+            SendCommand eCmd, sParam
         Case ucsRowPayment
             If .PmtType <> 0 Then
                 lIndex = pvToDevicePmtIndex(.PmtType)
@@ -2438,6 +2481,10 @@ End Sub
 '=========================================================================
 ' IDeviceProtocol interface
 '=========================================================================
+
+Private Function IDeviceProtocol_AddBarcode(ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, Text As String, Optional ByVal Height As Long) As Boolean
+    IDeviceProtocol_AddBarcode = PpdAddBarcode(m_uPrintData, BarcodeType, Text, Height)
+End Function
 
 Private Function IDeviceProtocol_AddDiscount(ByVal DiscType As UcsFiscalDiscountTypeEnum, ByVal Value As Double) As Boolean
     IDeviceProtocol_AddDiscount = PpdAddDiscount(m_uPrintData, DiscType, Value)

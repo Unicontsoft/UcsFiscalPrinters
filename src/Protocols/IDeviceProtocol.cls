@@ -62,6 +62,13 @@ Public Enum UcsFiscalDiscountTypeEnum
     [_ucsFscDscMax]
 End Enum
 
+Public Enum UcsFiscalBarcodeTypeEnum
+    ucsFscBrcEan8 = 1
+    ucsFscBrcEan13
+    ucsFscBrcCode128
+    ucsFscBrcQRcode
+End Enum
+
 Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCash = 1           ' SCash
     ucsFscPmtCard = 2           ' SCards
@@ -239,7 +246,7 @@ Public Function AddPLU( _
 End Function
 
 ''
-' Used to print a row with free text that does not get stored in fiscal memory
+' Used to print a row with free text
 '
 ' @param `Line`             [input] row text
 ' @param `Command`          [input] text format. One of "DBWIDTH" or "CONDENSED". Not all devices support this param
@@ -643,6 +650,21 @@ Public Function PrintServiceDeposit( _
             ByVal Amount As Double) As Variant
 Attribute PrintServiceDeposit.VB_Description = "Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear"
     
+End Function
+
+''
+' Used to print barcode
+'
+' @param `BarcodeType`      [input] type of barcode. See `UcsFiscalBarcodeTypeEnum`
+' @param `Text`             [input] barcode contents. Allowed symbols depend on type of barcode
+' @param `Height`           [input] barcode height in mm
+' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
+'
+Public Function AddBarcode( _
+            ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, _
+            Text As String, _
+            Optional ByVal Height As Long) As Boolean
+            
 End Function
 
 ''
