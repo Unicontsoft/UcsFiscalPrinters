@@ -520,7 +520,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     If lTolerance = 0 Then
         bResult = oFP.SetClock(dDateTime)
     ElseIf Abs(DateDiff("s", dCurrent, dDateTime)) >= lTolerance Then
-'        bResult = oFP.SetClock(dDateTime)
+        bResult = oFP.SetClock(dDateTime)
     Else
         GoTo SkipSetClock
     End If
