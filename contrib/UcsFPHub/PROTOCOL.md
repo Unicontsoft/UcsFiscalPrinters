@@ -636,13 +636,15 @@ Print device reports. Supports daily X or Z reports and monthly (by date range) 
 
 ```shell
 C:> curl -X POST http://localhost:8192/printers/DT518315/report ^
-         --data "{ \"ReportType\": "daily" }" -sS | jq
+         --data "{ \"ReportType\": \"Daily\" }" -sS | jq
 ```
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "",
-  "ReceiptDateTime": "00:00:00"
+  "ReceiptNo": "182",
+  "ReceiptDateTime": "2019-11-12 18:00:16",
+  "DeviceSerialNo": "DT518315",
+  "FiscalMemoryNo": "02518315"
 }
 ```
 
