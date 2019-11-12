@@ -302,7 +302,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
     If IsObject(JsonItem(oJson, "Rows")) Then
-        If Not oFP.StartReceipt(ToEnumValue(JsonItem(oJson, "ReceiptType"), "|Sale|Reversal|Invoice|CreditNote|OrderList"), _
+        If Not oFP.StartReceipt(JsonEnumValue(JsonItem(oJson, "ReceiptType"), "|Sale|Reversal|Invoice|CreditNote|OrderList"), _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
@@ -311,13 +311,13 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 DisablePrinting:=JsonBoolItem(oJson, "DisablePrinting"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
-                InvCgTaxNoType:=ToEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), "EIC|CitizenNo|ForeignerNo|OfficialNo"), _
+                InvCgTaxNoType:=JsonEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), "EIC|CitizenNo|ForeignerNo|OfficialNo"), _
                 InvCgVatNo:=JsonItem(oJson, "Invoice/CgVatNo"), _
                 InvCgName:=JsonItem(oJson, "Invoice/CgName"), _
                 InvCgAddress:=JsonItem(oJson, "Invoice/CgAddress"), _
                 InvCgPrsReceive:=JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 OwnData:=JsonItem(oJson, "OwnData"), _
-                RevType:=ToEnumValue(JsonItem(oJson, "Reversal/ReversalType"), "OperatorError|Refund|TaxBaseReduction"), _
+                RevType:=JsonEnumValue(JsonItem(oJson, "Reversal/ReversalType"), "OperatorError|Refund|TaxBaseReduction"), _
                 RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
                 RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDateTime")), _
                 RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
@@ -338,9 +338,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtText
                     oFP.AddLine .Text
                 Case ucsRwtBarcode
-                    oFP.AddBarcode ToEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
+                    oFP.AddBarcode JsonEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
-                    lIdx = ToEnumValue(.PaymentType, "|Cash|Card|Bank|Cheque|Custom1|Custom2|Custom3|Custom4")
+                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Card|Bank|Cheque|Custom1|Custom2|Custom3|Custom4")
                     If lIdx < 0 Then
                         lIdx = LimitLong(lIdx, -4, -1)
                     Else
@@ -357,7 +357,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
         oFP.OpenDrawer
     End If
-    If C_Bool(JsonItem(oJson, "PrintDuplicate")) Then
+    If JsonBoolItem(oJson, "PrintDuplicate") Then
         If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/DocNo")) Then
             sLastErr = oFP.GetLastError(eLastNo)
             DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
@@ -402,28 +402,28 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    Select Case ToEnumValue(JsonItem(oJson, "ReportType"), "|Daily|Number|Date|Operator")
+    Select Case JsonEnumValue(JsonItem(oJson, "ReportType"), "|Daily|Number|Date|Operator")
     Case ucsFscRptDaily
-        If C_Bool(JsonItem(oJson, "IsItems")) And C_Bool(JsonItem(oJson, "IsDepartments")) Then
-            If C_Bool(JsonItem(oJson, "IsClear")) Then
+        If JsonBoolItem(oJson, "IsItems") And JsonBoolItem(oJson, "IsDepartments") Then
+            If JsonBoolItem(oJson, "IsClear") Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByItemsAndDepartment)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByItemsAndDepartment)
             End If
-        ElseIf C_Bool(JsonItem(oJson, "IsItems")) Then
-            If C_Bool(JsonItem(oJson, "IsClear")) Then
+        ElseIf JsonBoolItem(oJson, "IsItems") Then
+            If JsonBoolItem(oJson, "IsClear") Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByItems)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByItems)
             End If
-        ElseIf C_Bool(JsonItem(oJson, "IsDepartments")) Then
-            If C_Bool(JsonItem(oJson, "IsClear")) Then
+        ElseIf JsonBoolItem(oJson, "IsDepartments") Then
+            If JsonBoolItem(oJson, "IsClear") Then
                 bResult = oFP.RunZReport(ucsFscRstDailyByDepartment)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDailyByDepartment)
             End If
         Else
-            If C_Bool(JsonItem(oJson, "IsClear")) Then
+            If JsonBoolItem(oJson, "IsClear") Then
                 bResult = oFP.RunZReport(ucsFscRstDaily)
             Else
                 bResult = oFP.RunXReport(ucsFscRstDaily)
@@ -433,7 +433,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         '--- ToDo: impl
     Case ucsFscRptDate
         If C_Date(JsonItem(oJson, "FromDate")) <> 0 And C_Date(JsonItem(oJson, "ToDate")) <> 0 Then
-            bResult = oFP.RunPeriodReport(IIf(C_Bool(JsonItem(oJson, "IsDetailed")), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
+            bResult = oFP.RunPeriodReport(IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
         End If
     Case ucsFscRptOperator
         '--- ToDo: impl
@@ -568,15 +568,15 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAllTotals"))
-    If C_Bool(JsonItem(oJson, "IncludeStats")) Or bIncludeAll Then
+    bIncludeAll = JsonBoolItem(oJson, "IncludeAllTotals")
+    If JsonBoolItem(oJson, "IncludeStats") Or bIncludeAll Then
         vTotals = oFP.GetTotalsStats()
         If IsArray(vTotals) Then
             JsonItem(oRetVal, "NumReceipts") = vTotals(0)
             JsonItem(oRetVal, "LastZReportDateTime") = vTotals(1)
         End If
     End If
-    If C_Bool(JsonItem(oJson, "IncludeServiceDeposit")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeServiceDeposit") Or bIncludeAll Then
         vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
         If IsArray(vTotals) Then
             JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
@@ -585,7 +585,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             JsonItem(oRetVal, "TotalReversal") = vTotals(3)
         End If
     End If
-    If C_Bool(JsonItem(oJson, "IncludeTaxGroups")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeTaxGroups") Or bIncludeAll Then
         vTotals = oFP.GetTotalsByTaxGroups()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
@@ -602,7 +602,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             Next
         End If
     End If
-    If C_Bool(JsonItem(oJson, "IncludePaymentTypes")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludePaymentTypes") Or bIncludeAll Then
         vTotals = oFP.GetTotalsByPaymentTypes()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
@@ -928,22 +928,22 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     Dim lIdx            As Long
     Dim dLastDateTime   As Date
     
-    bIncludeAll = C_Bool(JsonItem(oJson, "IncludeAll"))
-    If C_Bool(JsonItem(oJson, "IncludeTaxNo")) Or bIncludeAll Then
+    bIncludeAll = JsonBoolItem(oJson, "IncludeAll")
+    If JsonBoolItem(oJson, "IncludeTaxNo") Or bIncludeAll Then
         JsonItem(oRetVal, "TaxNo") = Trim$(oFP.GetTaxNo())
         JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     End If
-    If C_Bool(JsonItem(oJson, "IncludeHeaders")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeHeaders") Or bIncludeAll Then
         For lIdx = 1 To 6
             JsonItem(oRetVal, "Headers/-1") = Trim$(oFP.GetHeaderText(lIdx))
         Next
     End If
-    If C_Bool(JsonItem(oJson, "IncludeFooters")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeFooters") Or bIncludeAll Then
         For lIdx = 1 To 2
             JsonItem(oRetVal, "Footers/-1") = Trim$(oFP.GetFooterText(lIdx))
         Next
     End If
-    If C_Bool(JsonItem(oJson, "IncludeReceiptNo")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeReceiptNo") Or bIncludeAll Then
         JsonItem(oRetVal, "LastReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
         JsonItem(oRetVal, "LastReceiptDateTime") = dLastDateTime
         If LenB(JsonItem(oRetVal, "LastReceiptNo")) = 0 Then
@@ -951,7 +951,7 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
             JsonItem(oRetVal, "LastReceiptDateTime") = oFP.GetClock()
         End If
     End If
-    If C_Bool(JsonItem(oJson, "IncludePaymentNames")) Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludePaymentNames") Or bIncludeAll Then
         For lIdx = 1 To 4
             JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
         Next

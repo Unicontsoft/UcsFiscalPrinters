@@ -1638,20 +1638,38 @@ Public Function StripZeros(ByVal sText As String) As String
     StripZeros = Trim$(Mid$(sText, lIdx))
 End Function
 
-Public Function ToEnumValue(sText As String, sList As String) As Long
+Public Function JsonEnumValue(vValue As Variant, sList As String) As Long
+    Dim sText           As String
     Dim vElem           As Variant
     Dim lIdx            As Long
     
-    If LenB(sText) <> 0 Then
-        If InStr(1, "|" & sList & "|", "|" & sText & "|", vbTextCompare) > 0 Then
-            For Each vElem In Split(LCase$(sList), "|")
-                If LCase$(sText) = vElem Then
-                    ToEnumValue = lIdx
-                    Exit Function
-                End If
-                lIdx = lIdx + 1
-            Next
+    If VarType(vValue) = vbString Then
+        sText = LCase$(vValue)
+        If LenB(sText) <> 0 Then
+            If InStr(1, "|" & sList & "|", "|" & sText & "|", vbTextCompare) > 0 Then
+                For Each vElem In Split(LCase$(sList), "|")
+                    If sText = vElem Then
+                        JsonEnumValue = lIdx
+                        Exit Function
+                    End If
+                    lIdx = lIdx + 1
+                Next
+            End If
         End If
     End If
-    ToEnumValue = C_Lng(sText)
+    JsonEnumValue = C_Lng(vValue)
+End Function
+
+Public Function JsonBoolItem(oJson As Object, sKey As String) As Boolean
+    Dim vValue          As Variant
+    
+    AssignVariant vValue, JsonItem(oJson, sKey)
+    If VarType(vValue) = vbString Then
+        Select Case LCase$(vValue)
+        Case "y", "yes", "true", "on", "д", "да"
+            JsonBoolItem = True
+            Exit Function
+        End Select
+    End If
+    JsonBoolItem = C_Bool(vValue)
 End Function
