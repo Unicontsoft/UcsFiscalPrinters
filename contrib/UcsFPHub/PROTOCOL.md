@@ -2,7 +2,7 @@
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-Both request and response payloads by default are of `application/json; charset=utf-8` type whether explicitly requested in `Accept` and `Content-Type` headers or not. Use `format=xml` as URL query string parameter to change results format to XML with content-type of `text/xml; charset=utf-8`.
+Both request and response payloads by default are of `application/json` type (in utf-8 encoding) whether explicitly requested in `Accept` and `Content-Type` headers or not. Use `format=xml` as URL query string parameter to change results format to XML with content-type of `text/xml; charset=utf-8`.
 
 Use `request_id=N2qbikc5lUU` as URL query string parameter for idempotent `POST` requests (and general cache control) in order to prevent duplicating fiscal transactions when repeating requests because of a timeout or connectivity issues. If a request is repeated with the same payload and `request_id` then the results would be fetched directly from service cache without communicating with the fiscal device, provided that the previous execution of the same `request_id` succeeded.
 

@@ -48,7 +48,7 @@ Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_XML As String = "text/xml; charset=utf-8"
-Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
+Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json"
 Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
 
 Private m_sLastError                As String
