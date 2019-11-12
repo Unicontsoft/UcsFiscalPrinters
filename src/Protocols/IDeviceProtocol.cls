@@ -178,11 +178,13 @@ End Function
 ' Used to begin printing of a new receipt. The actual printing of the receipt is usually postponed until `EndReceipt`
 ' is called
 '
-' @param `ReceiptType`      [input] designates if receipt is fiscal or non-fiscal and if the receipt is an invoice or
-'                                    regular sales receipt
+' @param `ReceiptType`      [input] designates if receipt if the receipt is an invoice or regular sales receipt
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorName`     [input] operator name to be printed on receipt
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
+' @param `UniqueSaleNo`     [input] unique sale number
+' @param `TableNo`          [input] table no (for order-list printing only)
+' @param `DisablePrining`   [input] disable printing (for FDType=11 or 21 only)
 ' @param `InvDocNo`         [in, optional] number of the invoice/credit note to be printed
 ' @param `InvCgTaxNo`       [in, optional] identification number of the company (country specific)
 ' @param `InvCgTaxNoType`   [in, optional] type of identification number supplied: bulstat, EGN, foreigner or custom
@@ -190,15 +192,14 @@ End Function
 ' @param `InvCgName`        [in, optional] name of the company that is receiving the document
 ' @param `InvCgCity`        [in, optional] city of the company that is receiving the document, can be empty string
 ' @param `InvCgAddress`     [in, optional] address of the company that is receiving the document
-' @param `InvCgMol`         [in, optional] name of the person that is fiscally responsible for the company (not used)
 ' @param `InvCgPrsReceive`  [in, optional] name of the person that is receiving the document
 ' @param `OwnData`          [in, optional] owner info: name, address, eik, dep name, dep address, footer1, footer2
 ' @param `RevType`          [in, optional] operator error, refund or tax-base deduction
 ' @param `RevReceiptNo`     [in, optional] number of reversed receipt
 ' @param `RevReceiptDate`   [in, optional] date/time of reversed receipt
-' @param `RevFiscalMemoryNo` [in, optional] fiscal memeory of reversed receipt
+' @param `RevFiscalMemoryNo` [in, optional] fiscal memory of reversed receipt
 ' @param `RevInvoiceNo`     [in, optional] number of credited invoice
-' @param `RevReason`        [in, optional] credit note reason as free text (quantity or price adjustment)
+' @param `RevReason`        [in, optional] credit note reason as plain-text (quantity or price adjustment)
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function StartReceipt( _
@@ -208,6 +209,7 @@ Public Function StartReceipt( _
             OperatorPassword As String, _
             Optional UniqueSaleNo As String, _
             Optional TableNo As String, _
+            Optional ByVal DisablePrining As Boolean, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
             Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
@@ -223,6 +225,7 @@ Public Function StartReceipt( _
             Optional RevFiscalMemoryNo As String, _
             Optional RevInvoiceNo As String, _
             Optional RevReason As String) As Boolean
+Attribute StartReceipt.VB_Description = "Used to begin printing of a new receipt. The actual printing of the receipt is usually postponed until `EndReceipt` is called"
             
 End Function
 
@@ -230,9 +233,11 @@ End Function
 ' Used to print a row on the final receipt with product description, price and quantity
 '
 ' @param `Name`             [input] full product name or description
-' @param `Price`            [input] final sale price (incl. VAT) rounded to 0.00, can be negative for voids
+' @param `Price`            [input] final sale price (incl. VAT) rounded to 0.00. Can be negative for voids
 ' @param `Quantity`         [input] quantity rounded to 0.000
 ' @param `TaxGroup`         [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
+' @param `UnitOfMeasure`    [input] unit of measure for `Quantity` value
+' @param `DepartmentNo`     [input] department number
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark When printing negative rows currently reached receipt subtotal cannot become negative or the protocol handler
 ' will reorder receipt rows to prevent fiscal device from rejecting the whole receipt.
@@ -244,11 +249,12 @@ Public Function AddPLU( _
             ByVal TaxGroup As Long, _
             UnitOfMeasure As String, _
             ByVal DepartmentNo As Long) As Boolean
+Attribute AddPLU.VB_Description = "Used to print a row on the final receipt with product description, price and quantity"
             
 End Function
 
 ''
-' Used to print a row with free text
+' Used to print a row with plain-text
 '
 ' @param `Line`             [input] row text
 ' @param `Command`          [input] text format. One of "DBWIDTH" or "CONDENSED". Not all devices support this param
@@ -259,7 +265,7 @@ Public Function AddLine( _
             Line As String, _
             Optional Command As String, _
             Optional ByVal WordWrap As Boolean = True) As Boolean
-Attribute AddLine.VB_Description = "Used to print a row with free text that does not get stored in fiscal memory"
+Attribute AddLine.VB_Description = "Used to print a row with plain-text"
             
 End Function
 
@@ -345,7 +351,7 @@ End Function
 ''
 ' Used to print fiscal x-report
 '
-' @param `ReportType`       [input] type of detailed report to print: by items, by departments, by both
+' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
@@ -356,7 +362,7 @@ End Function
 ''
 ' Used to print fiscal z-report and clear fiscal memory for the day
 '
-' @param `ReportType`       [input] type of detailed report to print: by items, by departments, by both
+' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
@@ -381,12 +387,13 @@ Attribute RunPeriodReport.VB_Description = "Used to print monthly fiscal report 
 End Function
 
 ''
-' Used to retrieve the fiscal number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal
-' reports and credit/debit slips
+' Used to retrieve the receipt number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal
+' reports and service deposits/withdraw
 '
 ' @return Last receipt number as string
 '
 Public Function GetLastReceiptNo() As String
+Attribute GetLastReceiptNo.VB_Description = "Used to retrieve the receipt number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal reports and service deposits/withdraw"
 
 End Function
 
@@ -396,33 +403,37 @@ End Function
 ' @return Last invoice number as string
 '
 Public Function GetLastInvoiceNo() As String
+Attribute GetLastInvoiceNo.VB_Description = "Used to retrieve last invoice number printed which has come from current fiscal device invoices range"
 
 End Function
 
 ''
-' Used to retrieve the fiscal number and datetime of the last sale/invoice printed.
+' Used to retrieve the receipt number and date/time of the last sale/invoice printed.
 '
 ' @return Last receipt number as string
 '
 Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
+Attribute GetLastQRCodeInfo.VB_Description = "Used to retrieve the receipt  number and date/time of the last sale/invoice printed."
 
 End Function
 
 ''
-' Used to retrieve fiscal device serial number as reported by firmware
+' Used to retrieve serial number of the fiscal device as reported by firmware
 '
 ' @return Serial number as string
 '
 Public Function GetDeviceSerialNo() As String
+Attribute GetDeviceSerialNo.VB_Description = "Used to retrieve serial number of the fiscal device as reported by firmware"
 
 End Function
 
 ''
-' Used to retrieve fiscal number of the registered fiscal memory
+' Used to retrieve number of the registered fiscal memory
 '
 ' @return Fiscal number as string
 '
 Public Function GetFiscalMemoryNo() As String
+Attribute GetFiscalMemoryNo.VB_Description = "Used to retrieve number of the registered fiscal memory"
 
 End Function
 
@@ -500,22 +511,32 @@ Attribute GetPaymentName.VB_Description = "Used to retrieve standard and custom 
 End Function
 
 ''
-' Used to retrieve width of the paper roll in device characters for free text rows
+' Used to retrieve width of the paper roll in device characters
 '
-' @return Number of characters available on a single row
-' @remark This is related to the maximum size of PLU names to be printed without wrapping to multiple rows. Usually
-' max size of PLU name is 7 characters less.
+' @return Total number of characters printable on paper roll
 '
 Public Function GetCharsPerLine() As Long
-Attribute GetCharsPerLine.VB_Description = "Used to retrieve width of the paper roll in device characters for free text rows"
+Attribute GetCharsPerLine.VB_Description = "Used to retrieve width of the paper roll in device characters"
 
 End Function
 
+''
+' Used to retrieve maximum width of plain-text rows in device characters
+'
+' @return Maximum number of characters available for a comment row
+'
 Public Function GetCommentTextMaxLength() As Long
+Attribute GetCommentTextMaxLength.VB_Description = "Used to retrieve maximum width of plain-text rows in device characters"
 
 End Function
 
+''
+' Used to retrieve maximum width of product names. The device might wrap names on two rows when printing
+'
+' @return Maximum number of characters available for product name
+'
 Public Function GetItemNameMaxLength() As Long
+Attribute GetItemNameMaxLength.VB_Description = "Used to retrieve maximum width of product names. The device might wrap names on two rows when printing"
 
 End Function
 
@@ -536,6 +557,7 @@ End Function
 ' @return Operator name
 '
 Public Function GetOperatorName(OperatorCode As String) As String
+Attribute GetOperatorName.VB_Description = "Used to retrieve operator name as currently configured"
 
 End Function
 
@@ -562,22 +584,22 @@ Attribute GetDeviceProtocol.VB_Description = "Used to retrieve current protocol 
 End Function
 
 ''
-' Used to retrieve device model name as reported by current fiscal device firmware
+' Used to retrieve device model name as reported by fiscal device firmware
 '
 ' @return Device model name
 '
 Public Function GetDeviceModel() As String
-Attribute GetDeviceModel.VB_Description = "Used to retrieve device model name as reported by current fiscal device firmware"
+Attribute GetDeviceModel.VB_Description = "Used to retrieve device model name as reported by fiscal device firmware"
 
 End Function
 
 ''
-' Used to retrieve device firmware version
+' Used to retrieve device firmware version and revision
 '
 ' @return Device firmware version
 '
 Public Function GetDeviceFirmware() As String
-Attribute GetDeviceFirmware.VB_Description = "Device firmware version"
+Attribute GetDeviceFirmware.VB_Description = "Used to retrieve device firmware version and revision"
 
 End Function
 
@@ -666,19 +688,20 @@ Public Function AddBarcode( _
             ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, _
             Text As String, _
             Optional ByVal Height As Long) As Boolean
+Attribute AddBarcode.VB_Description = "Used to print barcode"
             
 End Function
 
 ''
 ' Used to retrieve resume-token after failed `EndReceipt`
 '
-' @return String encoded resume-ticket
+' @return String encoded resume-token
 ' @remark Result can be passed to `EndReceipt` to resume printing exactly from the previsouly failed row e.g. if the
 ' device ran out-of-paper the operator can change the roll and resume printing and later print a brand new duplicate
 ' receipt for the end client.
 '
 Public Function GetResumeToken() As String
-Attribute GetResumeToken.VB_Description = "Used to retrieve resume-ticket after failed `EndReceipt`"
+Attribute GetResumeToken.VB_Description = "Used to retrieve resume-token after failed `EndReceipt`"
 
 End Function
 

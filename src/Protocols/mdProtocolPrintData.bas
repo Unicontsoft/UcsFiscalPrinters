@@ -83,6 +83,7 @@ Public Type UcsPpdRowData
     InitOperatorPassword As String
     InitTableNo         As String
     InitUniqueSaleNo    As String
+    InitDisablePrining  As Boolean
     InitInvData         As Variant
     InitRevData         As Variant
     InitOwnData         As Variant
@@ -165,6 +166,7 @@ Public Function PpdStartReceipt( _
             Optional OperatorPassword As String, _
             Optional TableNo As String, _
             Optional UniqueSaleNo As String, _
+            Optional ByVal DisablePrining As Boolean, _
             Optional InvDocNo As String, _
             Optional InvCgTaxNo As String, _
             Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, _
@@ -197,6 +199,7 @@ Public Function PpdStartReceipt( _
         .InitOperatorPassword = SafeText(OperatorPassword)
         .InitTableNo = TableNo
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
+        .InitDisablePrining = DisablePrining
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars(uData)
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
