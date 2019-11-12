@@ -184,7 +184,7 @@ End Function
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
 ' @param `UniqueSaleNo`     [input] unique sale number
 ' @param `TableNo`          [input] table no (for order-list printing only)
-' @param `DisablePrinting`   [input] disable printing (for FDType=11 or 21 only)
+' @param `DisablePrinting`  [input] disable printing (for FDType=11 or 21 only)
 ' @param `InvDocNo`         [in, optional] number of the invoice/credit note to be printed
 ' @param `InvCgTaxNo`       [in, optional] identification number of the company (country specific)
 ' @param `InvCgTaxNoType`   [in, optional] type of identification number supplied: bulstat, EGN, foreigner or custom
