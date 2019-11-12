@@ -24,14 +24,16 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
 ```json
 {
   "Ok": true,
-  "Count": 3,
+  "Count": 4,
   "ZK133759": {
     "DeviceSerialNo": "ZK133759",
     "FiscalMemoryNo": "50170895",
     "DeviceProtocol": "TREMOL ECR",
     "DeviceModel": "TREMOL M20",
     "FirmwareVersion": "Ver. 1.01 TRA20 C.S. 2541",
+    "CharsPerLine": 32,
     "CommentTextMaxLength": 30,
+    "ItemNameMaxLength": 26,
     "TaxNo": "",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
@@ -45,12 +47,30 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "DeviceProtocol": "DATECS FP/ECR",
     "DeviceModel": "DP-25",
     "FirmwareVersion": "263453 08Nov18 1312",
+    "CharsPerLine": 42,
     "CommentTextMaxLength": 36,
+    "ItemNameMaxLength": 22,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
     "DeviceHost": "WQW-PC",
     "DevicePort": "COM2"
+  },
+  "DY450626": {
+    "DeviceSerialNo": "DY450626",
+    "FiscalMemoryNo": "36608662",
+    "DeviceProtocol": "DAISY FP/ECR",
+    "DeviceModel": "CompactM",
+    "FirmwareVersion": "ONL02-4.01BG 29-10-2018 11:34 F36A",
+    "CharsPerLine": 32,
+    "CommentTextMaxLength": 28,
+    "ItemNameMaxLength": 20,
+    "TaxNo": "---------------",
+    "TaxCaption": "ЕИК",
+    "DeviceString": "Protocol=DAISY FP/ECR;Port=COM11;Speed=9600",
+    "DeviceHost": "WQW-PC",
+    "DevicePort": "COM11,9600",
+    "Autodetected": true
   },
   "DT577430": {
     "DeviceSerialNo": "DT577430",
@@ -58,7 +78,9 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "DeviceProtocol": "DATECS X",
     "DeviceModel": "DP-25X",
     "FirmwareVersion": "264205 22Jan19 1629",
+    "CharsPerLine": 42,
     "CommentTextMaxLength": 40,
+    "ItemNameMaxLength": 72,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
     "DeviceString": "Protocol=DATECS X;IP=192.168.0.20",
@@ -85,18 +107,20 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
 ```xml
 <Root>
    <Ok __json__bool="1">1</Ok>
-   <Count>3</Count>
+   <Count>4</Count>
    <ZK133759>
       <DeviceSerialNo>ZK133759</DeviceSerialNo>
       <FiscalMemoryNo>50170895</FiscalMemoryNo>
       <DeviceProtocol>TREMOL ECR</DeviceProtocol>
       <DeviceModel>TREMOL M20</DeviceModel>
       <FirmwareVersion>Ver. 1.01 TRA20 C.S. 2541</FirmwareVersion>
+      <CharsPerLine>32</CharsPerLine>
       <CommentTextMaxLength>30</CommentTextMaxLength>
+      <ItemNameMaxLength>26</ItemNameMaxLength>
       <TaxNo />
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
-      <DevoceHost>WQW-PC</DeviceHost>
+      <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>COM1</DevicePort>
       <Autodetected __json__bool="1">1</Autodetected>
    </ZK133759>
@@ -106,20 +130,40 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
       <DeviceModel>DP-25</DeviceModel>
       <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+      <CharsPerLine>42</CharsPerLine>
       <CommentTextMaxLength>36</CommentTextMaxLength>
+      <ItemNameMaxLength>22</ItemNameMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
       <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>COM2</DevicePort>
    </DT518315>
+   <DY450626>
+      <DeviceSerialNo>DY450626</DeviceSerialNo>
+      <FiscalMemoryNo>36608662</FiscalMemoryNo>
+      <DeviceProtocol>DAISY FP/ECR</DeviceProtocol>
+      <DeviceModel>CompactM</DeviceModel>
+      <FirmwareVersion>ONL02-4.01BG 29-10-2018 11:34 F36A</FirmwareVersion>
+      <CharsPerLine>32</CharsPerLine>
+      <CommentTextMaxLength>28</CommentTextMaxLength>
+      <ItemNameMaxLength>20</ItemNameMaxLength>
+      <TaxNo>---------------</TaxNo>
+      <TaxCaption>ЕИК</TaxCaption>
+      <DeviceString>Protocol=DAISY FP/ECR;Port=COM11;Speed=9600</DeviceString>
+      <DeviceHost>WQW-PC</DeviceHost>
+      <DevicePort>COM11,9600</DevicePort>
+      <Autodetected __json__bool="1">1</Autodetected>
+   </DY450626>
    <DT577430>
       <DeviceSerialNo>DT577430</DeviceSerialNo>
       <FiscalMemoryNo>02577430</FiscalMemoryNo>
       <DeviceProtocol>DATECS X</DeviceProtocol>
       <DeviceModel>DP-25X</DeviceModel>
       <FirmwareVersion>264205 22Jan19 1629</FirmwareVersion>
+      <CharsPerLine>42</CharsPerLine>
       <CommentTextMaxLength>40</CommentTextMaxLength>
+      <ItemNameMaxLength>72</ItemNameMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
       <DeviceString>Protocol=DATECS X;IP=192.168.0.20</DeviceString>
@@ -153,7 +197,9 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
+  "CharsPerLine": 42,
   "CommentTextMaxLength": 36,
+  "ItemNameMaxLength": 22,
   "TaxNo": "НЕЗАДАДЕН",
   "TaxCaption": "ЕИК",
   "Headers": [
@@ -168,8 +214,8 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
     "",
     ""
   ],
-  "LastReceiptNo": "171",
-  "LastReceiptDateTime": "2019-10-31 10:20:58",
+  "LastReceiptNo": "179",
+  "LastReceiptDateTime": "2019-11-12 14:01:08",
   "PaymentNames": [
     "В БРОЙ",
     "С КАРТА",
@@ -196,7 +242,9 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
    <DeviceModel>DP-25</DeviceModel>
    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
+   <CharsPerLine>42</CharsPerLine>
    <CommentTextMaxLength>36</CommentTextMaxLength>
+   <ItemNameMaxLength>22</ItemNameMaxLength>
    <TaxNo>НЕЗАДАДЕН</TaxNo>
    <TaxCaption>ЕИК</TaxCaption>
    <Headers>ИМЕ НА ФИРМА</Headers>
@@ -207,8 +255,8 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <Headers />
    <Footers />
    <Footers />
-   <LastReceiptNo>171</LastReceiptNo>
-   <LastReceiptDateTime>2019-10-31 10:21:34</LastReceiptDateTime>
+   <LastReceiptNo>179</LastReceiptNo>
+   <LastReceiptDateTime>2019-11-12 14:01:36</LastReceiptDateTime>
    <PaymentNames>В БРОЙ</PaymentNames>
    <PaymentNames>С КАРТА</PaymentNames>
    <PaymentNames>ПО БАНКА</PaymentNames>
@@ -236,7 +284,9 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CommentTextMaxLength": 28
+  "CharsPerLine": 42,
+  "CommentTextMaxLength": 36,
+  "ItemNameMaxLength": 22
 }
 ```
 
@@ -254,10 +304,12 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CommentTextMaxLength": 28,
+  "CharsPerLine": 42,
+  "CommentTextMaxLength": 36,
+  "ItemNameMaxLength": 22,
   "Operator": {
     "Code": 1,
-    "Name": "Оператор 1",
+    "Name": "Иван Иванов",
     "DefaultPassword": "1"
   }
 }
@@ -277,7 +329,9 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "DeviceProtocol": "DATECS FP/ECR",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
-  "CommentTextMaxLength": 28,
+  "CharsPerLine": 42,
+  "CommentTextMaxLength": 36,
+  "ItemNameMaxLength": 22,
   "TaxNo": "НЕЗАДАДЕН",
   "TaxCaption": "ЕИК"
 }
@@ -294,7 +348,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315/status -sS | jq
 {
   "Ok": true,
   "DeviceStatus": "",
-  "DeviceDateTime": "2018-07-19 22:55:53"
+  "DeviceDateTime": "2019-11-12 14:03:55"
 }
 ```
 
@@ -306,10 +360,10 @@ Following `data-utf8.txt` prints a fiscal receipt (`ReceiptType` is 1, see below
 
 ```json
 {
-    "ReceiptType": 1,
+    "ReceiptType": "Sale",
     "Operator": {
         "Code": "1",
-        "Name": "Иван Иванов",
+        "Name": "Иван Петров",
         "Password": "****"
     },
     "UniqueSaleNo": "DT518315-0001-1234567",
@@ -345,14 +399,14 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "56",
-  "ReceiptDateTime": "2019-07-19 14:05:18",
+  "ReceiptNo": "180",
+  "ReceiptDateTime": "2019-11-12 14:05:17",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
 }
 ```
 
-Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see below) for the first products of the previous sale `0000056`.
+Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see below) for the first products of the previous sale `180` and a bar-code with info about the reversed receipt.
 
 ```json
 {
@@ -363,9 +417,9 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
         "Password": "****"
     },
     "Reversal": {
-        "ReversalType": 1,
-        "ReceiptNo": "56",
-        "ReceiptDateTime": "2019-07-19 14:05:18",
+        "ReversalType": "Refund",
+        "ReceiptNo": "180",
+        "ReceiptDateTime": "2019-11-12 14:05:17",
         "FiscalMemoryNo": "02518315",
     },
     "UniqueSaleNo": "DT518315-0001-1234567",
@@ -374,6 +428,10 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
             "ItemName": "Продукт 1",
             "Price": 12.34,
             "Quantity": -1
+        },
+        {
+            "BarcodeType": "Code128",
+            "Text": "180/2019-11-12"
         }
     ]
 }
@@ -385,8 +443,8 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/receipt ^
 ```json
 {
   "Ok": true,
-  "ReceiptNo": "61",
-  "ReceiptDateTime": "2019-07-22 11:46:23",
+  "ReceiptNo": "181",
+  "ReceiptDateTime": "2019-11-12 14:08:24",
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315"
 }
@@ -396,7 +454,7 @@ Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptTyp
 
 ```json
 {
-    "ReceiptType": 3,
+    "ReceiptType": "Invoice",
     "Operator": {
         "Code": "1",
         "Name": "Иван Иванов",
@@ -426,7 +484,7 @@ Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptTyp
         },
         [ "Продукт 3", 5.67, "Б", 3.5, 15 ],
         [ "Продукт 4", 2.00  ],
-        { "PaymentType": 2 },
+        { "PaymentType": "Card" },
     ]
 }
 ```
