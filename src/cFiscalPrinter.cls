@@ -308,6 +308,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 JsonItem(oJson, "Operator/Password"), _
                 UniqueSaleNo:=JsonItem(oJson, "UniqueSaleNo"), _
                 TableNo:=JsonItem(oJson, "TableNo"), _
+                DisablePrinting:=JsonBoolItem(oJson, "DisablePrinting"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
                 InvCgTaxNoType:=ToEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), "EIC|CitizenNo|ForeignerNo|OfficialNo"), _
