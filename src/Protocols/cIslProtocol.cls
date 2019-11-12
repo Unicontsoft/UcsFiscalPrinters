@@ -262,7 +262,7 @@ Private m_uConfig                   As UcsConfigValues
 Private m_uLConfig(0 To [_ucsIslCfgMax] - 1) As UcsLocalizedConfigType
 
 Private Enum UcsInternalErrors
-    ucsErrTimeoutWaitingForResponse
+    [__ucsErrTimeoutWaitingForResponse]
     ucsErrInvalidResponseLength
     ucsErrInvalidResponseChecksum
     ucsErrResponseMissingPostamble
@@ -1634,7 +1634,6 @@ Private Function pvSendCommand( _
     Dim lIdx            As Long
     Dim lSize           As Long
     Dim sBuffer         As String
-    Dim dblTimer        As Double
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
@@ -1650,7 +1649,6 @@ Private Function pvSendCommand( _
     '--- append checksum and terminator
     sSend = sSend & pvCheckSum(sSend) & Chr$(SYM_TERMINATOR)
     '--- send request
-    dblTimer = TimerEx + lTimeout / 1000
 RetrySend:
     DebugDataDump FUNC_NAME, "send ", sSend
     baText = ToAscii(sSend)
@@ -1662,11 +1660,6 @@ RetrySend:
     '--- read response
     sText = vbNullString
     Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
-        If TimerEx > dblTimer Then
-            Error = pvInternal(ucsErrTimeoutWaitingForResponse)
-            DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
-            GoTo QH
-        End If
         If Not oConnector.ReadData(baText, lTimeout) Then
             Error = oConnector.GetLastError()
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
