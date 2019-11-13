@@ -239,10 +239,10 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
         GoTo QH
     End If
     JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
-    JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
+    JsonItem(oRetVal, "FiscalMemoryNo") = Zn(Trim$(oFP.GetFiscalMemoryNo()), Empty)
     JsonItem(oRetVal, "DeviceProtocol") = Trim$(oFP.GetDeviceProtocol())
     JsonItem(oRetVal, "DeviceModel") = Trim$(oFP.GetDeviceModel())
-    JsonItem(oRetVal, "FirmwareVersion") = Trim$(oFP.GetDeviceFirmware())
+    JsonItem(oRetVal, "FirmwareVersion") = Zn(Trim$(oFP.GetDeviceFirmware()), Empty)
     JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
     JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCommentTextMaxLength()
     JsonItem(oRetVal, "ItemNameMaxLength") = oFP.GetItemNameMaxLength()
