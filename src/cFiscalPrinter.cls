@@ -200,13 +200,13 @@ Public Function EnumPorts(sResponse As String) As Boolean
     For Each vElem In vPorts
         Set oItem = Nothing
         If IsArray(vElem) Then
-            JsonItem(oItem, "Port") = Zn(At(vElem, 0), Empty)
-            JsonItem(oItem, "Speed") = Zn(At(vElem, 1), Empty)
-            JsonItem(oItem, "Protocol") = Zn(At(vElem, 2), Empty)
-            JsonItem(oItem, "Model") = Zn(At(vElem, 3), Empty)
-            JsonItem(oItem, "Firmware") = Zn(At(vElem, 4), Empty)
+            JsonItem(oItem, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
+            JsonItem(oItem, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
+            JsonItem(oItem, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty)
+            JsonItem(oItem, "Model") = Zn(Trim$(At(vElem, 3)), Empty)
+            JsonItem(oItem, "Firmware") = Zn(Trim$(At(vElem, 4)), Empty)
         Else
-            JsonItem(oItem, "Port") = Zn(C_Str(vElem), Empty)
+            JsonItem(oItem, "Port") = Zn(Trim$(C_Str(vElem)), Empty)
         End If
         If Not oItem Is Nothing Then
             JsonItem(oRetVal, "SerialPorts/-1") = oItem
