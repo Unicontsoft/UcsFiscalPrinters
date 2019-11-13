@@ -376,7 +376,7 @@ Property Get ErrorText() As String
     ErrorText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterErrors))
     If IsDaisy And (m_eDip And &H7F) <> 0 Then
         ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
-            Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
+            At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F, Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
     End If
 End Property
 
@@ -1999,7 +1999,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     Zn(.InitUniqueSaleNo, "0"), _
                     .InitRevData(ucsRevReceiptNo), _
                     sRevType, _
-                    sRevType & Zn(At(.InitRevData, ucsRevInvoiceNo), "0") & _
+                    sRevType & At(.InitRevData, ucsRevInvoiceNo, "0") & _
                         DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                         DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo))
             ElseIf IsEcr Then

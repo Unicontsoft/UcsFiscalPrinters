@@ -89,7 +89,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     If Not m_oSocket.Listen() Then
         GoTo QH
     End If
-    DebugLog Printf(STR_SOCKET_LISTEN, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(STR_SOCKET_LISTEN, At(vSplit, 0, "127.0.0.1"), lListenPort) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     Init = True
 QH:

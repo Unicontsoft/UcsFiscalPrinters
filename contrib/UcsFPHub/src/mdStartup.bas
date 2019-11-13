@@ -310,7 +310,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                 If Not JsonItem(oInfo, "Ok") Then
                     DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
                 Else
-                    sKey = JsonItem(oInfo, "DeviceSerialNo")
+                    sKey = Zn(JsonItem(oInfo, "DeviceSerialNo"), vKey)
                     If LenB(sKey) <> 0 Then
                         JsonItem(oInfo, "Ok") = Empty
                         JsonItem(oInfo, "DeviceString") = sDeviceString
