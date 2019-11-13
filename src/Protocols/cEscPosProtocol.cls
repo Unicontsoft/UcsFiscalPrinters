@@ -238,7 +238,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If oConnector.ReadData(baBuffer, 0) Then
                         sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
                                  pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
-                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Mid$(sModel, 2))
+                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
                         aPorts(lIdx) = Empty
                     End If
                 End If

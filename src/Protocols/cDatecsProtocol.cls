@@ -1864,8 +1864,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
         '--- check serial
         sProtocol = STR_PROTOCOL_DATECS_X
-        sModel = RTrim$(At(vResult, lNameIndex))
-        sFirmware = RTrim$(At(vResult, lNameIndex + 1) & " " & At(vResult, lNameIndex + 2) & " " & At(vResult, lNameIndex + 3))
+        sModel = Trim$(At(vResult, lNameIndex))
+        sFirmware = Trim$(At(vResult, lNameIndex + 1) & " " & At(vResult, lNameIndex + 2) & " " & At(vResult, lNameIndex + 3))
         '--- success
         pvGetDeviceInfo = True
     End If

@@ -1990,8 +1990,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             "ModelIndex", lModelIndex, 3, _
             "FirmwareIndex", lFirmwareIndex, 4
         vSplit = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
-        sModel = RTrim$(At(vSplit, lModelIndex))
-        sFirmware = RTrim$(At(vSplit, lFirmwareIndex))
+        sModel = Trim$(At(vSplit, lModelIndex))
+        sFirmware = Trim$(At(vSplit, lFirmwareIndex))
         '--- success
         pvGetDeviceInfo = True
     End If

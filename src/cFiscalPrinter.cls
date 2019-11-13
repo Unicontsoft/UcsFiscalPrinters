@@ -184,7 +184,6 @@ Public Function EnumPorts(sResponse As String) As Boolean
     Dim vPorts          As Variant
     Dim vElem           As Variant
     Dim oFP             As IDeviceProtocol
-    Dim lIdx            As Long
     Dim oItem           As Object
     Dim oRetVal         As Object
     
@@ -198,18 +197,20 @@ Public Function EnumPorts(sResponse As String) As Boolean
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
-    For lIdx = 0 To UBound(vPorts)
+    For Each vElem In vPorts
         Set oItem = Nothing
-        If IsArray(vPorts(lIdx)) Then
-            JsonItem(oItem, "Port") = vPorts(lIdx)(0)
-            JsonItem(oItem, "Speed") = vPorts(lIdx)(1)
-            JsonItem(oItem, "Protocol") = vPorts(lIdx)(2)
-            JsonItem(oItem, "Model") = vPorts(lIdx)(3)
-            JsonItem(oItem, "Firmware") = vPorts(lIdx)(4)
+        If IsArray(vElem) Then
+            JsonItem(oItem, "Port") = Zn(At(vElem, 0), Empty)
+            JsonItem(oItem, "Speed") = Zn(At(vElem, 1), Empty)
+            JsonItem(oItem, "Protocol") = Zn(At(vElem, 2), Empty)
+            JsonItem(oItem, "Model") = Zn(At(vElem, 3), Empty)
+            JsonItem(oItem, "Firmware") = Zn(At(vElem, 4), Empty)
         Else
-            JsonItem(oItem, "Port") = vPorts(lIdx)
+            JsonItem(oItem, "Port") = Zn(C_Str(vElem), Empty)
         End If
-        JsonItem(oRetVal, "SerialPorts/-1") = oItem
+        If Not oItem Is Nothing Then
+            JsonItem(oRetVal, "SerialPorts/-1") = oItem
+        End If
     Next
 QH:
     sResponse = JsonDump(oRetVal, Minimize:=True)

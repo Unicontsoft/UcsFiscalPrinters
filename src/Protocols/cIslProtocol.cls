@@ -2315,8 +2315,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
         vSplit = Split2(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), " ")
-        sModel = vSplit(0)
-        sFirmware = vSplit(1)
+        sModel = Trim$(vSplit(0))
+        sFirmware = Trim$(vSplit(1))
         '--- success
         pvGetDeviceInfo = True
     End If
