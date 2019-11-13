@@ -343,9 +343,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtPayment
                     lIdx = JsonEnumValue(.PaymentType, "|Cash|Card|Bank|Cheque|Custom1|Custom2|Custom3|Custom4")
                     If lIdx < 0 Then
-                        lIdx = LimitLong(lIdx, -4, -1)
+                        lIdx = LimitLong(lIdx, [_ucsFscPmtMin] + 1, -1)
                     Else
-                        lIdx = LimitLong(lIdx, 1, 8)
+                        lIdx = LimitLong(lIdx, 1, [_ucsFscPmtMax] - 1)
                     End If
                     oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 End Select

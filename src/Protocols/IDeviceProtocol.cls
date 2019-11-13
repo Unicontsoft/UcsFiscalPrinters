@@ -79,7 +79,8 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCustom2 = -2       ' SOT
     ucsFscPmtCustom3 = -3       ' SR1
     ucsFscPmtCustom4 = -4       ' SR2
-    [_ucsFscPmtMax] = 4 - ucsFscPmtCustom4 + 1
+    [_ucsFscPmtMin] = ucsFscPmtCustom4 - 1
+    [_ucsFscPmtMax] = 4 - (ucsFscPmtCustom4 - 1)
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum
