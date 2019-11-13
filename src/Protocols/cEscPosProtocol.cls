@@ -270,6 +270,7 @@ Repeat:
                 If InStr(sRetVal, vbNullChar) > 0 Then
                     sRetVal = Left$(sRetVal, InStr(sRetVal, vbNullChar) - 1)
                 End If
+                sRetVal = Trim$(sRetVal)
             End If
             If LenB(sRetVal) = 0 And lRepeat < 10 Then
                 lRepeat = lRepeat + 1
@@ -310,7 +311,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .CommentChars = C_Lng(JsonItem(oOptions, "CommentChars"))
         .ItemChars = C_Lng(JsonItem(oOptions, "ItemChars"))
         .AbsoluteDiscount = True
-        .NegativePrices = False
+        .NegativePrices = True
         .MinDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT)
         .MaxDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT)
         .MaxReceiptRows = Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS)
@@ -396,8 +397,11 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
-    GetDeviceModel = pvGetAutodetectInfo(m_oConnector, 67) & pvGetAutodetectInfo(m_oConnector, 66) & _
-                     pvGetAutodetectInfo(m_oConnector, 68) & pvGetAutodetectInfo(m_oConnector, 65)
+    Dim sModel          As String
+    
+    sModel = pvGetAutodetectInfo(m_oConnector, 67) & pvGetAutodetectInfo(m_oConnector, 66) & _
+             pvGetAutodetectInfo(m_oConnector, 68) & pvGetAutodetectInfo(m_oConnector, 65)
+    GetDeviceModel = Trim$(Mid$(sModel, 2))
 End Function
 
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
@@ -976,7 +980,7 @@ Private Function IDeviceProtocol_GetResumeToken() As String
 End Function
 
 Private Function IDeviceProtocol_GetDeviceSerialNo() As String
-
+    IDeviceProtocol_GetDeviceSerialNo = "ESC_" & At(Split(m_sDevice, ","), 0)
 End Function
 
 Private Function IDeviceProtocol_GetTaxCaption() As String
