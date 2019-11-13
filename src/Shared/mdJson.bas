@@ -592,9 +592,9 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             End If
         End If
     Case vbNull
-        JsonDump = "Null"
+        JsonDump = "null"
     Case vbEmpty
-        JsonDump = "Empty"
+        JsonDump = "empty"
     Case vbDate
         JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
         If Left$(JsonDump, 12) = """1899-12-30 " Then
