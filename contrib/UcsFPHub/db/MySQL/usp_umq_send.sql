@@ -1,12 +1,12 @@
 SET SQL_SAFE_UPDATES=0;
-DROP PROCEDURE IF EXISTS `usp_umq_Send`;
+DROP PROCEDURE IF EXISTS `usp_umq_send`;
 /*
-CALL `usp_umq_SetupService`(NULL, NULL, NULL);
-CALL `usp_umq_Send`('test', @response, 'UcsFpTargetService/ZK123456', 3000, @handle, @result);
+CALL `usp_umq_setup_service`(NULL, NULL, NULL);
+CALL `usp_umq_send`('test', @response, 'UcsFpTargetService/ZK123456', 3000, @handle, @result);
 SELECT @result, @handle, @response;
 */
 DELIMITER $$
-CREATE PROCEDURE `usp_umq_Send` (
+CREATE PROCEDURE `usp_umq_send` (
             IN `@request`       LONGTEXT
             , OUT `@response`   LONGTEXT
             , IN `@target_svc`  VARCHAR(128)
@@ -39,17 +39,17 @@ DECLARE     `@start_time`   TIMESTAMP(3);
 SET         `@retval` = 0;
 SET         `@queue_name` = COALESCE(NULLIF(`@queue_name`, ''), CONCAT('UcsFpInitiator', 'Queue', '/', CONNECTION_ID()));
 SET         `@svc_name` = COALESCE(NULLIF(`@svc_name`, ''), CONCAT('UcsFpInitiator', 'Service', '/', CONNECTION_ID()));
-SET         `@service_id` = (SELECT `id` FROM `umq_Services` WHERE `name` = `@svc_name`);
-SET         `@queue_id` = (SELECT `queue_id` FROM `umq_Services` WHERE `name` = `@svc_name`);
-SET         `@far_service_id` = (SELECT `id` FROM `umq_Services` WHERE `name` = `@target_svc`);
-SET         `@far_queue_id` = (SELECT `queue_id` FROM `umq_Services` WHERE `name` = `@target_svc`);
+SET         `@service_id` = (SELECT `id` FROM `umq_services` WHERE `name` = `@svc_name`);
+SET         `@queue_id` = (SELECT `queue_id` FROM `umq_services` WHERE `name` = `@svc_name`);
+SET         `@far_service_id` = (SELECT `id` FROM `umq_services` WHERE `name` = `@target_svc`);
+SET         `@far_queue_id` = (SELECT `queue_id` FROM `umq_services` WHERE `name` = `@target_svc`);
 
 IF          `@handle` IS NOT NULL
 THEN
             SET         `@conv_id` = `@handle`;
 ELSE
             -- begin conversation
-            INSERT      `umq_Conversations`(`service_id`, `far_service_id`, `created_at`)
+            INSERT      `umq_conversations`(`service_id`, `far_service_id`, `created_at`)
             SELECT      `@service_id`           AS `service_id`
                         , `@far_service_id`     AS `far_service_id`
                         , CURRENT_TIMESTAMP(3)  AS `created_at`;
@@ -60,7 +60,7 @@ END IF;
 IF          `@request` IS NULL
 THEN
             -- send on conversation '__FIN__'
-            INSERT      `umq_Messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
+            INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
             SELECT      `@conv_id`              AS `conversation_id`
                         , `@far_service_id`     AS `service_id`
                         , `@far_queue_id`       AS `queue_id`
@@ -69,7 +69,7 @@ THEN
                         , CURRENT_TIMESTAMP(3)  AS `created_at`;
             
             -- end conversation
-            UPDATE      `umq_Conversations`
+            UPDATE      `umq_conversations`
             SET         `status` = 1
             WHERE       `id` = `@conv_id`;
             
@@ -77,7 +77,7 @@ THEN
 END IF;
 
 -- send on conversation '__PING__'
-INSERT      `umq_Messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
+INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
 SELECT      `@conv_id`              AS `conversation_id`
             , `@far_service_id`     AS `service_id`
             , `@far_queue_id`       AS `queue_id`
@@ -100,7 +100,7 @@ DO
             DO
                         SELECT      `id`, `message_type`, `message_body` 
                         INTO        `@msg_id`, `@msg_type`, `@msg_body`
-                        FROM        `umq_Messages`
+                        FROM        `umq_messages`
                         WHERE       `queue_id` = `@queue_id`
                                     AND `status` = 0
                         ORDER BY    `id`
@@ -115,7 +115,7 @@ DO
             IF          `@msg_id` IS NULL 
             THEN
                         -- end conversation
-                        UPDATE      `umq_Conversations`
+                        UPDATE      `umq_conversations`
                         SET         `status` = 1
                         WHERE       `id` = `@conv_id`;
                         
@@ -124,13 +124,13 @@ DO
                         LEAVE       PROC;
             END IF;
 
-            UPDATE      `umq_Messages`
+            UPDATE      `umq_messages`
             SET         `status` = 1
             WHERE       `id` = `@msg_id`;
 END WHILE;
 
 -- send on conversation `@request`
-INSERT      `umq_Messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
+INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
 SELECT      `@conv_id`          AS `conversation_id`
             , `@far_service_id` AS `service_id`
             , `@far_queue_id`   AS `queue_id`
@@ -149,7 +149,7 @@ WHILE       `@msg_id` IS NULL
 DO
             SELECT      `id`, `message_type`, `message_body` 
             INTO        `@msg_id`, `@msg_type`, `@msg_body`
-            FROM        `umq_Messages`
+            FROM        `umq_messages`
             WHERE       `queue_id` = `@queue_id`
                         AND `status` = 0
             ORDER BY    `id`
@@ -164,7 +164,7 @@ END WHILE;
 IF          `@msg_id` IS NULL 
 THEN
             -- end conversation
-            UPDATE      `umq_Conversations`
+            UPDATE      `umq_conversations`
             SET         `status` = 1
             WHERE       `id` = `@conv_id`;
             
@@ -173,14 +173,14 @@ THEN
             LEAVE       PROC;
 END IF;
 
-UPDATE      `umq_Messages`
+UPDATE      `umq_messages`
 SET         `status` = 1
 WHERE       `id` = `@msg_id`;
 
 -- can signal transport error
 IF          `@msg_type` <> 'DEFAULT'
 THEN
-            UPDATE      `umq_Conversations`
+            UPDATE      `umq_conversations`
             SET         `status` = 1
             WHERE       `id` = `@conv_id`;
             

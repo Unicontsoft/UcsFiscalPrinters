@@ -1,19 +1,19 @@
 SET SQL_SAFE_UPDATES=0;
-DROP PROCEDURE IF EXISTS `usp_umq_WaitRequest`;
+DROP PROCEDURE IF EXISTS `usp_umq_wait_request`;
 /*
-CALL `usp_umq_SetupService`('UcsFpTargetQueue/DEV-PC/1234', 'UcsFpTargetService/ZK123456', NULL);
-CALL `usp_umq_WaitRequest`('UcsFpTargetQueue/DEV-PC/1234', 5000, @handle, @request, @svc_name, @error_text, @result);
+CALL `usp_umq_setup_service`('UcsFpTargetQueue/DEV-PC/1234', 'UcsFpTargetService/ZK123456', NULL);
+CALL `usp_umq_wait_request`('UcsFpTargetQueue/DEV-PC/1234', 5000, @handle, @request, @svc_name, @error_text, @result);
             
-INSERT      `umq_Messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
+INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
 SELECT      @handle              AS `conversation_id`
-            , (SELECT `id` FROM umq_Services WHERE `name` = @svc_name) AS `service_id`
-            , (SELECT `queue_id` FROM umq_Services WHERE `name` = @svc_name) AS `queue_id`
+            , (SELECT `id` FROM umq_services WHERE `name` = @svc_name) AS `service_id`
+            , (SELECT `queue_id` FROM umq_services WHERE `name` = @svc_name) AS `queue_id`
             , 'DEFAULT'             AS `message_type`
             , CONCAT('Time is ', CURRENT_TIMESTAMP(3)) AS `message_body`
             , CURRENT_TIMESTAMP(3)  AS `created_at`;
 */
 DELIMITER $$
-CREATE PROCEDURE `usp_umq_WaitRequest` (
+CREATE PROCEDURE `usp_umq_wait_request` (
             IN `@queue_name`    VARCHAR(128)
             , IN `@timeout`     INT
             , OUT `@handle`     INT
@@ -42,7 +42,7 @@ DECLARE     `@conv_status`  INT;
 DECLARE     `@conv_service_id` INT;
 
 SET         `@retval` = 0;
-SET         `@queue_id` = (SELECT `id` FROM `umq_Queues` WHERE `name` = `@queue_name`);
+SET         `@queue_id` = (SELECT `id` FROM `umq_queues` WHERE `name` = `@queue_name`);
 
 IF          `@queue_id` IS NULL
 THEN
@@ -65,7 +65,7 @@ DO
             DO
                         SELECT      `id`, `message_type`, `message_body`, `conversation_id`
                         INTO        `@msg_id`, `@msg_type`, `@msg_body`, `@conv_id`
-                        FROM        `umq_Messages`
+                        FROM        `umq_messages`
                         WHERE       `queue_id` = `@queue_id`
                                     AND `status` = 0
                         ORDER BY    `id`
@@ -84,7 +84,7 @@ DO
                         LEAVE       PROC;            
             END IF;
 
-            UPDATE      `umq_Messages`
+            UPDATE      `umq_messages`
             SET         `status` = 1
             WHERE       `id` = `@msg_id`;
             
@@ -97,7 +97,7 @@ DO
             
                         SELECT      `status`, `service_id`
                         INTO        `@conv_status`, `@conv_service_id`
-                        FROM        `umq_Conversations` 
+                        FROM        `umq_conversations` 
                         WHERE       `id` = `@conv_id`;
                         
                         -- SELECT `@msg_id`, `@conv_status`, `@conv_service_id`, `@msg_type`, `@msg_body`;
@@ -107,16 +107,16 @@ DO
                                     IF          `@msg_body` = '__PING__'
                                     THEN
                                                 -- send on conversation '__PONG__'
-                                                INSERT      `umq_Messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
+                                                INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)
                                                 SELECT      `@conv_id`              AS `conversation_id`
                                                             , `@conv_service_id`    AS `service_id`
-                                                            , (SELECT `queue_id` FROM `umq_Services` WHERE `id` = `@conv_service_id`) AS `queue_id`
+                                                            , (SELECT `queue_id` FROM `umq_services` WHERE `id` = `@conv_service_id`) AS `queue_id`
                                                             , 'DEFAULT'             AS `message_type`
                                                             , '__PONG__'            AS `message_body`
                                                             , CURRENT_TIMESTAMP(3)  AS `created_at`;
                                     ELSE
                                                 SET         `@handle` = `@conv_id`;
-                                                SET         `@svc_name` = (SELECT `name` FROM `umq_Services` WHERE `id` = `@conv_service_id`);
+                                                SET         `@svc_name` = (SELECT `name` FROM `umq_services` WHERE `id` = `@conv_service_id`);
 
                                                 IF          `@msg_type` <> 'DEFAULT'
                                                 THEN
