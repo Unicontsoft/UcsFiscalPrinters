@@ -1999,7 +1999,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     Zn(.InitUniqueSaleNo, "0"), _
                     .InitRevData(ucsRevReceiptNo), _
                     sRevType, _
-                    sRevType & At(.InitRevData, ucsRevInvoiceNo, "0") & _
+                    sRevType & Zn(At(.InitRevData, ucsRevInvoiceNo), "0") & _
                         DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                         DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo))
             ElseIf IsEcr Then
