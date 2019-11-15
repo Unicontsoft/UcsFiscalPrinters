@@ -1,4 +1,5 @@
 <div align="center">
+<img width="64" height="64" src="res/UcsFPHub3.png">
 
 ## UcsFPHub
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
