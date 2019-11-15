@@ -853,12 +853,14 @@ Public Function GetLastReceiptNo() As String
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
+    Dim vSplit          As Variant
     Dim lIndex          As Long
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
         "Index", lIndex, 1
-    GetLastReceiptNo = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    GetLastReceiptNo = Zn(At(vSplit, lIndex), "ZR/" & At(vSplit, lIndex + 2))
     Exit Function
 EH:
     RaiseError FUNC_NAME
