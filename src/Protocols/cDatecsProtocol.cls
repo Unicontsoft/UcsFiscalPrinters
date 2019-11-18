@@ -1221,7 +1221,6 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
-    Dim lIndex          As Long
 
     On Error GoTo EH
     '--- %1={Type}<SEP>%2={Amount}<SEP>
@@ -1231,13 +1230,10 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     sParam = Printf(sParam, IIf(Amount >= 0, "0", "1"), SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 3) As Double
+        ReDim vRetVal(0 To 2) As Double
         For lIdx = 0 To 2
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "1" & DEF_SEP, "Index", lIndex, 1
-        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        vRetVal(3) = ParseSum(At(vSplit, lIndex))
         PrintServiceDeposit = vRetVal
     Else
         PrintServiceDeposit = EmptyDoubleArray

@@ -1374,7 +1374,7 @@ Public Function PrintServiceDeposit( _
         vRetVal = EmptyDoubleArray
         GoTo QH
     End If
-    ReDim vRetVal(0 To 3) As Double
+    ReDim vRetVal(0 To 2) As Double
     vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
     pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -1382,10 +1382,6 @@ Public Function PrintServiceDeposit( _
     pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsZekCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
-        "Index", lIndex, 17
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    vRetVal(3) = C_Dbl(At(vSplit, lIndex))
 QH:
     PrintServiceDeposit = vRetVal
     Exit Function

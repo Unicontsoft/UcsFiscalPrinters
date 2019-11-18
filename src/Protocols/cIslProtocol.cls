@@ -376,7 +376,7 @@ Property Get ErrorText() As String
     ErrorText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterErrors))
     If IsDaisy And (m_eDip And &H7F) <> 0 Then
         ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
-            At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F, Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
+            Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
     End If
 End Property
 
@@ -1483,11 +1483,6 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
-    Dim sIndexes        As String
-    Dim vElem           As Variant
-    Dim lOffset         As Long
-    Dim lRevOffset      As Long
-    Dim vRevSum         As Variant
     
     On Error GoTo EH
     sFormat = IIf(Abs(Amount) > DBL_EPSILON, FORMAT_BASE_2, "\")
@@ -1496,37 +1491,10 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     sParam = Printf(sParam, SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 3) As Double
+        ReDim vRetVal(0 To 2) As Double
         For lIdx = 0 To 2
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
-        '--- sParam=4 -> P,CashInN,CashInS,CashOutN,CashOutS,CashSum
-        pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsIslCmdInfoNap, sParam, "4", _
-            "Indexes", sIndexes, "4" & DEF_SEP & "1" & DEF_SEP & "3"
-        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        lIdx = 0
-        If UBound(vSplit) > 0 Then
-            lOffset = IIf(At(vSplit, 0) = "P", 1, 0)
-            For Each vElem In Split(sIndexes, DEF_SEP)
-                If lIdx >= LBound(vRetVal) And lIdx <= UBound(vRetVal) Then
-                    If C_Str(C_Lng(vElem)) = C_Str(vElem) Then
-                        If LenB(At(vSplit, C_Lng(vElem) + lOffset)) <> 0 Then
-                            vRetVal(lIdx) = ParseSum(At(vSplit, C_Lng(vElem) + lOffset))
-                        End If
-                    Else
-                        vRetVal(lIdx) = vElem
-                    End If
-                End If
-                lIdx = lIdx + 1
-            Next
-        Else
-            pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups5", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "5", _
-                "RevOffset", lRevOffset, IIf(IsIncotex Or IsDaisy, 1, 0)
-            vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-            For lIdx = 0 To 7
-                vRetVal(3) = vRetVal(3) + ParseSum(At(vRevSum, lIdx + lRevOffset))
-            Next
-        End If
         PrintServiceDeposit = vRetVal
     Else
         PrintServiceDeposit = EmptyDoubleArray

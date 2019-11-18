@@ -564,6 +564,8 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
     Dim vTotals         As Variant
     Dim lIdx            As Long
     Dim oItem           As Object
+    Dim dblTotalAmount  As Double
+    Dim dblTotalReversal As Double
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -576,6 +578,8 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             JsonItem(oRetVal, "NumReceipts") = vTotals(0)
             JsonItem(oRetVal, "LastZReportDateTime") = vTotals(1)
         End If
+        JsonItem(oRetVal, "TotalAmount") = 0#
+        JsonItem(oRetVal, "TotalReversal") = 0#
     End If
     If JsonBoolItem(oJson, "IncludeServiceDeposit") Or bIncludeAll Then
         vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
@@ -583,25 +587,30 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
             JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
             JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
             JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
-            JsonItem(oRetVal, "TotalReversal") = vTotals(3)
         End If
     End If
-    If JsonBoolItem(oJson, "IncludeTaxGroups") Or bIncludeAll Then
+    If JsonBoolItem(oJson, "IncludeStats") Or JsonBoolItem(oJson, "IncludeTaxGroups") Or bIncludeAll Then
         vTotals = oFP.GetTotalsByTaxGroups()
         If IsArray(vTotals) Then
             For lIdx = 0 To UBound(vTotals)
                 If IsArray(vTotals(lIdx)) Then
-                    Set oItem = Nothing
-                    JsonItem(oItem, "TaxGroup") = lIdx + 1
-                    If vTotals(lIdx)(0) >= 0 And vTotals(lIdx)(0) < 100 Then
-                        JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
+                    If JsonBoolItem(oJson, "IncludeTaxGroups") Or bIncludeAll Then
+                        Set oItem = Nothing
+                        JsonItem(oItem, "TaxGroup") = lIdx + 1
+                        If vTotals(lIdx)(0) >= 0 And vTotals(lIdx)(0) < 100 Then
+                            JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
+                        End If
+                        JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
+                        JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                        JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
                     End If
-                    JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
-                    JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
-                    JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
+                    dblTotalAmount = dblTotalAmount + vTotals(lIdx)(1)
+                    dblTotalReversal = dblTotalReversal + vTotals(lIdx)(2)
                 End If
             Next
         End If
+        JsonItem(oRetVal, "TotalAmount") = dblTotalAmount
+        JsonItem(oRetVal, "TotalReversal") = dblTotalReversal
     End If
     If JsonBoolItem(oJson, "IncludePaymentTypes") Or bIncludeAll Then
         vTotals = oFP.GetTotalsByPaymentTypes()
@@ -663,7 +672,6 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
     JsonItem(oRetVal, "TotalWithdraws") = vTotals(2)
-    JsonItem(oRetVal, "TotalReversal") = vTotals(3)
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     PrintServiceDeposit = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
