@@ -99,6 +99,8 @@ Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
 Private m_dSshLastAccess            As Date
 Private m_oQueue                    As IQueue
+Private m_sSqlInstance              As String
+Private m_sSqlDatabase              As String
 
 Private Enum UcsSshSettingsIndexEnum
     ucsSixTunnel
@@ -118,7 +120,7 @@ End Enum
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")]", vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -151,8 +153,6 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Dim dClock          As Date
     Dim sQueueName      As String
     Dim lQueueTimeout   As Long
-    Dim sSqlInstance    As String
-    Dim sSqlDatabase    As String
 
     On Error GoTo EH
     Set m_oConfig = oConfig
@@ -166,7 +166,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         GoTo QH
     End If
     '--- init DB connection
-    If Not pvOpenConn(oConfig, sSqlInstance, sSqlDatabase) Then
+    If Not pvOpenConn(oConfig) Then
         Set m_oController = Nothing
         GoTo QH
     End If
@@ -176,7 +176,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
-    sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & sSqlInstance & "/" & sSqlDatabase
+    sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
     sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), sQueueName)
     lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
     If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
@@ -281,7 +281,7 @@ EH:
 End Function
 
 Friend Function frReopenConn(oConn As Object) As Boolean
-    If pvOpenConn(m_oConfig, vbNullString, vbNullString) Then
+    If pvOpenConn(m_oConfig) Then
         Set oConn = m_oConn
         '--- success
         frReopenConn = True
@@ -324,7 +324,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvOpenConn(oConfig As Object, sSqlInstance As String, sSqlDatabase As String) As Boolean
+Private Function pvOpenConn(oConfig As Object) As Boolean
     Const FUNC_NAME     As String = "pvOpenConn"
     Const DEF_SECTION   As String = "Profile"
     Dim STR_DATA_SOURCE As String
@@ -421,10 +421,10 @@ Private Function pvOpenConn(oConfig As Object, sSqlInstance As String, sSqlDatab
     m_oConn.Open sLocalConnStr
     m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
     With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
-        sSqlInstance = .Fields(0).Value
-        sSqlDatabase = .Fields(1).Value
+        m_sSqlInstance = .Fields(0).Value
+        m_sSqlDatabase = .Fields(1).Value
     End With
-    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), sSqlInstance, sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     pvOpenConn = True
 QH:
