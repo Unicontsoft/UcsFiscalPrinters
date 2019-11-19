@@ -6,7 +6,7 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cMssqlEndpoint"
+Attribute VB_Name = "cQueueEndpoint"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
@@ -23,7 +23,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cMssqlEndpoint"
+Private Const MODULE_NAME As String = "cQueueEndpoint"
 Implements IEndpoint
 
 '=========================================================================
@@ -62,31 +62,18 @@ End Type
 
 Private Const STR_CONN_OPEN             As String = "Връзка с %2 на %1 е отворена"
 Private Const STR_CONN_REOPEN           As String = "Връзка с %2 на %1 е възстановена"
-Private Const STR_QUEUE_SETUP           As String = "Опашка %1 слуша за %2 услуги"
-Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
-Private Const STR_QUEUE_HEARTBEAT       As String = "Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)"
-Private Const STR_QUEUE_ELAPSED         As String = "Oпашка %1 за принтер %2 изпълни заявка %3 за %4 сек."
-Private Const STR_QUEUE_ERROR           As String = "Опашка %1 за принтер %2 върна грешка %3"
+Private Const STR_HANDLER_ELAPSED       As String = "Принтер %1 изпълни заявка %2 за %3 сек."
+Private Const STR_HANDLER_ERROR         As String = "Принтер %1 върна грешка %2"
 Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към принтер на услуга %2"
 Private Const STR_DATETIME_SETUP        As String = "Принтер %1 е с установен час %2 (предишен час %3)"
 Private Const STR_DATETIME_ERROR        As String = "Принтер %1 върна грешка %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
-Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
 '--- errors
 Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
-Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
-Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
-'--- queue
+'--- defaults
 Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
-Private Const STR_QUEUE_LOOP            As String = "DECLARE     @QueueName SYSNAME = '%1', @Result INT, @Handle UNIQUEIDENTIFIER, @Request NVARCHAR(MAX), @MsgType SYSNAME, @SvcName SYSNAME, @ErrorText NVARCHAR(255)" & vbCrLf & _
-                                                    "EXEC        @Result = dbo.usp_sys_ServiceBrokerWaitRequest @QueueName, %2, @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT, @ErrorText OUTPUT" & vbCrLf & _
-                                                    "SELECT      @Result AS Result, @Handle AS Handle, @Request AS Request, @MsgType AS MsgType, @SvcName AS SvcName, @ErrorText AS ErrorText" & vbCrLf & _
-                                                    "RAISERROR   ('Result=%d', 10, 0, @Result) WITH NOWAIT" & vbCrLf
-Private Const LNG_QUEUE_FIELDS          As Long = 6
-Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
-Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 '--- params
 Private Const PRM_SQLSERVER             As String = "SqlServer"
 Private Const PRM_DBUSER                As String = "DbUser"
@@ -107,14 +94,11 @@ Private m_oPrinters                 As Object
 Private m_pTimer                    As IUnknown
 Private WithEvents m_oConn          As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
-Private m_sSqlInstance              As String
-Private m_sSqlDatabase              As String
-Private m_sQueueName                As String
-Private m_lQueueTimeout             As Long
 Private m_oController               As cServiceController
 Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
 Private m_dSshLastAccess            As Date
+Private m_oQueue                    As IQueue
 
 Private Enum UcsSshSettingsIndexEnum
     ucsSixTunnel
@@ -134,7 +118,7 @@ End Enum
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")]", vbLogEventTypeError
+        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -153,10 +137,6 @@ Property Get LastError() As String
     LastError = m_sLastError
 End Property
 
-Private Property Get pvAddressOfTimerProc() As cMssqlEndpoint
-    Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
-End Property
-
 Private Property Get STR_RC4_SALT() As String
     STR_RC4_SALT = GetEnvironmentVar("_UCS_RC4_SALT")
 End Property
@@ -169,6 +149,10 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oRequestsCache  As Object
     Dim dClock          As Date
+    Dim sQueueName      As String
+    Dim lQueueTimeout   As Long
+    Dim sSqlInstance    As String
+    Dim sSqlDatabase    As String
 
     On Error GoTo EH
     Set m_oConfig = oConfig
@@ -182,7 +166,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         GoTo QH
     End If
     '--- init DB connection
-    If Not pvOpenConn(oConfig) Then
+    If Not pvOpenConn(oConfig, sSqlInstance, sSqlDatabase) Then
         Set m_oController = Nothing
         GoTo QH
     End If
@@ -192,12 +176,12 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
-    m_sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
-    m_sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), m_sQueueName)
-    m_lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
-    pvQueueSetup
-    pvQueueLoopAsync
-    pvRestartTimer
+    sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & sSqlInstance & "/" & sSqlDatabase
+    sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), sQueueName)
+    lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
+    If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
+        GoTo QH
+    End If
     '--- success
     Init = True
 QH:
@@ -210,8 +194,19 @@ EH:
     Resume QH
 End Function
 
+Private Function pvInitMssqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMssqlQueue) As cMssqlQueue
+    Set RetVal = New cMssqlQueue
+    If RetVal.Init(m_oConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+        m_sLastError = RetVal.LastError
+        Set pvInitMssqlQueue = RetVal
+    End If
+End Function
+
 Public Sub Terminate()
-    pvQueueTerminate
+    If m_oQueue Is Nothing Then
+        m_oQueue.Terminate
+        Set m_oQueue = Nothing
+    End If
     Set m_pTimer = Nothing
     Set m_oConn = Nothing
     Set m_oSshTunnel = Nothing
@@ -220,40 +215,10 @@ Public Sub Terminate()
     Set m_oPrinters = Nothing
 End Sub
 
-Public Function TimerProc() As Long
-Attribute TimerProc.VB_MemberFlags = "40"
-    Const FUNC_NAME     As String = "TimerProc"
-    
-    On Error GoTo EH
-    '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
-    DebugLog Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    pvQueueTerminate
-    If pvOpenConn(m_oConfig) Then
-        pvQueueLoopAsync
-    End If
-    pvRestartTimer
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
+'= friend ================================================================
 
-Private Sub pvRestartTimer()
-    Const FUNC_NAME     As String = "pvRestartTimer"
-    
-    On Error GoTo EH
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Sub
-
-'= private ===============================================================
-
-Private Function pvHandleRequest(sSvcName As String, sRequest As String, sResponse As String, lErrorCode As Long) As Boolean
-    Const FUNC_NAME     As String = "pvHandleRequest"
+Friend Function frHandleRequest(sSvcName As String, sRequest As String, sResponse As String, lErrorCode As Long) As Boolean
+    Const FUNC_NAME     As String = "frHandleRequest"
     Dim vJson           As Variant
     Dim sPrinterId      As String
     Dim sError          As String
@@ -264,11 +229,14 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
     On Error GoTo EH
     dblStartTimerEx = TimerEx
     DebugDataDump "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    sPrinterId = At(Split(sSvcName, "/"), 1)
-    If LenB(sPrinterId) = 0 Then
-        lErrorCode = 400
-        sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
-        GoTo QH
+    vSplit = Split(sSvcName, "/")
+    If UBound(vSplit) = 1 Then
+        sPrinterId = At(vSplit, 1)
+        If LenB(sPrinterId) = 0 Then
+            lErrorCode = 400
+            sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
+            GoTo QH
+        End If
     End If
     If Left$(sRequest, 1) = "<" Then
         AssignVariant vJson, JsonFromXmlDocument(sRequest)
@@ -288,7 +256,7 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         sResponse = Printf(ERR_INVALID_URL, sRawUrl)
         GoTo QH
     End If
-    If LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
+    If LenB(sPrinterId) <> 0 And LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
         DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     End If
     vSplit = Split2(sRawUrl, "?")
@@ -297,12 +265,12 @@ Private Function pvHandleRequest(sSvcName As String, sRequest As String, sRespon
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog Printf(STR_QUEUE_ELAPSED, m_sQueueName, sPrinterId, sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(STR_HANDLER_ELAPSED, Zn(sPrinterId, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
-    pvHandleRequest = True
+    frHandleRequest = True
 QH:
-    If Not pvHandleRequest Then
-        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    If Not frHandleRequest Then
+        DebugLog Printf(STR_HANDLER_ERROR, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     End If
     DebugDataDump "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     Exit Function
@@ -311,6 +279,16 @@ EH:
     sResponse = m_sLastError
     GoTo QH
 End Function
+
+Friend Function frReopenConn(oConn As Object) As Boolean
+    If pvOpenConn(m_oConfig, vbNullString, vbNullString) Then
+        Set oConn = m_oConn
+        '--- success
+        frReopenConn = True
+    End If
+End Function
+
+'= private ===============================================================
 
 Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) As Boolean
     Const FUNC_NAME     As String = "pvSyncDateTime"
@@ -346,62 +324,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvQueueSetup() As Boolean
-    Const FUNC_NAME     As String = "pvQueueSetup"
-    Dim lIdx            As Long
-    Dim vElem           As Variant
-    
-    On Error GoTo EH
-    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, Len(STR_QUEUE_PREFIX) + 1), "DROP_EXISTING"
-    lIdx = lIdx + 1
-    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
-        If LenB(C_Str(vElem)) <> 0 Then
-            m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & C_Str(vElem), "DROP_SERVICE"
-            lIdx = lIdx + 1
-        End If
-    Next
-    DebugLog Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Function pvQueueLoopAsync() As Boolean
-    Const FUNC_NAME     As String = "pvQueueLoopAsync"
-    
-    On Error GoTo EH
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
-    '--- success
-    pvQueueLoopAsync = True
-QH:
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Function
-
-Private Function pvQueueTerminate() As Boolean
-    Const FUNC_NAME     As String = "pvQueueTerminate"
-    
-    On Error GoTo EH
-    If Not m_oConn Is Nothing Then
-        If (m_oConn.State And adStateExecuting) <> 0 Then
-            m_oConn.Cancel
-        End If
-        m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, Len(STR_QUEUE_PREFIX) + 1), "DROP_ONLY"
-        DebugLog Printf(STR_QUEUE_TERMINATE, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-    End If
-    '--- success
-    pvQueueTerminate = True
-QH:
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Function
-
-Private Function pvOpenConn(oConfig As Object) As Boolean
+Private Function pvOpenConn(oConfig As Object, sSqlInstance As String, sSqlDatabase As String) As Boolean
     Const FUNC_NAME     As String = "pvOpenConn"
     Const DEF_SECTION   As String = "Profile"
     Dim STR_DATA_SOURCE As String
@@ -497,11 +420,13 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
     m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
-    If pvIsConnAlive(m_oConn) Then
-        DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-        '--- success
-        pvOpenConn = True
-    End If
+    With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
+        sSqlInstance = .Fields(0).Value
+        sSqlDatabase = .Fields(1).Value
+    End With
+    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), sSqlInstance, sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    '--- success
+    pvOpenConn = True
 QH:
     If Not pvOpenConn Then
         Set m_oConn = Nothing
@@ -795,89 +720,6 @@ Private Function pvSetConnProp(ByVal sConnStr As String, sProp As String, sValue
 EH:
     RaiseError FUNC_NAME
 End Function
-
-Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
-    On Error GoTo QH
-    With cn.Execute("SELECT @@SERVERNAME, DB_NAME()")
-        m_sSqlInstance = .Fields(0).Value
-        m_sSqlDatabase = .Fields(1).Value
-    End With
-    '--- success
-    pvIsConnAlive = True
-QH:
-End Function
-
-'=========================================================================
-' Events
-'=========================================================================
-
-Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
-    Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
-    Static bHere        As Boolean
-    Dim sHandle         As String
-    Dim sResponse       As String
-    Dim lErrorCode      As Long
-    Dim sPrinterId      As String
-    Dim vErr            As Variant
-    
-    On Error GoTo EH
-    If bHere Then
-        Exit Sub
-    End If
-    bHere = True
-    If Not pError Is Nothing Then
-        vErr = Array(pError.Number, pError.Source, pError.Description)
-        If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
-            DebugLog pError.Description & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
-        End If
-        GoTo NextLine
-    ElseIf Not pRecordset Is Nothing Then
-        If (pRecordset.State And adStateOpen) <> 0 Then
-            If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
-                pvQueueLoopAsync
-                pvRestartTimer
-                sHandle = C_Str(pRecordset!Handle.Value)
-                If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
-                    If pvHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
-                    Else
-                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
-                            Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
-                    End If
-                ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
-                    sResponse = C_Str(pRecordset!ErrorText.Value)
-                    If LenB(sResponse) <> 0 Then
-                        sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
-                    End If
-                End If
-            End If
-        End If
-    End If
-QH:
-    bHere = False
-    Exit Sub
-EH:
-    vErr = Array(Err.Number, Err.Source, Err.Description)
-    If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
-        PrintError FUNC_NAME
-    End If
-    Resume NextLine
-NextLine:
-    On Error Resume Next
-    If pvIsConnAlive(m_oConn) Then
-        If vErr(0) = ERR_DB_E_NOTABLE Then
-            pvQueueSetup
-        End If
-        If LenB(sHandle) <> 0 Then
-            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
-                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
-        End If
-        pvQueueLoopAsync
-        pvRestartTimer
-    End If
-    GoTo QH
-End Sub
 
 '=========================================================================
 ' Base class events

@@ -345,7 +345,7 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
     Const FUNC_NAME     As String = "pvCreateEndpoints"
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
-    Dim oMssqlEndpoint  As cMssqlEndpoint
+    Dim oMssqlEndpoint  As cQueueEndpoint
     Dim oLocalEndpoint  As frmLocalEndpoint
     
     On Error GoTo EH
@@ -365,7 +365,7 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
                     cRetVal.Add oRestEndpoint
                 End If
             Case "mssqlservicebroker"
-                Set oMssqlEndpoint = New cMssqlEndpoint
+                Set oMssqlEndpoint = New cQueueEndpoint
                 If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                     cRetVal.Add oMssqlEndpoint
                 End If
