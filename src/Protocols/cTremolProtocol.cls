@@ -1721,7 +1721,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Select Case .RowType
         Case ucsRowInit
             '--- note: cannot print barcodes in fiscal receipt, so print all barcodes in advance
-            For lIdx = uCtx.Row + 1 To lRowCount
+            For lIdx = uCtx.Row + 1 To lRowCount - 1
                 With uRow(lIdx)
                 If .RowType = ucsRowBarcode Then
                     If Not PrintBarcode(.BarcodeType, .BarcodeText, .BarcodeHeight) Then
