@@ -45,7 +45,7 @@ VersionFileDescription="Unicontsoft Fiscal Printers Hub (0.1.30)"
 VersionLegalCopyright="Copyright © 2019 Unicontsoft"
 VersionProductName="Unicontsoft Fiscal Printers Hub"
 CondComp="USE_DEBUG_LOG = 1"
-CompilationType=0
+CompilationType=-1
 OptimizationType=2
 FavorPentiumPro(tm)=0
 CodeViewDebugInfo=-1
