@@ -147,11 +147,12 @@ End Function
 Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
     Dim lPos            As Long
+    
     On Error GoTo EH
-    If Not m_oConn Is Nothing Then
-        If (m_oConn.State And adStateExecuting) <> 0 Then
-            m_oConn.Cancel
-        End If
+    If pvIsConnBusy(m_oConn) Then
+        m_oConn.Cancel
+    End If
+    If pvIsConnAlive(m_oConn) Then
         lPos = InStr(m_sQueueName, "/")
         m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_ONLY"
         DebugLog Printf(STR_QUEUE_TERMINATE, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
@@ -171,6 +172,12 @@ Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     End With
     '--- success
     pvIsConnAlive = True
+QH:
+End Function
+
+Public Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
+    On Error GoTo QH
+    pvIsConnBusy = (cn.State And adStateExecuting) <> 0
 QH:
 End Function
 
