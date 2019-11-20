@@ -22,6 +22,7 @@ Module=mdJson; ..\..\..\src\Shared\mdJson.bas
 Module=mdMST; Shared\mdMST.bas
 Class=cMssqlQueue; cMssqlQueue.cls
 Class=IQueue; IQueue.cls
+Class=cMysqlQueue; cMysqlQueue.cls
 IconForm="frmIcon"
 Startup="Sub Main"
 HelpFile=""

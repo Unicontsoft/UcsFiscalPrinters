@@ -228,7 +228,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     DebugLog Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
         JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- then register http/mssql endpoints
-    If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker", m_cEndpoints) Then
+    If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker mysqlmessagequeue", m_cEndpoints) Then
         GoTo QH
     End If
     If m_bIsService Then
@@ -345,7 +345,7 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
     Const FUNC_NAME     As String = "pvCreateEndpoints"
     Dim vKey            As Variant
     Dim oRestEndpoint   As cRestEndpoint
-    Dim oMssqlEndpoint  As cQueueEndpoint
+    Dim oQueueEndpoint  As cQueueEndpoint
     Dim oLocalEndpoint  As frmLocalEndpoint
     
     On Error GoTo EH
@@ -364,10 +364,10 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
                 If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                     cRetVal.Add oRestEndpoint
                 End If
-            Case "mssqlservicebroker"
-                Set oMssqlEndpoint = New cQueueEndpoint
-                If oMssqlEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
-                    cRetVal.Add oMssqlEndpoint
+            Case "mssqlservicebroker", "mysqlmessagequeue"
+                Set oQueueEndpoint = New cQueueEndpoint
+                If oQueueEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                    cRetVal.Add oQueueEndpoint
                 End If
             End Select
         End If

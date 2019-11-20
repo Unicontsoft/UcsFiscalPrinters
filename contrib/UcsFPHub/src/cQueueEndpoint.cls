@@ -179,9 +179,16 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
     sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), sQueueName)
     lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
-    If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
-        GoTo QH
-    End If
+    Select Case LCase$(JsonItem(oConfig, "Binding"))
+    Case "mssqlservicebroker"
+        If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
+            GoTo QH
+        End If
+    Case "mysqlmessagequeue"
+        If pvInitMysqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
+            GoTo QH
+        End If
+    End Select
     '--- success
     Init = True
 QH:
@@ -202,8 +209,16 @@ Private Function pvInitMssqlQueue(sQueueName As String, ByVal lQueueTimeout As L
     End If
 End Function
 
+Private Function pvInitMysqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMysqlQueue) As cMysqlQueue
+    Set RetVal = New cMysqlQueue
+    If RetVal.Init(m_oConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+        m_sLastError = RetVal.LastError
+        Set pvInitMysqlQueue = RetVal
+    End If
+End Function
+
 Public Sub Terminate()
-    If m_oQueue Is Nothing Then
+    If Not m_oQueue Is Nothing Then
         m_oQueue.Terminate
         Set m_oQueue = Nothing
     End If
@@ -347,14 +362,26 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     bReopen = Not m_oConn Is Nothing
     sLocalConnStr = JsonItem(oConfig, "ConnectString")
     Set oSshSettings = ParseConnectString(JsonItem(oConfig, "SshSettings"))
+    sDbUser = C_Str(JsonItem(oConfig, "User"))
+    If LenB(sDbUser) <> 0 Then
+        sDbPass = C_Str(JsonItem(oConfig, "Password"))
+        If LenB(pvFromHexDump(sDbPass)) <> 0 Then
+            sSqlServer = Zn(C_Str(JsonItem(oConfig, "Server")), "(local)")
+            sDbPass = CryptRC4(pvFromHexDump(sDbPass), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
+        End If
+        sLocalConnStr = sLocalConnStr & ";Password=" & sDbPass
+    End If
     sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
     If LenB(sIniFile) <> 0 Then
-        If LenB(sLocalConnStr) <> 0 Then
+        If LenB(sLocalConnStr) = 0 Then
             sLocalConnStr = pvGetProfileString(sIniFile, DEF_SECTION, PRM_CONNSTR, vbNullString)
             sDbUser = pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBUSER, vbNullString)
             If LenB(sDbUser) <> 0 Then
-                sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
-                sDbPass = CryptRC4(pvFromHexDump(pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBPASS, vbNullString)), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
+                sDbPass = pvGetProfileString(sIniFile, DEF_SECTION, PRM_DBPASS, vbNullString)
+                If LenB(pvFromHexDump(sDbPass)) <> 0 Then
+                    sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
+                    sDbPass = CryptRC4(pvFromHexDump(sDbPass), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
+                End If
                 sLocalConnStr = sLocalConnStr & ";Password=" & sDbPass
             End If
         End If
@@ -420,10 +447,18 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
     m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
-    With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
-        m_sSqlInstance = .Fields(0).Value
-        m_sSqlDatabase = .Fields(1).Value
-    End With
+    Select Case LCase$(JsonItem(oConfig, "Binding"))
+    Case "mssqlservicebroker"
+        With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
+            m_sSqlInstance = .Fields(0).Value
+            m_sSqlDatabase = .Fields(1).Value
+        End With
+    Case "mysqlmessagequeue"
+        With m_oConn.Execute("SELECT @@HOSTNAME, DATABASE();")
+            m_sSqlInstance = .Fields(0).Value
+            m_sSqlDatabase = .Fields(1).Value
+        End With
+    End Select
     DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     pvOpenConn = True
@@ -452,16 +487,17 @@ EH:
 End Function
 
 Private Function pvFromHexDump(sText As String) As String
-    Const FUNC_NAME     As String = "pvFromHexDump"
     Dim lIdx            As Long
     
-    On Error GoTo EH
+    On Error GoTo QH
     For lIdx = 1 To Len(sText) Step 2
-        pvFromHexDump = pvFromHexDump & Chr$(C_Lng("&H" & Mid$(sText, lIdx, 2)))
+        If Not IsNumeric("&H" & Mid$(sText, lIdx, 2)) Then
+            GoTo QH
+        End If
+        pvFromHexDump = pvFromHexDump & Chr$(CLng("&H" & Mid$(sText, lIdx, 2)))
     Next
     Exit Function
-EH:
-    RaiseError FUNC_NAME
+QH:
 End Function
 
 Private Function pvMakeSshTunnel( _
