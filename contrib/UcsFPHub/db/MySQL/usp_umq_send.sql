@@ -2,7 +2,7 @@ SET SQL_SAFE_UPDATES=0;
 DROP PROCEDURE IF EXISTS `usp_umq_send`;
 /*
 CALL `usp_umq_setup_service`(NULL, NULL, NULL);
-CALL `usp_umq_send`('test', @response, 'UcsFpTargetService/ZK123456', 3000, @handle, @result);
+CALL `usp_umq_send`('{ "Url": "/printers" }', @response, 'UcsFpTargetService/ZK133759', 30000, @handle, @result);
 SELECT @result, @handle, @response;
 */
 DELIMITER $$
