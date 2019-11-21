@@ -12,11 +12,11 @@ Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to lo
 
 ### Description
 
-Unicontsoft Fiscal Printers Hub repository builds the standalone `UcsFPHub` service executable that can run as a background process or NT service and provide shared access to some or all fiscal devices that are attached to particular client workstation.
+Unicontsoft Fiscal Printers Hub repository builds the standalone `UcsFPHub` service executable that can run as a background process or an NT service and can provide shared access to some or all of the fiscal devices that are attached to a particular client workstation.
 
-The wire protocols implementation is provided by the parent `UcsFP20` component and supports serial COM port connectivity to locally attached devices or TCP/IP (LAN) connectivity to remote devices. Most locally attached fiscal printers can be auto-detected on startup by the `UcsFPHub` service too.
+The wire protocols implementation is provided by the parent `UcsFP20` component and supports serial COM ports connectivity to locally attached devices as well as TCP/IP (LAN) connectivity to remote ones. Most locally attached fiscal devices can be auto-detected on startup or on demand by the `UcsFPHub` service too.
 
-You can use a settings file to allow and configure fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service (local TCP/IP ports) or as a Service Broker queue (through Microsoft SQL Server connection).
+You can use a settings file to allow and configure fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service (local TCP/IP ports), a Service Broker queue (through Microsoft SQL Server connection) or a MySQL message queue (through as custom Poor Man's Message Queue™ implementation).
 
 ### Command-line options
 
@@ -75,12 +75,12 @@ Currently the `UcsFPHub` service supports these endpoint bindings:
 
 Binding                 | Description
 ----                    | -----------
-`RestHttp`              | (Optional) Starts a REST service to listen on HTTP endpoint on local IP and TCP port. (See [`PROTOCOL.md`](PROTOCOL.md) for available entries)
-`MssqlServiceBroker`    | (Optional) Starts a Service Broker service on a Service Broker queue in a designated SQL Server database. (See [`db/combined-SQL-Server.sql`](db/combined-SQL-Server.sql) installation script)
-`MysqlMessageQueue`     | (Optional) Starts a listener on a custom message queue in a designated MySQL database. (See [`db/combined-MySQL.sql`](db/combined-MySQL.sql) installation script)
-`Local`                 | Always registers a local out-of-process COM server on `UcsFPHub.LocalEndpoint` file moniker. (Use `GetObject("UcsFPHub.LocalEndpoint")` in VBScript/VBA).
+`RestHttp`              | (Optional) Starts a REST service to listen on HTTP endpoint on local IP and TCP port. (See [`PROTOCOL.md`](PROTOCOL.md) for protocol description)
+`MssqlServiceBroker`    | (Optional) Starts a Service Broker service on a Service Broker queue in a designated SQL Server database. (See [`db/combined-SQL-Server.sql`](db/combined-SQL-Server.sql) stored procedures installation script)
+`MysqlMessageQueue`     | (Optional) Starts a listener on a custom message queue in a designated MySQL database. (See [`db/combined-MySQL.sql`](db/combined-MySQL.sql) tables and stored procedures installation script)
+`Local`                 | Always registers a local out-of-process COM server on `UcsFPHub.LocalEndpoint` file moniker. (Accessible via `GetObject("UcsFPHub.LocalEndpoint")` in VBScript/VBA).
 
-For instance it is possible to setup none, one or several `RestHttp` endpoints to listen and be accessible on different IP addresses/TCP ports. Similarly you can setup several `MssqlServiceBroker` queues in different SQL Server databases to simultaneously share all (or some) locally attached fiscal devices.
+With this flexible configuration options it is possible to setup none, one or several `RestHttp` endpoints to listen and be accessible on different IP addresses/TCP ports. Similarly you can setup several `MssqlServiceBroker` queues in different SQL Server databases to simultaneously share all (or some) locally attached fiscal devices.
 
 Currently the `UcsFPHub` service also checks these environment variables:
 
@@ -103,7 +103,7 @@ Name             | Type   | Description
 `Protocol`       | string | (Required) See [**Available protocols**](#available-protocols) below
 `Port`           | string | Serial port the device is attached to (e.g. `COM1`)
 `Speed`          | number | Controls serial port speed to use (e.g. `9600`)
-`Persistent`     | bool   | Controls if serial port is closed after each operation or not (e.g. `Y` or `N`)
+`Persistent`     | bool   | Controls if serial port is kept open after each operation or not (default `No`)
 `IP`             | address | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
 `Port`           | number | TCP port to connect to (e.g. `4999`)
 `CodePage`       | number | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
@@ -113,8 +113,11 @@ Name             | Type   | Description
 `MaxDiscount`    | number | e.g. 99%
 `MaxReceiptRows` | number | Max number of rows on the receipt supported
 `MaxPaymentLen`  | number | Max number of symbols in a payment name
-`PingTimeout`    | number | Tremol only
-`DetailedReceipt`| bool   | Tremol only
+`PingTimeout`    | number | Tremol only (default 200 ms)
+`DetailedReceipt`| bool   | Tremol only (default `Off`)
+`PrintVat`       | bool   | Tremol only (default `Off`)
+`DelayPrint`     | bool   | Tremol only (default `On`)
+`BufferPrint`    | bool   | Tremol only (default `Off`)
 
 ### Available protocols
 
