@@ -168,7 +168,11 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
         Select Case LCase$(At(vMatches, 1))
         Case vbNullString
-            If Not m_oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) Then
+            If UBound(JsonKeys(oRequest)) = 0 Then
+                JsonItem(oInfo, "Ok") = True
+                sResponse = JsonDump(oInfo, Minimize:=True)
+                JsonItem(oInfo, "Ok") = Empty
+            ElseIf Not m_oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
         Case "status"
