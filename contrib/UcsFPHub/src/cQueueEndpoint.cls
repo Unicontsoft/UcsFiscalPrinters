@@ -73,7 +73,8 @@ Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker ус
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- defaults
-Private Const DEF_QUEUE_TIMEOUT         As Long = 5000
+Private Const DEF_MSSQL_TIMEOUT         As Long = 5000
+Private Const DEF_MYSQL_TIMEOUT         As Long = 1000
 '--- params
 Private Const PRM_SQLSERVER             As String = "SqlServer"
 Private Const PRM_DBUSER                As String = "DbUser"
@@ -178,13 +179,14 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     '--- init Service Broker queue
     sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
     sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), sQueueName)
-    lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_QUEUE_TIMEOUT)
     Select Case LCase$(JsonItem(oConfig, "Binding"))
     Case "mssqlservicebroker"
+        lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_MSSQL_TIMEOUT)
         If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
             GoTo QH
         End If
     Case "mysqlmessagequeue"
+        lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_MYSQL_TIMEOUT)
         If pvInitMysqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
             GoTo QH
         End If

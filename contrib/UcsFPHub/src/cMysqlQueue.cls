@@ -247,8 +247,6 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                 If C_Lng(pRecordset!Result.Value) = 98 Then
                     pvQueueSetup
                 End If
-                pvQueueLoopAsync
-                pvRestartTimer
                 sHandle = C_Str(pRecordset!Handle.Value)
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
@@ -264,6 +262,8 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                         DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
                     End If
                 End If
+                pvQueueLoopAsync
+                pvRestartTimer
             End If
         End If
     End If
