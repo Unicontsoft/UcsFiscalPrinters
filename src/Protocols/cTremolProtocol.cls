@@ -176,6 +176,8 @@ Private Const DEF_MAX_COMMENT           As Long = 34
 Private Const DEF_MAX_FISCALMEMORYNO    As Long = 8
 Private Const DEF_MAX_UNIQUESALENO      As Long = 24
 Private Const DEF_SEP                   As String = ";"
+Private Const DEF_SEQUENCE              As Long = &H20
+Private Const LNG_MAX_SEQUENCE           As Long = &H9F
 Private Const LNG_STATUS_READY          As Long = &H40
 Private Const LNG_STATUS_IS_BUSY        As Long = &H41
 Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
@@ -1544,7 +1546,7 @@ RetrySend:
     Else
         sText = Chr$(ZFP_STX) & Chr$(ZFP_BASEDATA + 3 + Len(Data)) & Chr$(m_lSequence) & Chr$(eCmd) & Data
         '--- increment sequence
-        m_lSequence = IIf(m_lSequence >= &H9F, ZFP_BASEDATA, m_lSequence + 1)
+        m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
         '--- append checksum and terminator
         sText = sText & pvCheckSum(sText) & Chr$(ZFP_ETX)
     End If
@@ -2112,7 +2114,7 @@ End Function
 
 Private Sub Class_Initialize()
     m_lTimeout = DEF_TIMEOUT
-    m_lSequence = ZFP_BASEDATA
+    m_lSequence = DEF_SEQUENCE
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS

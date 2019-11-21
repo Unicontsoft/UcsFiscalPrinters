@@ -210,6 +210,8 @@ Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
 Private Const DEF_SEP                   As String = vbTab
+Private Const DEF_SEQUENCE              As Long = &H20
+Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
@@ -260,6 +262,7 @@ Private Enum UcsProtocolMarkers
     SYM_POSTAMBLE = &H5
     SYM_NAK = &H15
     SYM_SYN = &H16
+    SYM_BASEDATA = &H20
 End Enum
 
 Private Type UcsAutodetect
@@ -457,7 +460,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3B) & Chr$(&H20) & Chr$(&H30) & Chr$(&H30) & Chr$(&H35) & Chr$(&H3A) & Chr$(&H9) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H3A) & Chr$(SYM_TERMINATOR))
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3B) & Chr$(SYM_BASEDATA) & Chr$(&H30) & Chr$(&H30) & Chr$(&H35) & Chr$(&H3A) & Chr$(&H9) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H3A) & Chr$(SYM_TERMINATOR))
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN)) ' SYN (&H16)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
@@ -1342,9 +1345,9 @@ Private Function pvSendCommand( _
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     '--- prepare command and transcode cyrillic
     sSend = pvTranscode(Data, True)
-    sSend = STR_CHR1 & pvToWireLong(&H20 + 10 + Len(sSend)) & Chr$(m_lSequence) & pvToWireLong(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
+    sSend = Chr$(SYM_PREAMBLE) & pvToWireLong(SYM_BASEDATA + 10 + Len(sSend)) & Chr$(m_lSequence) & pvToWireLong(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
     '--- increment sequence
-    m_lSequence = IIf(m_lSequence >= &H7F, &H20, m_lSequence + 1)
+    m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
     '--- append checksum and terminator
     sSend = sSend & pvCheckSum(sSend) & Chr$(SYM_TERMINATOR)
     '--- send request
@@ -1377,13 +1380,13 @@ RetrySend:
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)
     Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
-    If Left$(sText, 1) = STR_CHR1 Then
+    If Left$(sText, 1) = Chr$(SYM_PREAMBLE) Then
         lIdx = InStr(sText, Chr$(SYM_POSTAMBLE))
         If lIdx < 10 Then
             Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
             GoTo QH
         End If
-        lSize = pvFromWireLong(Mid$(sText, 2, 4)) - &H20
+        lSize = pvFromWireLong(Mid$(sText, 2, 4)) - SYM_BASEDATA
         '--- check message length
         If lSize < 10 Or lSize >= lIdx Then
             Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
@@ -1408,7 +1411,7 @@ RetryParse:
             IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
-        lIdx = InStr(sText, STR_CHR1)
+        lIdx = InStr(sText, Chr$(SYM_PREAMBLE))
         If lIdx > 1 Then
             DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
             sText = Mid$(sText, lIdx)
@@ -1962,7 +1965,7 @@ End Function
 
 Private Sub Class_Initialize()
     m_lTimeout = DEF_TIMEOUT
-    m_lSequence = &H20
+    m_lSequence = DEF_SEQUENCE
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     LocalizedText(ucsFscLciPrinterStatuses) = STR_STATUSES
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS_ONLY
