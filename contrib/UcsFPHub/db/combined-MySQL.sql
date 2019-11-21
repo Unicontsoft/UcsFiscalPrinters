@@ -155,6 +155,8 @@ DROP PROCEDURE IF EXISTS `usp_umq_send`;
 CALL `usp_umq_setup_service`(NULL, NULL, NULL);
 CALL `usp_umq_send`('{ "Url": "/printers" }', @response, 'UcsFpTargetService/ZK133759', 30000, @handle, @result);
 SELECT @result, @handle, @response;
+CALL `usp_umq_send`('{ "Url": "/printers/ZK133759/status" }', @response, 'UcsFpTargetService/ZK133759', 30000, @handle, @result);
+SELECT @result, @handle, @response;
 */
 DELIMITER $$
 CREATE PROCEDURE `usp_umq_send` (
@@ -485,8 +487,6 @@ BODY:BEGIN
 END;
 
 SELECT      `@handle` AS Handle, `@request` AS Request, `@svc_name` AS SvcName, `@error_text` AS ErrorText, `@retval` AS Result;
-SET         `@msg_body` = CONCAT('@retval=', `@retval`);
-SIGNAL      SQLSTATE '01000' SET MESSAGE_TEXT = `@msg_body`, MYSQL_ERRNO = 1000;
 
 END $$
 DELIMITER ;

@@ -136,8 +136,6 @@ BODY:BEGIN
 END;
 
 SELECT      `@handle` AS Handle, `@request` AS Request, `@svc_name` AS SvcName, `@error_text` AS ErrorText, `@retval` AS Result;
-SET         `@msg_body` = CONCAT('@retval=', `@retval`);
-SIGNAL      SQLSTATE '01000' SET MESSAGE_TEXT = `@msg_body`, MYSQL_ERRNO = 1000;
 
 END $$
 DELIMITER ;
