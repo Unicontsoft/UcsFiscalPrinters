@@ -5,7 +5,7 @@
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
-[![Download stable UcsFPHub-0.1.30.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.30.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.30/UcsFPHub-0.1.30.zip)
+[![Download stable UcsFPHub-0.1.31.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.31.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.31/UcsFPHub-0.1.31.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/wqweto/UcsFiscalPrinters/blob/master/LICENSE)
 </div>
@@ -57,6 +57,10 @@ Here is a sample settings file:
             "QueueTimeout": 5000,
             "SyncDateTimeAdjustTolerance": 120
         },
+        { 
+            "Binding": "MysqlMessageQueue", 
+            "ConnectString": "Driver={MySQL ODBC 8.0 Unicode Driver};Server=localhost;Database=MyAppDatabase;UID=root;PWD=%_UCS_MYSQL_PASSWORD%",
+        },
     ],
     "Environment": {
         "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP20.log",
@@ -71,9 +75,10 @@ Currently the `UcsFPHub` service supports these endpoint bindings:
 
 Binding                 | Description
 ----                    | -----------
-`RestHttp`              | (Optional) Starts a REST service to listen on HTTP endpoint on local IP and TCP port.
-`MssqlServiceBroker`    | (Optional) Starts a Service Broker service on a Service Broker queue in a designated SQL Server database.
-`Local`                 | Always registers a local out-of-process COM server on `UcsFPHub.LocalEndpoint` file moniker (e.g. accessible w/ `GetObject("UcsFPHub.LocalEndpoint")` in VBA).
+`RestHttp`              | (Optional) Starts a REST service to listen on HTTP endpoint on local IP and TCP port. (See [`PROTOCOL.md`](PROTOCOL.md) for available entries)
+`MssqlServiceBroker`    | (Optional) Starts a Service Broker service on a Service Broker queue in a designated SQL Server database. (See [`db/combined-SQL-Server.sql`](db/combined-SQL-Server.sql) installation script)
+`MysqlMessageQueue`     | (Optional) Starts a listener on a custom message queue in a designated MySQL database. (See [`db/combined-MySQL.sql`](db/combined-MySQL.sql) installation script)
+`Local`                 | Always registers a local out-of-process COM server on `UcsFPHub.LocalEndpoint` file moniker. (Use `GetObject("UcsFPHub.LocalEndpoint")` in VBScript/VBA).
 
 For instance it is possible to setup none, one or several `RestHttp` endpoints to listen and be accessible on different IP addresses/TCP ports. Similarly you can setup several `MssqlServiceBroker` queues in different SQL Server databases to simultaneously share all (or some) locally attached fiscal devices.
 
@@ -128,7 +133,7 @@ Name             | Manufacturer | Tested models  | Other supported models
 
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
-See [PROTOCOL.md](PROTOCOL.md) in root on the repo for each REST service endpoint description and sample usage.
+See [`PROTOCOL.md`](PROTOCOL.md) in root on the repo for each REST service endpoint description and sample usage.
 
 ### ToDo
 
