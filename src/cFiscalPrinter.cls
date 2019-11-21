@@ -601,7 +601,9 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                             JsonItem(oItem, "VatRate") = vTotals(lIdx)(0)
                         End If
                         JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
-                        JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                        If UBound(vTotals(lIdx)) >= 2 Then
+                            JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                        End If
                         JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
                     End If
                     dblTotalAmount = dblTotalAmount + vTotals(lIdx)(1)
@@ -621,7 +623,9 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                     JsonItem(oItem, "PaymentType") = lIdx + 1
                     JsonItem(oItem, "PaymentName") = vTotals(lIdx)(0)
                     JsonItem(oItem, "Amount") = vTotals(lIdx)(1)
-                    JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                    If UBound(vTotals(lIdx)) >= 2 Then
+                        JsonItem(oItem, "Reversal") = vTotals(lIdx)(2)
+                    End If
                     JsonItem(oRetVal, "TotalsByPaymentTypes/-1") = oItem
                 End If
             Next

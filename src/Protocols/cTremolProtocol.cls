@@ -177,7 +177,7 @@ Private Const DEF_MAX_FISCALMEMORYNO    As Long = 8
 Private Const DEF_MAX_UNIQUESALENO      As Long = 24
 Private Const DEF_SEP                   As String = ";"
 Private Const DEF_SEQUENCE              As Long = &H20
-Private Const LNG_MAX_SEQUENCE           As Long = &H9F
+Private Const LNG_MAX_SEQUENCE          As Long = &H9F
 Private Const LNG_STATUS_READY          As Long = &H40
 Private Const LNG_STATUS_IS_BUSY        As Long = &H41
 Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
@@ -1256,7 +1256,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)), 0)
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)))
             End If
         Next
         GetTotalsByPaymentTypes = vRetVal

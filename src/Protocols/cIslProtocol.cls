@@ -1372,7 +1372,11 @@ Public Function GetTotalsByPaymentTypes() As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                If IsArray(vRevSum) Then
+                    vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                Else
+                    vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+                End If
             End If
         Next
         GetTotalsByPaymentTypes = vRetVal
