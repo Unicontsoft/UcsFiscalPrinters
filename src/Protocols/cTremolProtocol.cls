@@ -257,7 +257,9 @@ Private Type UcsConfigValues
     IsEcr               As VbTriState
     PingTimeout         As Long
     DetailedReceipt     As Boolean
+    PrintVat            As Boolean
     DelayPrint          As Boolean
+    BufferPrint         As Boolean
     MaxOperCode         As Long
     MaxOperName         As Long
     MaxOperPassword     As Long
@@ -593,8 +595,10 @@ Public Function Init(sDeviceString As String) As Boolean
     With m_uConfig
         .IsEcr = vbUseDefault
         .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", C_Lng(JsonItem(oOptions, "PingTimeout")))
-        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", JsonItem(oOptions, "DetailedReceipt") = "Y"))
-        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", JsonItem(oOptions, "DelayPrint") <> "N"))
+        .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", JsonBoolItem(oOptions, "DetailedReceipt")))
+        .PrintVat = C_Bool(GetConfigValue(sSerial, "PrintVat", JsonBoolItem(oOptions, "PrintVat")))
+        .DelayPrint = C_Bool(GetConfigValue(sSerial, "DelayPrint", JsonBoolItem(oOptions, "DelayPrint", Default:=True)))
+        .BufferPrint = C_Bool(GetConfigValue(sSerial, "BufferPrint", JsonBoolItem(oOptions, "BufferPrint")))
         .MaxOperCode = GetConfigNumber(sSerial, "MaxOperCode", Znl(C_Lng(JsonItem(oOptions, "MaxOperCode")), DEF_MAX_OPERCODE))
         .MaxOperName = GetConfigNumber(sSerial, "MaxOperName", Znl(C_Lng(JsonItem(oOptions, "MaxOperName")), DEF_MAX_OPERNAME))
         .MaxOperPassword = GetConfigNumber(sSerial, "MaxOperPassword", Znl(C_Lng(JsonItem(oOptions, "MaxOperPassword")), DEF_MAX_OPERPASSWORD))
@@ -1779,16 +1783,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             '--- setup fiscal receipt
             Select Case .InitReceiptType
             Case ucsFscRcpSale
-                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "0" & DEF_SEP & "%4%6"
+                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5%7"
                 lPrintType = 0
             Case ucsFscRcpInvoice
-                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "0" & DEF_SEP & "%4" & DEF_SEP & "%5%6"
+                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6%7"
                 lPrintType = 1
             Case ucsFscRcpReversal
-                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "0" & DEF_SEP & "%4" & DEF_SEP & "%7"
+                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%8"
                 lPrintType = 64
             Case ucsFscRcpCreditNote
-                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "0" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%8"
+                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%9"
                 lPrintType = 65
             End Select
             pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsZekCmdFiscalOpen, sParam, sParam, _
@@ -1796,7 +1800,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             sParam = Printf(sParam, Pad(.InitOperatorCode, -m_uConfig.MaxOperCode), _
                 Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
                 IIf(m_uConfig.DetailedReceipt, 1, 0), _
-                Chr$(IIf(m_uConfig.DelayPrint, 2, 0) Or lPrintType), _
+                IIf(m_uConfig.PrintVat, 1, 0), _
+                Chr$(IIf(m_uConfig.DelayPrint, 2, 0) Or IIf(m_uConfig.BufferPrint, 4, 0) Or lPrintType), _
                 Pad(.InitInvData(ucsInvCgName), m_uConfig.MaxCompany) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxPrsReceive) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNo) & _
