@@ -98,26 +98,27 @@ The device strings are used to configure the connection used for communication w
 
 Here is a (short) list of supported `Name` entries, all of which are optional unless marked required:
 
-Name             | Type   | Description
-----             | ----   | -----------
-`Protocol`       | string | (Required) See [**Available protocols**](#available-protocols) below
-`Port`           | string | Serial port the device is attached to (e.g. `COM1`)
-`Speed`          | number | Controls serial port speed to use (e.g. `9600`)
-`Persistent`     | bool   | Controls if serial port is kept open after each operation or not (default `No`)
-`IP`             | address | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
-`Port`           | number | TCP port to connect to (e.g. `4999`)
-`CodePage`       | number | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
-`RowChars`       | number | Max number of characters on line (depends on the device model and paper loaded)
-`ItemChars`      | number | Max number of characters in a product name (defaults to `RowChars - 5`)
-`MinDiscount`    | number | e.g. -99%
-`MaxDiscount`    | number | e.g. 99%
-`MaxReceiptRows` | number | Max number of rows on the receipt supported
-`MaxPaymentLen`  | number | Max number of symbols in a payment name
-`PingTimeout`    | number | Tremol only (default 200 ms)
-`DetailedReceipt`| bool   | Tremol only (default `Off`)
-`PrintVat`       | bool   | Tremol only (default `Off`)
-`DelayPrint`     | bool   | Tremol only (default `On`)
-`BufferPrint`    | bool   | Tremol only (default `Off`)
+Name             | Type   | Protocol | Description
+----             | ----   | ------- | -----------
+`Protocol`       | string |         | (Required) See [**Available protocols**](#available-protocols) below
+`Port`           | string |         | Serial port the device is attached to (e.g. `COM1`)
+`Speed`          | number |         | Baud rate of serial port used (e.g. `9600`)
+`Persistent`     | bool   |         | Keep serial port open after operation complete (default `No`)
+`IP`             | address |        | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
+`Port`           | number |         | TCP port to connect to (e.g. `4999`)
+`RowChars`       | number |         | Total number of characters printable on paper roll (default to auto-detected)
+`CommentChars`   | numbet |         | Maximum number of characters available for a comment row (default to auto-detected)
+`ItemChars`      | number |         | Maximum number of characters available for product name (default to auto-detected)
+`MinDiscount`    | number |         | Minimum percent discount (default `-100`)
+`MaxDiscount`    | number |         | Maximum percent discount (default `100`)
+`MaxReceiptRows` | number |         | Max number of rows on the receipt supported
+`CodePage`       | number | ESC/POS | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
+`MaxPaymentLen`  | number | Datecs  | Max number of symbols in a payment name (default `16`)
+`PingTimeout`    | number | Tremol  | Timeout for replay from fast online check (default `200` ms)
+`DetailedReceipt`| bool   | Tremol  | For each PLU print quantity, price and  total on separate lines like on invoices (default `Off`)
+`PrintVat`       | bool   | Tremol  | Include total VAT by tax groups in footer like on invoices (default `Off`)
+`DelayPrint`     | bool   | Tremol  | Spool receipt data to device before printing (default `On`)
+`BufferPrint`    | bool   | Tremol  | Buffer receipt data (default `Off`)
 
 ### Available protocols
 
