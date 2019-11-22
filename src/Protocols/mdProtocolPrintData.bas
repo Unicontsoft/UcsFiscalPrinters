@@ -381,10 +381,6 @@ Public Function PpdAddPayment( _
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType
-        Select Case .PrintRowType
-        Case ucsFscRcpReversal, ucsFscRcpCreditNote
-            .PmtAmount = -.PmtAmount
-        End Select
     End With
     '--- success
     PpdAddPayment = True
