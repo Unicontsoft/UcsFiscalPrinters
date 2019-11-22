@@ -427,7 +427,7 @@ Following `data-utf8.txt` prints a reversal receipt (`ReceiptType` is 2, see bel
         {
             "ItemName": "Продукт 1",
             "Price": 12.34,
-            "Quantity": -1
+            "Quantity": 1
         },
         {
             "BarcodeType": "Code128",
