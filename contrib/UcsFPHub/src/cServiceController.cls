@@ -219,7 +219,7 @@ QH:
             sResponse = JsonToXmlDocument(vJson).Xml
         End If
     End If
-    If ServiceRequest And LenB(sRequestId) <> 0 Then
+    If ServiceRequest And LenB(sRequestId) <> 0 And InStr(sResponse, """Ok"":true") <> 0 Then
         Set oEntry = Nothing
         JsonItem(oEntry, "Path") = sPath
         JsonItem(oEntry, "QueryString") = sQueryString
