@@ -1660,7 +1660,7 @@ Public Function JsonEnumValue(vValue As Variant, sList As String) As Long
     JsonEnumValue = C_Lng(vValue)
 End Function
 
-Public Function JsonBoolItem(oJson As Object, sKey As String) As Boolean
+Public Function JsonBoolItem(oJson As Object, sKey As String, Optional ByVal Default As Boolean) As Boolean
     Dim vValue          As Variant
     
     AssignVariant vValue, JsonItem(oJson, sKey)
@@ -1668,8 +1668,34 @@ Public Function JsonBoolItem(oJson As Object, sKey As String) As Boolean
         Select Case LCase$(vValue)
         Case "y", "yes", "true", "on", "д", "да"
             JsonBoolItem = True
-            Exit Function
+        Case "n", "no", "false", "off", "н", "не"
+            JsonBoolItem = False
+        Case Else
+            JsonBoolItem = Default
         End Select
+    ElseIf IsEmpty(vValue) Then
+        JsonBoolItem = Default
+    ElseIf IsNumeric(vValue) Then
+        JsonBoolItem = C_Bool(vValue)
+    Else
+        JsonBoolItem = Default
     End If
-    JsonBoolItem = C_Bool(vValue)
+End Function
+
+Public Function ToConnectorDevice( _
+            oOptions As Object, _
+            Optional DefSerialPort As String, _
+            Optional ByVal DefSerialSpeed As Long, _
+            Optional ByVal DefSocketPort As Long) As String
+    If LenB(JsonItem(oOptions, "IP")) <> 0 Then
+        ToConnectorDevice = Trim$(JsonItem(oOptions, "IP")) & _
+            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DefSocketPort)
+    Else
+        ToConnectorDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DefSerialPort) & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DefSerialSpeed) & _
+            "," & JsonBoolItem(oOptions, "Persistent") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+            "," & IIf(JsonBoolItem(oOptions, "Parity"), "Y", "N") & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+    End If
 End Function

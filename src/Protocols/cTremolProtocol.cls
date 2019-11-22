@@ -548,17 +548,7 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    If LenB(JsonItem(oOptions, "IP")) <> 0 Then
-        m_sDevice = Trim$(JsonItem(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DEF_SOCKET_PORT)
-    Else
-        m_sDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DEF_SERIAL_PORT) & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
-            "," & JsonItem(oOptions, "Persistent") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
-            "," & IIf(UCase$(Zn(JsonItem(oOptions, "Parity"), "N")) = "Y", "Y", "N") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
-    End If
+    m_sDevice = ToConnectorDevice(oOptions, DEF_SERIAL_PORT, DEF_SERIAL_SPEED, DEF_SOCKET_PORT)
     If Not Connect() Then
         GoTo QH
     End If

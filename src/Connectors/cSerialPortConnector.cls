@@ -373,7 +373,7 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         Error = pvInternal(ucsErrNoDeviceInfoSet)
         GoTo QH
     End If
-    hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
+    hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
     If hComm = INVALID_HANDLE_VALUE Then
         lLastErr = Err.LastDllError
         Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
@@ -381,7 +381,7 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
             dblTimer = TimerEx + lTimeout / 1000#
             Do While TimerEx < dblTimer
                 Call Sleep(100)
-                hComm = PortWrapper.OpenComPort(At(vSplit, 0), At(vSplit, 2) = "P")
+                hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
                 If hComm <> INVALID_HANDLE_VALUE Then
                     Error = vbNullString
                     Exit Do
