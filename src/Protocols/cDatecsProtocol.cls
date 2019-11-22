@@ -1623,15 +1623,15 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
-            dblTotal = Round(.PluPrice * .PluQuantity, 2)
+            dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
             If .DiscType = ucsFscDscPlu Then
-                dblDisc = Round(dblTotal * .DiscValue / 100#, 2)
+                dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
             ElseIf .DiscType = ucsFscDscPluAbs Then
-                dblDisc = Round(.DiscValue, 2)
+                dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
             Else
                 dblDisc = 0
             End If
-            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, 2)
+            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             vSplit = WrapText(.PluItemName, LimitLong(pvCommentChars, , pvItemChars))
             For lIdx = 0 To UBound(vSplit) - 2
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
@@ -1678,7 +1678,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     End If
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                            dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
+                            dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
                             If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                     SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
                                 GoTo QH
@@ -1708,8 +1708,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If .DiscType = ucsFscDscSubtotal Then
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                        uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + dblTotal, 2)
+                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
+                        uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + dblTotal, DEF_PRICE_SCALE)
                     End If
                 Next
             End If

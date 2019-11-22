@@ -546,15 +546,15 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
-            dblTotal = Round(.PluPrice * .PluQuantity, 2)
+            dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
             If .DiscType = ucsFscDscPlu Then
-                dblDisc = Round(dblTotal * .DiscValue / 100#, 2)
+                dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
             ElseIf .DiscType = ucsFscDscPluAbs Then
-                dblDisc = Round(.DiscValue, 2)
+                dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
             Else
                 dblDisc = 0
             End If
-            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, 2)
+            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             Select Case .PrintRowType
             Case ucsFscRcpOrderList
                 pvGetCommandConfig CONF_NAME, "OrderList" & .PrintRowType, 0, 0, vbNullString, vbNullString, _
@@ -625,7 +625,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvPrintLine AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars - 2)
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
+                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
                         pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(.DiscValue), sFormatDisc) & " %"), _
                             SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + lIdx), pvCommentChars)
                     End If
@@ -637,8 +637,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case ucsFscDscSubtotal
                 For lIdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, 2)
-                        uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + dblTotal, 2)
+                        dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
+                        uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + dblTotal, DEF_PRICE_SCALE)
                     End If
                 Next
             Case ucsFscDscSubtotalAbs
@@ -654,7 +654,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
                     pvGetCommandConfig CONF_NAME, "NonFiscalFooter", 0, 0, vbNullString, vbNullString, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
-                    dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
+                    dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, DEF_PRICE_SCALE)
                     If dblTotal > DBL_EPSILON Then
                         pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvCommentChars - 2)
                     ElseIf dblTotal < -DBL_EPSILON Then
@@ -694,12 +694,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             For lIdx = 1 To UBound(uCtx.GrpTotal)
                                 If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                                     '--- first, round VAT
-                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), 2)
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), DEF_PRICE_SCALE)
                                     '--- then, calc TaxBase = Total - VAT
-                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - dblTotal, 2)
+                                    dblTotal = Round(uCtx.GrpTotal(lIdx) - dblTotal, DEF_PRICE_SCALE)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupTotal), Chr$(191 + lIdx)), SafeFormat(uCtx.GrpTotal(lIdx), sFormatAmount), pvCommentChars - 2)
                                     pvPrintLine AlignText(Printf(pvText(ucsTxtGroupVat), Chr$(191 + lIdx), SafeFormat(C_Dbl(At(vSplit, lIdx - 1)), sFormatAmount) & "%"), _
-                                        SafeFormat(Round(uCtx.GrpTotal(lIdx) - dblTotal, 2), sFormatAmount), pvCommentChars - 2)
+                                        SafeFormat(Round(uCtx.GrpTotal(lIdx) - dblTotal, DEF_PRICE_SCALE), sFormatAmount), pvCommentChars - 2)
                                     pvPrintLine AlignText(pvText(ucsTxtGroupNetto), SafeFormat(dblTotal, sFormatAmount), pvCommentChars - 2)
                                 End If
                             Next
@@ -713,10 +713,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .PmtName = GetPaymentName(.PmtType)
                     End If
                     pvPrintLine AlignText(.PmtName, SafeFormat(.PmtAmount, sFormatAmount), pvCommentChars - 2)
-                    uCtx.Paid = Round(uCtx.Paid + .PmtAmount, 2)
+                    uCtx.Paid = Round(uCtx.Paid + .PmtAmount, DEF_PRICE_SCALE)
                 Else
                     If uCtx.PmtPrinted And Not uCtx.ChangePrinted Then
-                        dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, 2)
+                        dblTotal = Round(SumArray(uCtx.GrpTotal) - uCtx.Paid, DEF_PRICE_SCALE)
                         If dblTotal > DBL_EPSILON Then
                             pvPrintLine AlignText(GetPaymentName(1), SafeFormat(dblTotal, sFormatAmount), pvCommentChars - 2)
                         ElseIf dblTotal < -DBL_EPSILON Then

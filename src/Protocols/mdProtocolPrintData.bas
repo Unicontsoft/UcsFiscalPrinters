@@ -74,6 +74,8 @@ Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
 Public Const MIN_TAX_GROUP              As Long = 1
 Public Const MAX_TAX_GROUP              As Long = 8
 Public Const DEF_TAX_GROUP              As Long = 2
+Public Const DEF_PRICE_SCALE            As Long = 2
+Public Const DEF_QUANTITY_SCALE         As Long = 3
 
 Public Type UcsPpdRowData
     RowType             As UcsPpdRowTypeEnum
@@ -200,7 +202,7 @@ Public Function PpdStartReceipt( _
         .InitTableNo = TableNo
         .InitUniqueSaleNo = SafeText(UniqueSaleNo)
         .InitDisablePrinting = DisablePrinting
-        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, pvCommentChars(uData)
+        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
@@ -236,17 +238,9 @@ Public Function PpdAddPLU( _
     With uRow
         .RowType = ucsRowPlu
         .PluItemName = RTrim$(SafeText(Name))
-        Select Case uData.Row(0).InitReceiptType
-        Case ucsFscRcpReversal, ucsFscRcpCreditNote
-            If Price < 0 Then
-                Price = -Price
-            Else
-                Quantity = -Quantity
-            End If
-        End Select
-        bNegative = (Round(Price, 2) * Round(Quantity, 3) < -DBL_EPSILON)
-        .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), 2)
-        .PluQuantity = Round(IIf(bNegative Or uData.Config.NegativePrices, Abs(Quantity), Quantity), 3)
+        bNegative = (Round(Price, DEF_PRICE_SCALE) * Round(Quantity, DEF_QUANTITY_SCALE) < -DBL_EPSILON)
+        .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), DEF_PRICE_SCALE)
+        .PluQuantity = Round(Abs(Quantity), DEF_QUANTITY_SCALE)
         .PluTaxGroup = LimitLong(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
         .PluUnitOfMeasure = UnitOfMeasure
         .PluDepartmentNo = DepartmentNo
@@ -314,7 +308,7 @@ Public Function PpdAddDiscount( _
             With uData.Row(lIdx)
                 If .RowType = ucsRowPlu Then
                     .DiscType = DiscType
-                    .DiscValue = Round(Value, 2)
+                    .DiscValue = Round(Value, DEF_PRICE_SCALE)
                     Exit For
                 End If
             End With
@@ -323,7 +317,7 @@ Public Function PpdAddDiscount( _
         With uRow
             .RowType = ucsRowDiscount
             .DiscType = DiscType
-            .DiscValue = Round(Value, 2)
+            .DiscValue = Round(Value, DEF_PRICE_SCALE)
             .PrintRowType = uData.Row(0).InitReceiptType
         End With
         pvInsertRow uData, BeforeIndex, uRow
@@ -385,7 +379,7 @@ Public Function PpdAddPayment( _
         .RowType = ucsRowPayment
         .PmtType = LimitLong(PmtType, 1, [_ucsFscPmtMax] - 1)
         .PmtName = SafeText(Name)
-        .PmtAmount = Round(Amount, 2)
+        .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType
         Select Case .PrintRowType
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
@@ -530,19 +524,19 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
 '        With uData.Row(lRow)
         If uData.Row(lRow).RowType = ucsRowPlu Then
             dblPrice = uData.Row(lRow).PluPrice
-            dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, 2)
-            dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, 2)
+            dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, DEF_PRICE_SCALE)
+            dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, DEF_PRICE_SCALE)
             If Not uData.Config.NegativePrices And dblPrice <= 0 Then
                 vSplit = WrapText(uData.Row(lRow).PluItemName, uData.Config.ItemChars)
                 lIdx = LimitLong(UBound(vSplit), , 1)
-                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), pvCommentChars(uData))
+                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), uData.Config.CommentChars)
                 uData.Row(lRow).RowType = ucsRowLine
                 uData.Row(lRow).LineText = vSplit(0)
                 If lIdx > 0 Then
                     PpdAddLine uData, At(vSplit, 1), False, lRow + 1
                     lRow = lRow + 1
                 ElseIf lIdx = 0 And Abs(uData.Row(lRow).PluQuantity - 1) > DBL_EPSILON Then
-                    PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, FORMAT_BASE_3) & " x " & SafeFormat(uData.Row(lRow).PluPrice, FORMAT_BASE_2), pvCommentChars(uData) - 2), False, lRow
+                    PpdAddLine uData, AlignText(vbNullString, SafeFormat(uData.Row(lRow).PluQuantity, FORMAT_BASE_3) & " x " & SafeFormat(uData.Row(lRow).PluPrice, FORMAT_BASE_2), uData.Config.CommentChars - 2), False, lRow
                 End If
                 If dblPrice < -DBL_EPSILON Then
                     PpdAddDiscount uData, ucsFscDscSubtotalAbs, dblTotal + dblDiscTotal, lRow + 1
@@ -552,7 +546,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 If uData.Config.AbsoluteDiscount Then
                     uData.Row(lRow).DiscType = ucsFscDscPluAbs
                     uData.Row(lRow).DiscValue = dblDiscTotal
-                ElseIf dblDiscTotal = Round(dblTotal * dblDiscount / 100#, 2) Then
+                ElseIf dblDiscTotal = Round(dblTotal * dblDiscount / 100#, DEF_PRICE_SCALE) Then
                     uData.Row(lRow).DiscValue = dblDiscount
                 Else
                     dblDiscount = uData.Row(lRow).DiscValue
@@ -580,7 +574,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
                 lCount = 0
                 For lIdx = 1 To UBound(uSum.GrpTotal)
-                    If Round(uSum.GrpTotal(lIdx) * uData.Row(lRow).DiscValue / 100#, 2) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2) Then
+                    If Round(uSum.GrpTotal(lIdx) * uData.Row(lRow).DiscValue / 100#, DEF_PRICE_SCALE) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, DEF_PRICE_SCALE) Then
                         lCount = lCount + 1
                     End If
                 Next
@@ -592,7 +586,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
                         If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
                             PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
-                                Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, 2), TaxGroup:=lIdx, BeforeIndex:=lRow + 1
+                                Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, DEF_PRICE_SCALE), TaxGroup:=lIdx, BeforeIndex:=lRow + 1
                         End If
                     Next
                 End If
@@ -627,14 +621,14 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     lCount = lCount + 1
                     If lCount > uData.Config.MaxReceiptRows - lTotal Then
                         .PrintRowType = ucsFscRcpNonfiscal
-                        dblTotal = Round(.PluQuantity * .PluPrice, 2)
+                        dblTotal = Round(.PluQuantity * .PluPrice, DEF_PRICE_SCALE)
                         If .DiscType = ucsFscDscPlu Then
-                            dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
+                            dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
                         ElseIf .DiscType = ucsFscDscPluAbs Then
-                            dblTotal = Round(dblTotal + .DiscValue, 2)
+                            dblTotal = Round(dblTotal + .DiscValue, DEF_PRICE_SCALE)
                         End If
                         If .PluTaxGroup > 0 Then
-                            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, 2)
+                            uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, DEF_PRICE_SCALE)
                         End If
                     End If
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDscSubtotal Then
@@ -642,7 +636,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                         .PrintRowType = ucsFscRcpNonfiscal
                         pvGetSubtotals uData, lRow, uSum
                         For lIdx = 1 To UBound(uCtx.GrpTotal)
-                            uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, 2), 2)
+                            uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
                         Next
                     End If
                 End If
@@ -680,27 +674,27 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
     For lIdx = 0 To lRow - 1
         With uData.Row(lIdx)
         If .RowType = ucsRowPlu Then
-            dblTotal = Round(.PluQuantity * .PluPrice, 2)
+            dblTotal = Round(.PluQuantity * .PluPrice, DEF_PRICE_SCALE)
             Select Case .DiscType
             Case ucsFscDscPlu
-                dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, 2), 2)
+                dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
             Case ucsFscDscPluAbs
-                dblTotal = Round(dblTotal + .DiscValue, 2)
+                dblTotal = Round(dblTotal + .DiscValue, DEF_PRICE_SCALE)
             End Select
             If .PluTaxGroup > 0 Then
-                uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, 2)
+                uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, DEF_PRICE_SCALE)
             End If
         ElseIf .RowType = ucsRowDiscount Then
             Select Case .DiscType
             Case ucsFscDscSubtotal
                 For lJdx = 1 To UBound(uCtx.GrpTotal)
-                    dblTotal = Round(uCtx.GrpTotal(lJdx) * .DiscValue / 100#, 2)
-                    uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) + dblTotal, 2)
+                    dblTotal = Round(uCtx.GrpTotal(lJdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
+                    uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) + dblTotal, DEF_PRICE_SCALE)
                 Next
             Case ucsFscDscSubtotalAbs
                 For lJdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lJdx)) > DBL_EPSILON Then
-                        uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) - .DiscValue, 2)
+                        uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) - .DiscValue, DEF_PRICE_SCALE)
                         Exit For
                     End If
                 Next
@@ -712,7 +706,3 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
 EH:
     RaiseError FUNC_NAME
 End Sub
-
-Private Property Get pvCommentChars(uData As UcsProtocolPrintData) As Long
-    pvCommentChars = uData.Config.CommentChars
-End Property
