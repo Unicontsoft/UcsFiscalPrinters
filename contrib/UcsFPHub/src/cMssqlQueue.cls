@@ -246,7 +246,8 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
                         m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
                     Else
-                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+                        lErrorCode = Znl(lErrorCode, 500)
+                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
                             Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
                     End If
                 ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
@@ -275,7 +276,8 @@ NextLine:
             pvQueueSetup
         End If
         If LenB(sHandle) <> 0 Then
-            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+            lErrorCode = Znl(lErrorCode, 500)
+            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
