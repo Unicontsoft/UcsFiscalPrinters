@@ -1779,9 +1779,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
                             Or LenB(At(vSplit, lAmountIndex)) = 0 _
                             Or Not uCtx.PmtPrinted Then
-                        sParam = "%1" & DEF_SEP & DEF_SEP & DEF_SEP
-                        pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
-                        sParam = Printf(sParam, pvToDevicePmtIndex(.PmtType))
+                        sParam = DEF_SEP & DEF_SEP & DEF_SEP
+                        pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
+                        sParam = Printf(sParam, pvToDevicePmtIndex(ucsFscPmtCash))
                         SendCommand eCmd, sParam
                         If Not Status(ucsDcsStbGeneralError) Then
                             uCtx.PmtPrinted = True
