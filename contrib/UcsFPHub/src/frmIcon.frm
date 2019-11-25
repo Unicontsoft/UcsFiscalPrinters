@@ -188,6 +188,7 @@ Public Function Init(oOpt As Object, sConfFile As String, sProductName As String
     On Error GoTo EH
     Set m_oOpt = oOpt
     m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
+    Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, STR_SERVICE_NAME, STR_VERSION)
     '--- load config
     If LenB(sConfFile) <> 0 Then
         txtConfig.Text = ReadTextFile(sConfFile)
@@ -331,18 +332,6 @@ Private Sub m_oSysTray_ContextMenu()
     
     On Error GoTo EH
     PopupMenu mnuMainPopup, DefaultMenu:=mnuPopup(ucsMnuPopupConfig)
-QH:
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Sub
-
-Private Sub Form_Load()
-    Const FUNC_NAME     As String = "Form_Load"
-    
-    On Error GoTo EH
-    Caption = Printf(STR_CAPTION, STR_SERVICE_NAME, STR_VERSION)
 QH:
     Exit Sub
 EH:
