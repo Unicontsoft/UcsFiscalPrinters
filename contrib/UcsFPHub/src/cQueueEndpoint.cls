@@ -93,8 +93,9 @@ Private m_sLastError                As String
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
 Private m_pTimer                    As IUnknown
-Private WithEvents m_oConn          As ADODB.Connection
+Private m_oConn                     As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
+Private m_oAsyncConn                As ADODB.Connection
 Private m_oController               As cServiceController
 Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
@@ -213,7 +214,7 @@ End Function
 
 Private Function pvInitMysqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMysqlQueue) As cMysqlQueue
     Set RetVal = New cMysqlQueue
-    If RetVal.Init(m_oConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oAsyncConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMysqlQueue = RetVal
     End If
@@ -226,6 +227,7 @@ Public Sub Terminate()
     End If
     Set m_pTimer = Nothing
     Set m_oConn = Nothing
+    Set m_oAsyncConn = Nothing
     Set m_oSshTunnel = Nothing
     Set m_oController = Nothing
     Set m_oConfig = Nothing
@@ -297,9 +299,10 @@ EH:
     GoTo QH
 End Function
 
-Friend Function frReopenConn(oConn As Object) As Boolean
+Friend Function frReopenConn(oConn As Object, Optional oAsyncConn As Object) As Boolean
     If pvOpenConn(m_oConfig) Then
         Set oConn = m_oConn
+        Set oAsyncConn = m_oAsyncConn
         '--- success
         frReopenConn = True
     End If
@@ -460,6 +463,9 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             m_sSqlInstance = .Fields(0).Value
             m_sSqlDatabase = .Fields(1).Value
         End With
+        Set m_oAsyncConn = New ADODB.Connection
+        m_oAsyncConn.CursorLocation = adUseClient
+        m_oAsyncConn.Open sLocalConnStr
     End Select
     DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
@@ -467,6 +473,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
 QH:
     If Not pvOpenConn Then
         Set m_oConn = Nothing
+        Set m_oAsyncConn = Nothing
         Set m_oSshTunnel = Nothing
     End If
     Exit Function

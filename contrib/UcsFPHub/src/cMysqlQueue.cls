@@ -55,9 +55,11 @@ Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
-Private m_pTimer                    As IUnknown
-Private WithEvents m_oConn          As ADODB.Connection
-Attribute m_oConn.VB_VarHelpID = -1
+Private m_pTimeoutTimer           As IUnknown
+Private m_pCompleteTimer            As IUnknown
+Private m_oConn                     As ADODB.Connection
+Private WithEvents m_oAsyncConn     As ADODB.Connection
+Attribute m_oAsyncConn.VB_VarHelpID = -1
 Private m_vPrinters                 As Variant
 Private m_sQueueName                As String
 Private m_lQueueTimeout             As Long
@@ -65,6 +67,7 @@ Private m_oCallback                 As cQueueEndpoint
 Private m_sLastError                As String
 Private m_sSqlInstance              As String
 Private m_sSqlDatabase              As String
+Private m_pRecordset                As Recordset
 
 '=========================================================================
 ' Error handling
@@ -87,7 +90,7 @@ Property Get LastError() As String
     LastError = m_sLastError
 End Property
 
-Private Property Get pvAddressOfTimerProc() As cMssqlQueue
+Private Property Get pvAddressOfTimerProc() As cMysqlQueue
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
@@ -95,11 +98,12 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
+Public Function Init(oConn As Object, oAsyncConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
     Set m_oConn = oConn
+    Set m_oAsyncConn = oAsyncConn
     m_vPrinters = vPrinters
     m_sQueueName = sQueueName
     m_lQueueTimeout = lQueueTimeout
@@ -144,7 +148,7 @@ Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
+    m_oAsyncConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
     '--- success
     pvQueueLoopAsync = True
     Exit Function
@@ -157,8 +161,8 @@ Private Function pvQueueTerminate() As Boolean
     Dim lPos            As Long
     
     On Error GoTo EH
-    If pvIsConnBusy(m_oConn) Then
-        m_oConn.Cancel
+    If pvIsConnBusy(m_oAsyncConn) Then
+        m_oAsyncConn.Cancel
     End If
     If pvIsConnAlive(m_oConn) Then
         lPos = InStr(m_sQueueName, "/")
@@ -189,16 +193,31 @@ Public Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
 QH:
 End Function
 
-Public Function TimerProc() As Long
-    Const FUNC_NAME     As String = "TimerProc"
+Private Sub pvRestartTimer()
+    Const FUNC_NAME     As String = "pvRestartTimer"
+    
+    On Error GoTo EH
+    '--- start heart-beat timer
+    Set m_pTimeoutTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimeoutTimerProc, Delay:=m_lQueueTimeout + 3000)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
+Public Function TimeoutTimerProc() As Long
+Attribute TimeoutTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "TimeoutTimerProc"
     Dim oConn           As Object
+    Dim oAsyncConn      As Object
     
     On Error GoTo EH
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     pvQueueTerminate
-    If m_oCallback.frReopenConn(oConn) Then
+    If m_oCallback.frReopenConn(oConn, oAsyncConn) Then
         Set m_oConn = oConn
+        Set m_oAsyncConn = oAsyncConn
         pvQueueLoopAsync
     End If
     pvRestartTimer
@@ -208,29 +227,52 @@ EH:
     Resume Next
 End Function
 
-Private Sub pvRestartTimer()
-    Const FUNC_NAME     As String = "pvRestartTimer"
+Public Function CompleteTimerProc() As Long
+Attribute CompleteTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "CompleteTimerProc"
+    Dim pRecordset      As ADODB.Recordset
+    Dim sHandle         As String
+    Dim sResponse       As String
+    Dim lErrorCode      As Long
+    Dim sPrinterId      As String
     
     On Error GoTo EH
-    '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
-    Exit Sub
+    Set pRecordset = m_pRecordset
+    If C_Lng(pRecordset!Result.Value) = 98 Then
+        pvQueueSetup
+    End If
+    pvQueueLoopAsync
+    pvRestartTimer
+    sHandle = C_Str(pRecordset!Handle.Value)
+    If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
+        If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
+            m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
+        Else
+            lErrorCode = Znl(lErrorCode, 500)
+            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
+                Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
+        End If
+    ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
+        sResponse = C_Str(pRecordset!ErrorText.Value)
+        If LenB(sResponse) <> 0 Then
+            sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
+            DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        End If
+    End If
+    Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
-End Sub
+End Function
 
 '=========================================================================
 ' Events
 '=========================================================================
 
-Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
-    Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
+Private Sub m_oAsyncConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
     Static bHere        As Boolean
     Dim sHandle         As String
-    Dim sResponse       As String
     Dim lErrorCode      As Long
-    Dim sPrinterId      As String
     Dim vErr            As Variant
     
     On Error GoTo EH
@@ -244,26 +286,9 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     ElseIf Not pRecordset Is Nothing Then
         If (pRecordset.State And adStateOpen) <> 0 Then
             If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
-                If C_Lng(pRecordset!Result.Value) = 98 Then
-                    pvQueueSetup
-                End If
                 sHandle = C_Str(pRecordset!Handle.Value)
-                If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
-                    If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
-                    Else
-                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
-                            Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
-                    End If
-                ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
-                    sResponse = C_Str(pRecordset!ErrorText.Value)
-                    If LenB(sResponse) <> 0 Then
-                        sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
-                    End If
-                End If
-                pvQueueLoopAsync
-                pvRestartTimer
+                Set m_pRecordset = pRecordset
+                Set m_pCompleteTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.CompleteTimerProc)
             End If
         End If
     End If
@@ -280,7 +305,8 @@ NextLine:
             pvQueueSetup
         End If
         If LenB(sHandle) <> 0 Then
-            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), Znl(lErrorCode, 500), _
+            lErrorCode = 500
+            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
