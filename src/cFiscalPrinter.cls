@@ -940,6 +940,8 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     Dim bIncludeAll     As Boolean
     Dim lIdx            As Long
     Dim dLastDateTime   As Date
+    Dim oItem           As Object
+    Dim sName           As String
     
     bIncludeAll = JsonBoolItem(oJson, "IncludeAll")
     If JsonBoolItem(oJson, "IncludeTaxNo") Or bIncludeAll Then
@@ -970,6 +972,22 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         Next
         For lIdx = -1 To -4 Step -1
             JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
+        Next
+    End If
+    If JsonBoolItem(oJson, "IncludeOperators") Then
+        For lIdx = 0 To 100
+            sName = oFP.GetOperatorName(C_Str(lIdx))
+            If LenB(sName) = 0 Then
+                If lIdx > 0 Then
+                    Exit For
+                End If
+            Else
+                Set oItem = Nothing
+                JsonItem(oItem, "Code") = C_Str(lIdx)
+                JsonItem(oItem, "Name") = sName
+                JsonItem(oItem, "DefaultPassword") = oFP.GetDefaultPassword(C_Str(lIdx))
+                JsonItem(oRetVal, "Operators/-1") = oItem
+            End If
         Next
     End If
 End Sub
