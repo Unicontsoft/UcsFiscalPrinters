@@ -8,11 +8,26 @@ Use `request_id=N2qbikc5lUU` as URL query string parameter for idempotent `POST`
 
 All endpoints return `"Ok": true` on success and in case of failure include `"ErrorText": "Описание на грешка"` localized error text in the response.
 
-All endpoints support includes middleware. This allows for instance to set `"IncludePaymentNames": true` in `POST /printers/:printer_id/deposit` request to return available payment names along with standard results. Supported includes are `IncludeHeaders`, `IncludeFooters`, `IncludeTaxNo`, `IncludeReceiptNo`, `IncludePaymentNames` and `IncludeAll` which activates all previous includes.
-
-The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
+All endpoints support "Includes Middleware". This allows for instance to set `"IncludePaymentNames": true` in `POST /printers/:printer_id/deposit` request to return available payment names along with standard results. Supported includes are `IncludeHeaders`, `IncludeFooters`, `IncludeTaxNo`, `IncludeReceiptNo`, `IncludePaymentNames` and `IncludeAll` which activates all previous includes and `IncludeOperators` and `IncludeDepartments` which are separate from `IncludeAll` catch-all.
 
 These are the REST service endpoints supported:
+
+Verb  | Endpoint                                                            | Description
+----  | --------                                                            | -----------
+`GET` | [`/printers`](#get-printers)                                        | List currently configured devices
+`GET` | [`/printers/:printer_id`](#get-printersprinter_id)                  | Retrieve device configuration, header texts, footer texts, tax number/caption, last receipt number/datetime and payment names
+`POST`| [`/printers/:printer_id`](#post-printersprinter_id)                 | Retrieve device configuration only. This will not communicate with the device if all needed data was retrieved on previous request
+`GET` | [`/printers/:printer_id/status`](#get-printersprinter_idstatus)     | Get device status and current clock
+`POST`| [`/printers/:printer_id/receipt`](#post-printersprinter_idreceipt)  | Print fiscal receipt, reversal, invoice or credit note
+`GET` | [`/printers/:printer_id/deposit`](#get-printersprinter_iddeposit)   | Retrieve service deposit and service withdraw totals
+`POST`| [`/printers/:printer_id/deposit`](#post-printersprinter_iddeposit)  | Print service deposit
+`POST`| [`/printers/:printer_id/report`](#post-printersprinter_idreport)    | Print device reports. Supports daily X or Z reports and monthly (by date range) reports
+`GET` | [`/printers/:printer_id/datetime`](#get-printersprinter_iddatetime) | Get current device date/time
+`POST`| [`/printers/:printer_id/datetime`](#post-printersprinter_iddatetime)| Set device date/time
+`GET` | [`/printers/:printer_id/totals`](#get-printersprinter_idtotals)     | Get device totals since last Z report grouped by payment types and tax groups
+`POST`| [`/printers/:printer_id/drawer`](#post-printersprinter_iddrawer)    | Send impulse from fiscal device to open connected drawer
+
+The `UcsFPHub` service endpoints return minimized JSON so sample `curl` requests below use [`jq`](https://stedolan.github.io/jq/) (a.k.a. **J**SON **Q**uery) utility to format response in human readable JSON.
 
 #### `GET` `/printers`
 
@@ -381,10 +396,10 @@ Following `data-utf8.txt` prints a fiscal receipt (`ReceiptType` is 1, see below
         },
         {
             "Amount": 10,
-            "PaymentType": 2
+            "PaymentType": "Card"
         },
         {
-            "PaymentType": 1
+            "PaymentType": "Cash"
         },
         {
             "Text": "Клиентска карта: 12345"
@@ -484,7 +499,7 @@ Following `data-utf8.txt` prints an extended receipt for an invoice (`ReceiptTyp
         },
         [ "Продукт 3", 5.67, "Б", 3.5, 15 ],
         [ "Продукт 4", 2.00  ],
-        { "PaymentType": "Card" },
+        { "PaymentType": 2 },
     ]
 }
 ```
