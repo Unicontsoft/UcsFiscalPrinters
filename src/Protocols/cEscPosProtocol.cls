@@ -1031,3 +1031,7 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     m_uPrintData.Config.ItemChars = pvItemChars
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, Zn(OperatorCode, DEF_OPERNO), OperatorName, OperatorPassword, TableNo, UniqueSaleNo, DisablePrinting, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
 End Function
+
+Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+
+End Function

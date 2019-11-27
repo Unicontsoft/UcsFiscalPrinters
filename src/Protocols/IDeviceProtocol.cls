@@ -718,3 +718,13 @@ Attribute GetDeviceStatus.VB_Description = "Used to retrieve current device stat
 
 End Function
 
+''
+' Used to retrieve department name as currently configured
+'
+' @param `DepartmentCode`     [input] department number
+' @return Department name
+'
+Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+Attribute GetDepartmentName.VB_Description = "Used to retrieve department name as currently configured"
+
+End Function

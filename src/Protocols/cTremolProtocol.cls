@@ -1510,6 +1510,30 @@ Public Function GetDefaultPassword(OperatorCode As String) As String
     End If
 End Function
 
+Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    Const FUNC_NAME     As String = "GetOperatorName"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    Dim lTaxIndex       As Long
+    Dim vSplit          As Variant
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoDepartment", eCmd, ucsZekCmdInfoDepartment, sParam, "%1", _
+        "Index", lIndex, 1, _
+        "TaxIndex", lTaxIndex, 2
+    sParam = Printf(sParam, Pad(DepartmentCode, -2))
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If LenB(LastError) = 0 Then
+        GetDepartmentName = RTrim$(At(vSplit, lIndex))
+        TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 '= private ===============================================================
 
 Private Function pvSendCommand( _
@@ -2319,3 +2343,8 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, sOperCode, OperatorName, sOperPass, TableNo, UniqueSaleNo, DisablePrinting, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason)
 End Function
+
+Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
+End Function
+

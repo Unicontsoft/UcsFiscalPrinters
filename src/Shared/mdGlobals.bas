@@ -390,6 +390,12 @@ Public Function C_Obj(Value As Variant) As Object
     End If
 End Function
 
+Public Function C_Val(Text As String) As Double
+    On Error GoTo QH
+    C_Val = Val(Text)
+QH:
+End Function
+
 Public Function Zn(sText As String, Optional IfEmptyString As Variant = Null) As Variant
     Zn = IIf(LenB(sText) = 0, IfEmptyString, sText)
 End Function

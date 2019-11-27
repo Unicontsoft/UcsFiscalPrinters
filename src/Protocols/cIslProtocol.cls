@@ -140,6 +140,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInfoFiscalRecord = 114
     ucsIslCmdInfoQRCode = 116
     ucsIslCmdExtendedInfoConsts = 128              '-- command above &H7F
+    ucsIslCmdExtendedInfoDepartment = 131          '-- command above &H7F
     '--- print
     ucsIslCmdPrintReportTaxRates = 50
     ucsIslCmdPrintDailyReport = 69
@@ -537,7 +538,7 @@ End Property
 Property Get pvLocalizedTextArray(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As Variant
     Dim lCurrentIdx     As Long
     
-    lCurrentIdx = IIf(m_uConfig.IsEcr, 1, 0)
+    lCurrentIdx = IIf(m_uConfig.IsEcr = vbTrue, 1, 0)
     pvLocalizedTextArray = m_uLConfig(lCurrentIdx).LocalizedText(eIdx)
     '--- fallback to default localization config
     If Not IsArray(pvLocalizedTextArray) And lCurrentIdx <> 0 Then
@@ -1582,6 +1583,42 @@ Public Function GetDefaultPassword(OperatorCode As String) As String
     Else
         GetDefaultPassword = DEF_PASSWORD
     End If
+End Function
+
+Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    Const FUNC_NAME     As String = "GetDepartmentName"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim lIndex          As Long
+    Dim lTaxIndex       As Long
+    Dim vSplit          As Variant
+    
+    On Error GoTo EH
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdExtendedInfoDepartment, sParam, "R%1", _
+            "Index", lIndex, 2, _
+            "TaxIndex", lTaxIndex, 3
+        sParam = Printf(sParam, DepartmentCode)
+        vSplit = Split(Replace(SendCommand(eCmd, sParam), vbLf, DEF_SEP), DEF_SEP)
+        If LenB(LastError) = 0 Then
+            GetDepartmentName = RTrim$(At(vSplit, lIndex))
+            TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+        End If
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdInfoDepartment, sParam, "%1", _
+            "Index", lIndex, 5, _
+            "TaxIndex", lTaxIndex, 0
+        sParam = Printf(sParam, DepartmentCode)
+        vSplit = Split(Mid$(SendCommand(eCmd, sParam), 2), DEF_SEP)
+        If LenB(LastError) = 0 Then
+            GetDepartmentName = RTrim$(At(vSplit, lIndex))
+            TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+        End If
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 '= private ===============================================================
@@ -2634,7 +2671,7 @@ Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean
 End Function
 
 Private Sub IDeviceProtocol_SetLocalizedText(ByVal Index As UcsFiscalLocalizedIndexesEnum, Text As String, Optional ByVal ConfigIndex As Long)
-    LocalizedText(Index) = Text
+    LocalizedText(Index, ConfigIndex) = Text
 End Sub
 
 Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalReceiptTypeEnum, OperatorCode As String, OperatorName As String, OperatorPassword As String, Optional UniqueSaleNo As String, Optional TableNo As String, Optional ByVal DisablePrinting As Boolean, Optional InvDocNo As String, Optional InvCgTaxNo As String, Optional ByVal InvCgTaxNoType As UcsFiscalTaxNoTypeEnum, Optional InvCgVatNo As String, Optional InvCgName As String, Optional InvCgCity As String, Optional InvCgAddress As String, Optional InvCgPrsReceive As String, Optional OwnData As String, Optional ByVal RevType As UcsFiscalReversalTypeEnum, Optional RevReceiptNo As String, Optional ByVal RevReceiptDate As Date, Optional RevFiscalMemoryNo As String, Optional RevInvoiceNo As String, Optional RevReason As String) As Boolean
@@ -2648,3 +2685,8 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, sOperCode, OperatorName, sOperPass, TableNo, UniqueSaleNo, DisablePrinting, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
 End Function
+
+Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
+End Function
+

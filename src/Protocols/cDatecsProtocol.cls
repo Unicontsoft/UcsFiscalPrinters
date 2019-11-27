@@ -1315,6 +1315,21 @@ Public Function GetDefaultPassword(OperatorCode As String) As String
     End If
 End Function
 
+Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    Const FUNC_NAME     As String = "GetDepartmentName"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim sParam          As String
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoSettings1", 0, 0, sParam, "Dept_name"
+    GetDepartmentName = pvSettings(sParam, C_Lng(DepartmentCode))
+    pvGetCommandConfig CONF_NAME, "InfoSettings2", 0, 0, sParam, "Dept_vat"
+    TaxGroup = C_Val(pvSettings(sParam, C_Lng(DepartmentCode)))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 '= private ===============================================================
 
 Private Function pvSendCommand( _
@@ -2167,4 +2182,8 @@ Private Function IDeviceProtocol_StartReceipt(ByVal ReceiptType As UcsFiscalRece
     sOperCode = Zn(OperatorCode, DEF_OPERNO)
     sOperPass = Zn(OperatorPassword, GetDefaultPassword(sOperCode))
     IDeviceProtocol_StartReceipt = PpdStartReceipt(m_uPrintData, ReceiptType, sOperCode, OperatorName, sOperPass, TableNo, UniqueSaleNo, DisablePrinting, InvDocNo, InvCgTaxNo, InvCgTaxNoType, InvCgVatNo, InvCgName, InvCgCity, InvCgAddress, InvCgPrsReceive, RevType, RevReceiptNo, RevReceiptDate, RevFiscalMemoryNo, RevInvoiceNo, RevReason, OwnData)
+End Function
+
+Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
+    IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
 End Function
