@@ -1570,7 +1570,7 @@ Public Function GetOperatorName(OperatorCode As String) As String
     pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdInfoOperator, sParam, "%1", _
         "Index", lIndex, 5
     sParam = Printf(sParam, OperatorCode)
-    GetOperatorName = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)
+    GetOperatorName = RTrim$(At(Split(Replace(SendCommand(eCmd, sParam), vbTab, DEF_SEP), DEF_SEP), lIndex))
     Exit Function
 EH:
     RaiseError FUNC_NAME
