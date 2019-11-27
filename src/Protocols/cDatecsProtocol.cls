@@ -1651,7 +1651,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sDiscType = Switch(.DiscValue > 0, "3", .DiscValue < 0, "4", True, vbNullString)
             End Select
             '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
-            sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8"
+            sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8" & DEF_SEP
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsDcsCmdFiscalSell, sParam, sParam, _
                 "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
                 "FormatQty", sFormatQty, FORMAT_BASE_3, _
@@ -1661,7 +1661,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sDiscType, _
                 IIf(LenB(sDiscType) <> 0, SafeFormat(.DiscValue, sFormatDisc), vbNullString), _
                 .PluDepartmentNo, _
-                IIf(LenB(.PluUnitOfMeasure) <> 0, .PluUnitOfMeasure & DEF_SEP, vbNullString))
+                Zn(.PluUnitOfMeasure, " "))
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
