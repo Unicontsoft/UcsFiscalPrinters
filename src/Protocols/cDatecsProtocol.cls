@@ -245,9 +245,9 @@ End Enum
 
 Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
-    ucsTxtPaymentCard
-    ucsTxtPaymentBank
-    ucsTxtPaymentCheque
+    [__ucsTxtPaymentCard]
+    [__ucsTxtPaymentBank]
+    [__ucsTxtPaymentCheque]
     ucsTxtSurcharge
     ucsTxtDiscount
     ucsTxtSubTotal
@@ -986,7 +986,7 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Const FUNC_NAME     As String = "GetPaymentName"
     
     On Error GoTo EH
-    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtCash Then
         GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - 1)
     Else
         GetPaymentName = pvToDevicePmtName(PmtType)
@@ -1776,7 +1776,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 If lIndex < 0 Then
                     pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
                 End If
-                sParam = Printf(sParam, pvToDevicePmtIndex(.PmtType), SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
+                sParam = Printf(sParam, lIndex, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
                 SendCommand eCmd, sParam
                 If LenB(m_uPrintData.LastError) <> 0 Then
                     GoTo QH
@@ -1889,21 +1889,21 @@ Private Function pvStripBold(sText As String) As String
 End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    pvToDevicePmtIndex = -1         ' unsupported
     Select Case PmtType
     Case ucsFscPmtCash
-        pvToDevicePmtIndex = 0   ' SCash (б апни)
+        pvToDevicePmtIndex = 0      ' 0=SCash (б апни)
+    Case ucsFscPmtCheque
+        pvToDevicePmtIndex = 3      ' 1=SChecks (вей)
+    Case ucsFscPmtCoupon
+        pvToDevicePmtIndex = 4      ' 2=ST (йсонм)
+    Case ucsFscPmtExtCoupon
+        pvToDevicePmtIndex = 5      ' 3=SOT (бюсвеп)
     Case ucsFscPmtCard
-        pvToDevicePmtIndex = 2   ' SCards (деа.йюпрю)
+        pvToDevicePmtIndex = 2      ' 7=SCards (деа.йюпрю)
     Case ucsFscPmtBank
-        pvToDevicePmtIndex = 1   ' ??? (йпедхр)
-    Case 4
-        pvToDevicePmtIndex = 3   ' SChecks (вей)
-    Case ucsFscPmtCustom1, 5
-        pvToDevicePmtIndex = 4   ' ST (йсонм)
-    Case ucsFscPmtCustom2, 6
-        pvToDevicePmtIndex = 5   ' SOT (бюсвеп)
-    Case Else
-        pvToDevicePmtIndex = -1  ' unsupported
+'        pvToDevicePmtIndex = 1      ' 7=SCards (йпедхр)
+        pvToDevicePmtIndex = -1     ' unsupported
     End Select
 End Function
 

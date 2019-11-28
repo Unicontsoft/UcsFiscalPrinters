@@ -226,8 +226,8 @@ End Enum
 
 Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
-    ucsTxtPaymentCard
-    ucsTxtPaymentBank
+    [__ucsTxtPaymentCard]
+    [__ucsTxtPaymentBank]
     ucsTxtSurcharge
     ucsTxtDiscount
     ucsTxtSubTotal
@@ -1103,7 +1103,7 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Const FUNC_NAME     As String = "GetPaymentName"
     
     On Error GoTo EH
-    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtCash Then
         GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - ucsFscPmtCash)
     Else
         GetPaymentName = pvToDevicePmtName(PmtType)
@@ -2019,49 +2019,46 @@ EH:
 End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
-    Const FUNC_NAME     As String = "pvToDevicePmtIndex"
-    
-    On Error GoTo EH
+    pvToDevicePmtIndex = -1             ' unsupported
     If m_uConfig.ExtendedPmtTypes Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0   ' SCash (Cash)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Cash)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 1      ' 1=SChecks (Check)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 2      ' 2=ST (Talon)
+        Case ucsFscPmtExtCoupon
+            pvToDevicePmtIndex = 3      ' 3=SOT (V.Talon)
+        Case ucsFscPmtPackaging
+            pvToDevicePmtIndex = 4      ' 4=SP (Packaging)
+        Case ucsFscPmtInternalUsage
+            pvToDevicePmtIndex = 5      ' 5=SSelf (Service)
+        Case ucsFscPmtDamage
+            pvToDevicePmtIndex = 6      ' 6=SDmg (Damage)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 7   ' SCards (Card)
+            pvToDevicePmtIndex = 7      ' 7=SCards (Card)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 8   ' SW (Bank)
-        Case 4
-            pvToDevicePmtIndex = 1   ' SChecks (Check)
-        Case 5, ucsFscPmtCustom1
-            pvToDevicePmtIndex = 2   ' ST (Talon)
-        Case 6, ucsFscPmtCustom2
-            pvToDevicePmtIndex = 3   ' SOT (V.Talon)
-        Case 7, ucsFscPmtCustom3
-            pvToDevicePmtIndex = 9   ' SR1 (Prg Name1)
-        Case 8, ucsFscPmtCustom4
-            pvToDevicePmtIndex = 10  ' SR2 (Prg Name2)
-        Case Else
-            pvToDevicePmtIndex = -1  ' unsupported
+            pvToDevicePmtIndex = 8      ' 8=SW (Bank)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 9      ' 9=SR1 (Prg Name1)
+        Case ucsFscPmtCustom2
+            pvToDevicePmtIndex = 10     ' 10=SR2 (Prg Name2)
         End Select
     Else
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0   ' SCash (Cash)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Cash)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1   ' SCards (Card)
+            pvToDevicePmtIndex = 1      ' 7=SCards (Card)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 2   ' SW (Bank)
-        Case 7, ucsFscPmtCustom3
-            pvToDevicePmtIndex = 3   ' SR1 (Prg Name1)
-        Case 8, ucsFscPmtCustom4
-            pvToDevicePmtIndex = 4   ' SR2 (Prg Name2)
-        Case Else
-            pvToDevicePmtIndex = -1  ' unsupported
+            pvToDevicePmtIndex = 2      ' 8=SW (Bank)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 3      ' 9=SR1 (Prg Name1)
+        Case ucsFscPmtCustom2
+            pvToDevicePmtIndex = 4      ' 10=SR2 (Prg Name2)
         End Select
     End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String

@@ -72,15 +72,18 @@ End Enum
 
 Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCash = 1           ' SCash
-    ucsFscPmtCard = 2           ' SCards
-    ucsFscPmtBank = 3           ' SW
-    ucsFscPmtCheque = 4         ' SChecks
-    ucsFscPmtCustom1 = -1       ' ST
-    ucsFscPmtCustom2 = -2       ' SOT
-    ucsFscPmtCustom3 = -3       ' SR1
-    ucsFscPmtCustom4 = -4       ' SR2
-    [_ucsFscPmtMin] = ucsFscPmtCustom4 - 1
-    [_ucsFscPmtMax] = 4 - (ucsFscPmtCustom4 - 1)
+    ucsFscPmtCheque = 2         ' SChecks
+    ucsFscPmtCoupon = 3         ' ST
+    ucsFscPmtExtCoupon = 4      ' SOT
+    ucsFscPmtPackaging = 5      ' SP
+    ucsFscPmtInternalUsage = 6  ' SSelf
+    ucsFscPmtDamage = 7         ' SDmg
+    ucsFscPmtCard = 8           ' SCards
+    ucsFscPmtBank = 9           ' SW
+    ucsFscPmtCustom1 = 10       ' SR1 ("Резерв 1"/ отложено плащане)
+    ucsFscPmtCustom2 = 11       ' SR2 ("Резерв 2" / вътрешно потребление)
+    ucsFscPmtEUR = 12
+    [_ucsFscPmtMax]
 End Enum
 
 Public Enum UcsFiscalLocalizedIndexesEnum

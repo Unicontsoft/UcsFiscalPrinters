@@ -555,16 +555,20 @@ Name            | Value | Description
 
 Supported `PaymentType` values:
 
-Name            | Value | Alt   | Description                       | Device text           | XML code
-----            | ----- | ----  | -----------                       | ----                  | ----
-`Cash`          | 1     |       | Payment in cash                   | "В БРОЙ", "Лева"      | `SCash`
-`Card`          | 2     |       | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"  | `SCards`
-`Bank`          | 3     |       | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"     | `SW`
-`Cheque`        | 4     |       | Payment by cheque                 | "ЧЕК", "Чек"          | `SChecks`
-`Custom1`       | -1    | 5     | First custom payment              | "КУПОН", "Талон"      | `ST`
-`Custom2`       | -2    | 6     | Second custom payment             | "ВАУЧЕР", "В.Талон"   | `SOT`
-`Custom3`       | -3    | 7     | Third custom payment              | "НЗОК", "Резерв 1"    | `SR1`
-`Custom4`       | -4    | 8     | Fourth custom payment             | "Резерв 2"            | `SR2`
+Name            | Value | Description                       | Device text           | XML code
+----            | ----- | -----------                       | ----                  | ----
+`Cash`          | 1     | Payment in cash                   | "В БРОЙ", "Лева"      | `SCash`
+`Cheque`        | 2     | Payment by cheque                 | "ЧЕК", "Чек"          | `SChecks`
+`Coupon`        | 3     | Payment w/ coupons                | "КУПОН", "Талон"      | `ST`
+`ExtCoupon`     | 4     | Payment w/ external coupons       | "ВАУЧЕР", "В.Талон"   | `SOT`
+`Packaging`     | 5     | N/A                               | "Амбалаж"             | `SP`
+`InternalUsage` | 6     | N/A                               | "Вътрешно обслужване" | `SSelf`
+`Damage`        | 7     | N/A                               | "Повреди"             | `SDmg`
+`Card`          | 8     | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"  | `SCards`
+`Bank`          | 9     | Wire transfer (for invoices only) | "КРЕДИТ", "Банка"     | `SW`
+`Custom1`       | 10    | Third custom payment              | "НЗОК", "Резерв 1"    | `SR1`
+`Custom2`       | 11    | Fourth custom payment             | "Резерв 2"            | `SR2`
+`EUR`           | 12    | Payment in EURO                   | "EURO"                |
 
 Supported `ReversalType` values:
 

@@ -70,7 +70,7 @@ Private Const STR_DAISY_FP_EXT_ERRORS   As String = "1|Въпросната операция ще до
                                                     "25|Опит за извършване на плащане, без да има продажби|26|Опит за продажба на артикул с количество, надвишаващо запаса му|41|Некоректен баркод (грешна контролна сума)|42|Опит за продажба с нулев баркод|43|Опит за програмиране с тегловен баркод|44|Опит за продажба с непрограмиран баркод|45|Опит за програмиране на вече съществуващ баркод|66|Некоректна парола|71|!!! Некоректни данни във ФП !!!!|72|!!! Грешка при запис във ФП !!!!|76|Необходима е информация от сървъра на НАП|90|Не е нулиран периодичният отчет|91|Не е нулиран дневният финансов отчет|92|Не е нулиран отчетът по оператори|93|Не е нулиран отчетът по артикули|94|Не може да се препрограмира това поле|81|Дневният финансов отчет е препълнен|83|Отчетът по оператори е препълнен|84|Отчетът по артикули е препълнен|84|Периодичният отчет е препълнен|88|КЛЕН е препълнен|102|Няма комуникация между ФУ и ДТ|104|Некоректна комуникация между ФУ и ДТ|" & _
                                                     "110|Подменена SIM карта|111|Грешка при комуникация между ДТ и сървъра на НАП|113|Сървърът на НАП не приема подадените му данни|117|Неуспешен опит за свързване на ДТ с мрежата на мобилния оператор|118|Операцията е забранена|119|Грешна въведена стойност|120|Невъведена стойност"
 Private Const STR_ESP_POS_INTERNAL      As String = "Няма започната бележка|Грешка на ред %1: %2"
-Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ДЕБИТНА КАРТА|С ЧЕК|С КРЕДИТНА КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
+Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТАЛОНИ|В.ТАЛОНИ|АМБАЛАЖ|В.ОБСЛУЖВАНЕ|ПОВРЕДИ|С КАРТА|ПО БАНКA|НЗОК|ПРОГ.ТИП 2|ЕВРО|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Грешка при WaitCommEvent: %1"
 Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 '--- config entries
@@ -341,12 +341,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtBarcode
                     oFP.AddBarcode JsonEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
-                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Card|Bank|Cheque|Custom1|Custom2|Custom3|Custom4")
-                    If lIdx < 0 Then
-                        lIdx = LimitLong(lIdx, [_ucsFscPmtMin] + 1, -1)
-                    Else
-                        lIdx = LimitLong(lIdx, 1, [_ucsFscPmtMax] - 1)
-                    End If
+                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Cheque|Coupon|ExtCoupon|Packing|InternalUsage|Damage|Card|Bank|Custom1|Custom2|EUR")
+                    lIdx = LimitLong(lIdx, 1, [_ucsFscPmtMax] - 1)
                     oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 End Select
             End With
@@ -968,10 +964,7 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         End If
     End If
     If JsonBoolItem(oJson, "IncludePaymentNames") Or bIncludeAll Then
-        For lIdx = 1 To 4
-            JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
-        Next
-        For lIdx = -1 To -4 Step -1
+        For lIdx = 1 To 12
             JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
         Next
     End If

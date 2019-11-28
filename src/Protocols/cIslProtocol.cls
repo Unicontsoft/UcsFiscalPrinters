@@ -282,9 +282,9 @@ End Enum
 
 Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
-    ucsTxtPaymentCard
-    ucsTxtPaymentCheque
-    ucsTxtPaymentCredit
+    [__ucsTxtPaymentCard]
+    [__ucsTxtPaymentCheque]
+    [__ucsTxtPaymentCredit]
     ucsTxtSurcharge
     ucsTxtDiscount
     ucsTxtSubTotal
@@ -1199,7 +1199,7 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Const FUNC_NAME     As String = "GetPaymentName"
     
     On Error GoTo EH
-    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtBank Then
+    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtCash Then
         GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - 1)
     Else
         GetPaymentName = pvToDevicePmtName(PmtType)
@@ -2340,53 +2340,57 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     If IsDaisy Or IsIncotex Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' SCash (В БРОЙ)
+            pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 1      ' N=SCheck (С ЧЕК)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 2      ' ??? (КРЕДИТ)    WTF?
+            pvToDevicePmtIndex = 2      ' C=SCards (КРЕДИТ)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = -1     ' unsupported
-        Case 4
-            pvToDevicePmtIndex = 1      ' SCheck (С ЧЕК)
-        Case 5, ucsFscPmtCustom1
-            pvToDevicePmtIndex = 3      ' ??? (USD)
-        Case 6, ucsFscPmtCustom2
-            pvToDevicePmtIndex = 4      ' ??? (EURO)
+'            pvToDevicePmtIndex = 3      ' D=SCash (USD)
+            pvToDevicePmtIndex = -1     ' unsuported
+        Case ucsFscPmtEUR
+            pvToDevicePmtIndex = 4      ' B=SCash (EURO)
         End Select
     ElseIf IsEcr Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' SCash (В БРОЙ)
+            pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 5      ' I=ST (КУПОН)
+        Case ucsFscPmtExtCoupon
+            pvToDevicePmtIndex = 4      ' J=SOT (ВАУЧЕР)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 2      ' SCards (ДЕБ.КАРТА)
+            pvToDevicePmtIndex = 2      ' C=SCards (ДЕБ.КАРТА)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 1      ' ??? (КРЕДИТ)
-        Case 4
-            pvToDevicePmtIndex = -1     ' unsupported
-        Case 5, ucsFscPmtCustom1
-            pvToDevicePmtIndex = 5      ' ST (КУПОН)
-        Case 6, ucsFscPmtCustom2
-            pvToDevicePmtIndex = 4      ' SOT (ВАУЧЕР)
-        Case 7, ucsFscPmtCustom3
-            pvToDevicePmtIndex = 3      ' SR1 (НЗОК)
+'            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
+            pvToDevicePmtIndex = -1     ' unsuported
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 3      ' D=SR1 (НЗОК)
         End Select
     Else
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' SCash (В брой)
+            pvToDevicePmtIndex = 0      ' P=SCash (В брой)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 3      ' C=SChecks (С чек)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 10     ' m=ST (Талони)
+        Case ucsFscPmtExtCoupon
+            pvToDevicePmtIndex = 11     ' n=SOT (Външни талони)
+        Case ucsFscPmtPackaging
+            pvToDevicePmtIndex = 12     ' o=SP (Амбалаж)
+        Case ucsFscPmtInternalUsage
+            pvToDevicePmtIndex = 13     ' p=SSelf (Вътрешно обслужване)
+        Case ucsFscPmtDamage
+            pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1      ' SCards (С дебитна карта)
+            pvToDevicePmtIndex = 1      ' N=SCards (С дебитна карта)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 2      ' ??? (С кредит)
-        Case 4
-            pvToDevicePmtIndex = 3      ' SChecks (С чек)
-        Case 5, ucsFscPmtCustom1
-            pvToDevicePmtIndex = 10     ' ST (Талони)
-        Case 6, ucsFscPmtCustom2
-            pvToDevicePmtIndex = 11     ' SOT (Външни талони)
-        Case 7, ucsFscPmtCustom3
-            pvToDevicePmtIndex = 4      ' SR1 (Програмируем тип плащане 1)
-        Case 8, ucsFscPmtCustom4
-            pvToDevicePmtIndex = 5      ' SR2 (Програмируем тип плащане 2)
+            pvToDevicePmtIndex = 15     ' r=SW (Банкови трансфери)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
+        Case ucsFscPmtCustom2
+            pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 2)
         End Select
     End If
 End Function
