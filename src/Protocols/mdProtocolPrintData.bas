@@ -74,6 +74,9 @@ Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
 Public Const MIN_TAX_GROUP              As Long = 1
 Public Const MAX_TAX_GROUP              As Long = 8
 Public Const DEF_TAX_GROUP              As Long = 2
+Public Const MIN_PMT_TYPE               As Long = 1
+Public Const MAX_PMT_TYPE               As Long = [_ucsFscPmtMax] - 1
+Public Const DEF_PMT_TYPE               As Long = 1
 Public Const DEF_PRICE_SCALE            As Long = 2
 Public Const DEF_QUANTITY_SCALE         As Long = 3
 
@@ -348,6 +351,7 @@ Public Function PpdAddBarcode( _
         .BarcodeType = LimitLong(BarcodeType, 1, [_ucsFscBrcMax] - 1)
         .BarcodeText = Text
         .BarcodeHeight = Height
+        .PrintRowType = uData.Row(0).InitReceiptType
     End With
     '--- success
     PpdAddBarcode = True
@@ -356,7 +360,6 @@ QH:
 EH:
     RaiseError FUNC_NAME
 End Function
-
 
 Public Function PpdAddPayment( _
             uData As UcsProtocolPrintData, _
@@ -371,13 +374,9 @@ Public Function PpdAddPayment( _
         pvSetLastError uData, Zn(uData.LocalizedText.ErrNoReceiptStarted, ERR_NO_RECEIPT_STARTED)
         GoTo QH
     End If
-    If PmtType < 0 Then
-        '--- custom payment types: 5, 6, 7 & 8
-        PmtType = 4 - PmtType
-    End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowPayment
-        .PmtType = LimitLong(PmtType, 1, [_ucsFscPmtMax] - 1)
+        .PmtType = LimitLong(PmtType, MIN_PMT_TYPE, MAX_PMT_TYPE)
         .PmtName = SafeText(Name)
         .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType

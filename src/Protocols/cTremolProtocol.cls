@@ -1246,7 +1246,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     pvGetCommandConfig CONF_NAME, "InfoRegisters6", eCmd, ucsZekCmdInfoRegisters, sParam, "6"
     vChanges = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPayments) > 0 Then
-        ReDim vRetVal(0 To 7) As Variant
+        ReDim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
@@ -1280,7 +1280,7 @@ Public Function GetTotalsByTaxGroups() As Variant
         "RevOffset", lRevOffset, 9
     vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPmtSum) > 0 Then
-        ReDim vRetVal(0 To 7) As Variant
+        ReDim vRetVal(0 To MAX_TAX_GROUP - 1) As Variant
         For lIdx = 0 To UBound(vRetVal)
             vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx)), ParseSum(At(vPmtSum, lIdx + lRevOffset)))
         Next

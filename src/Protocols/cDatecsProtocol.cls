@@ -1127,7 +1127,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
         "RevOffset", lRevOffset, 1
     vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPmtSum) > 0 Then
-        ReDim vRetVal(0 To 7) As Variant
+        ReDim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
         For lIdx = 0 To UBound(vRetVal)
             lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
             If lPmtIndex >= 0 Then
@@ -1170,7 +1170,7 @@ Public Function GetTotalsByTaxGroups() As Variant
         "RevOffset", lRevOffset, 2
     vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vPmtSum) > 0 And UBound(vRevSum) > 0 Then
-        ReDim vRetVal(0 To 7) As Variant
+        ReDim vRetVal(0 To MAX_TAX_GROUP - 1) As Variant
         For lIdx = 0 To UBound(vRetVal)
             vRetVal(lIdx) = Array(ParseSum(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
         Next
@@ -1224,7 +1224,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) > 0 Then
         ReDim vRetVal(0 To 2) As Double
-        For lIdx = 0 To 2
+        For lIdx = 0 To UBound(vRetVal)
             vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
         Next
         PrintServiceDeposit = vRetVal
@@ -1912,10 +1912,6 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
     Dim sParam          As String
     Dim lIndex          As Long
     
-    If PmtType < 0 Then
-        '--- re-map custom payment types
-        PmtType = 4 - PmtType
-    End If
     lIndex = pvToDevicePmtIndex(PmtType)
     pvGetCommandConfig CONF_NAME, "InfoSettings" & PmtType, 0, 0, sParam, "PayName", _
         "PmtType", lIndex, lIndex

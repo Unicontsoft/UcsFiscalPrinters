@@ -342,7 +342,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                     oFP.AddBarcode JsonEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
                     lIdx = JsonEnumValue(.PaymentType, "|Cash|Cheque|Coupon|ExtCoupon|Packing|InternalUsage|Damage|Card|Bank|Custom1|Custom2|EUR")
-                    lIdx = LimitLong(lIdx, 1, [_ucsFscPmtMax] - 1)
+                    If lIdx < MIN_PMT_TYPE Or lIdx > MAX_PMT_TYPE Then
+                        lIdx = DEF_PMT_TYPE
+                    End If
                     oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 End Select
             End With
