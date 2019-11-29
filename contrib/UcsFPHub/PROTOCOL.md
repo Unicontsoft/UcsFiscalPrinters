@@ -562,11 +562,11 @@ Name            | Value | Description                       | Device text       
 `Coupon`        | 3     | Payment w/ coupons                | "КУПОН", "Талон"      | `ST`
 `ExtCoupon`     | 4     | Payment w/ external coupons       | "ВАУЧЕР", "В.Талон"   | `SOT`
 `Packaging`     | 5     | Returned packing deducted         | "Амбалаж"             | `SP`
-`InternalUsage` | 6     | N/A                               | "Вътрешно обслужване" | `SSelf`
+`InternalUsage` | 6     | N/A                               | "Вътрешно обслужване", "Обслужване" | `SSelf`
 `Damage`        | 7     | N/A                               | "Повреди"             | `SDmg`
 `Card`          | 8     | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"  | `SCards`
 `Bank`          | 9     | Wire transfer (for invoices)      | "Банка"               | `SW`
-`Custom1`       | 10    | Custom payment 1                  | "НЗОК", "Резерв 1", "Отложено плащане"    | `SR1`
+`Custom1`       | 10    | Custom payment 1                  | "Резерв 1", "НЗОК", "Отложено плащане"    | `SR1`
 `Custom2`       | 11    | Custom payment 2                  | "Резерв 2", "Вътрешно потребление"        | `SR2`
 `EUR`           | 12    | Payment in EURO                   | "EURO"                | N/A
 
