@@ -224,7 +224,7 @@ Private Const STR_DIP_SWITCHES          As String = "Center header and footer|En
 Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|9|Invoice No range not set|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
-Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|BANK|CHEQUE|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
+Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -282,9 +282,9 @@ End Enum
 
 Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
-    [__ucsTxtPaymentCard]
-    [__ucsTxtPaymentCheque]
-    [__ucsTxtPaymentCredit]
+    ucsTxtPaymentCredit
+    ucsTxtPaymentCheque
+    ucsTxtPaymentCard
     ucsTxtSurcharge
     ucsTxtDiscount
     ucsTxtSubTotal
@@ -465,7 +465,7 @@ Property Get DefPmtTypes() As String
         ElseIf IsEcr Then
             m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
-            m_uConfig.DefPmtTypes = "PNDCIJKL  mnopqrs"
+            m_uConfig.DefPmtTypes = "PNCDIJKL  mnopqrs"
         End If
     End If
     DefPmtTypes = m_uConfig.DefPmtTypes
@@ -2372,7 +2372,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (В брой)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 3      ' C=SChecks (С чек)
+            pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 10     ' m=ST (Талони)
         Case ucsFscPmtExtCoupon
@@ -2384,7 +2384,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Case ucsFscPmtDamage
             pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1      ' N=SCards (С дебитна карта)
+            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
         Case ucsFscPmtBank
             pvToDevicePmtIndex = 15     ' r=SW (Банкови трансфери)
         Case ucsFscPmtCustom1
@@ -2416,8 +2416,8 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
         pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
         '--- check for failure (returns 'F')
         If pvToDevicePmtName = "F" Then
-            If PmtType <= 4 Then
-                pvToDevicePmtName = pvText(ucsTxtPaymentCash + PmtType - 1)
+            If lIndex < 4 Then
+                pvToDevicePmtName = pvText(ucsTxtPaymentCash + lIndex)
             Else
                 pvToDevicePmtName = vbNullString
             End If
