@@ -98,7 +98,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInitEcTape = 119
     ucsIslCmdExtendedInitText = 149                '-- command above &H7F
     ucsIslCmdExtendedInitSetting = 150             '-- command above &H7F
-    ucsIslCmdExtendedInitCurrencyRate = 151        '-- command above &H7F
+    ucsIslCmdExtendedInitPayment = 151             '-- command above &H7F
     ucsIslCmdExtendedInitInvoiceNo = 180           '-- command above &H7F
     '--- transaction
     ucsIslCmdNonFiscalOpen = 38
@@ -327,6 +327,7 @@ Private Type UcsConfigValues
     DefPmtTypes         As String
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
+    PmtMapping          As Variant
 End Type
 
 Private Type UcsLocalizedConfigType
@@ -2335,9 +2336,63 @@ Private Function pvStripBold(sText As String) As String
         sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
 End Function
 
-Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
-    pvToDevicePmtIndex = -1             ' unsupported
+Private Function pvGetPmtMapping() As Object
+    Const CONF_NAME     As String = "GetPmtMapping"
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim lIdx            As Long
+    Dim vConfig         As Variant
+    Dim lOffset         As Long
+    Dim lTagNo          As Long
+    Dim vSplit          As Variant
+    Dim oRetVal         As Object
+    
     If IsDaisy Or IsIncotex Then
+        pvGetCommandConfig CONF_NAME, "ExtendedInitPayment", eCmd, ucsIslCmdExtendedInitPayment, sParam, "R%1", _
+            "Offset", lOffset, 3
+        For lIdx = 0 To 4
+            vSplit = Split(Replace(SendCommand(eCmd, Printf(sParam, lIdx)), vbTab, DEF_SEP), DEF_SEP)
+            If lIdx > 0 Then
+                lTagNo = C_Lng(At(vSplit, lOffset))
+            End If
+            If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
+                JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 1))
+            End If
+        Next
+    ElseIf IsEcr Then
+        pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "21;1;", _
+            "Offset", lOffset, 9
+        vConfig = Split(SendCommand(eCmd, sParam), ";")
+        pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "3;%1;"
+        For lIdx = 0 To 5
+            If lIdx > 0 Then
+                lTagNo = At(vConfig, lOffset + lIdx)
+            End If
+            If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
+                vSplit = Split(SendCommand(eCmd, Printf(sParam, lIdx + 1)), ";")
+                '--- 1 - disabled, 0 - not disabled
+                If C_Lng(At(vSplit, 3)) = 0 Then
+                    JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 2))
+                End If
+            End If
+        Next
+    End If
+    Set pvGetPmtMapping = oRetVal
+End Function
+
+Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    Dim vInfo           As Variant
+    
+    pvToDevicePmtIndex = -1             ' unsupported
+    If Not IsObject(m_uConfig.PmtMapping) Then
+        Set m_uConfig.PmtMapping = pvGetPmtMapping()
+    End If
+    If Not m_uConfig.PmtMapping Is Nothing Then
+        AssignVariant vInfo, JsonItem(C_Obj(m_uConfig.PmtMapping), "#" & (PmtType - ucsFscPmtCash))
+        If IsObject(vInfo) Then
+            pvToDevicePmtIndex = C_Lng(JsonItem(C_Obj(vInfo), 0))
+        End If
+    ElseIf IsDaisy Or IsIncotex Then
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (б апни)
