@@ -849,7 +849,7 @@ Public Function GetLastReceiptNo() As String
     pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
         "Index", lIndex, 1
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    GetLastReceiptNo = Zn(At(vSplit, lIndex), "ZR/" & At(vSplit, lIndex + 2))
+    GetLastReceiptNo = At(vSplit, lIndex)
     Exit Function
 EH:
     RaiseError FUNC_NAME
