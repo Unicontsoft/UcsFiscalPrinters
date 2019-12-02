@@ -74,9 +74,9 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtCash = 1           ' SCash
     ucsFscPmtCheque = 2         ' SChecks
     ucsFscPmtCoupon = 3         ' ST
-    ucsFscPmtExtCoupon = 4      ' SOT
+    ucsFscPmtVoucher = 4        ' SOT
     ucsFscPmtPackaging = 5      ' SP
-    ucsFscPmtInternalUsage = 6  ' SSelf
+    ucsFscPmtMaintenance = 6    ' SSelf
     ucsFscPmtDamage = 7         ' SDmg
     ucsFscPmtCard = 8           ' SCards
     ucsFscPmtBank = 9           ' SW

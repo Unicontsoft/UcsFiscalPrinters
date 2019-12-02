@@ -2028,11 +2028,11 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 1      ' 1=SChecks (Check)
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 2      ' 2=ST (Talon)
-        Case ucsFscPmtExtCoupon
+        Case ucsFscPmtVoucher
             pvToDevicePmtIndex = 3      ' 3=SOT (V.Talon)
         Case ucsFscPmtPackaging
             pvToDevicePmtIndex = 4      ' 4=SP (Packaging)
-        Case ucsFscPmtInternalUsage
+        Case ucsFscPmtMaintenance
             pvToDevicePmtIndex = 5      ' 5=SSelf (Service)
         Case ucsFscPmtDamage
             pvToDevicePmtIndex = 6      ' 6=SDmg (Damage)

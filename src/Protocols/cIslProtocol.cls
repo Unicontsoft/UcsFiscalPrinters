@@ -2412,7 +2412,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 5      ' I=ST (КУПОН)
-        Case ucsFscPmtExtCoupon
+        Case ucsFscPmtVoucher
             pvToDevicePmtIndex = 4      ' J=SOT (ВАУЧЕР)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (ДЕБ.КАРТА)
@@ -2430,11 +2430,11 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 10     ' m=ST (Талони)
-        Case ucsFscPmtExtCoupon
+        Case ucsFscPmtVoucher
             pvToDevicePmtIndex = 11     ' n=SOT (Външни талони)
         Case ucsFscPmtPackaging
             pvToDevicePmtIndex = 12     ' o=SP (Амбалаж)
-        Case ucsFscPmtInternalUsage
+        Case ucsFscPmtMaintenance
             pvToDevicePmtIndex = 13     ' p=SSelf (Вътрешно обслужване)
         Case ucsFscPmtDamage
             pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)

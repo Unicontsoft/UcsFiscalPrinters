@@ -341,7 +341,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 Case ucsRwtBarcode
                     oFP.AddBarcode JsonEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
                 Case ucsRwtPayment
-                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Cheque|Coupon|ExtCoupon|Packing|InternalUsage|Damage|Card|Bank|Custom1|Custom2|EUR")
+                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Cheque|Coupon|Voucher|Packing|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR")
                     If lIdx < MIN_PMT_TYPE Or lIdx > MAX_PMT_TYPE Then
                         lIdx = DEF_PMT_TYPE
                     End If

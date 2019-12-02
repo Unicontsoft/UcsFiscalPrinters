@@ -74,9 +74,9 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtPaymentCash
     ucsTxtPaymentCheque
     ucsTxtPaymentCoupon
-    ucsTxtPaymentExtCoupon
+    ucsTxtPaymentVoucher
     ucsTxtPaymentPackaging
-    ucsTxtPaymentInternalUsage
+    ucsTxtPaymentMaintenance
     ucsTxtPaymentDamage
     ucsTxtPaymentCard
     ucsTxtPaymentBank
