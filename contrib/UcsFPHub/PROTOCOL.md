@@ -560,15 +560,15 @@ Name            | Value | Description                       | Device text       
 `Cash`          | 1     | Payment in cash                   | "В БРОЙ", "Лева"      | `SCash`
 `Cheque`        | 2     | Payment by cheque                 | "ЧЕК", "Чек"          | `SChecks`
 `Coupon`        | 3     | Payment w/ coupons                | "КУПОН", "Талон"      | `ST`
-`ExtCoupon`     | 4     | Payment w/ external coupons       | "ВАУЧЕР", "В.Талон"   | `SOT`
+`Voucher`       | 4     | Payment w/ external/food vouchers | "ВАУЧЕР", "В.Талон"   | `SOT`
 `Packaging`     | 5     | Returned packing deducted         | "Амбалаж"             | `SP`
-`InternalUsage` | 6     | N/A                               | "Вътрешно обслужване", "Обслужване" | `SSelf`
+`Maintenance`   | 6     | N/A                               | "Вътрешно обслужване", "Обслужване" | `SSelf`
 `Damage`        | 7     | N/A                               | "Повреди"             | `SDmg`
 `Card`          | 8     | Payment with debit/credit card    | "ДЕБ.КАРТА", "Карта"  | `SCards`
 `Bank`          | 9     | Wire transfer (for invoices)      | "Банка"               | `SW`
 `Custom1`       | 10    | Custom payment 1                  | "Резерв 1", "НЗОК", "Отложено плащане"    | `SR1`
 `Custom2`       | 11    | Custom payment 2                  | "Резерв 2", "Вътрешно потребление"        | `SR2`
-`EUR`           | 12    | Payment in EURO                   | "EURO"                | N/A
+`EUR`           | 12    | Payment in Euro                   | "EURO"                | N/A
 
 Supported `ReversalType` values:
 
@@ -729,20 +729,21 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/datetime ^
 Get device totals since last Z report grouped by payment types and tax groups.
 
 ```shell
-C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
+C:> curl -X GET http://localhost:8192/printers/ZK133759/totals -sS | jq
 ```
 ```json
 {
     "Ok": true,
-    "NumReceipts": 68,
+    "NumReceipts": 54,
     "LastZReportDateTime": "2018-01-01 00:00:00",
-    "TotalAvailable": 1111.17,
-    "TotalDeposits": 451,
-    "TotalWithdraws": 20,
-    "TotalReversal": 314.08,
+    "TotalAmount": 1029.15,
+    "TotalReversal": 636.26,
+    "TotalAvailable": 603.28,
+    "TotalDeposits": 10,
+    "TotalWithdraws": 0,
     "TotalsByTaxGroups": [
-        { "TaxGroup": 1, "VatRate": 0, "Amount": 0, "Reversal": 0 },
-        { "TaxGroup": 2, "VatRate": 20, "Amount": 1462.73, "Reversal": 314.08 },
+        { "TaxGroup": 1, "VatRate": 0, "Amount": 123, "Reversal": 21 },
+        { "TaxGroup": 2, "VatRate": 20, "Amount": 906.15, "Reversal": 615.26 },
         { "TaxGroup": 3, "VatRate": 20, "Amount": 0, "Reversal": 0 },
         { "TaxGroup": 4, "VatRate": 9, "Amount": 0, "Reversal": 0 },
         { "TaxGroup": 5, "Amount": 0, "Reversal": 0 },
@@ -751,14 +752,17 @@ C:> curl -X GET http://localhost:8192/printers/DT518315/totals -sS | jq
         { "TaxGroup": 8, "Amount": 0, "Reversal": 0 }
     ],
     "TotalsByPaymentTypes": [
-        { "PaymentType": 1, "PaymentName": "Лева", "Amount": 824.25, "Reversal": 0 },
-        { "PaymentType": 2, "PaymentName": "Карта", "Amount": 293.07, "Reversal": 0 },
-        { "PaymentType": 3, "PaymentName": "Банка", "Amount": 311.46, "Reversal": 0 },
-        { "PaymentType": 4, "PaymentName": "Чек", "Amount": 11, "Reversal": 0 },
-        { "PaymentType": 5, "PaymentName": "Талон", "Amount": 22.95, "Reversal": 0 },
-        { "PaymentType": 6, "PaymentName": "В.Талон", "Amount": 0, "Reversal": 0 },
-        { "PaymentType": 7, "PaymentName": "Резерв 1", "Amount": 0, "Reversal": 0 },
-        { "PaymentType": 8, "PaymentName": "Резерв 2", "Amount": 0, "Reversal": 0 }
+        { "PaymentType": 1, "PaymentName": "Лева", "Amount": 879 },
+        { "PaymentType": 2, "PaymentName": "Чек", "Amount": 85.15 },
+        { "PaymentType": 3, "PaymentName": "Талон", "Amount": 2 },
+        { "PaymentType": 4, "PaymentName": "В.Талон", "Amount": 0 },
+        { "PaymentType": 5, "PaymentName": "Амбалаж", "Amount": 0 },
+        { "PaymentType": 6, "PaymentName": "Обслужване", "Amount": 0 },
+        { "PaymentType": 7, "PaymentName": "Повреди", "Amount": 0 },
+        { "PaymentType": 8, "PaymentName": "Карта", "Amount": 63 },
+        { "PaymentType": 9, "PaymentName": "Банка", "Amount": 0 },
+        { "PaymentType": 10, "PaymentName": "Резерв 1", "Amount": 0 },
+        { "PaymentType": 11, "PaymentName": "Резерв 2", "Amount": 0 }
     ]
 }
 ```
