@@ -109,7 +109,7 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
     frInit = True
 QH:
     If LenB(m_sLastError) <> 0 Then
-        DebugLog m_sLastError, vbLogEventTypeError
+        DebugLog m_sLastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
     End If
     Exit Function
 EH:
