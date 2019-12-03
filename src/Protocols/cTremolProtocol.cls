@@ -175,6 +175,8 @@ Private Const DEF_MAX_PLUNAME           As Long = 36
 Private Const DEF_MAX_COMMENT           As Long = 34
 Private Const DEF_MAX_FISCALMEMORYNO    As Long = 8
 Private Const DEF_MAX_UNIQUESALENO      As Long = 24
+Private Const DEF_MAX_DEPARTMENTCODE    As Long = 2
+Private Const DEF_MAX_RECEIPTNO         As Long = 6
 Private Const DEF_SEP                   As String = ";"
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H9F
@@ -273,6 +275,8 @@ Private Type UcsConfigValues
     MaxComment          As Long
     MaxFiscalMemoryNo   As Long
     MaxUniqueSaleNo     As Long
+    MaxDepartmentCode   As Long
+    MaxReceiptNo        As Long
     ExtendedPmtTypes    As Boolean
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
@@ -602,6 +606,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxComment = GetConfigNumber(sSerial, "MaxComment", Znl(C_Lng(JsonItem(oOptions, "MaxComment")), DEF_MAX_COMMENT))
         .MaxFiscalMemoryNo = GetConfigNumber(sSerial, "MaxFiscalMemoryNo", Znl(C_Lng(JsonItem(oOptions, "MaxFiscalMemoryNo")), DEF_MAX_FISCALMEMORYNO))
         .MaxUniqueSaleNo = GetConfigNumber(sSerial, "MaxUniqueSaleNo", Znl(C_Lng(JsonItem(oOptions, "MaxUniqueSaleNo")), DEF_MAX_UNIQUESALENO))
+        .MaxDepartmentCode = GetConfigNumber(sSerial, "MaxDepartmentCode", Znl(C_Lng(JsonItem(oOptions, "MaxDepartmentCode")), DEF_MAX_DEPARTMENTCODE))
+        .MaxReceiptNo = GetConfigNumber(sSerial, "MaxReceiptNo", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptNo")), DEF_MAX_RECEIPTNO))
         .ExtendedPmtTypes = GetConfigNumber(sSerial, "ExtendedPmtTypes", DEF_EXTENDED_PMTTYPES)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
@@ -775,7 +781,7 @@ Public Function CopyLastReceipt(Optional ReceiptNo As String) As Boolean
     Else
         pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1" & DEF_SEP & "N" & DEF_SEP & "%1" & DEF_SEP & "%1", _
             "PrintTimeout", lPrintTimeout, 0
-        SendCommand eCmd, Printf(sParam, Pad(ReceiptNo, 5))
+        SendCommand eCmd, Printf(sParam, Pad(ReceiptNo, -m_uConfig.MaxReceiptNo))
         If Not LenB(m_uPrintData.LastError) = 0 Then
             GoTo QH
         End If
@@ -1523,7 +1529,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
     pvGetCommandConfig CONF_NAME, "InfoDepartment", eCmd, ucsZekCmdInfoDepartment, sParam, "%1", _
         "Index", lIndex, 1, _
         "TaxIndex", lTaxIndex, 2
-    sParam = Printf(sParam, Pad(DepartmentCode, -2))
+    sParam = Printf(sParam, Pad(DepartmentCode, -m_uConfig.MaxDepartmentCode))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If LenB(LastError) = 0 Then
         GetDepartmentName = RTrim$(At(vSplit, lIndex))
