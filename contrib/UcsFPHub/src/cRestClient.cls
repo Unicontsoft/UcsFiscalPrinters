@@ -131,22 +131,18 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
+    Set m_oController = oParent.ServiceController
     pvClearState
     '--- init socket
     Set m_oSocket = New cAsyncSocket
     If Not oSocket.Accept(m_oSocket) Then
         m_sLastError = oSocket.GetErrorDescription(oSocket.LastError)
         Set m_oSocket = Nothing
+        Set m_oController = Nothing
         GoTo QH
     End If
     '--- deep-copy fiscal printers config
     If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), oPrinters, Error:=m_sLastError) Then
-        GoTo QH
-    End If
-    '--- init service controller
-    Set m_oController = New cServiceController
-    If Not m_oController.Init(oPrinters, oParent.RequestsCache) Then
-        m_sLastError = m_oController.LastError
         Set m_oSocket = Nothing
         Set m_oController = Nothing
         GoTo QH

@@ -35,8 +35,10 @@ Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
 Private Const STR_CONN_ESTABLISHED      As String = "%1 установена (%2 отворени)"
 Private Const STR_CONN_ERROR            As String = "Грешка в %1: %2"
 
+Private m_sLastError                As String
 Private m_oConfig                   As Object
 Private m_oPrinters                 As Object
+Private m_oController               As cServiceController
 Private m_oRequestsCache            As Object
 Private WithEvents m_oSocket        As cAsyncSocket
 Attribute m_oSocket.VB_VarHelpID = -1
@@ -59,12 +61,16 @@ End Sub
 ' Properties
 '=========================================================================
 
+Property Get LastError() As String
+    LastError = m_sLastError
+End Property
+
 Property Get Printers() As Object
     Set Printers = m_oPrinters
 End Property
 
-Property Get RequestsCache() As Object
-    Set RequestsCache = m_oRequestsCache
+Property Get ServiceController() As Object
+    Set ServiceController = m_oController
 End Property
 
 '=========================================================================
@@ -80,19 +86,37 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
     JsonItem(m_oRequestsCache, vbNullString) = Empty
+    '--- init service controller
+    Set m_oController = New cServiceController
+    If Not m_oController.Init(oPrinters, m_oRequestsCache) Then
+        m_sLastError = m_oController.LastError
+        Set m_oSocket = Nothing
+        Set m_oController = Nothing
+        GoTo QH
+    End If
+    '--- init listen socket
     vSplit = Split(C_Str(JsonItem(oConfig, "Address")), ":")
     lListenPort = Znl(C_Lng(At(vSplit, 1)), DEF_LISTEN_PORT)
     Set m_oSocket = New cAsyncSocket
     If Not m_oSocket.Create(SocketPort:=lListenPort, SocketAddress:=At(vSplit, 0)) Then
+        m_sLastError = m_oSocket.GetErrorDescription(m_oSocket.LastError)
+        Set m_oSocket = Nothing
+        Set m_oController = Nothing
         GoTo QH
     End If
     If Not m_oSocket.Listen() Then
+        m_sLastError = m_oSocket.GetErrorDescription(m_oSocket.LastError)
+        Set m_oSocket = Nothing
+        Set m_oController = Nothing
         GoTo QH
     End If
     DebugLog Printf(STR_SOCKET_LISTEN, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
     '--- success
     Init = True
 QH:
+    If LenB(m_sLastError) <> 0 Then
+        DebugLog m_sLastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -145,6 +169,9 @@ Private Sub m_oSocket_OnAccept()
         GoTo QH
     End If
     If Not oClient.Init(sKey, m_oSocket, Me) Then
+        If LenB(oClient.LastError) <> 0 Then
+            DebugLog oClient.LastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        End If
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
