@@ -209,7 +209,7 @@ EH:
 End Function
 
 Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
-    Const FUNC_NAME     As String = "pvSendCommand"
+    Const FUNC_NAME     As String = "WriteData"
     Dim lWritten        As Long
     Dim uOver           As OVERLAPPED
     Dim lResult         As Long
@@ -249,7 +249,7 @@ EH:
 End Function
 
 Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Boolean
-    Const FUNC_NAME     As String = "pvSendCommand"
+    Const FUNC_NAME     As String = "ReadData"
     Dim uOver           As OVERLAPPED
     Dim lResult         As Long
     Dim lMask           As Long
