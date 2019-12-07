@@ -585,7 +585,7 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsDcsCmdInfoDiagnostics, sParam, DEF_SEP, _
         "SerialIndex", lSerialIndex, 7
-    m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
+    m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
@@ -664,7 +664,7 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data A
         Exit Function
     End If
     '--- auto-sense encoding
-    SendCommand = pvSendCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
+    SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
@@ -1085,7 +1085,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsDcsCmdInfoStatus, sParam, vbNullString
-    pvSendCommand m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError
+    pvTransmitCommand m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError
     If LenB(m_uPrintData.LastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsDcsStbGeneralError) Then
@@ -1328,13 +1328,13 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvSendCommand( _
+Private Function pvTransmitCommand( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
             ByVal eCmd As UcsDatecsCommandsEnum, _
             Optional Data As String, _
             Optional Error As String) As String
-    Const FUNC_NAME     As String = "pvSendCommand"
+    Const FUNC_NAME     As String = "pvTransmitCommand"
     Dim sSend           As String
     Dim sText           As String
     Dim baText()        As Byte
@@ -1406,8 +1406,8 @@ RetryParse:
         Else
             pvSetStatus vbNullString '--- clear
         End If
-        pvSendCommand = pvTranscode(Mid$(sText, 11, lSize - 10), False)
-        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
+        pvTransmitCommand = pvTranscode(Mid$(sText, 11, lSize - 10), False)
+        DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand & _
             IIf(Status(ucsDcsStbGeneralError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
             IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
     Else
@@ -1834,8 +1834,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
 QH:
     If uRow(0).InitDisablePrinting Then
         pvGetCommandConfig CONF_NAME, "InitEnablePrinting", eCmd, ucsDcsCmdInitConnectionMode, sParam, "1" & DEF_SEP
-        '--- use pvSendCommand to preserve LastError
-        pvSendCommand m_oConnector, m_lTimeout, eCmd, sParam
+        '--- use pvTransmitCommand to preserve LastError
+        pvTransmitCommand m_oConnector, m_lTimeout, eCmd, sParam
     End If
     If bInLogin Then
         pvSetLastError m_uPrintData.LastError & pvInternal(ucsErrInvalidOperatorPassword), ucsFerInvalidPassword
@@ -1861,7 +1861,7 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         "NameIndex", lNameIndex, 1, _
         "SerialIndex", lSerialIndex, 7
     If Not IsArray(vResult) Then
-        vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
         '--- check serial

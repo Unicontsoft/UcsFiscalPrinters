@@ -440,7 +440,7 @@ Property Get IsEcr() As Boolean
     If m_uConfig.IsEcr = vbUseDefault Then
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
             "Timeout", lTimeout, 100
-        m_uConfig.IsEcr = IIf(LenB(pvSendCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
+        m_uConfig.IsEcr = IIf(LenB(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
     End If
     IsEcr = (m_uConfig.IsEcr = vbTrue)
     Exit Property
@@ -709,10 +709,10 @@ Public Function Init(sDeviceString As String) As Boolean
         "IncotexPrefix", sIncotexPrefix, "IN", _
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
-    m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
+    m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     If LenB(At(m_vInfoDiagnostics, 0)) = 0 Then
         sParam = vbNullString
-        m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
+        m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     End If
     If LenB(sError) <> 0 Then
         pvSetLastError sError
@@ -803,7 +803,7 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
     If m_uConfig.Charset = ucsCrsAuto Then
         pvGetCommandConfig CONF_NAME, "InitDecimals", eDecimalsCmd, ucsIslCmdInitDecimals, sDecimalsParam, vbNullString, _
             "Index", lDecimalsIndex, 2
-        vResult = Split(pvSendCommand(m_oConnector, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_SEP)
+        vResult = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_SEP)
         If LenB(sError) <> 0 Then
             pvSetLastError sError
             GoTo QH
@@ -812,7 +812,7 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
         lChar = Asc(Zn(Trim$(At(vResult, lDecimalsIndex)), " "))
         m_uConfig.Charset = IIf(lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40, ucsCrsMik, ucsCrsWindows)
     End If
-    SendCommand = pvSendCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
+    SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
@@ -1316,7 +1316,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsIslCmdInfoStatus, sParam, "X"
-    pvSendCommand m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError
+    pvTransmitCommand m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError
     If LenB(m_uPrintData.LastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsIslStbPrintingError) Then
@@ -1624,13 +1624,13 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvSendCommand( _
+Private Function pvTransmitCommand( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
             ByVal eCmd As UcsIslCommandsEnum, _
             Optional Data As String, _
             Optional Error As String) As String
-    Const FUNC_NAME     As String = "pvSendCommand"
+    Const FUNC_NAME     As String = "pvTransmitCommand"
     Dim sSend           As String
     Dim sText           As String
     Dim baText()        As Byte
@@ -1706,8 +1706,8 @@ RetryParse:
         Else
             pvSetStatus vbNullString '--- clear
         End If
-        pvSendCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
-        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand & _
+        pvTransmitCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
+        DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand & _
             IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
             IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
     Else
@@ -2316,10 +2316,10 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         "NameIndex", lNameIndex, 0, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
-        vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         If LenB(At(vResult, 0)) = 0 Then
             sParam = vbNullString
-            vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+            vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         End If
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then

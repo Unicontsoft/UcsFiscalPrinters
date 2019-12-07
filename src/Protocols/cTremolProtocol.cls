@@ -378,7 +378,7 @@ Property Get IsEcr() As Boolean
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
             "Timeout", lTimeout, 100, _
             "TypeIndex", lTypeIndex, 0
-        vInfoVersion = Split(pvSendCommand(m_oConnector, lTimeout, eCmd, sParam), DEF_SEP)
+        vInfoVersion = Split(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam), DEF_SEP)
         m_uConfig.IsEcr = IIf(At(vInfoVersion, lTypeIndex) = "1", vbTrue, vbFalse)
     End If
     IsEcr = (m_uConfig.IsEcr = vbTrue)
@@ -570,7 +570,7 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsZekCmdInfoDiagnostics, sParam, vbNullString, _
         "SerialIndex", lSerialIndex, 0
-    m_vInfoDiagnostics = Split(pvSendCommand(m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError), DEF_SEP)
+    m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError), DEF_SEP)
     If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
     End If
@@ -660,7 +660,7 @@ Public Function SendCommand(ByVal eCmd As UcsTremolCommandsEnum, Optional Data A
         Exit Function
     End If
     If WaitDevice() Then
-        SendCommand = pvSendCommand(m_oConnector, m_lTimeout, eCmd, Data, m_uPrintData.LastError)
+        SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, m_uPrintData.LastError)
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
         m_uPrintData.LastErrNo = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
@@ -689,14 +689,14 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
     If Timeout < 0 Then
         pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
             "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
-        If pvSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
+        If pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
             pvSetLastError pvInternal(ucsErrDeviceNotOnline)
             GoTo QH
         End If
         If CheckFastStatus Then
             pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
                 "ReadyStatus", sStatus, LNG_STATUS_READY
-            sCurrent = pvSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+            sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
             If LenB(sCurrent) <> 0 Then
                 Select Case Asc(sCurrent)
                 Case C_Lng(sStatus) '--- LNG_STATUS_READY
@@ -724,12 +724,12 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
             lIter = lIter + 1
             pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
                 "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
-            If pvSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
+            If pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
                 lIter = lIter + 1
                 pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
                     "ReadyStatus", sStatus, LNG_STATUS_READY, _
                     "Delay", sDelay, 40
-                sCurrent = pvSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+                sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
                 If LenB(sCurrent) <> 0 Then
                     Select Case Asc(sCurrent)
                     Case C_Lng(sStatus) '--- LNG_STATUS_READY
@@ -1542,13 +1542,13 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvSendCommand( _
+Private Function pvTransmitCommand( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
             ByVal eCmd As UcsTremolCommandsEnum, _
             Optional Data As String, _
             Optional Error As String) As String
-    Const FUNC_NAME     As String = "pvSendCommand"
+    Const FUNC_NAME     As String = "pvTransmitCommand"
     Dim sText           As String
     Dim baText()        As Byte
     Dim lIdx            As Long
@@ -1609,9 +1609,9 @@ RetryParse:
                         Error = Printf(pvInternal(ucsErrInvalidResponseChecksum), "0x" & ToHexDump(sText))
                         Exit Do
                     End If
-                    pvSendCommand = Mid$(sText, 5, lSize)
+                    pvTransmitCommand = Mid$(sText, 5, lSize)
                     If bLogging Then
-                        DebugLog FUNC_NAME, "RetVal=" & pvSendCommand
+                        DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand
                     End If
                     Exit Do
                 End If
@@ -1643,7 +1643,7 @@ RetryParse:
                 Exit Do
             Case Else
                 If eCmd <= [_ucsZekCmdFastMax] Then
-                    pvSendCommand = Right$(sText, 1)
+                    pvTransmitCommand = Right$(sText, 1)
                 Else
                     lIdx = InStr(sText, Chr$(ZFP_STX))
                     lIdx = LimitLong(InStr(sText, Chr$(ZFP_ACK)), , Znl(lIdx, 2147483647))
@@ -2005,14 +2005,14 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsZekCmdInfoDiagnostics, sParam, vbNullString, _
         "SerialIndex", lSerialIndex, 0
     If Not IsArray(vResult) Then
-        vResult = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
     End If
     If LenB(At(vResult, lSerialIndex)) <> 0 Then
         sProtocol = STR_PROTOCOL_TREMOL
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
             "ModelIndex", lModelIndex, 3, _
             "FirmwareIndex", lFirmwareIndex, 4
-        vSplit = Split(pvSendCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
+        vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
         sModel = RTrim$(At(vSplit, lModelIndex))
         sFirmware = RTrim$(At(vSplit, lFirmwareIndex))
         '--- success
