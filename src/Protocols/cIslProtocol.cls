@@ -1898,6 +1898,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sTaxNoSuffix    As String
     Dim sCodeType       As String
     Dim sCodeData       As String
+    Dim lMaxSize        As Long
     
     On Error GoTo EH
     '--- ring sale
@@ -1909,20 +1910,23 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 "Index", lIndex, 5
             sParam = Printf(sParam, .InitOperatorCode)
             sData = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)
-            If LenB(.InitOperatorName) <> 0 Then
-                If .InitOperatorName <> sData Then
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & IIf(IsDaisy, vbTab & "1,1,1", vbNullString)
-                    pvGetCommandConfig CONF_NAME, "InitOperatorName", eCmd, ucsIslCmdInitOperatorName, sParam, sParam, _
-                        "MinName", lMinName, 10
-                    sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
-                    sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
-                    SendCommand eCmd, sOperParamMax
-                    If LenB(m_uPrintData.LastError) <> 0 And sOperParamMin <> sOperParamMax Then
-                        SendCommand eCmd, sOperParamMin
+            If LenB(m_uPrintData.LastError) = 0 Then
+                If LenB(.InitOperatorName) <> 0 Then
+                    If .InitOperatorName <> sData Then
+                        sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & IIf(IsDaisy, vbTab & "1,1,1", vbNullString)
+                        pvGetCommandConfig CONF_NAME, "InitOperatorName", eCmd, ucsIslCmdInitOperatorName, sParam, sParam, _
+                            "MinName", lMinName, 10
+                        sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
+                        sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
+                        SendCommand eCmd, sOperParamMax
+                        If LenB(m_uPrintData.LastError) <> 0 And sOperParamMin <> sOperParamMax Then
+                            SendCommand eCmd, sOperParamMin
+                            '--- skip last error check
+                        End If
                     End If
+                Else
+                    .InitOperatorName = RTrim$(sData)
                 End If
-            Else
-                .InitOperatorName = RTrim$(sData)
             End If
             If LenB(.InitInvData(ucsInvDocNo)) <> 0 Then
                 Select Case .InitReceiptType
@@ -2166,6 +2170,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvGetCommandConfig CONF_NAME, "InitHeaderFooter", eCmd, ucsIslCmdInitHeaderFooter, sParam, "B" & DEF_SEP & "%1"
                 sParam = Printf(sParam, LimitLong(.BarcodeHeight * 6, 24, 240))
                 SendCommand eCmd, sParam
+                '--- skip last error check
             End If
             sCodeData = .BarcodeText
             Select Case .BarcodeType
@@ -2194,6 +2199,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             pvGetCommandConfig CONF_NAME, "PrintBarcode", eCmd, ucsIslCmdPrintBarcode, sParam, sParam
             sParam = Printf(sParam, sCodeType, sCodeData, .BarcodeHeight)
             SendCommand eCmd, sParam
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
         Case ucsRowPayment
             If .PmtType <> 0 Then
                 lIndex = pvToDevicePmtIndex(.PmtType)
@@ -2219,15 +2227,19 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     "AmountIndex", lAmountIndex, 2, _
                     "PaidIndex", lPaidIndex, 3
                 vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
+                End If
                 If C_Lng(At(vSplit, lIndex)) <> lStatus Then
                     If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
                             Or LenB(At(vSplit, lAmountIndex)) = 0 _
                             Or Not uCtx.PmtPrinted Then
                         pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
                         SendCommand eCmd, sParam
-                        If LenB(m_uPrintData.LastError) = 0 Then
-                            uCtx.PmtPrinted = True
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            GoTo QH
                         End If
+                        uCtx.PmtPrinted = True
                     End If
                     Select Case .PrintRowType
                     Case ucsFscRcpInvoice, ucsFscRcpCreditNote
@@ -2245,7 +2257,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             Else
                                 sTaxNoSuffix = vbTab & .InitInvData(ucsInvCgTaxNoType)
                             End If
-                            sParam = Printf(sParam, sTaxNoPrefix & Left$(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxCgInfo(0)) & sTaxNoSuffix, _
+                            lMaxSize = m_uConfig.MaxCgInfo(0) - Len(sTaxNoPrefix) - Len(sTaxNoSuffix)
+                            sParam = Printf(sParam, sTaxNoPrefix & Left$(.InitInvData(ucsInvCgTaxNo), lMaxSize) & sTaxNoSuffix, _
                                 Left$(.InitOperatorName, m_uConfig.MaxCgInfo(1)), _
                                 Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(2)), _
                                 Left$(.InitInvData(ucsInvCgName), m_uConfig.MaxCgInfo(3)), _
@@ -2265,6 +2278,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
                 pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsIslCmdInfoStatus, sParam, "W"
                 SendCommand eCmd, sParam
+                '--- skip last error check
             End If
         End Select
         End With
