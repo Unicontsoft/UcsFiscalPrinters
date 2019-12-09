@@ -121,10 +121,10 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             End If
         Next
     Next
-    If Not m_oOpt.Item("--nologo") And Not bNoLogo Then
+    If Not C_Bool(m_oOpt.Item("--nologo")) And Not bNoLogo Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
     End If
-    If m_oOpt.Item("--help") Then
+    If C_Bool(m_oOpt.Item("--help")) Then
         ConsolePrint "Usage: " & App.EXEName & ".exe [options...]" & vbCrLf & vbCrLf & _
                     "Options:" & vbCrLf & _
                     "  -c, --config FILE   read configuration from FILE" & vbCrLf & _
@@ -133,15 +133,8 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
                     "  -s, --systray       show icon in systray" & vbCrLf
         GoTo QH
     End If
-    If NtServiceInit(STR_SERVICE_NAME) Then
-        m_bIsService = True
-        '--- cannot handle these as NT service
-        m_oOpt.Item("--systray") = Empty
-        m_oOpt.Item("--install") = Empty
-        m_oOpt.Item("--uninstall") = Empty
-    End If
-    '--- read config file
-    sConfFile = m_oOpt.Item("--config")
+    '--- setup config filename
+    sConfFile = C_Str(m_oOpt.Item("--config"))
     If LenB(sConfFile) = 0 Then
         sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
         If Not FileExists(sConfFile) Then
@@ -151,35 +144,15 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             End If
         End If
     End If
-    If LenB(sConfFile) <> 0 Then
-        DebugLog Printf(STR_LOADING_CONFIG, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-        If Not FileExists(sConfFile) Then
-            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
-            Process = 1
-            GoTo QH
-        End If
-        If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
-            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
-            Process = 1
-            GoTo QH
-        End If
-        JsonExpandEnviron m_oConfig
-    Else
-        JsonItem(m_oConfig, "Printers/Autodetect") = True
-        JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
+    '--- setup service
+    If NtServiceInit(STR_SERVICE_NAME) Then
+        m_bIsService = True
+        '--- cannot handle these as NT service
+        m_oOpt.Item("--systray") = Empty
+        m_oOpt.Item("--install") = Empty
+        m_oOpt.Item("--uninstall") = Empty
     End If
-    If m_oOpt.Item("--systray") Then
-        If Not m_oOpt.Item("--hidden") And Not InIde Then
-            frmIcon.Restart AddParam:="--hidden"
-            GoTo QH
-        ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
-            Process = 1
-            GoTo QH
-        End If
-        Process = -1
-    End If
-    If m_oOpt.Item("--install") Then
+    If C_Bool(m_oOpt.Item("--install")) Then
         ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
             sConfFile = " --config " & ArgvQuote(sConfFile)
@@ -194,7 +167,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
-    ElseIf m_oOpt.Item("--uninstall") Then
+    ElseIf C_Bool(m_oOpt.Item("--uninstall")) Then
         ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
         If Not pvUnregisterServiceAppID(App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
             ConsoleError STR_WARN & sError & vbCrLf
@@ -206,6 +179,36 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
+    End If
+    '--- read config file
+    If LenB(sConfFile) <> 0 Then
+        If Not FileExists(sConfFile) Then
+            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            Process = 1
+            GoTo QH
+        End If
+        If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
+            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            Process = 1
+            GoTo QH
+        End If
+        DebugLog Printf(STR_LOADING_CONFIG, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        JsonExpandEnviron m_oConfig
+    Else
+        JsonItem(m_oConfig, "Printers/Autodetect") = True
+        JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
+        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
+    End If
+    '--- respawn hidden in systray
+    If C_Bool(m_oOpt.Item("--systray")) Then
+        If Not C_Bool(m_oOpt.Item("--hidden")) And Not InIde Then
+            frmIcon.Restart AddParam:="--hidden"
+            GoTo QH
+        ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+            Process = 1
+            GoTo QH
+        End If
+        Process = -1
     End If
     If UBound(JsonKeys(m_oConfig, "Environment")) >= 0 Then
         DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
@@ -238,7 +241,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         TerminateEndpoints
         NtServiceTerminate
         FlushDebugLog
-    ElseIf Not m_oOpt.Item("--systray") Then
+    ElseIf Not C_Bool(m_oOpt.Item("--systray")) Then
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
