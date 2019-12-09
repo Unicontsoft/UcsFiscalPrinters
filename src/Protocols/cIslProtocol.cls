@@ -237,13 +237,14 @@ Private Const DEF_SERIAL_SPEED          As Long = 115200
 Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
 Private Const DEF_SEP                   As String = ","
 Private Const DEF_SEQUENCE              As Long = &H20
+Private Const DEF_CODEPAGE              As Long = 1251
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const MIK_OFFSET                As Long = &H80
 'Private Const WIN_OFFSET                As Long = &HC0
@@ -298,6 +299,13 @@ Private Enum UcsCharset
     ucsCrsMik
 End Enum
 
+Private Enum UcsModelGroupEnum
+    ucsModFpModelA
+    ucsModEcrModelB
+    ucsModDaisy
+    ucsModIncotext
+End Enum
+
 Private Enum UcsProtocolMarkers
     SYM_PREAMBLE = &H1
     SYM_TERMINATOR = &H3
@@ -317,9 +325,7 @@ End Type
 
 Private Type UcsConfigValues
     Charset             As UcsCharset
-    IsEcr               As VbTriState
-    IsDaisy             As Boolean
-    IsIncotex           As Boolean
+    ModelGroup          As UcsModelGroupEnum
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
     MaxOperatorName     As Long
@@ -429,31 +435,20 @@ Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, Optional
     m_uLConfig(ConfigIndex).LocalizedText(eIdx) = SplitOrReindex(sValue, "|")
 End Property
 
+Property Get IsFP() As Boolean
+    IsFP = (m_uConfig.ModelGroup = ucsModFpModelA)
+End Property
+
 Property Get IsEcr() As Boolean
-    Const FUNC_NAME     As String = "IsEcr [get]"
-    Const CONF_NAME     As String = "IsEcr"
-    Dim lTimeout        As Long
-    Dim eCmd            As UcsIslCommandsEnum
-    Dim sParam          As String
-    
-    On Error GoTo EH
-    If m_uConfig.IsEcr = vbUseDefault Then
-        pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
-            "Timeout", lTimeout, 100
-        m_uConfig.IsEcr = IIf(LenB(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0, vbTrue, vbFalse)
-    End If
-    IsEcr = (m_uConfig.IsEcr = vbTrue)
-    Exit Property
-EH:
-    RaiseError FUNC_NAME
+    IsEcr = (m_uConfig.ModelGroup = ucsModEcrModelB)
 End Property
 
 Property Get IsDaisy() As Boolean
-    IsDaisy = m_uConfig.IsDaisy
+    IsDaisy = (m_uConfig.ModelGroup = ucsModDaisy)
 End Property
 
 Property Get IsIncotex() As Boolean
-    IsIncotex = m_uConfig.IsIncotex
+    IsIncotex = (m_uConfig.ModelGroup = ucsModIncotext)
 End Property
 
 Property Get DefPmtTypes() As String
@@ -508,9 +503,14 @@ Private Property Get pvRowChars() As Long
             pvGetCommandConfig CONF_NAME, "InitLogo", eCmd, ucsIslCmdInitLogo, sParam, "R0"
             sResult = SendCommand(eCmd, sParam)
             '--- check for paper width above 57mm (432px) e.g. 80mm paper is 576px wide
-            If Len(sResult) * 4 > 432 Then
+            Select Case Len(sResult) * 4
+'            Case 384
+'                m_uPrintData.Config.RowChars = DEF_ROW_CHARS
+            Case 400
+                m_uPrintData.Config.RowChars = Len(sResult) * 4 / 10
+            Case Is > 432
                 m_uPrintData.Config.RowChars = Len(sResult) * 4 / 12
-            End If
+            End Select
         End If
         If m_uPrintData.Config.RowChars <= 0 Then
             m_uPrintData.Config.RowChars = DEF_ROW_CHARS
@@ -539,7 +539,7 @@ End Property
 Property Get pvLocalizedTextArray(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As Variant
     Dim lCurrentIdx     As Long
     
-    lCurrentIdx = IIf(m_uConfig.IsEcr = vbTrue, 1, 0)
+    lCurrentIdx = IIf(m_uConfig.ModelGroup = ucsModEcrModelB, 1, 0)
     pvLocalizedTextArray = m_uLConfig(lCurrentIdx).LocalizedText(eIdx)
     '--- fallback to default localization config
     If Not IsArray(pvLocalizedTextArray) And lCurrentIdx <> 0 Then
@@ -691,6 +691,7 @@ Public Function Init(sDeviceString As String) As Boolean
     Dim lSwitchesIndex  As Long
     Dim sError          As String
     Dim vSplit          As Variant
+    Dim lTimeout        As Long
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
@@ -731,10 +732,27 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
-        .Charset = ucsCrsAuto
-        .IsEcr = vbUseDefault
-        .IsDaisy = (Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix) And LenB(sDaisyPrefix) <> 0
-        .IsIncotex = (Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix) And LenB(sIncotexPrefix) <> 0
+        Select Case GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
+        Case 1251
+            .Charset = ucsCrsWindows
+        Case 856
+            .Charset = ucsCrsMik
+        Case Else
+            .Charset = ucsCrsAuto
+        End Select
+        If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
+            .ModelGroup = ucsModDaisy
+        ElseIf Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+            .ModelGroup = ucsModIncotext
+        Else
+            pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
+                "Timeout", lTimeout, 100
+            If LenB(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0 Then
+                m_uConfig.ModelGroup = ucsModEcrModelB
+            Else
+                m_uConfig.ModelGroup = ucsModFpModelA
+            End If
+        End If
         .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
@@ -1347,17 +1365,17 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lRevOffset      As Long
     
     On Error GoTo EH
-    If Not IsEcr Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString), _
-            "Offset", lOffset, 0
-        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    Else
+    If IsEcr Then
         pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "0", _
             "Offset", lOffset, -10
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
         pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
             "RevOffset", lRevOffset, -10
         vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    Else
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString), _
+            "Offset", lOffset, 0
+        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     End If
     If UBound(vPmtSum) > 0 Then
         ReDim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
@@ -2252,10 +2270,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             Else
                                 sFormatAddr = Left$(.InitInvData(ucsInvCgCity), m_uConfig.MaxCgInfo(5))
                             End If
-                            If Not IsEcr Then
-                                sTaxNoPrefix = At(Split("|#|*|^", "|"), .InitInvData(ucsInvCgTaxNoType))
-                            Else
+                            If IsEcr Then
                                 sTaxNoSuffix = vbTab & .InitInvData(ucsInvCgTaxNoType)
+                            Else
+                                sTaxNoPrefix = At(Split("|#|*|^", "|"), .InitInvData(ucsInvCgTaxNoType))
                             End If
                             lMaxSize = m_uConfig.MaxCgInfo(0) - Len(sTaxNoPrefix) - Len(sTaxNoSuffix)
                             sParam = Printf(sParam, sTaxNoPrefix & Left$(.InitInvData(ucsInvCgTaxNo), lMaxSize) & sTaxNoSuffix, _
