@@ -146,6 +146,7 @@ Private Const STR_INTERNAL              As String = "Timeout waiting for respons
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
+Private Const DEF_SEP                   As String = ";"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 50
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -160,8 +161,9 @@ Private Const DEF_SERIAL_SPEED          As Long = 115200
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_PING_TIMEOUT          As Long = 200
-Private Const DEF_LINE_WIDTH            As Long = 32
+Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
 Private Const DEF_MAX_OPERPASSWORD      As Long = 4
@@ -177,7 +179,6 @@ Private Const DEF_MAX_FISCALMEMORYNO    As Long = 8
 Private Const DEF_MAX_UNIQUESALENO      As Long = 24
 Private Const DEF_MAX_DEPARTMENTCODE    As Long = 2
 Private Const DEF_MAX_RECEIPTNO         As Long = 6
-Private Const DEF_SEP                   As String = ";"
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H9F
 Private Const LNG_STATUS_READY          As Long = &H40
@@ -256,6 +257,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    CodePage            As Long
     IsEcr               As VbTriState
     PingTimeout         As Long
     DetailedReceipt     As Boolean
@@ -388,7 +390,7 @@ EH:
 End Property
 
 Private Property Get pvRowChars() As Long
-    pvRowChars = pvZfplibValue(m_uPrintData.Config.RowChars, "FPLineWidth", DEF_LINE_WIDTH)
+    pvRowChars = pvZfplibValue(m_uPrintData.Config.RowChars, "FPLineWidth", DEF_ROW_CHARS)
 End Property
 
 Private Property Get pvCommentChars() As Long
@@ -587,7 +589,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
-        .IsEcr = vbUseDefault
+        .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
+        .IsEcr = GetConfigNumber(sSerial, "IsEcr", Znl(C_Lng(JsonItem(oOptions, "IsEcr")), vbUseDefault))
         .PingTimeout = GetConfigNumber(sSerial, "PingTimeout", C_Lng(JsonItem(oOptions, "PingTimeout")))
         .DetailedReceipt = C_Bool(GetConfigValue(sSerial, "DetailedReceipt", JsonBoolItem(oOptions, "DetailedReceipt")))
         .PrintVat = C_Bool(GetConfigValue(sSerial, "PrintVat", JsonBoolItem(oOptions, "PrintVat")))
@@ -1554,6 +1557,7 @@ Private Function pvTransmitCommand( _
     Dim lIdx            As Long
     Dim lSize           As Long
     Dim bLogging        As Boolean
+    Dim sBuffer         As String
     
     On Error GoTo EH
     bLogging = (eCmd > [_ucsZekCmdFastMax])
@@ -1576,7 +1580,7 @@ RetrySend:
     End If
     '--- send request
     DebugDataDump FUNC_NAME, "send ", sText
-    baText = ToAscii(sText)
+    baText = ToAscii(sText, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, Error=" & Error
@@ -1590,8 +1594,9 @@ RetrySend:
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
             GoTo QH
         End If
-        DebugDataDump FUNC_NAME, "recv ", FromAscii(baText)
-        sText = sText & FromAscii(baText)
+        sBuffer = FromAscii(baText, m_uConfig.CodePage)
+        DebugDataDump FUNC_NAME, "recv ", sBuffer
+        sText = sText & sBuffer
 RetryParse:
         If LenB(sText) <> 0 Then
             Select Case Asc(sText)
@@ -2119,7 +2124,7 @@ Private Function pvCheckSum(sText As String) As String
     Dim lSum            As Long
     
     On Error GoTo EH
-    baText = ToAscii(sText)
+    baText = ToAscii(sText, m_uConfig.CodePage)
     For lIdx = 1 To Len(sText) - 1
         lSum = lSum Xor baText(lIdx)
     Next

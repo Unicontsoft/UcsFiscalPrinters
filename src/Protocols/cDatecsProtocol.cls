@@ -191,6 +191,7 @@ Private Const STR_ERROR_CODES           As String = "-100001|ERR_IO|-100002|ERR_
                                                     "|-112102|ERR_FP_SYNTAX_PARAM_2|-112103|ERR_FP_SYNTAX_PARAM_3|-112104|ERR_FP_SYNTAX_PARAM_4|-112105|ERR_FP_SYNTAX_PARAM_5|-112106|ERR_FP_SYNTAX_PARAM_6|-112107|ERR_FP_SYNTAX_PARAM_7|-112108|ERR_FP_SYNTAX_PARAM_8|-112109|ERR_FP_SYNTAX_PARAM_9|-112110|ERR_FP_SYNTAX_PARAM_10|-112111|ERR_FP_SYNTAX_PARAM_11|-112112|ERR_FP_SYNTAX_PARAM_12|-112113|ERR_FP_SYNTAX_PARAM_13|-112114|ERR_FP_SYNTAX_PARAM_14|-112115|ERR_FP_SYNTAX_PARAM_15|-112116|ERR_FP_SYNTAX_PARAM_16|-112199|_ERR_FP_SYNTAX_PARAM_END|-112200|_ERR_FP_BAD_PARAM_BEGIN|-112201|ERR_FP_BAD_PARAM_1|-112202|ERR_FP_BAD_PARAM_2|-112203|ERR_FP_BAD_PARAM_3|-112204|ERR_FP_BAD_PARAM_4|-112205|ERR_FP_BAD_PARAM_5|-112206|ERR_FP_BAD_PARAM_6|-112207|ERR_FP_BAD_PARAM_7|-112208|ERR_FP_BAD_PARAM_8|-112209|ERR_FP_BAD_PARAM_9|-112210|ERR_FP_BAD_PARAM_10|-112211|ERR_FP_BAD_PARAM_11|-112212|ERR_FP_BAD_PARAM_12|-112213|ERR_FP_BAD_PARAM_13" & _
                                                     "|-112214|ERR_FP_BAD_PARAM_14|-112215|ERR_FP_BAD_PARAM_15|-112216|ERR_FP_BAD_PARAM_16|-112299|_ERR_FP_BAD_PARAM_END|-112900|_ERR_RANGE_EM_BEGIN|-112999|_ERR_RANGE_EM_END|-113000|ERR_FLASH_WRONG_ID|-113001|ERR_FLASH_WRONG_SIZE|-114000|ERR_POS_TERM_CHAN_CLOSED|-118000|ERR_ECRSRV_NO_SOCKET_OPENED|-118001|ERR_ECRSRV_SET_IS_NOT_TAKEN|-118002|ERR_ECRSRV_WRONG_PARAM|-118003|ERR_ECRSRV_NOT_SEND|-118004|ERR_ECRSRV_RECV_TMOUT|-118005|ERR_ECRSRV_SOCKET_CLOSED|-118006|ERR_ECRSRV_UNKNOWN|-118007|ERR_ECRSRV_FORBIDEN|-120000|ERR_PGM_NAME_NOT_UNIQUE|-120001|ERR_PGM_OPER_PASS_NOT_UNIQUE|-120002|ERR_PGM_DATETIME_OUT_OF_RANGE_MIN|-120003|ERR_PGM_DATETIME_OUT_OF_RANGE_MAX|-121000|ERR_SCANNER_GENERAL|-121001|ERR_COURIER_EIK_INVALID|-170000|ERR_USB_HOST_INIT|-170001|ERR_USB_NO_DEVICE|-170002|ERR_USB_NO_FILESYSTEM|-170003|ERR_USB_FILE_OPEN|-170004|ERR_USB_FILE_COPY|-170005|ERR_FILE_UNPACK" & _
                                                     "|-171000|ERR_RENTAL_NOT_FOUND|-171001|ERR_RENTAL_FULL|-171002|ERR_RENTAL_POSITION_OCCUPIED|-171003|ERR_RENTAL_POSITION_FREE|-171004|ERR_RENTAL_SUBSCRIPTION_ACTIVE"
+Private Const DEF_SEP                   As String = vbTab
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -205,11 +206,11 @@ Private Const DEF_ITEM_CHARS            As Long = 72
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 16
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
-Private Const DEF_SEP                   As String = vbTab
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -269,6 +270,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    CodePage            As Long
     IsEcr               As VbTriState
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
@@ -486,7 +488,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
                     Call PurgeComm(.Connector.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-                    baText = ToAscii(sProbeText)
+                    baText = ToAscii(sProbeText, m_uConfig.CodePage)
                     lResult = WriteFile(.Connector.hComm, baText(0), Len(sProbeText), lActual, .WriteOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .WriteOver.hEvent
@@ -603,7 +605,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
-        .IsEcr = vbUseDefault
+        .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
+        .IsEcr = GetConfigNumber(sSerial, "IsEcr", Znl(C_Lng(JsonItem(oOptions, "IsEcr")), vbUseDefault))
         .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
@@ -1344,8 +1347,8 @@ Private Function pvTransmitCommand( _
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
-    '--- prepare command and transcode cyrillic
-    sSend = pvTranscode(Data, True)
+    '--- prepare command
+    sSend = Data
     sSend = Chr$(SYM_PREAMBLE) & pvToWireLong(SYM_BASEDATA + 10 + Len(sSend)) & Chr$(m_lSequence) & pvToWireLong(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
@@ -1354,7 +1357,7 @@ Private Function pvTransmitCommand( _
     '--- send request
 RetrySend:
     DebugDataDump FUNC_NAME, "send ", sSend
-    baText = ToAscii(sSend)
+    baText = ToAscii(sSend, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, Error=" & Error
@@ -1368,7 +1371,7 @@ RetrySend:
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
             GoTo QH
         End If
-        sBuffer = FromAscii(baText)
+        sBuffer = FromAscii(baText, m_uConfig.CodePage)
         DebugDataDump FUNC_NAME, "recv ", sBuffer
         '--- check for NAK (&H15)
         If InStr(sBuffer, Chr$(SYM_NAK)) > 0 Then
@@ -1406,7 +1409,7 @@ RetryParse:
         Else
             pvSetStatus vbNullString '--- clear
         End If
-        pvTransmitCommand = pvTranscode(Mid$(sText, 11, lSize - 10), False)
+        pvTransmitCommand = Mid$(sText, 11, lSize - 10)
         DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand & _
             IIf(Status(ucsDcsStbGeneralError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
             IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
@@ -1433,7 +1436,7 @@ Private Function pvCheckSum(sText As String) As String
     Dim lIdx            As Long
     Dim lSum            As Long
     
-    baText = ToAscii(sText)
+    baText = ToAscii(sText, m_uConfig.CodePage)
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
@@ -1448,19 +1451,13 @@ Private Function pvFromWireLong(baValue() As Byte) As Long
     pvFromWireLong = (baValue(0) - &H30) * &H1000 + (baValue(2) - &H30) * &H100 + (baValue(4) - &H30) * &H10 + (baValue(6) - &H30)
 End Function
 
-Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As String
-    #If bToPrinter Then '--- touch arg
-    #End If
-    pvTranscode = sText
-End Function
-
 Private Sub pvSetStatus(sStatus As String)
     Const FUNC_NAME     As String = "pvSetStatus"
     Dim baStatus()      As Byte
     Dim lIdx            As Long
     
     On Error GoTo EH
-    baStatus = ToAscii(sStatus)
+    baStatus = ToAscii(sStatus, m_uConfig.CodePage)
     For lIdx = 0 To UBound(baStatus)
         If (baStatus(lIdx) And &H80) = 0 Then
             baStatus(lIdx) = 0

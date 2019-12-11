@@ -225,6 +225,7 @@ Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|
                                                     "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
+Private Const DEF_SEP                   As String = ","
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
@@ -238,16 +239,13 @@ Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
+Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
-Private Const DEF_SEP                   As String = ","
 Private Const DEF_SEQUENCE              As Long = &H20
-Private Const DEF_CODEPAGE              As Long = 1251
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
-Private Const MIK_OFFSET                As Long = &H80
-'Private Const WIN_OFFSET                As Long = &HC0
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
@@ -293,12 +291,6 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtTaxNo
 End Enum
 
-Private Enum UcsCharset
-    ucsCrsAuto
-    ucsCrsWindows
-    ucsCrsMik
-End Enum
-
 Private Enum UcsModelGroupEnum
     ucsModFpModelA
     ucsModEcrModelB
@@ -324,7 +316,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
-    Charset             As UcsCharset
+    CodePage            As Long
     ModelGroup          As UcsModelGroupEnum
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
@@ -604,7 +596,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
                     Call PurgeComm(.Connector.hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-                    baText = ToAscii(sProbeText)
+                    baText = ToAscii(sProbeText, m_uConfig.CodePage)
                     lResult = WriteFile(.Connector.hComm, baText(0), Len(sProbeText), lActual, .WriteOver)
                     If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                         hEvents(lEventsCount) = .WriteOver.hEvent
@@ -732,14 +724,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
-        Select Case GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
-        Case 1251
-            .Charset = ucsCrsWindows
-        Case 856
-            .Charset = ucsCrsMik
-        Case Else
-            .Charset = ucsCrsAuto
-        End Select
+        .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
         If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             .ModelGroup = ucsModDaisy
         ElseIf Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
@@ -804,31 +789,12 @@ End Function
 
 Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As String) As String
     Const FUNC_NAME     As String = "SendCommand"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim vResult         As Variant
-    Dim lChar           As Long
-    Dim eDecimalsCmd    As UcsIslCommandsEnum
-    Dim sDecimalsParam  As String
-    Dim lDecimalsIndex  As Long
     Dim sError          As String
     
     On Error GoTo EH
     pvSetLastError vbNullString
     If eCmd = ucsIslCmdNoop Then
         Exit Function
-    End If
-    '--- auto-sense encoding
-    If m_uConfig.Charset = ucsCrsAuto Then
-        pvGetCommandConfig CONF_NAME, "InitDecimals", eDecimalsCmd, ucsIslCmdInitDecimals, sDecimalsParam, vbNullString, _
-            "Index", lDecimalsIndex, 2
-        vResult = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eDecimalsCmd, sDecimalsParam, sError), DEF_SEP)
-        If LenB(sError) <> 0 Then
-            pvSetLastError sError
-            GoTo QH
-        End If
-        '--- first char of currency name
-        lChar = Asc(Zn(Trim$(At(vResult, lDecimalsIndex)), " "))
-        m_uConfig.Charset = IIf(lChar >= MIK_OFFSET And lChar < MIK_OFFSET + &H40, ucsCrsMik, ucsCrsWindows)
     End If
     SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
@@ -1658,8 +1624,8 @@ Private Function pvTransmitCommand( _
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
-    '--- prepare command and transcode cyrillic
-    sSend = pvTranscode(Data, True)
+    '--- prepare command
+    sSend = Data
     Do While eCmd >= &H100
         sSend = Chr$(eCmd Mod &H100) & sSend
         eCmd = eCmd \ &H100
@@ -1672,7 +1638,7 @@ Private Function pvTransmitCommand( _
     '--- send request
 RetrySend:
     DebugDataDump FUNC_NAME, "send ", sSend
-    baText = ToAscii(sSend)
+    baText = ToAscii(sSend, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, Error=" & Error
@@ -1686,7 +1652,7 @@ RetrySend:
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
             GoTo QH
         End If
-        sBuffer = FromAscii(baText)
+        sBuffer = FromAscii(baText, m_uConfig.CodePage)
         DebugDataDump FUNC_NAME, "recv ", sBuffer
         '--- check for NAK (&H15)
         If InStr(sBuffer, Chr$(&H15)) > 0 Then
@@ -1724,7 +1690,7 @@ RetryParse:
         Else
             pvSetStatus vbNullString '--- clear
         End If
-        pvTransmitCommand = pvTranscode(Mid$(sText, 5, lSize - 4), False)
+        pvTransmitCommand = Mid$(sText, 5, lSize - 4)
         DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand & _
             IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
             IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
@@ -1751,7 +1717,7 @@ Private Function pvCheckSum(sText As String) As String
     Dim lIdx            As Long
     Dim lSum            As Long
     
-    baText = ToAscii(sText)
+    baText = ToAscii(sText, m_uConfig.CodePage)
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
@@ -1762,33 +1728,13 @@ Private Function pvToWireLong(ByVal lValue As Long) As String
     pvToWireLong = Chr$((lValue \ &H1000 Mod &H10) + &H30) & Chr$((lValue \ &H100 Mod &H10) + &H30) & Chr$((lValue \ &H10 Mod &H10) + &H30) & Chr$((lValue \ &H1 Mod &H10) + &H30)
 End Function
 
-Private Function pvTranscode(sText As String, ByVal bToPrinter As Boolean) As String
-    Const FUNC_NAME     As String = "pvTranscode"
-    Dim lIdx            As Long
-    Dim lChar           As Long
-    
-    On Error GoTo EH
-    #If bToPrinter Then '--- touch arg
-    #End If
-    pvTranscode = sText
-    For lIdx = 1 To Len(pvTranscode)
-        lChar = Asc(Mid$(pvTranscode, lIdx, 1))
-        If m_uConfig.Charset = ucsCrsMik Then
-            Mid$(pvTranscode, lIdx, 1) = Chr$(IIf(lChar >= &H80, lChar Xor &H40, lChar))
-        End If
-    Next
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
 Private Sub pvSetStatus(sStatus As String)
     Const FUNC_NAME     As String = "pvSetStatus"
     Dim baStatus()      As Byte
     Dim lIdx            As Long
     
     On Error GoTo EH
-    baStatus = ToAscii(sStatus)
+    baStatus = ToAscii(sStatus, m_uConfig.CodePage)
     For lIdx = 0 To UBound(baStatus)
         If (baStatus(lIdx) And &H80) = 0 Then
             baStatus(lIdx) = 0
