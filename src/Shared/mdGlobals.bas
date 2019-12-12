@@ -236,6 +236,7 @@ Public Const STR_PROTOCOL_DAISY     As String = "DAISY FP/ECR"
 Public Const STR_PROTOCOL_INCOTEX   As String = "INCOTEX FP/ECR"
 Public Const STR_PROTOCOL_TREMOL    As String = "TREMOL ECR"
 Public Const STR_PROTOCOL_ESCPOS    As String = "ESC/POS"
+Public Const STR_PROTOCOL_LOOPBACK  As String = "LOOPBACK"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
 Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
