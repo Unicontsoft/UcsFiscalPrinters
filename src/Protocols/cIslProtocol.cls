@@ -1863,6 +1863,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sCodeType       As String
     Dim sCodeData       As String
     Dim lMaxSize        As Long
+    Dim sUnit           As String
     
     On Error GoTo EH
     '--- ring sale
@@ -2002,7 +2003,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "T", _
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "E", _
                         True, "R")
-                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StTipe><DocNo>)%5=([,<StUNP>,<StDT>,<StFMIN>])[#<RevType>]
+                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StType><DocNo>)%5=([,<StUNP>,<StDT>,<StFMIN>])[#<RevType>]
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & DEF_SEP & "%3", vbNullString) & DEF_SEP & "%4%5"
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .InitReceiptType, eCmd, ucsIslCmdFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
@@ -2038,13 +2039,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 dblDisc = 0
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
-            '--- [<L1>][<Lf><L2>]<Tab><TaxCd><[Sign]Price>[*<Qwan>][,Perc|;Abs]
-            '--- [<L1>][<Lf><L2>]<Tab><Dept><Tab><[Sign]Price>[*<Qwan>][,Perc|;Abs]
+            '--- [<L1>][<Lf><L2>]<Tab><TaxCd><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
+            '--- [<L1>][<Lf><L2>]<Tab><Dept><Tab><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
             pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsIslCmdFiscalSell, sParam, "%1", _
                 "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
                 "FormatQty", sFormatQty, FORMAT_BASE_3, _
                 "FormatDisc", sFormatDisc, FORMAT_BASE_2
-            vSplit = WrapText(.PluItemName & IIf(LenB(.PluUnitOfMeasure) <> 0, " (" & .PluUnitOfMeasure & ")", vbNullString), _
+            sUnit = IIf(Not IsFP, .PluUnitOfMeasure, vbNullString)
+            vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
                 LimitLong(pvCommentChars, , pvItemChars))
             For lIdx = 0 To UBound(vSplit) - 2
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
@@ -2061,8 +2063,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sData = sData & vbTab & Chr$(191 + .PluTaxGroup)
             End If
             sData = sData & SafeFormat(.PluPrice, sFormatPrice)
-            If Abs(.PluQuantity - 1) > DBL_EPSILON Then
-                sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
+            sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
+            If Abs(.PluQuantity - 1) > DBL_EPSILON Or LenB(sUnit) <> 0 Then
+                sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & IIf(LenB(sUnit), "#" & sUnit, vbNullString)
             End If
             Select Case .DiscType
             Case ucsFscDscPlu
@@ -2070,7 +2073,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
                 End If
             Case ucsFscDscPluAbs
-                sData = sData & ";" & SafeFormat(.DiscValue, sFormatDisc)
+                sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatDisc)
             End Select
             sParam = Printf(sParam, sData)
             SendCommand eCmd, sParam
