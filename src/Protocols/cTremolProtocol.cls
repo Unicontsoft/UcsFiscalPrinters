@@ -1543,6 +1543,27 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function GetTaxRates() As Variant
+    Const FUNC_NAME     As String = "GetTaxRates"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim vTaxRates       As Variant
+    Dim vRetVal(0 To MAX_TAX_GROUP - 1) As Double
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsZekCmdInfoTaxRates, sParam, vbNullString
+    vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
+    Next
+    GetTaxRates = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 '= private ===============================================================
 
 Private Function pvTransmitCommand( _
@@ -2354,5 +2375,9 @@ End Function
 
 Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
     IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
+End Function
+
+Private Function IDeviceProtocol_GetTaxRates() As Variant
+    IDeviceProtocol_GetTaxRates = GetTaxRates()
 End Function
 

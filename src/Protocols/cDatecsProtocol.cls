@@ -1158,7 +1158,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", 0, 0, sParam, "valVat", _
         "Offset", lOffset, 0
-    ReDim vTaxRates(0 To 7) As String
+    ReDim vTaxRates(0 To MAX_TAX_GROUP - 1) As String
     For lIdx = 0 To UBound(vTaxRates)
         vTaxRates(lIdx) = pvSettings(sParam, lIdx + lOffset)
     Next
@@ -1324,6 +1324,29 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
     GetDepartmentName = pvSettings(sParam, C_Lng(DepartmentCode))
     pvGetCommandConfig CONF_NAME, "InfoSettings2", 0, 0, sParam, "Dept_vat"
     TaxGroup = C_Val(pvSettings(sParam, C_Lng(DepartmentCode)))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTaxRates() As Variant
+    Const FUNC_NAME     As String = "GetTaxRates"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim sParam          As String
+    Dim lOffset         As Long
+    Dim vRetVal(0 To MAX_TAX_GROUP - 1) As Double
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTaxRates", 0, 0, sParam, "valVat", _
+        "Offset", lOffset, 0
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = ParseSum(pvSettings(sParam, lIdx + lOffset))
+        If vRetVal(lIdx) >= 100 Then
+            vRetVal(lIdx) = -1
+        End If
+    Next
+    GetTaxRates = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2175,4 +2198,8 @@ End Function
 
 Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
     IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
+End Function
+
+Private Function IDeviceProtocol_GetTaxRates() As Variant
+    IDeviceProtocol_GetTaxRates = GetTaxRates()
 End Function

@@ -731,3 +731,11 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
 Attribute GetDepartmentName.VB_Description = "Used to retrieve department name as currently configured"
 
 End Function
+''
+' Used to retrieve current device VAT rates
+'
+' @return Array of VAT rates for each VAT group (1-8)
+'
+Public Function GetTaxRates() As Variant
+
+End Function

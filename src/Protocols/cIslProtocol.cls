@@ -703,7 +703,7 @@ Public Function Init(sDeviceString As String) As Boolean
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
     m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
-    If LenB(At(m_vInfoDiagnostics, 0)) = 0 Then
+    If LenB(At(m_vInfoDiagnostics, 0)) = 0 And LenB(sParam) <> 0 Then
         sParam = vbNullString
         m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     End If
@@ -1601,6 +1601,27 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
             TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
         End If
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTaxRates() As Variant
+    Const FUNC_NAME     As String = "GetTaxRates"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim vTaxRates       As Variant
+    Dim vRetVal(0 To MAX_TAX_GROUP - 1) As Double
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsIslCmdInfoTaxRates, sParam, vbNullString
+    vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
+    Next
+    GetTaxRates = vRetVal
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2724,5 +2745,9 @@ End Function
 
 Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
     IDeviceProtocol_GetDepartmentName = GetDepartmentName(DepartmentCode, TaxGroup)
+End Function
+
+Private Function IDeviceProtocol_GetTaxRates() As Variant
+    IDeviceProtocol_GetTaxRates = GetTaxRates()
 End Function
 

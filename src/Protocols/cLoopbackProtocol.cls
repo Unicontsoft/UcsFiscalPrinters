@@ -60,9 +60,15 @@ End Type
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunction As String)
+'Private Sub PrintError(sFunction As String)
+'    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+'    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+'End Sub
+
+Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Private Sub DebugLog(sFunction As String, sText As String)
@@ -132,8 +138,25 @@ Public Function Init(sDeviceString As String) As Boolean
 QH:
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume QH
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetTaxRates() As Variant
+    Dim vTaxRates       As Variant
+    Dim vRetVal(0 To MAX_TAX_GROUP - 1) As Double
+    Dim lIdx            As Long
+    Const FUNC_NAME     As String = "GetTaxRates"
+    
+    On Error GoTo EH
+    vTaxRates = Split("0 20 20 9 -1 -1 -1 -1")
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
+    Next
+QH:
+    IDeviceProtocol_GetTaxRates = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 '=========================================================================
@@ -337,4 +360,8 @@ End Function
 
 Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
     
+End Function
+
+Private Function IDeviceProtocol_GetTaxRates() As Variant
+    IDeviceProtocol_GetTaxRates = GetTaxRates()
 End Function

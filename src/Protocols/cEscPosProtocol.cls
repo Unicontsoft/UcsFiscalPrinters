@@ -1044,3 +1044,7 @@ End Function
 Private Function IDeviceProtocol_GetDepartmentName(DepartmentCode As String, Optional TaxGroup As Long) As String
 
 End Function
+
+Private Function IDeviceProtocol_GetTaxRates() As Variant
+
+End Function

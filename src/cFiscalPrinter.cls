@@ -972,6 +972,9 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
             JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
         Next
     End If
+    If JsonBoolItem(oJson, "IncludeTaxRates") Or bIncludeAll Then
+        JsonItem(oRetVal, "TaxRates/*") = oFP.GetTaxRates()
+    End If
     If JsonBoolItem(oJson, "IncludeOperators") Then
         For lIdx = 0 To 100
             sName = oFP.GetOperatorName(C_Str(lIdx))
