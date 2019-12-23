@@ -167,8 +167,8 @@ End Function
 Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
     With cn.Execute("SELECT @@SERVERNAME, DB_NAME()")
-        m_sSqlInstance = .Fields(0).Value
-        m_sSqlDatabase = .Fields(1).Value
+        m_sSqlInstance = .Fields.Item(0).Value
+        m_sSqlDatabase = .Fields.Item(1).Value
     End With
     '--- success
     pvIsConnAlive = True

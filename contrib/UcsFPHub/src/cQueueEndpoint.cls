@@ -455,13 +455,13 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Select Case LCase$(JsonItem(oConfig, "Binding"))
     Case "mssqlservicebroker"
         With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
-            m_sSqlInstance = .Fields(0).Value
-            m_sSqlDatabase = .Fields(1).Value
+            m_sSqlInstance = .Fields.Item(0).Value
+            m_sSqlDatabase = .Fields.Item(1).Value
         End With
     Case "mysqlmessagequeue"
         With m_oConn.Execute("SELECT @@HOSTNAME, DATABASE();")
-            m_sSqlInstance = .Fields(0).Value
-            m_sSqlDatabase = .Fields(1).Value
+            m_sSqlInstance = .Fields.Item(0).Value
+            m_sSqlDatabase = .Fields.Item(1).Value
         End With
         Set m_oAsyncConn = New ADODB.Connection
         m_oAsyncConn.CursorLocation = adUseClient
