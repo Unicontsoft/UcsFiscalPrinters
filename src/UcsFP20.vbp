@@ -59,3 +59,6 @@ DebugStartupOption=0
 
 [MS Transaction Server]
 AutoRefresh=1
+
+[Rubberduck]
+ProjectId=ac4f3e3b-21f7-43d3-a262-dbf681f87579

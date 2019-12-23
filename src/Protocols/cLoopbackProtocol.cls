@@ -135,7 +135,6 @@ Public Function Init(sDeviceString As String) As Boolean
     End With
     '--- success
     Init = True
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -152,7 +151,6 @@ Public Function GetTaxRates() As Variant
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
     Next
-QH:
     IDeviceProtocol_GetTaxRates = vRetVal
     Exit Function
 EH:
@@ -333,14 +331,17 @@ End Function
 
 Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     m_dLastReceiptDate = Now
+    IDeviceProtocol_RunPeriodReport = True
 End Function
 
 Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     m_dLastReceiptDate = Now
+    IDeviceProtocol_RunXReport = True
 End Function
 
 Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     m_dLastReceiptDate = Now
+    IDeviceProtocol_RunZReport = True
 End Function
 
 Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean

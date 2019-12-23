@@ -354,5 +354,4 @@ Private Function ShellWait( _
     If ExitCode <> 0 And LenB(Verb) = 0 Then
         ShellWait = ShellWait(sFile, sParameters, StartHidden, "runas", ExitCode)
     End If
-QH:
 End Function

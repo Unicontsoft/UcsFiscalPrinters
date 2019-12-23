@@ -225,7 +225,7 @@ EH:
 End Sub
 
 Public Function Autodetect(Optional ByVal Async As Boolean) As Boolean
-    Const FUNC_NAME     As String = "AutodetectAsync"
+    Const FUNC_NAME     As String = "Autodetect"
     Dim vElem           As Variant
     
     On Error GoTo EH

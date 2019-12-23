@@ -223,7 +223,6 @@ Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
 Private m_eStatus                   As UcsDatecsStatusBitsEnum
 Private m_eMemory                   As UcsDatecsFiscalMemoryEnum
-Private m_sCommandLog               As String
 Private m_vInfoDiagnostics          As Variant
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
@@ -1099,7 +1098,6 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     CurrentStatus = m_uPrintData.LastError
     '--- success
     GetDeviceStatus = True
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2064,7 +2062,7 @@ Private Function IDeviceProtocol_GetClock() As Date
 End Function
 
 Private Function IDeviceProtocol_GetCommandLog() As String
-    IDeviceProtocol_GetCommandLog = m_sCommandLog
+    
 End Function
 
 Private Function IDeviceProtocol_GetOperatorName(OperatorCode As String) As String

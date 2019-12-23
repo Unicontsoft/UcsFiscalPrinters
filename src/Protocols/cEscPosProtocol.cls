@@ -317,7 +317,6 @@ Public Function Init(sDeviceString As String) As Boolean
     End With
     '--- success
     Init = Connect()
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME

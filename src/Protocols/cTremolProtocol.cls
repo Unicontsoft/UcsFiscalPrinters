@@ -195,7 +195,6 @@ Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
 Private m_lTimeout                  As Long
 Private m_lSequence                 As Long
-Private m_sCommandLog               As String
 Private m_vInfoDiagnostics          As Variant
 Private m_eError                    As Long
 Private m_eStatus                   As Long
@@ -648,7 +647,6 @@ Public Function Disconnect() As Boolean
     Set m_oConnector = Nothing
     '--- success
     Disconnect = True
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1230,7 +1228,6 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     CurrentStatus = m_uPrintData.LastError
     '--- success
     GetDeviceStatus = True
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2241,7 +2238,7 @@ Private Function IDeviceProtocol_GetClock() As Date
 End Function
 
 Private Function IDeviceProtocol_GetCommandLog() As String
-    IDeviceProtocol_GetCommandLog = m_sCommandLog
+    
 End Function
 
 Private Function IDeviceProtocol_GetOperatorName(OperatorCode As String) As String
