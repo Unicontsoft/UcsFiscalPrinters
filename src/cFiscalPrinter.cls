@@ -950,13 +950,25 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         JsonItem(oRetVal, "TaxCaption") = Replace(Trim$(oFP.GetTaxCaption()), ":", vbNullString)
     End If
     If JsonBoolItem(oJson, "IncludeHeaders") Or bIncludeAll Then
-        For lIdx = 1 To 6
-            JsonItem(oRetVal, "Headers/-1") = Trim$(oFP.GetHeaderText(lIdx))
+        For lIdx = 0 To 5
+            JsonItem(oRetVal, "Headers/" & lIdx) = Trim$(oFP.GetHeaderText(lIdx + 1))
+        Next
+        For lIdx = 5 To 0 Step -1
+            If LenB(JsonItem(oRetVal, "Headers/" & lIdx)) <> 0 Then
+                Exit For
+            End If
+            JsonItem(oRetVal, "Headers/" & lIdx) = Empty
         Next
     End If
     If JsonBoolItem(oJson, "IncludeFooters") Or bIncludeAll Then
-        For lIdx = 1 To 2
-            JsonItem(oRetVal, "Footers/-1") = Trim$(oFP.GetFooterText(lIdx))
+        For lIdx = 0 To 1
+            JsonItem(oRetVal, "Footers/" & lIdx) = Trim$(oFP.GetFooterText(lIdx + 1))
+        Next
+        For lIdx = 1 To 0 Step -1
+            If LenB(JsonItem(oRetVal, "Footers/" & lIdx)) <> 0 Then
+                Exit For
+            End If
+            JsonItem(oRetVal, "Footers/" & lIdx) = Empty
         Next
     End If
     If JsonBoolItem(oJson, "IncludeReceiptNo") Or bIncludeAll Then
