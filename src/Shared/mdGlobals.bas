@@ -185,6 +185,7 @@ Public Const FORMAT_BASE_3          As String = "0.000"
 
 Private m_sDecimalSeparator     As String
 Private m_oConfig               As Object
+Private m_oProtocolConfig       As Object
 Private m_oPortWrapper          As cPortWrapper
 Private m_nDebugLogFile         As Integer
 
@@ -235,10 +236,7 @@ Private Sub Main()
             OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
         End If
     End If
-    If Not IsObject(vJson) Then
-        JsonParse "{}", vJson
-    End If
-    Set m_oConfig = vJson
+    Set m_oConfig = C_Obj(vJson)
     Set m_oPortWrapper = New cPortWrapper
     Exit Sub
 EH:
@@ -948,13 +946,20 @@ Public Function ReadTextFile(sFile As String) As String
 QH:
 End Function
 
+Public Function SetProtocolConfigRoot(oValue As Object)
+    Set m_oProtocolConfig = oValue
+End Function
+
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
     Const FUNC_NAME     As String = "GetConfigValue"
     Dim oItem           As Object
     
     On Error GoTo EH
     If LenB(sSerial) <> 0 Then
-        Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
+        Set oItem = C_Obj(JsonItem(m_oProtocolConfig, sSerial))
+        If oItem Is Nothing Then
+            Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
+        End If
         If Not oItem Is Nothing Then
             AssignVariant GetConfigValue, JsonItem(oItem, sKey)
             Exit Function

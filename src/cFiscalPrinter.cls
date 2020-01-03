@@ -165,6 +165,10 @@ Public Property Get LastCommandLog() As String
     LastCommandLog = m_sCommandLog
 End Property
 
+Public Property Set ProtocolConfig(oValue As Object)
+    SetProtocolConfigRoot oValue
+End Property
+
 Private Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
     If IsArray(m_uConfig.LocalizedText(eIdx)) Then
         LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")

@@ -210,14 +210,15 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         End If
         Process = -1
     End If
-    If UBound(JsonKeys(m_oConfig, "Environment")) >= 0 Then
-        DebugLog Printf(STR_ENVIRON_VARS_FOUND, UBound(JsonKeys(m_oConfig, "Environment")) + 1) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
-        For Each vKey In JsonKeys(m_oConfig, "Environment")
-            Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
-        Next
-        FlushDebugLog
-        m_nDebugLogFile = 0
-    End If
+    '--- setup environment and procotol configuration
+    For Each vKey In JsonKeys(m_oConfig, "Environment")
+        Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
+    Next
+    FlushDebugLog
+    m_nDebugLogFile = 0
+    With New cFiscalPrinter
+        Set .ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
+    End With
     '--- first register local endpoints
     Set m_oPrinters = Nothing
     JsonItem(m_oPrinters, vbNullString) = Empty
