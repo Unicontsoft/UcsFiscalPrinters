@@ -6,7 +6,7 @@ BEGIN
   DataSourceBehavior  = 0  'vbNone
   MTSTransactionMode  = 0  'NotAnMTSObject
 END
-Attribute VB_Name = "cLoopbackProtocol"
+Attribute VB_Name = "cProxyProtocol"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = True
 Attribute VB_PredeclaredId = False
@@ -23,7 +23,7 @@ Attribute VB_Exposed = True
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cLoopbackProtocol"
+Private Const MODULE_NAME As String = "cProxyProtocol"
 Implements IDeviceProtocol
 
 '=========================================================================
@@ -40,12 +40,15 @@ Private Const DEF_FOOTER                As String = "Заповядайте отново!"
 Private Const DEF_PMTNAMES              As String = "В брой|С чек|Талони|В.талони|Амбалаж|В.обслужване|Повреди|С карта|По банкa|НЗОК|Прог.тип 2"
 Private Const DEF_TAXCAPTION            As String = "ЕИК"
 Private Const DEF_TAXNO                 As String = "Незададен"
+Private Const DEF_SOCKET_PORT           As Long = 8192
 
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
 Private m_dLastReceiptDate          As Date
 
 Private Type UcsConfigValues
+    IP                  As String
+    Port                As Long
     DeviceSerialNo      As String
     FiscalMemoryNo      As String
     HeaderText          As Variant
@@ -125,6 +128,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
+        .IP = C_Str(JsonItem(oOptions, "IP"))
+        .Port = Znl(C_Lng(JsonItem(oOptions, "Port")), DEF_SOCKET_PORT)
         .DeviceSerialNo = C_Str(JsonItem(oOptions, "DeviceSerialNo"))
         .FiscalMemoryNo = C_Str(JsonItem(oOptions, "FiscalMemoryNo"))
         .HeaderText = Split(Zn(C_Str(JsonItem(oOptions, "HeaderText")), DEF_HEADER), "|")
@@ -242,7 +247,7 @@ Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As S
 End Function
 
 Private Function IDeviceProtocol_GetDeviceModel() As String
-    IDeviceProtocol_GetDeviceModel = STR_PROTOCOL_LOOPBACK
+    IDeviceProtocol_GetDeviceModel = STR_PROTOCOL_PROXY
 End Function
 
 Private Function IDeviceProtocol_GetDeviceFirmware() As String
@@ -250,7 +255,7 @@ Private Function IDeviceProtocol_GetDeviceFirmware() As String
 End Function
 
 Private Function IDeviceProtocol_GetDeviceProtocol() As String
-    IDeviceProtocol_GetDeviceProtocol = STR_PROTOCOL_LOOPBACK
+    IDeviceProtocol_GetDeviceProtocol = STR_PROTOCOL_PROXY
 End Function
 
 Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean

@@ -774,8 +774,8 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
         pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ESP_POS_INTERNAL)
         pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ESP_POS_TEXTS)
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
-    Case STR_PROTOCOL_LOOPBACK
-        Set pvInit = New cLoopbackProtocol
+    Case STR_PROTOCOL_PROXY
+        Set pvInit = New cProxyProtocol
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
