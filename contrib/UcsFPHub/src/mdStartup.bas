@@ -37,6 +37,7 @@ Private Declare Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyA" (ByVal h
 
 Public Const STR_VERSION                As String = "0.1.33"
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
+Public Const DEF_LISTEN_PORT            As Long = 8192
 Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
 Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
@@ -197,7 +198,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     Else
         JsonItem(m_oConfig, "Printers/Autodetect") = True
         JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
+        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
     End If
     '--- respawn hidden in systray
     If C_Bool(m_oOpt.Item("--systray")) Then

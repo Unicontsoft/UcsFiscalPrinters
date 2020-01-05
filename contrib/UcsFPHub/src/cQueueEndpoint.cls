@@ -577,14 +577,14 @@ Private Function pvMakeSshTunnel( _
             If lLocalPort >= MAX_PORT Then
                 lLocalPort = MIN_PORT
             End If
-            If lLocalPort = 8191 Or lLocalPort = 8192 Then
+            If lLocalPort = DEF_LISTEN_PORT - 1 Or lLocalPort = DEF_LISTEN_PORT Then
                 lLocalPort = lLocalPort + 2
             End If
         Next
     Else
         For lAttempt = 1 To lMaxAttempts
             lLocalPort = MIN_PORT + Rnd * (MAX_PORT - MIN_PORT)
-            If lLocalPort = 8191 Or lLocalPort = 8192 Then
+            If lLocalPort = DEF_LISTEN_PORT - 1 Or lLocalPort = DEF_LISTEN_PORT Then
                 lLocalPort = lLocalPort + 2
             End If
             If pvTestListen(lLocalPort) And pvTestListen(lLocalPort + 1) Then

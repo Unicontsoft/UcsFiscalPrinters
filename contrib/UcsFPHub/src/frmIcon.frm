@@ -196,7 +196,7 @@ Public Function Init(oOpt As Object, sConfFile As String, sProductName As String
         mnuFile(ucsMnuFileRestart).Enabled = False
         JsonItem(oConfig, "Printers/Autodetect") = True
         JsonItem(oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:8192"
+        JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
         txtConfig.Text = JsonDump(oConfig)
     End If
     '--- setup systray

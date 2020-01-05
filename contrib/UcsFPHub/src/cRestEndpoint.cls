@@ -30,7 +30,6 @@ Implements IEndpoint
 ' Constants and member variables
 '=========================================================================
 
-Private Const DEF_LISTEN_PORT           As Long = 8192
 Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
 Private Const STR_CONN_ESTABLISHED      As String = "%1 установена (%2 отворени)"
 Private Const STR_CONN_ERROR            As String = "Грешка в %1: %2"
