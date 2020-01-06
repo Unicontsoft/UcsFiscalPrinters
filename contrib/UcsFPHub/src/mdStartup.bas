@@ -35,7 +35,7 @@ Private Declare Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyA" (ByVal h
 ' Constants and member variables
 '=========================================================================
 
-Public Const STR_VERSION                As String = "0.1.33"
+Public Const STR_VERSION                As String = "0.1.34"
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
 Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
