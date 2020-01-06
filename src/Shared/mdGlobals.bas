@@ -26,6 +26,15 @@ Public Enum UcsRegistryRootsEnum
     HKEY_LOCAL_MACHINE = &H80000002
 End Enum
 
+Public Type UcsParsedUrl
+    Protocol        As String
+    Host            As String
+    Port            As Long
+    Path            As String
+    User            As String
+    Pass            As String
+End Type
+
 '=========================================================================
 ' API
 '=========================================================================
@@ -1001,7 +1010,7 @@ Public Function GetConfigCollection(sSerial As String, sKey As String) As Collec
     On Error GoTo EH
     AssignVariant vValue, GetConfigValue(sSerial, sKey, Empty)
     If IsObject(vValue) Then
-        Set oDict = vValue
+        Set oDict = JsonToDictionary(C_Obj(vValue))
         Set GetConfigCollection = New Collection
         pvAppendConfigCollection oDict, vbNullString, GetConfigCollection
     End If
@@ -1517,4 +1526,79 @@ Public Function ToConnectorDevice( _
             "," & IIf(JsonBoolItem(oOptions, "Parity"), "Y", "N") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
     End If
+End Function
+
+Public Function InitRequest( _
+            sType As String, _
+            sUrl As String, _
+            Optional ByVal Timeout As Single, _
+            Optional ByVal Async As Boolean, _
+            Optional RetVal As Object) As Object
+    Const FUNC_NAME     As String = "InitRequest"
+    Static lUseXmlHttp  As Long
+    Dim lMili           As Long
+    
+    On Error GoTo EH
+    If lUseXmlHttp = 0 Then
+        lUseXmlHttp = IIf(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_USE_XMLHTTP")) <> 0, 1, -1)
+    End If
+    '--- first try server-side XMLHTTP because it has timeouts
+    If lUseXmlHttp <> 1 And Timeout <> 30 Then
+        Set RetVal = CreateObject("MSXML2.ServerXMLHTTP")
+    End If
+    If Not RetVal Is Nothing Then
+        lMili = Switch(Timeout < 0, 0, Timeout > 0, Timeout, True, 30) * 1000
+        RetVal.SetTimeouts 5000, 5000, lMili, lMili
+    Else
+        Set RetVal = CreateObject("MSXML2.XMLHTTP")
+    End If
+    RetVal.Open sType, sUrl, Async
+    Set InitRequest = RetVal
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function ParseUrl(sUrl As String, uParsed As UcsParsedUrl) As Boolean
+    Const FUNC_NAME     As String = "ParseUrl"
+    
+    On Error GoTo EH
+    With CreateObject("VBScript.RegExp")
+        .Global = True
+        .Pattern = "^(.*)://(?:(?:([^:]*):)?([^@]*)@)?([A-Za-z0-9\-\.]+)(:[0-9]+)?(.*)$"
+        With .Execute(sUrl)
+            If .Count > 0 Then
+                With .Item(0).SubMatches
+                    uParsed.Protocol = .Item(0)
+                    uParsed.User = .Item(1)
+                    If LenB(uParsed.User) = 0 Then
+                        uParsed.User = .Item(2)
+                    Else
+                        uParsed.Pass = .Item(2)
+                    End If
+                    uParsed.Host = .Item(3)
+                    uParsed.Port = Val(Mid$(.Item(4), 2))
+                    If uParsed.Port = 0 Then
+                        Select Case LCase$(uParsed.Protocol)
+                        Case "https"
+                            uParsed.Port = 443
+                        Case "socks5"
+                            uParsed.Port = 1080
+                        Case Else
+                            uParsed.Port = 80
+                        End Select
+                    End If
+                    uParsed.Path = .Item(5)
+                    If LenB(uParsed.Path) = 0 Then
+                        uParsed.Path = "/"
+                    End If
+                End With
+                ParseUrl = True
+            End If
+        End With
+    End With
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
