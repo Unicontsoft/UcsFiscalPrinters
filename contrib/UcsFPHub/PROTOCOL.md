@@ -8,7 +8,7 @@ Use `request_id=N2qbikc5lUU` as URL query string parameter for idempotent `POST`
 
 All endpoints return `"Ok": true` on success and in case of failure include `"ErrorText": "Описание на грешка"` localized error text in the response.
 
-All endpoints support "Includes Middleware". This allows for instance to set `"IncludePaymentNames": true` in `POST /printers/:printer_id/deposit` request to return available payment names along with standard results. Supported includes are `IncludeHeaders`, `IncludeFooters`, `IncludeTaxNo`, `IncludeReceiptNo`, `IncludePaymentNames` and `IncludeAll` which activates all previous includes and `IncludeOperators` and `IncludeDepartments` which are separate from `IncludeAll` catch-all.
+All endpoints support "Includes Middleware". This allows for instance to set `"IncludePaymentNames": true` in `POST /printers/:printer_id/deposit` request to return available payment names along with standard results. Supported includes are `IncludeHeaders`, `IncludeFooters`, `IncludeTaxNo`, `IncludeTaxRates`, `IncludeReceiptNo`, `IncludePaymentNames` and `IncludeAll` which activates all previous includes and `IncludeOperators` and `IncludeDepartments` which are separate from `IncludeAll` catch-all.
 
 These are the REST service endpoints supported:
 

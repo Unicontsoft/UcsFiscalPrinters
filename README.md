@@ -25,6 +25,7 @@ Name             | Manufacturer | Tested models  | Other supported models
 `DAISY FP/ECR`   | Daisy Ltd.   | CompactM       | All
 `INCOTEX FP/ECR` | Incotex Ltd. | 777            | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
+`PROXY`          | Unicontsoft  | UcsFPHub       | All
 
 ### Sub-projects
 
