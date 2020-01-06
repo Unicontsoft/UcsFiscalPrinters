@@ -510,15 +510,17 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
     Dim sRetVal         As String
     
     Set oJson = ParseDeviceString(sDeviceString)
-    If IsEmpty(JsonItem(oJson, "IP")) Then
+    If Not IsEmpty(JsonItem(oJson, "Url")) Then
+        sRetVal = JsonItem(oJson, "Url")
+    ElseIf Not IsEmpty(JsonItem(oJson, "IP")) Then
+        sRetVal = JsonItem(oJson, "Port")
+        sRetVal = JsonItem(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
+    Else
         sRetVal = JsonItem(oJson, "Speed")
         If sRetVal = "115200" Then
             sRetVal = vbNullString
         End If
         sRetVal = JsonItem(oJson, "Port") & IIf(LenB(sRetVal) <> 0, "," & sRetVal, vbNullString)
-    Else
-        sRetVal = JsonItem(oJson, "Port")
-        sRetVal = JsonItem(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
     End If
     pvGetDevicePort = sRetVal
 End Function
