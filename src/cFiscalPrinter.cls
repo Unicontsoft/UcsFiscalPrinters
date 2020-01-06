@@ -609,7 +609,9 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
                         JsonItem(oRetVal, "TotalsByTaxGroups/-1") = oItem
                     End If
                     dblTotalAmount = dblTotalAmount + vTotals(lIdx)(1)
-                    dblTotalReversal = dblTotalReversal + vTotals(lIdx)(2)
+                    If UBound(vTotals(lIdx)) >= 2 Then
+                        dblTotalReversal = dblTotalReversal + vTotals(lIdx)(2)
+                    End If
                 End If
             Next
         End If
