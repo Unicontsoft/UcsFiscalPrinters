@@ -657,6 +657,7 @@ End Function
 
 Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data As String) As String
     Const FUNC_NAME     As String = "SendCommand"
+    Const ERR_OPER_WRONG_PASSWORD As Long = -102002
     Dim sError          As String
     Dim lPos            As Long
     
@@ -682,9 +683,15 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data A
     End If
     lPos = InStr(SendCommand, DEF_SEP)
     If lPos > 1 Then
-        If Left$(SendCommand, lPos - 1) <> "0" Then
-            pvSetLastError pvToErrorCode(Left$(SendCommand, lPos - 1))
-        End If
+        sError = Left$(SendCommand, lPos - 1)
+        Select Case C_Lng(sError)
+        Case 0
+            '--- do nothing
+        Case ERR_OPER_WRONG_PASSWORD
+            pvSetLastError pvToErrorCode(sError), ucsFerInvalidPassword
+        Case Else
+            pvSetLastError pvToErrorCode(sError)
+        End Select
     End If
 QH:
     Exit Function
@@ -1575,7 +1582,6 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Const CONF_NAME     As String = "PrintReceipt"
     Dim lIdx            As Long
     Dim vSplit          As Variant
-    Dim bInLogin        As Boolean
     Dim sData           As String
     Dim dblTotal        As Double
     Dim dblDisc         As Double
@@ -1647,7 +1653,6 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End Select
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
-                bInLogin = InStr(m_uPrintData.LastError, ERR_OPER_WRONG_PASSWORD)
                 GoTo QH
             End If
         Case ucsRowPlu
@@ -1855,7 +1860,7 @@ QH:
         '--- use pvTransmitCommand to preserve LastError
         pvTransmitCommand m_oConnector, m_lTimeout, eCmd, sParam
     End If
-    If bInLogin Then
+    If m_uPrintData.LastErrNo = ucsFerInvalidPassword Then
         pvSetLastError m_uPrintData.LastError & pvInternal(ucsErrInvalidOperatorPassword), ucsFerInvalidPassword
     End If
     If LenB(m_uPrintData.LastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
