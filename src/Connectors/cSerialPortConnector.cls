@@ -445,8 +445,11 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    PortWrapper.CloseComPort m_hComm, m_bClearPersistent
-    m_hComm = INVALID_HANDLE_VALUE
+    If m_hComm <> INVALID_HANDLE_VALUE Then
+        Call CancelIo(m_hComm)
+        PortWrapper.CloseComPort m_hComm, m_bClearPersistent
+        m_hComm = INVALID_HANDLE_VALUE
+    End If
 End Sub
 
 '=========================================================================
