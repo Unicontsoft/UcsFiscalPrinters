@@ -104,7 +104,7 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog Printf(STR_COM_SETUP, STR_MONIKER) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog Printf(STR_COM_SETUP, STR_MONIKER) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
     '--- success
     frInit = True
 QH:

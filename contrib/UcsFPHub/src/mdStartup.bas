@@ -423,7 +423,11 @@ Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstan
             Open sFile For Append Access Write Shared As #m_nDebugLogFile
         End If
         Print #m_nDebugLogFile, sPrefix & sText
-        Debug.Print sPrefix & sText
+        If eType <> vbLogEventTypeInformation Then
+            ConsolePrint sPrefix & sText & vbCrLf
+        Else
+            Debug.Print sPrefix & sText
+        End If
     Else
 NoLogFile:
         If m_bIsService Then
