@@ -988,11 +988,11 @@ Public Function GetConfigNumber(sSerial As String, sKey As String, ByVal dblDefa
     
     On Error GoTo EH
     GetConfigNumber = C_Dbl(GetConfigValue(sSerial, sKey, 0))
-    If dblDefault > 0 Then
+    If dblDefault > DBL_EPSILON Then
         If GetConfigNumber <= 0 Then
             GetConfigNumber = dblDefault
         End If
-    ElseIf dblDefault < 0 Then
+    ElseIf dblDefault < -DBL_EPSILON Then
         If GetConfigNumber >= 0 Then
             GetConfigNumber = dblDefault
         End If
@@ -1535,6 +1535,7 @@ Public Function InitRequest( _
             Optional ByVal Async As Boolean, _
             Optional RetVal As Object) As Object
     Const FUNC_NAME     As String = "InitRequest"
+    Const SNG_EPSILON   As Single = 0.0001
     Static lUseXmlHttp  As Long
     Dim lMili           As Long
     
@@ -1547,7 +1548,7 @@ Public Function InitRequest( _
         Set RetVal = CreateObject("MSXML2.ServerXMLHTTP")
     End If
     If Not RetVal Is Nothing Then
-        lMili = Switch(Timeout < 0, 0, Timeout > 0, Timeout, True, 30) * 1000
+        lMili = Switch(Timeout < -SNG_EPSILON, 0, Timeout > SNG_EPSILON, Timeout, True, 30) * 1000
         RetVal.SetTimeouts 5000, 5000, lMili, lMili
     Else
         Set RetVal = CreateObject("MSXML2.XMLHTTP")

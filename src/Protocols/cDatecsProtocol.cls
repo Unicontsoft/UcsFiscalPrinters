@@ -1687,10 +1687,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Select Case .DiscType
             Case ucsFscDscPlu
                 If Abs(.PluPrice) > DBL_EPSILON Then
-                    sDiscType = Switch(.DiscValue > 0, "1", .DiscValue < 0, "2", True, vbNullString)
+                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
                 End If
             Case ucsFscDscPluAbs
-                sDiscType = Switch(.DiscValue > 0, "3", .DiscValue < 0, "4", True, vbNullString)
+                sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
             End Select
             '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
             sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8" & DEF_SEP
@@ -1701,7 +1701,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             sParam = Printf(sParam, sData, .PluTaxGroup, SafeFormat(.PluPrice, sFormatPrice), _
                 IIf(Abs(.PluQuantity - 1) > DBL_EPSILON, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
                 sDiscType, _
-                IIf(LenB(sDiscType) <> 0, SafeFormat(.DiscValue, sFormatDisc), vbNullString), _
+                IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(.DiscValue), sFormatDisc), vbNullString), _
                 .PluDepartmentNo, _
                 Zn(.PluUnitOfMeasure, " "))
             SendCommand eCmd, sParam
@@ -1731,9 +1731,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case Else
                 Select Case .DiscType
                 Case ucsFscDscSubtotal
-                    sDiscType = Switch(.DiscValue > 0, "1", .DiscValue < 0, "2", True, vbNullString)
+                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
                 Case ucsFscDscSubtotalAbs
-                    sDiscType = Switch(.DiscValue > 0, "3", .DiscValue < 0, "4", True, vbNullString)
+                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
                 End Select
                 '--- %1={Print}<SEP>{Display}<SEP>%2={DiscountType}<SEP>%3={DiscountValue}<SEP>
                 sParam = "%1" & DEF_SEP & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP
