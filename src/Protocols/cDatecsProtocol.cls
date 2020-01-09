@@ -859,6 +859,9 @@ Public Function GetLastReceiptNo() As String
         "Index", lIndex, 1
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     GetLastReceiptNo = At(vSplit, lIndex)
+    If C_Lng(GetLastReceiptNo) <> 0 Then
+        GetLastReceiptNo = C_Lng(GetLastReceiptNo) - (C_Lng(pvSettings("DFR_needed")) = 0)
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
