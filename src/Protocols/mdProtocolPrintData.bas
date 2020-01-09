@@ -552,16 +552,16 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 End If
             ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
                 '--- convert PLU discount on void rows
-                If uData.Config.AbsoluteDiscount Then
-                    uData.Row(lRow).DiscType = ucsFscDscPluAbs
-                    uData.Row(lRow).DiscValue = dblDiscTotal
-                Else
+'                If uData.Config.AbsoluteDiscount Then
+'                    uData.Row(lRow).DiscType = ucsFscDscPluAbs
+'                    uData.Row(lRow).DiscValue = dblDiscTotal
+'                Else
                     dblDiscount = uData.Row(lRow).DiscValue
                     uData.Row(lRow).DiscType = 0
                     uData.Row(lRow).DiscValue = 0
                     PpdAddPLU uData, Printf(IIf(dblTotal * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                         dblDiscTotal, TaxGroup:=uData.Row(lRow).PluTaxGroup, BeforeIndex:=lRow + 1
-                End If
+'                End If
             End If
         ElseIf uData.Row(lRow).RowType = ucsRowDiscount Then
             If (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) And uData.Row(lRow).DiscType = ucsFscDscSubtotal Then
