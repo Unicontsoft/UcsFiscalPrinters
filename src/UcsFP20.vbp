@@ -36,7 +36,7 @@ DllBaseAddress=&H5ba00000
 VersionComments="UcsFP20"
 VersionCompanyName="Unicontsoft"
 VersionFileDescription="Unicontsoft Fiscal Printers Component 2.0 (2.0.24)"
-VersionLegalCopyright="Copyright © 2008-2019 Unicontsoft"
+VersionLegalCopyright="Copyright © 2008-2020 Unicontsoft"
 VersionProductName="UcsFP20"
 CondComp="USE_DEBUG_LOG = 1"
 CompilationType=-1
