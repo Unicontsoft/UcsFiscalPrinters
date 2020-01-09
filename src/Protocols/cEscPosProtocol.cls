@@ -232,6 +232,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     sCmd = STR_ESC & "@"            '--- Initialize printer
                     '--- STR_GS & "I1"
                     sCmd = STR_GS & "r" & Chr$(1)   '--- Transmits paper sensor status
+                    oConnector.ReadData baBuffer, 0
                     oConnector.WriteData ToAscii(sCmd), 100
                     Set aPorts(lIdx) = oConnector
                 End If
@@ -244,11 +245,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 If IsObject(aPorts(lIdx)) Then
                     bHasMore = True
                     Set oConnector = aPorts(lIdx)
-                    If oConnector.ReadData(baBuffer, 0) Then
-                        sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
-                                 pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
-                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
-                        aPorts(lIdx) = Empty
+                    If oConnector.ReadData(baBuffer, 0) And UBound(baBuffer) >= 0 Then
+                        If (baBuffer(0) And &H90) = 0 Then
+                            sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
+                                     pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
+                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
+                            aPorts(lIdx) = Empty
+                        End If
                     End If
                 End If
             Next
