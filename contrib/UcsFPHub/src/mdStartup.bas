@@ -23,8 +23,6 @@ Private Const REG_SZ                    As Long = 1
 
 Private Declare Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Private Declare Function SetEnvironmentVariable Lib "kernel32" Alias "SetEnvironmentVariableA" (ByVal lpName As String, ByVal lpValue As String) As Long
-Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
-Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 Private Declare Function RegOpenKeyEx Lib "advapi32" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
 Private Declare Function RegCreateKeyEx Lib "advapi32" Alias "RegCreateKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal Reserved As Long, ByVal lpClass As Long, ByVal dwOptions As Long, ByVal samDesired As Long, ByVal lpSecurityAttributes As Long, phkResult As Long, lpdwDisposition As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
@@ -35,7 +33,8 @@ Private Declare Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyA" (ByVal h
 ' Constants and member variables
 '=========================================================================
 
-Public Const STR_VERSION                As String = "0.1.34"
+Private Const STR_LATEST_COMMIT         As String = ""
+Public Const STR_VERSION                As String = "0.1.34" & STR_LATEST_COMMIT
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
 Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
@@ -51,6 +50,7 @@ Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
+Private Const STR_REGISTER_LOCAL        As String = "Моникер %2 на услуга %1"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
@@ -67,7 +67,7 @@ Private m_oPrinters                 As Object
 Private m_oConfig                   As Object
 Private m_cEndpoints                As Collection
 Private m_bIsService                As Boolean
-Private m_nDebugLogFile             As Integer
+Private m_oLogger                   As Object
 Private m_bStarted                  As Boolean
 
 '=========================================================================
@@ -76,7 +76,7 @@ Private m_bStarted                  As Boolean
 
 Private Sub PrintError(sFunction As String)
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -88,6 +88,28 @@ End Sub
 
 Property Get IsRunningAsService() As Boolean
     IsRunningAsService = m_bIsService
+End Property
+
+Property Get Logger() As Object
+    If m_oLogger Is Nothing Then
+        With New cFiscalPrinter
+            Set m_oLogger = .Logger
+        End With
+    End If
+    Set Logger = m_oLogger
+End Property
+
+Property Set Logger(oValue As Object)
+    With New cFiscalPrinter
+        Set .Logger = oValue
+    End With
+    Set m_oLogger = oValue
+End Property
+
+Property Set ProtocolConfig(oValue As Object)
+    With New cFiscalPrinter
+        Set .ProtocolConfig = oValue
+    End With
 End Property
 
 '=========================================================================
@@ -184,16 +206,16 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     '--- read config file
     If LenB(sConfFile) <> 0 Then
         If Not FileExists(sConfFile) Then
-            DebugLog Printf(ERR_CONFIG_NOT_FOUND, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_CONFIG_NOT_FOUND, sConfFile), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
         If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
-            DebugLog Printf(ERR_PARSING_CONFIG, sConfFile, sError) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
-        DebugLog Printf(STR_LOADING_CONFIG, sConfFile) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_LOADING_CONFIG, sConfFile)
         JsonExpandEnviron m_oConfig
     Else
         JsonItem(m_oConfig, "Printers/Autodetect") = True
@@ -212,14 +234,15 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         Process = -1
     End If
     '--- setup environment and procotol configuration
-    For Each vKey In JsonKeys(m_oConfig, "Environment")
-        Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
-    Next
-    FlushDebugLog
-    m_nDebugLogFile = 0
-    With New cFiscalPrinter
-        Set .ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
-    End With
+    lIdx = JsonItem(m_oConfig, -1)
+    If lIdx > 0 Then
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_ENVIRON_VARS_FOUND, lIdx)
+        For Each vKey In JsonKeys(m_oConfig, "Environment")
+            Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
+        Next
+        FlushDebugLog
+    End If
+    Set ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
     '--- first register local endpoints
     Set m_oPrinters = Nothing
     JsonItem(m_oPrinters, vbNullString) = Empty
@@ -230,8 +253,8 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     If Not pvCollectPrinters(m_oPrinters) Then
         GoTo QH
     End If
-    DebugLog Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
-        JsonItem(m_oPrinters, "Count")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
+        JsonItem(m_oPrinters, "Count"))
     '--- then register http/mssql endpoints
     If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker mysqlmessagequeue", m_cEndpoints) Then
         GoTo QH
@@ -275,10 +298,10 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "Count") = 0
     If JsonItem(m_oConfig, "Printers/Autodetect") Then
-        DebugLog STR_AUTODETECTING_PRINTERS & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonItem(oJson, "Ok") Then
-                DebugLog Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+                DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
                     If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
@@ -313,7 +336,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
             JsonItem(oRequest, "IncludeTaxNo") = True
             If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
                 If Not JsonItem(oInfo, "Ok") Then
-                    DebugLog Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
+                    DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")), vbLogEventTypeWarning
                 Else
                     sKey = Zn(JsonItem(oInfo, "DeviceSerialNo"), vKey)
                     If LenB(sKey) <> 0 Then
@@ -384,6 +407,9 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
             cRetVal.Add oLocalEndpoint
         End If
     End If
+    If Not oLocalEndpoint Is Nothing Then
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_REGISTER_LOCAL, STR_DISPLAY_NAME, oLocalEndpoint.Moniker)
+    End If
     '--- success
     pvCreateEndpoints = True
     Exit Function
@@ -392,63 +418,30 @@ EH:
     Resume Next
 End Function
 
-Public Sub DebugDataDump(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
-    Static lLogging     As Long
+Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
+    Dim sPrefix         As String
+    Dim sSuffix         As String
     
-    If lLogging = 0 Then
-        lLogging = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
+    Logger.Log eType, sModule, sFunction, sText
+    sPrefix = Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & ": "
+    sSuffix = " [" & sModule & "." & sFunction & "]"
+    If Logger.LogFile <> -1 Then
+        ConsolePrint sPrefix & sText & sSuffix & vbCrLf
+    ElseIf m_bIsService Then
+        App.LogEvent sText & sSuffix, eType
+    ElseIf eType = vbLogEventTypeError Then
+        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & sSuffix & vbCrLf
+    Else
+        ConsolePrint sPrefix & sText & sSuffix & vbCrLf
     End If
-    If lLogging < 0 Then
-        Exit Sub
-    End If
-    DebugLog sText, eType
 End Sub
 
-Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
-    Dim sFile           As String
-    Dim sPrefix         As String
-    
-    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): "
-    If m_nDebugLogFile <> -1 Then
-        If m_nDebugLogFile = 0 Then
-            sFile = GetEnvironmentVar("_UCS_FP_HUB_LOG")
-            If LenB(sFile) = 0 Then
-                sFile = GetErrorTempPath() & "\UcsFPHub.log"
-                If Not FileExists(sFile) Then
-                    m_nDebugLogFile = -1
-                    GoTo NoLogFile
-                End If
-            End If
-            m_nDebugLogFile = FreeFile
-            Open sFile For Append Access Write Shared As #m_nDebugLogFile
-        End If
-        Print #m_nDebugLogFile, sPrefix & sText
-        If eType <> vbLogEventTypeInformation Then
-            ConsolePrint sPrefix & sText & vbCrLf
-        Else
-            Debug.Print sPrefix & sText
-        End If
-    Else
-NoLogFile:
-        If m_bIsService Then
-            App.LogEvent sText, eType
-            GoTo QH
-        End If
-        If eType = vbLogEventTypeError Then
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & vbCrLf
-        Else
-            ConsolePrint sPrefix & sText & vbCrLf
-        End If
-    End If
-QH:
-    FlushDebugLog
+Public Sub DebugDataDump(sModule As String, sFunction As String, sPrefix As String, sText As String)
+    Logger.DataDump sModule, sFunction, sPrefix, sText
 End Sub
 
 Public Sub FlushDebugLog()
-    If m_nDebugLogFile <> 0 And m_nDebugLogFile <> -1 Then
-        Close #m_nDebugLogFile
-        m_nDebugLogFile = 0
-    End If
+    Set Logger = Nothing
 End Sub
 
 Public Sub TerminateEndpoints()
