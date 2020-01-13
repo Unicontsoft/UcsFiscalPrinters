@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdStartup"
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -145,7 +145,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         Next
     Next
     If Not C_Bool(m_oOpt.Item("--nologo")) And Not bNoLogo Then
-        ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019 by Unicontsoft" & vbCrLf & vbCrLf
+        ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019-2020 by Unicontsoft" & vbCrLf & vbCrLf
     End If
     If C_Bool(m_oOpt.Item("--help")) Then
         ConsolePrint "Usage: " & App.EXEName & ".exe [options...]" & vbCrLf & vbCrLf & _
