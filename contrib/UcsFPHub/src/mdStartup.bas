@@ -50,7 +50,7 @@ Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
-Private Const STR_REGISTER_LOCAL        As String = "Моникер %2 на услуга %1"
+Private Const STR_REGISTER_LOCAL        As String = "Моникер %1 е версия %2"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
@@ -408,7 +408,7 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
         End If
     End If
     If Not oLocalEndpoint Is Nothing Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_REGISTER_LOCAL, STR_DISPLAY_NAME, oLocalEndpoint.Moniker)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_REGISTER_LOCAL, oLocalEndpoint.Moniker, STR_VERSION)
     End If
     '--- success
     pvCreateEndpoints = True

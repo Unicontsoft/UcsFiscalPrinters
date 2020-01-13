@@ -7,10 +7,12 @@ set "output_exe=%bin_dir%\UcsFPHub.exe"
 set "VbCodeLines=%bin_dir%\VbCodeLines.exe"
 set "Ummm=%bin_dir%\UMMM.exe"
 set "mt=C:\Work\BuildTools\UMMM\mt.exe"
+set "replace=cscript //nologo C:\Work\BuildTools\WixScripts\Replace.vbs"
 if not exist "%mt%" set "mt=mt.exe"
 set "Vb6=%ProgramFiles%\Microsoft Visual Studio\VB98\VB6.EXE"
 if not exist "%Vb6%" set "Vb6=%ProgramFiles(x86)%\Microsoft Visual Studio\VB98\VB6.EXE"
 set "log_file=%file_dir%\compile.out"
+for /f %%i in ('git rev-parse --short HEAD') do set "HeadCommit=%%i"
 
 echo Cleanup %file_dir%...
 for %%i in ("%file_dir%\*.*") do (if not "%%~nxi"=="build.bat" if not "%%~nxi"=="UcsFPHub.ini" del "%%i" > nul)
@@ -23,6 +25,9 @@ for %%i in ("%src_dir%\Shared\*.bas";"%src_dir%\Shared\*.cls") do (copy "%%i" "%
 
 echo Put lines to sources in %file_dir%...
 for %%i in ("%file_dir%\*.vbp") do (start "" /w "%VbCodeLines%" %%i)
+
+echo Embed commit %HeadCommit% as STR_LATEST_COMMIT in mdStartup.bas...
+%replace% /f:%file_dir%\mdStartup.bas /s:"Private Const STR_LATEST_COMMIT         As String = ^q^q" /r:"Private Const STR_LATEST_COMMIT         As String = ^q-%HeadCommit%^q"
 
 echo Compiling to %bin_dir%...
 for %%i in ("%file_dir%\*.vbp") do (
