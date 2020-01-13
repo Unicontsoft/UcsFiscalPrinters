@@ -37,7 +37,6 @@ Private Const STR_LATEST_COMMIT         As String = ""
 Public Const STR_VERSION                As String = "0.1.35" & STR_LATEST_COMMIT
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
-Private Const STR_DISPLAY_NAME          As String = "Unicontsoft Fiscal Printers Hub (" & STR_VERSION & ")"
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
 Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
 Private Const STR_SVC_UNINSTALL         As String = "Деинсталира NT услуга %1..."
@@ -50,7 +49,6 @@ Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
-Private Const STR_REGISTER_LOCAL        As String = "Моникер %1 е версия %2"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
@@ -58,7 +56,7 @@ Private Const ERR_ENUM_PORTS            As String = "Грешка: Енумериране на сери
 Private Const ERR_WARN_ACCESS           As String = "Предупреждение: Принтер %1: %2"
 Private Const ERR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 '--- formats
-Private Const FORMAT_DATETIME_LOG       As String = "yyyy.MM.dd hh:nn:ss"
+Private Const FORMAT_TIME_ONLY          As String = "hh:nn:ss"
 Public Const FORMAT_BASE_2              As String = "0.00"
 Public Const FORMAT_BASE_3              As String = "0.000"
 
@@ -91,10 +89,13 @@ Property Get IsRunningAsService() As Boolean
 End Property
 
 Property Get Logger() As Object
+    Const FUNC_NAME     As String = "Logger [get]"
+    
     If m_oLogger Is Nothing Then
         With New cFiscalPrinter
             Set m_oLogger = .Logger
         End With
+        m_oLogger.Log 0, MODULE_NAME, FUNC_NAME, App.ProductName & " v" & STR_VERSION
     End If
     Set Logger = m_oLogger
 End Property
@@ -180,10 +181,10 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         If LenB(sConfFile) <> 0 Then
             sConfFile = " --config " & ArgvQuote(sConfFile)
         End If
-        If Not pvRegisterServiceAppID(STR_SERVICE_NAME, STR_DISPLAY_NAME, App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
+        If Not pvRegisterServiceAppID(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
             ConsoleError STR_WARN & sError & vbCrLf
         End If
-        If Not NtServiceInstall(STR_SERVICE_NAME, STR_DISPLAY_NAME, GetProcessName() & sConfFile, Error:=sError) Then
+        If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, Error:=sError) Then
             ConsoleError STR_FAILURE
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
@@ -407,9 +408,6 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
             cRetVal.Add oLocalEndpoint
         End If
     End If
-    If Not oLocalEndpoint Is Nothing Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_REGISTER_LOCAL, oLocalEndpoint.Moniker, STR_VERSION)
-    End If
     '--- success
     pvCreateEndpoints = True
     Exit Function
@@ -423,11 +421,9 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     Dim sSuffix         As String
     
     Logger.Log eType, sModule, sFunction, sText
-    sPrefix = Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & ": "
-    sSuffix = " [" & sModule & "." & sFunction & "]"
-    If Logger.LogFile <> -1 Then
-        ConsolePrint sPrefix & sText & sSuffix & vbCrLf
-    ElseIf m_bIsService Then
+    sPrefix = Format$(Now, FORMAT_TIME_ONLY) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & ": "
+'    sSuffix = " [" & sModule & "." & sFunction & "]"
+    If Logger.LogFile = -1 And m_bIsService Then
         App.LogEvent sText & sSuffix, eType
     ElseIf eType = vbLogEventTypeError Then
         ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & sSuffix & vbCrLf
