@@ -161,7 +161,7 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
             PopPrintError sFunction, MODULE_NAME, vErr
         End If
     #ElseIf ImplUseDebugLog Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If

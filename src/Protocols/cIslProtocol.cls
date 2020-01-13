@@ -333,21 +333,21 @@ End Type
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Private Sub DebugLog(sFunction As String, sText As String)
-    OutputDebugLog MODULE_NAME, sFunction, sText
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction, sText
 End Sub
 
 Private Sub DebugDataDump(sFunction As String, sPrefix As String, sData As String)
-    OutputDebugDataDump MODULE_NAME, sFunction, sPrefix, sData
+    Logger.DataDump MODULE_NAME, sFunction, sPrefix, sData
 End Sub
 
 '=========================================================================
@@ -1660,7 +1660,7 @@ RetrySend:
     If TimerEx > dblTimerEx + lTimeout / 1000# Then
         GoTo QH
     End If
-    DebugDataDump FUNC_NAME, "send ", sSend
+    DebugDataDump FUNC_NAME, "[SEND ] ", sSend
     baText = ToAscii(sSend, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
@@ -1676,7 +1676,7 @@ RetrySend:
             GoTo QH
         End If
         sBuffer = FromAscii(baText, m_uConfig.CodePage)
-        DebugDataDump FUNC_NAME, "recv ", sBuffer
+        DebugDataDump FUNC_NAME, "[RECV ] ", sBuffer
         '--- check for NAK (&H15)
         If InStr(sBuffer, Chr$(&H15)) > 0 Then
             DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)

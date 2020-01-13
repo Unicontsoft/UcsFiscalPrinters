@@ -75,21 +75,21 @@ End Type
 
 'Private Sub PrintError(sFunction As String)
 '    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-'    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+'    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 'End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Private Sub DebugLog(sFunction As String, sText As String)
-    OutputDebugLog MODULE_NAME, sFunction, sText
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction, sText
 End Sub
 
 Private Sub DebugDataDump(sFunction As String, sPrefix As String, sData As String)
-    OutputDebugDataDump MODULE_NAME, sFunction, sPrefix, sData
+    Logger.DataDump MODULE_NAME, sFunction, sPrefix, sData
 End Sub
 
 '=========================================================================
@@ -248,7 +248,7 @@ Private Function pvSendRequest( _
         End If
         If Not oRequest Is Nothing Then
             sPayload = JsonDump(oRequest, Minimize:=True)
-            DebugDataDump FUNC_NAME, "send ", sPayload
+            DebugDataDump FUNC_NAME, "[SEND ] ", sPayload
             .Send sPayload
         Else
             .Send
@@ -260,7 +260,7 @@ Private Function pvSendRequest( _
             Error = .Status & " " & .StatusText
             GoTo QH
         End If
-        DebugDataDump FUNC_NAME, "recv ", .ResponseText
+        DebugDataDump FUNC_NAME, "[RECV ] ", .ResponseText
         If Not JsonParse(.ResponseText, vJson, Error:=Error) Then
             DebugLog FUNC_NAME, "Error parsing ResponseText=" & .ResponseText & ", Error=" & Error
             Error = Printf(ERR_INVALID_JSON, Error)

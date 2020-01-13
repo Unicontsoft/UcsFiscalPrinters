@@ -100,8 +100,6 @@ Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As L
 Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
-Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
-Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 
 Private Type OPENFILENAME
@@ -188,7 +186,6 @@ Public Const STR_PROTOCOL_ESCPOS    As String = "ESC/POS"
 Public Const STR_PROTOCOL_PROXY     As String = "PROXY"
 Public Const STR_CHR1               As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON            As Double = 0.0000000001
-Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
 Public Const FORMAT_BASE_2          As String = "0.00"
 Public Const FORMAT_BASE_3          As String = "0.000"
 
@@ -196,7 +193,7 @@ Private m_sDecimalSeparator     As String
 Private m_oConfig               As Object
 Private m_oProtocolConfig       As Object
 Private m_oPortWrapper          As cPortWrapper
-Private m_nDebugLogFile         As Integer
+Private m_oLogger               As cFileLogger
 
 '=========================================================================
 ' Error handling
@@ -204,12 +201,12 @@ Private m_nDebugLogFile         As Integer
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
@@ -239,10 +236,10 @@ Private Sub Main()
     m_sDecimalSeparator = GetDecimalSeparator()
     sFile = LocateFile(App.Path & "\" & App.EXEName & ".conf")
     If LenB(sFile) <> 0 Then
-        OutputDebugLog MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
+        Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
         If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
             Debug.Print "Error in config: " & sError
-            OutputDebugLog MODULE_NAME, FUNC_NAME, "Error in config: " & sError
+            Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Error in config: " & sError
         End If
     End If
     Set m_oConfig = C_Obj(vJson)
@@ -441,109 +438,45 @@ EH:
     Resume Next
 End Function
 
-Public Sub DebugLog(sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
-    #If sText And eType Then '--- touch args
-    #End If
-End Sub
-
-Public Sub OutputDebugLog(sModule As String, sFunction As String, sText As String)
-    Const LNG_MAX_SIZE  As Long = 10& * 1024 * 1024
+Property Get Logger() As cFileLogger
+    Const FUNC_NAME     As String = "Logger [get]"
+    Dim sFileName       As String
     Dim vErr            As Variant
-    Dim sFile           As String
-    Dim sNewFile        As String
     
-    If m_nDebugLogFile = -1 Then
-        Exit Sub
-    End If
-    vErr = Array(Err.Number, Err.Description, Err.Source)
-    On Error Resume Next '--- checked
-    If m_nDebugLogFile = 0 Then
-        sFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
-        If LenB(sFile) = 0 Then
-            sFile = GetErrorTempPath() & "\UcsFP.log"
-            If Not FileExists(sFile) Then
-                m_nDebugLogFile = -1
-                GoTo QH
+    If m_oLogger Is Nothing Then
+        vErr = Array(Err.Number, Err.Description, Err.Source)
+        On Error GoTo EH
+        Set m_oLogger = New cFileLogger
+        sFileName = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
+        If LenB(sFileName) = 0 Then
+            sFileName = GetErrorTempPath() & "\UcsFP.log"
+            If Not FileExists(sFileName) Then
+                sFileName = vbNullString
             End If
         End If
-        If FileExists(sFile) Then
-            If FileLen(sFile) > LNG_MAX_SIZE Then
-                If InStrRev(sFile, ".") > InStrRev(sFile, "\") Then
-                    sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
-                Else
-                    sNewFile = sFile & Format$(Date, "_yyyy_mm_dd")
-                End If
-                Name sFile As sNewFile
-            End If
+        If LenB(sFileName) <> 0 Then
+            m_oLogger.LogFileName = sFileName
+            m_oLogger.LogLevel = vbLogEventTypeInformation - CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")))
         End If
-        m_nDebugLogFile = FreeFile
-        Open sFile For Append Access Write Shared As #m_nDebugLogFile
-    End If
-    Print #m_nDebugLogFile, GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): " & sText & " [" & sModule & "." & sFunction & "]"
-    If LOF(m_nDebugLogFile) > LNG_MAX_SIZE Then
-        Close #m_nDebugLogFile
-        m_nDebugLogFile = 0
-    End If
+        On Error GoTo 0
 QH:
-    On Error GoTo 0
-    Err.Number = vErr(0)
-    Err.Description = vErr(1)
-    Err.Source = vErr(2)
-End Sub
+        Err.Number = vErr(0)
+        Err.Description = vErr(1)
+        Err.Source = vErr(2)
+    End If
+    Set Logger = m_oLogger
+    Exit Property
+EH:
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & FUNC_NAME & "(" & Erl & ")]"
+    Resume QH
+End Property
 
-Public Sub OutputDebugDataDump(sModule As String, sFunction As String, sPrefix As String, sData As String)
-    Static lLogging     As Long
-    Dim vErr            As Variant
-    Dim baData()        As Byte
-    Dim lIdx            As Long
-    Dim sText           As String
-    Dim sHext           As String
-    
-    If m_nDebugLogFile = -1 Then
-        Exit Sub
-    End If
-    If lLogging = 0 Then
-        lLogging = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), 1, -1)
-    End If
-    If lLogging < 0 Then
-        Exit Sub
-    End If
-    vErr = Array(Err.Number, Err.Description, Err.Source)
-    On Error Resume Next '--- checked
-    baData = StrConv(sData, vbFromUnicode)
-    For lIdx = 0 To ((UBound(baData) + 16) \ 16) * 16
-        If lIdx Mod 16 = 0 And LenB(sHext) <> 0 Then
-            OutputDebugLog sModule, sFunction, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
-            sHext = vbNullString
-            sText = vbNullString
-        End If
-        If lIdx <= UBound(baData) Then
-            sHext = sHext & Right$("0" & Hex$(baData(lIdx)), 2) & " "
-            sText = sText & IIf(baData(lIdx) >= 32, Chr$(baData(lIdx)), ".")
-        Else
-            sHext = sHext & "   "
-        End If
-    Next
-    On Error GoTo 0
-    Err.Number = vErr(0)
-    Err.Description = vErr(1)
-    Err.Source = vErr(2)
-End Sub
+Property Set Logger(oValue As cFileLogger)
+    Set m_oLogger = oValue
+End Property
 
-Public Sub FlushDebugLog()
-    Dim vErr            As Variant
-    
-    vErr = Array(Err.Number, Err.Description, Err.Source)
-    On Error GoTo QH
-    If m_nDebugLogFile <> 0 And m_nDebugLogFile <> -1 Then
-        Close #m_nDebugLogFile
-        m_nDebugLogFile = 0
-    End If
-QH:
-    On Error GoTo 0
-    Err.Number = vErr(0)
-    Err.Description = vErr(1)
-    Err.Source = vErr(2)
+Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
+    Logger.Log eType, sModule, sFunction, sText
 End Sub
 
 Public Function Round(ByVal Value As Double, Optional ByVal NumDigits As Long) As Double

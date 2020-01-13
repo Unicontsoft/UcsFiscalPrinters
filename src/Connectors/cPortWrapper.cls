@@ -57,7 +57,7 @@ Private m_bReleased         As Boolean
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    OutputDebugLog MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
 End Sub
 
 '=========================================================================
@@ -123,6 +123,7 @@ Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent
             m_sPort = vbNullString
         End If
     End If
+QH:
     On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
@@ -130,7 +131,7 @@ Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
 End Function
 
 '=========================================================================
@@ -150,7 +151,8 @@ Private Sub Class_Terminate()
         m_hComm = 0
         m_sPort = vbNullString
     End If
-    FlushDebugLog
+    Logger.Flush
+QH:
     On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
@@ -158,5 +160,5 @@ Private Sub Class_Terminate()
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
 End Sub
