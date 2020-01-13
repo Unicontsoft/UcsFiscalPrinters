@@ -122,7 +122,7 @@ End Enum
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -196,7 +196,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     Init = True
 QH:
     If LenB(m_sLastError) <> 0 Then
-        DebugLog m_sLastError, vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME, m_sLastError, vbLogEventTypeError
     End If
     Exit Function
 EH:
@@ -247,7 +247,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
-    DebugDataDump "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[ENTER] ", "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
         sPrinterId = At(vSplit, 1)
@@ -276,7 +276,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         GoTo QH
     End If
     If LenB(sPrinterId) <> 0 And LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
-        DebugLog Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
     End If
     vSplit = Split2(sRawUrl, "?")
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
@@ -284,14 +284,14 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog Printf(STR_HANDLER_ELAPSED, Zn(sPrinterId, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ELAPSED, Zn(sPrinterId, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3))
     '--- success
     frHandleRequest = True
 QH:
     If Not frHandleRequest Then
-        DebugLog Printf(STR_HANDLER_ERROR, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterId, sResponse)
     End If
-    DebugDataDump "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[RETRN] ", "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -329,10 +329,10 @@ Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) 
                 If JsonParse(sResponse, vJson) Then
                     If JsonItem(C_Obj(vJson), "Ok") Then
                         If Not IsEmpty(JsonItem(C_Obj(vJson), "PreviousDateTime")) Then
-                            DebugLog Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime"), JsonItem(C_Obj(vJson), "PreviousDateTime")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+                            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime"), JsonItem(C_Obj(vJson), "PreviousDateTime"))
                         End If
                     Else
-                        DebugLog Printf(STR_DATETIME_ERROR, vElem, JsonItem(C_Obj(vJson), "ErrorText")) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_ERROR, vElem, JsonItem(C_Obj(vJson), "ErrorText")), vbLogEventTypeError
                     End If
                 End If
             End If
@@ -467,7 +467,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         m_oAsyncConn.CursorLocation = adUseClient
         m_oAsyncConn.Open sLocalConnStr
     End Select
-    DebugLog Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
     '--- success
     pvOpenConn = True
 QH:

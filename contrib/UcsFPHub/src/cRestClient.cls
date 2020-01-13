@@ -74,7 +74,7 @@ Private m_dblStartTimerEx           As Double
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sID & ")(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & m_sID & ")(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -174,7 +174,7 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     Dim baBody()        As Byte
     
     On Error GoTo EH
-    DebugDataDump "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[ENTER] ", "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p")
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
         sStatusCode = STR_STATUS_CODE_BAD_REQUEST
         sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
@@ -219,7 +219,7 @@ QH:
             HDR_CONTENT_LENGTH & ": " & UBound(baBody) + 1 & vbCrLf & vbCrLf
         m_oSocket.SendArray baBody
     End If
-    DebugDataDump "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[RETRN] ", "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -290,7 +290,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split2(m_sRawUrl, "?")
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3)) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3))
         pvClearState
     End If
 QH:

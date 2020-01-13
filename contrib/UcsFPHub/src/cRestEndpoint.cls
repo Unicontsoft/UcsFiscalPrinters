@@ -50,7 +50,7 @@ Private m_lCount                    As Long
 
 Private Sub PrintError(sFunction As String)
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -109,12 +109,12 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog Printf(STR_SOCKET_LISTEN, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_SOCKET_LISTEN, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
     '--- success
     Init = True
 QH:
     If LenB(m_sLastError) <> 0 Then
-        DebugLog m_sLastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME, m_sLastError, vbLogEventTypeError
     End If
     Exit Function
 EH:
@@ -138,7 +138,7 @@ Public Sub ClientError(sKey As String)
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        DebugLog Printf(STR_CONN_ERROR, sKey, oClient.LastError) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ERROR, sKey, oClient.LastError), vbLogEventTypeError
     End If
     Exit Sub
 EH:
@@ -169,12 +169,12 @@ Private Sub m_oSocket_OnAccept()
     End If
     If Not oClient.Init(sKey, m_oSocket, Me) Then
         If LenB(oClient.LastError) <> 0 Then
-            DebugLog oClient.LastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, oClient.LastError, vbLogEventTypeError
         End If
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
-    DebugLog Printf(STR_CONN_ESTABLISHED, sKey, m_cClients.Count) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ESTABLISHED, sKey, m_cClients.Count)
 QH:
     Exit Sub
 EH:

@@ -50,7 +50,7 @@ Private m_pTimerAutodetect          As IUnknown
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -62,6 +62,10 @@ End Sub
 
 Property Get LastError() As String
     LastError = m_sLastError
+End Property
+
+Property Get Moniker() As String
+    Moniker = STR_MONIKER
 End Property
 
 Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
@@ -104,12 +108,12 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog Printf(STR_COM_SETUP, STR_MONIKER) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeWarning
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_COM_SETUP, STR_MONIKER)
     '--- success
     frInit = True
 QH:
     If LenB(m_sLastError) <> 0 Then
-        DebugLog m_sLastError & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME, m_sLastError, vbLogEventTypeError
     End If
     Exit Function
 EH:
@@ -138,11 +142,11 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    DebugDataDump "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p") & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[ENTER] ", "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 QH:
-    DebugDataDump "sResponse=" & sResponse & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[RETRN] ", "sResponse=" & sResponse
     Exit Function
 EH:
     PrintError FUNC_NAME

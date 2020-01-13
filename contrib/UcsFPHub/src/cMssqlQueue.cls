@@ -65,7 +65,7 @@ Private m_sSqlDatabase              As String
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
-        DebugLog Err.Description & " &H" & Hex$(Err.Number) & " [" & MODULE_NAME & "." & sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")]", vbLogEventTypeError
+        DebugLog MODULE_NAME, sFunction & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
@@ -124,7 +124,7 @@ Private Function pvQueueSetup() As Boolean
             lIdx = lIdx + 1
         End If
     Next
-    DebugLog Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx)
     '--- success
     pvQueueSetup = True
     Exit Function
@@ -155,7 +155,7 @@ Private Function pvQueueTerminate() As Boolean
     If pvIsConnAlive(m_oConn) Then
         lPos = InStr(m_sQueueName, "/")
         m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_ONLY"
-        DebugLog Printf(STR_QUEUE_TERMINATE, m_sQueueName) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     End If
     '--- success
     pvQueueTerminate = True
@@ -187,7 +187,7 @@ Public Function TimerProc() As Long
     
     On Error GoTo EH
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
-    DebugLog Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000) & " [" & MODULE_NAME & "." & FUNC_NAME & "]"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000)
     pvQueueTerminate
     If m_oCallback.frReopenConn(oConn) Then
         Set m_oConn = oConn
@@ -233,7 +233,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
         If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
-            DebugLog pError.Description & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, pError.Description, vbLogEventTypeError
         End If
         GoTo NextLine
     ElseIf Not pRecordset Is Nothing Then
@@ -254,7 +254,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                     sResponse = C_Str(pRecordset!ErrorText.Value)
                     If LenB(sResponse) <> 0 Then
                         sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse) & " [" & MODULE_NAME & "." & FUNC_NAME & "]", vbLogEventTypeError
+                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse), vbLogEventTypeError
                     End If
                 End If
             End If
