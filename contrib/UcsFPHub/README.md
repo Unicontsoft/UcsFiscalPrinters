@@ -139,10 +139,3 @@ Name             | Manufacturer | Tested models  | Other supported models
 All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
 See [`PROTOCOL.md`](PROTOCOL.md) in root on the repo for each REST service endpoint description and sample usage.
-
-### ToDo
-
- - [x] Listener on Service Broker queues
- - [x] Hook config editor on systray icon popup menu
- - [x] Impl `IniFile` for `MssqlServiceBroker` binding
- - [x] Impl idempotent/cached `POST` requests w/ `request_id=:unique_token` parameter
