@@ -1402,6 +1402,9 @@ RetrySend:
     '--- read response
     sText = vbNullString
     Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
+        If TimerEx > dblTimerEx + lTimeout / 1000# Then
+            GoTo QH
+        End If
         If Not oConnector.ReadData(baText, lTimeout) Then
             Error = oConnector.GetLastError()
             DebugLog FUNC_NAME, "ReadData failed, Error=" & Error
