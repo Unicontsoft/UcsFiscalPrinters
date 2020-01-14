@@ -2336,11 +2336,16 @@ End Function
 Private Function pvStripBold(sText As String) As String
     Const FUNC_NAME     As String = "pvStripBold"
     
+    On Error GoTo EH
     pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
         sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvGetPmtMapping() As Object
+    Const FUNC_NAME     As String = "pvGetPmtMapping"
     Const CONF_NAME     As String = "GetPmtMapping"
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -2351,6 +2356,7 @@ Private Function pvGetPmtMapping() As Object
     Dim vSplit          As Variant
     Dim oRetVal         As Object
     
+    On Error GoTo EH
     If IsDaisy Or IsIncotex Then
         pvGetCommandConfig CONF_NAME, "ExtendedInitPayment", eCmd, ucsIslCmdExtendedInitPayment, sParam, "R%1", _
             "Offset", lOffset, 3
@@ -2370,7 +2376,7 @@ Private Function pvGetPmtMapping() As Object
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "3;%1;"
         For lIdx = 0 To 5
             If lIdx > 0 Then
-                lTagNo = At(vConfig, lOffset + lIdx)
+                lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
             End If
             If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
                 vSplit = Split(SendCommand(eCmd, Printf(sParam, lIdx + 1)), ";")
@@ -2382,11 +2388,16 @@ Private Function pvGetPmtMapping() As Object
         Next
     End If
     Set pvGetPmtMapping = oRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    Const FUNC_NAME     As String = "pvToDevicePmtIndex"
     Dim vInfo           As Variant
     
+    On Error GoTo EH
     pvToDevicePmtIndex = -1             ' unsupported
     If Not IsObject(m_uConfig.PmtMapping) Then
         Set m_uConfig.PmtMapping = pvGetPmtMapping()
@@ -2452,14 +2463,19 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 2)
         End Select
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Const FUNC_NAME     As String = "pvToDevicePmtName"
     Const CONF_NAME     As String = "GetPaymentName"
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     
+    On Error GoTo EH
     lIndex = pvToDevicePmtIndex(PmtType)
     If lIndex >= 0 Then
         If IsDaisy Then
@@ -2483,6 +2499,9 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
         End If
     End If
 QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvGetCommandConfig( _
@@ -2493,28 +2512,45 @@ Private Sub pvGetCommandConfig( _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)
+    Const FUNC_NAME     As String = "pvGetCommandConfig"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey, eCmdDefault)
     sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
         A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
+    Const FUNC_NAME     As String = "pvSetLastError"
+    
+    On Error GoTo EH
     If ErrNum < 0 Then
         m_uPrintData.LastErrNo = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
     Else
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Function pvToDate(sText As String) As Date
+    Const FUNC_NAME     As String = "pvToDate"
+    
+    On Error GoTo EH
     If Len(sText) = 6 And IsNumeric(sText) Then
         pvToDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 '=========================================================================

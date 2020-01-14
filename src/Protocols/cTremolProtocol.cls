@@ -2058,6 +2058,9 @@ EH:
 End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    Const FUNC_NAME     As String = "pvToDevicePmtIndex"
+    
+    On Error GoTo EH
     pvToDevicePmtIndex = -1             ' unsupported
     If m_uConfig.ExtendedPmtTypes Then
         Select Case PmtType
@@ -2098,15 +2101,23 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 4      ' 10=SR2 (Prg Name2)
         End Select
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Const FUNC_NAME     As String = "pvToDevicePmtName"
     Dim lPmtIndex       As Long
     
+    On Error GoTo EH
     lPmtIndex = pvToDevicePmtIndex(PmtType)
     If lPmtIndex >= 0 Then
         pvToDevicePmtName = RTrim$(At(Split(m_sPaymentTypes, DEF_SEP), lPmtIndex))
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvGetCommandConfig( _
@@ -2117,16 +2128,24 @@ Private Sub pvGetCommandConfig( _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)
+    Const FUNC_NAME     As String = "pvGetCommandConfig"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey, eCmdDefault)
     sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
         A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Function pvZfplibValue(lValue As Long, sRegValue As String, ByVal lDefValue As Long) As Long
+    Const FUNC_NAME     As String = "pvZfplibValue"
+    
+    On Error GoTo EH
     If lValue = 0 Then
         lValue = C_Lng(RegReadString(HKEY_LOCAL_MACHINE, "Software\Tremol\ZFPLib", sRegValue))
         If lValue = 0 Then
@@ -2134,15 +2153,24 @@ Private Function pvZfplibValue(lValue As Long, sRegValue As String, ByVal lDefVa
         End If
     End If
     pvZfplibValue = lValue
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
+    Const FUNC_NAME     As String = "pvSetLastError"
+    
+    On Error GoTo EH
     If ErrNum < 0 Then
         m_uPrintData.LastErrNo = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
     Else
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Function pvCheckSum(sText As String) As String
@@ -2159,8 +2187,7 @@ Private Function pvCheckSum(sText As String) As String
     pvCheckSum = Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30)
     Exit Function
 EH:
-    PrintError FUNC_NAME
-    Resume Next
+    RaiseError FUNC_NAME
 End Function
 
 '=========================================================================

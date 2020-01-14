@@ -1911,11 +1911,18 @@ End Function
 Private Function pvStripBold(sText As String) As String
     Const FUNC_NAME     As String = "pvStripBold"
     
+    On Error GoTo EH
     pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
         sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
+    Const FUNC_NAME     As String = "pvToDevicePmtIndex"
+    
+    On Error GoTo EH
     pvToDevicePmtIndex = -1         ' unsupported
     Select Case PmtType
     Case ucsFscPmtCash
@@ -1932,19 +1939,27 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
 '        pvToDevicePmtIndex = 1      ' 7=SCards (ÊÐÅÄÈÒ)
         pvToDevicePmtIndex = -1     ' unsupported
     End Select
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    Const FUNC_NAME     As String = "pvToDevicePmtName"
     Const CONF_NAME     As String = "GetPaymentName"
     Dim sParam          As String
     Dim lIndex          As Long
     
+    On Error GoTo EH
     lIndex = pvToDevicePmtIndex(PmtType)
     pvGetCommandConfig CONF_NAME, "InfoSettings" & PmtType, 0, 0, sParam, "PayName", _
         "PmtType", lIndex, lIndex
     If lIndex >= 0 Then
         pvToDevicePmtName = RTrim$(pvStripBold(pvSettings(sParam, lIndex)))
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvGetCommandConfig( _
@@ -1955,28 +1970,41 @@ Private Sub pvGetCommandConfig( _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)
+    Const FUNC_NAME     As String = "pvGetCommandConfig"
     Dim lIdx            As Long
     
+    On Error GoTo EH
     eCmd = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey, eCmdDefault)
     sParam = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & "Param", sParamDefault)
     For lIdx = 0 To UBound(A) Step 3
         A(lIdx + 1) = GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, sFunction, sKey & A(lIdx + 0), A(lIdx + 2))
     Next
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
+    Const FUNC_NAME     As String = "pvSetLastError"
+    
+    On Error GoTo EH
     If ErrNum < 0 Then
         m_uPrintData.LastErrNo = IIf(LenB(sError) = 0, ucsFerNone, ucsFerGeneralError)
     Else
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
 End Sub
 
 Private Function pvToErrorCode(sCode As String) As String
+    Const FUNC_NAME     As String = "pvToErrorCode"
     Dim vSplit          As Variant
     Dim lIdx            As Long
     
+    On Error GoTo EH
     vSplit = Split(STR_ERROR_CODES, "|")
     For lIdx = 0 To UBound(vSplit) - 1 Step 2
         If sCode = At(vSplit, lIdx) Then
@@ -1985,6 +2013,9 @@ Private Function pvToErrorCode(sCode As String) As String
         End If
     Next
     pvToErrorCode = "Error " & sCode
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 '=========================================================================
