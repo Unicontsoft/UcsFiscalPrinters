@@ -146,7 +146,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         Next
     Next
     If Not C_Bool(m_oOpt.Item("--nologo")) And Not bNoLogo Then
-        ConsolePrint App.ProductName & " v" & STR_VERSION & " (c) 2019-2020 by Unicontsoft" & vbCrLf & vbCrLf
+        ConsolePrint App.ProductName & " v" & STR_VERSION & vbCrLf & App.LegalCopyright & vbCrLf & vbCrLf
     End If
     If C_Bool(m_oOpt.Item("--help")) Then
         ConsolePrint "Usage: " & App.EXEName & ".exe [options...]" & vbCrLf & vbCrLf & _
@@ -254,8 +254,8 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     If Not pvCollectPrinters(m_oPrinters) Then
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(JsonItem(m_oPrinters, "Count") = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), _
-        JsonItem(m_oPrinters, "Count"))
+    lIdx = C_Lng(JsonItem(m_oPrinters, "Count"))
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(lIdx = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), lIdx)
     '--- then register http/mssql endpoints
     If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker mysqlmessagequeue", m_cEndpoints) Then
         GoTo QH
