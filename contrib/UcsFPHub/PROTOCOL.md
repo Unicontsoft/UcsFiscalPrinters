@@ -43,7 +43,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
   "ZK133759": {
     "DeviceSerialNo": "ZK133759",
     "FiscalMemoryNo": "50170895",
-    "DeviceProtocol": "TREMOL ECR",
+    "DeviceProtocol": "TREMOL",
     "DeviceModel": "TREMOL M20",
     "FirmwareVersion": "Ver. 1.01 TRA20 C.S. 2541",
     "CharsPerLine": 32,
@@ -51,7 +51,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "ItemNameMaxLength": 26,
     "TaxNo": "",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=TREMOL ECR;Port=COM1;Speed=115200",
+    "DeviceString": "Protocol=TREMOL;Port=COM1;Speed=115200",
     "DeviceHost": "WQW-PC",
     "DevicePort": "COM1",
     "Autodetected": true
@@ -59,7 +59,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
   "DT518315": {
     "DeviceSerialNo": "DT518315",
     "FiscalMemoryNo": "02518315",
-    "DeviceProtocol": "DATECS FP/ECR",
+    "DeviceProtocol": "DATECS",
     "DeviceModel": "DP-25",
     "FirmwareVersion": "263453 08Nov18 1312",
     "CharsPerLine": 42,
@@ -67,14 +67,14 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "ItemNameMaxLength": 22,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=DATECS FP/ECR;Port=COM2;Speed=115200",
+    "DeviceString": "Protocol=DATECS;Port=COM2;Speed=115200",
     "DeviceHost": "WQW-PC",
     "DevicePort": "COM2"
   },
   "DY450626": {
     "DeviceSerialNo": "DY450626",
     "FiscalMemoryNo": "36608662",
-    "DeviceProtocol": "DAISY FP/ECR",
+    "DeviceProtocol": "DAISY",
     "DeviceModel": "CompactM",
     "FirmwareVersion": "ONL02-4.01BG 29-10-2018 11:34 F36A",
     "CharsPerLine": 32,
@@ -82,7 +82,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "ItemNameMaxLength": 20,
     "TaxNo": "---------------",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=DAISY FP/ECR;Port=COM11;Speed=9600",
+    "DeviceString": "Protocol=DAISY;Port=COM11;Speed=9600",
     "DeviceHost": "WQW-PC",
     "DevicePort": "COM11,9600",
     "Autodetected": true
@@ -90,7 +90,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
   "DT577430": {
     "DeviceSerialNo": "DT577430",
     "FiscalMemoryNo": "02577430",
-    "DeviceProtocol": "DATECS X",
+    "DeviceProtocol": "DATECS/X",
     "DeviceModel": "DP-25X",
     "FirmwareVersion": "264205 22Jan19 1629",
     "CharsPerLine": 42,
@@ -98,7 +98,7 @@ C:> curl -X GET http://localhost:8192/printers -sS | jq
     "ItemNameMaxLength": 72,
     "TaxNo": "НЕЗАДАДЕН",
     "TaxCaption": "ЕИК",
-    "DeviceString": "Protocol=DATECS X;IP=192.168.0.20",
+    "DeviceString": "Protocol=DATECS/X;IP=192.168.0.20",
     "DeviceHost": "WQW-PC",
     "DevicePort": "192.168.0.20"
   },
@@ -126,7 +126,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
    <ZK133759>
       <DeviceSerialNo>ZK133759</DeviceSerialNo>
       <FiscalMemoryNo>50170895</FiscalMemoryNo>
-      <DeviceProtocol>TREMOL ECR</DeviceProtocol>
+      <DeviceProtocol>TREMOL</DeviceProtocol>
       <DeviceModel>TREMOL M20</DeviceModel>
       <FirmwareVersion>Ver. 1.01 TRA20 C.S. 2541</FirmwareVersion>
       <CharsPerLine>32</CharsPerLine>
@@ -134,7 +134,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <ItemNameMaxLength>26</ItemNameMaxLength>
       <TaxNo />
       <TaxCaption>ЕИК</TaxCaption>
-      <DeviceString>Protocol=TREMOL ECR;Port=COM1;Speed=115200</DeviceString>
+      <DeviceString>Protocol=TREMOL;Port=COM1;Speed=115200</DeviceString>
       <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>COM1</DevicePort>
       <Autodetected __json__bool="1">1</Autodetected>
@@ -142,7 +142,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
    <DT518315>
       <DeviceSerialNo>DT518315</DeviceSerialNo>
       <FiscalMemoryNo>02518315</FiscalMemoryNo>
-      <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+      <DeviceProtocol>DATECS</DeviceProtocol>
       <DeviceModel>DP-25</DeviceModel>
       <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
       <CharsPerLine>42</CharsPerLine>
@@ -150,14 +150,14 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <ItemNameMaxLength>22</ItemNameMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
-      <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+      <DeviceString>Protocol=DATECS;Port=COM2;Speed=115200</DeviceString>
       <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>COM2</DevicePort>
    </DT518315>
    <DY450626>
       <DeviceSerialNo>DY450626</DeviceSerialNo>
       <FiscalMemoryNo>36608662</FiscalMemoryNo>
-      <DeviceProtocol>DAISY FP/ECR</DeviceProtocol>
+      <DeviceProtocol>DAISY</DeviceProtocol>
       <DeviceModel>CompactM</DeviceModel>
       <FirmwareVersion>ONL02-4.01BG 29-10-2018 11:34 F36A</FirmwareVersion>
       <CharsPerLine>32</CharsPerLine>
@@ -165,7 +165,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <ItemNameMaxLength>20</ItemNameMaxLength>
       <TaxNo>---------------</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
-      <DeviceString>Protocol=DAISY FP/ECR;Port=COM11;Speed=9600</DeviceString>
+      <DeviceString>Protocol=DAISY;Port=COM11;Speed=9600</DeviceString>
       <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>COM11,9600</DevicePort>
       <Autodetected __json__bool="1">1</Autodetected>
@@ -173,7 +173,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
    <DT577430>
       <DeviceSerialNo>DT577430</DeviceSerialNo>
       <FiscalMemoryNo>02577430</FiscalMemoryNo>
-      <DeviceProtocol>DATECS X</DeviceProtocol>
+      <DeviceProtocol>DATECS/X</DeviceProtocol>
       <DeviceModel>DP-25X</DeviceModel>
       <FirmwareVersion>264205 22Jan19 1629</FirmwareVersion>
       <CharsPerLine>42</CharsPerLine>
@@ -181,7 +181,7 @@ C:> curl -X GET http://localhost:8192/printers?format=xml -sS
       <ItemNameMaxLength>72</ItemNameMaxLength>
       <TaxNo>НЕЗАДАДЕН</TaxNo>
       <TaxCaption>ЕИК</TaxCaption>
-      <DeviceString>Protocol=DATECS X;IP=192.168.0.20</DeviceString>
+      <DeviceString>Protocol=DATECS/X;IP=192.168.0.20</DeviceString>
       <DeviceHost>WQW-PC</DeviceHost>
       <DevicePort>192.168.0.20</DevicePort>
    </DT577430>
@@ -209,7 +209,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315 -sS | jq
   "Ok": true,
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315",
-  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceProtocol": "DATECS",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
   "CharsPerLine": 42,
@@ -254,7 +254,7 @@ C:> curl -X GET http://localhost:8192/printers/DT518315?format=xml -sS
    <Ok __json__bool="1">1</Ok>
    <DeviceSerialNo>DT518315</DeviceSerialNo>
    <FiscalMemoryNo>02518315</FiscalMemoryNo>
-   <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+   <DeviceProtocol>DATECS</DeviceProtocol>
    <DeviceModel>DP-25</DeviceModel>
    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
    <CharsPerLine>42</CharsPerLine>
@@ -296,7 +296,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "Ok": true,
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315",
-  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceProtocol": "DATECS",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
   "CharsPerLine": 42,
@@ -316,7 +316,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "Ok": true,
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315",
-  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceProtocol": "DATECS",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
   "CharsPerLine": 42,
@@ -341,7 +341,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
   "Ok": true,
   "DeviceSerialNo": "DT518315",
   "FiscalMemoryNo": "02518315",
-  "DeviceProtocol": "DATECS FP/ECR",
+  "DeviceProtocol": "DATECS",
   "DeviceModel": "DP-25",
   "FirmwareVersion": "263453 08Nov18 1312",
   "CharsPerLine": 42,

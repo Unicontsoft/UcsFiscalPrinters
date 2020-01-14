@@ -139,24 +139,24 @@ SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
 --  <DT240349>
 --    <DeviceSerialNo>DT240349</DeviceSerialNo>
 --    <FiscalMemoryNo>02240349</FiscalMemoryNo>
---    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceProtocol>DATECS</DeviceProtocol>
 --    <DeviceModel>FP-3530?</DeviceModel>
 --    <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
 --    <CharsPerLine>30</CharsPerLine>
 --    <TaxNo>0000000000</TaxNo>
 --    <TaxCaption>БУЛСТАТ</TaxCaption>
---    <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
+--    <DeviceString>Protocol=DATECS;Port=COM1;Speed=9600</DeviceString>
 --  </DT240349>
 --  <DT518315>
 --    <DeviceSerialNo>DT518315</DeviceSerialNo>
 --    <FiscalMemoryNo>02518315</FiscalMemoryNo>
---    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceProtocol>DATECS</DeviceProtocol>
 --    <DeviceModel>DP-25</DeviceModel>
 --    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
 --    <CharsPerLine>30</CharsPerLine>
 --    <TaxNo>НЕЗАДАДЕН</TaxNo>
 --    <TaxCaption>ЕИК</TaxCaption>
---    <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+--    <DeviceString>Protocol=DATECS;Port=COM2;Speed=115200</DeviceString>
 --  </DT518315>
 --  <Aliases>
 --    <Count>1</Count>
