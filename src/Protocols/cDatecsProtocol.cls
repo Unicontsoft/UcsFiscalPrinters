@@ -968,7 +968,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     On Error GoTo EH
     If Index >= 1 And Index <= 10 Then
         pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "Header"
-        GetHeaderText = RTrim$(pvSettings(sParam, Index - 1))
+        GetHeaderText = RTrim$(pvStripBold(pvSettings(sParam, Index - 1)))
     End If
     Exit Function
 EH:
@@ -983,7 +983,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     On Error GoTo EH
     If Index >= 1 And Index <= 10 Then
         pvGetCommandConfig CONF_NAME, "InfoSettings", 0, 0, sParam, "Footer"
-        GetFooterText = RTrim$(pvSettings(sParam, Index - 1))
+        GetFooterText = RTrim$(pvStripBold(pvSettings(sParam, Index - 1)))
     End If
     Exit Function
 EH:
