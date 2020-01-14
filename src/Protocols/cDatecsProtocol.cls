@@ -1678,15 +1678,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             vSplit = WrapText(.PluItemName, LimitLong(pvCommentChars, , pvItemChars))
-            For lIdx = 0 To UBound(vSplit) - 2
+            For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH
                 End If
             Next
             sData = At(vSplit, UBound(vSplit))
-            If UBound(vSplit) > 0 Then
-                sData = At(vSplit, UBound(vSplit) - 1) & vbLf & sData
-            End If
             Select Case .DiscType
             Case ucsFscDscPlu
                 If Abs(.PluPrice) > DBL_EPSILON Then
