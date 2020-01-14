@@ -198,7 +198,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         End If
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
             ConsoleError STR_FAILURE
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
             ConsolePrint STR_SUCCESS & vbCrLf
         End If
