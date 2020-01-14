@@ -2363,6 +2363,9 @@ Private Function pvGetPmtMapping() As Object
         For lIdx = 0 To 4
             vSplit = Split(Replace(SendCommand(eCmd, Printf(sParam, lIdx)), vbTab, DEF_SEP), DEF_SEP)
             If lIdx > 0 Then
+                If LenB(At(vSplit, lOffset)) = 0 Then
+                    GoTo QH
+                End If
                 lTagNo = C_Lng(At(vSplit, lOffset))
             End If
             If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
@@ -2376,6 +2379,9 @@ Private Function pvGetPmtMapping() As Object
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "3;%1;"
         For lIdx = 0 To 5
             If lIdx > 0 Then
+                If LenB(At(vConfig, lOffset + lIdx)) = 0 Then
+                    GoTo QH
+                End If
                 lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
             End If
             If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
@@ -2388,6 +2394,7 @@ Private Function pvGetPmtMapping() As Object
         Next
     End If
     Set pvGetPmtMapping = oRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
