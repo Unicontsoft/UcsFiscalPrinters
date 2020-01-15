@@ -1288,6 +1288,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Next
     '--- success
     GetTotalsByPaymentTypes = vRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME

@@ -702,7 +702,8 @@ EH:
 End Function
 
 Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    Const CONF_NAME     As String = "CopyLastReceipt"
+    Const FUNC_NAME     As String = "CopyLastReceipt"
+    Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     
