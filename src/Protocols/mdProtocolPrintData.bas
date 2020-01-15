@@ -521,7 +521,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             dblPrice = uData.Row(lRow).PluPrice
             dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, DEF_PRICE_SCALE)
             dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, DEF_PRICE_SCALE)
-            If Not uData.Config.NegativePrices And dblPrice <= 0 Then
+            If Not uData.Config.NegativePrices And dblPrice < DBL_EPSILON Then '--- less than or *equal to* 0 (dblPrice <= 0)
                 vSplit = WrapText(uData.Row(lRow).PluItemName, uData.Config.ItemChars)
                 lIdx = LimitLong(UBound(vSplit), , 1)
                 vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), uData.Config.CommentChars)
@@ -550,7 +550,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                     PpdAddPLU uData, Printf(IIf(dblDiscTotal > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                         dblDiscTotal, TaxGroup:=uData.Row(lRow).PluTaxGroup, BeforeIndex:=lRow + 1
                 End If
-            ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then
+            ElseIf uData.Row(lRow).DiscType = ucsFscDscPlu And dblPrice < -DBL_EPSILON Then '--- less than 0 (dblPrice < 0)
                 '--- convert PLU discount on void rows
 '                If uData.Config.AbsoluteDiscount Then
 '                    uData.Row(lRow).DiscType = ucsFscDscPluAbs
