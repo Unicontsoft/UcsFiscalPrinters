@@ -1850,7 +1850,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
                         sParam = Printf(sParam, pvToDevicePmtIndex(ucsFscPmtCash))
                         SendCommand eCmd, sParam
-                        If Not Status(ucsDcsStbGeneralError) Then
+                        If LenB(m_uPrintData.LastError) = 0 Then
                             uCtx.PmtPrinted = True
                         End If
                     End If
@@ -1874,7 +1874,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             GoTo QH
                         End If
                     End Select
-                    pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsDcsCmdFiscalClose, sParam, vbNullString
+                    If uCtx.PmtPrinted Then
+                        pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsDcsCmdFiscalClose, sParam, vbNullString
+                    Else
+                        pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
+                    End If
                     SendCommand eCmd, sParam
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH

@@ -2246,10 +2246,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             Or Not uCtx.PmtPrinted Then
                         pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
                         SendCommand eCmd, sParam
-                        If LenB(m_uPrintData.LastError) <> 0 Then
-                            GoTo QH
+                        If LenB(m_uPrintData.LastError) = 0 Then
+                            uCtx.PmtPrinted = True
                         End If
-                        uCtx.PmtPrinted = True
                     End If
                     Select Case .PrintRowType
                     Case ucsFscRcpInvoice, ucsFscRcpCreditNote
@@ -2280,7 +2279,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             GoTo QH
                         End If
                     End Select
-                    pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
+                    If uCtx.PmtPrinted Then
+                        pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
+                    Else
+                        pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
+                    End If
                     SendCommand eCmd, sParam
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH
