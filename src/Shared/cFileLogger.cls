@@ -195,7 +195,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
     Dim sPrefix         As String
     Dim sSuffix         As String
     
-    If m_nLogFile = -1 Then
+    If m_nLogFile = -1 Or LenB(m_sLogFileName) = 0 Then
         Exit Function
     End If
     On Error GoTo EH
