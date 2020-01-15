@@ -902,7 +902,7 @@ Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefa
         If oItem Is Nothing Then
             Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
         End If
-        If Not oItem Is Nothing Then
+        If Not IsEmpty(JsonItem(oItem, sKey)) Then
             AssignVariant GetConfigValue, JsonItem(oItem, sKey)
             Exit Function
         End If
@@ -1432,7 +1432,11 @@ Public Function JsonBoolItem(oJson As Object, sKey As String, Optional ByVal Def
         Case "n", "no", "false", "off", "н", "не"
             JsonBoolItem = False
         Case Else
-            JsonBoolItem = Default
+            If IsNumeric(vValue) Then
+                JsonBoolItem = C_Bool(vValue)
+            Else
+                JsonBoolItem = Default
+            End If
         End Select
     ElseIf IsEmpty(vValue) Then
         JsonBoolItem = Default
