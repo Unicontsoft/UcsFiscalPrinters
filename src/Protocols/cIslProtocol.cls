@@ -245,6 +245,8 @@ Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
+Private Const MAX_HEADER_LINES          As Long = 6
+Private Const MAX_FOOTER_LINES          As Long = 2
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -272,6 +274,7 @@ Private Enum UcsInternalErrors
     ucsErrUnknownError
     ucsErrUnknownMemory
     ucsErrUnsupportedPaymentType
+    ucsErrBarcodeNotSupported
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -1066,11 +1069,14 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
             "DateIndex", lDateIndex, 2, _
             "Delimiter", sDelimiter, "*"
         vSplit = Split(SendCommand(eCmd, sParam), sDelimiter)
-        If LenB(m_uPrintData.LastError) = 0 Then
-            LastReceiptDate = C_Date(At(vSplit, lDateIndex))
-            GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
         End If
+        LastReceiptDate = C_Date(At(vSplit, lDateIndex))
+        '--- success
+        GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
     End If
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1153,7 +1159,7 @@ Public Function GetHeaderText(ByVal Index As Long) As String
     Dim sParam          As String
     
     On Error GoTo EH
-    If Index >= 1 And Index <= 6 Then
+    If Index >= 1 And Index <= MAX_HEADER_LINES Then
         pvGetCommandConfig CONF_NAME, "InitHeaderFooter" & Index, eCmd, ucsIslCmdInitHeaderFooter, sParam, "I" & (Index - 1)
         GetHeaderText = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
     End If
@@ -1169,7 +1175,7 @@ Public Function GetFooterText(ByVal Index As Long) As String
     Dim sParam          As String
     
     On Error GoTo EH
-    If Index >= 1 And Index <= 2 Then
+    If Index >= 1 And Index <= MAX_FOOTER_LINES Then
         pvGetCommandConfig CONF_NAME, "InitHeaderFooter" & Index, eCmd, ucsIslCmdInitHeaderFooter, sParam, "I" & (Index + 5)
         GetFooterText = RTrim$(pvStripBold(SendCommand(eCmd, sParam)))
     End If
@@ -1226,35 +1232,37 @@ Public Function CancelReceipt() As Boolean
     pvGetCommandConfig CONF_NAME, "InfoTransaction", eTransCmd, ucsIslCmdInfoTransaction, sTransParam, vbNullString, _
         "Index", lTransIndex, 0, _
         "Status", lTransStatus, 0
-    If C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) <> lTransStatus Then
-        If Status(ucsIslStbFiscalPrinting) Then
-            If IsDaisy Or IsIncotex Then
-                pvGetCommandConfig CONF_NAME, "ExtendedFiscalCancel", eCmd, ucsIslCmdExtendedFiscalCancel, sParam, vbNullString
-            Else
-                '--- note: FP-3530 can cancel always, FP-550 sometimes can not
-                pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
-            End If
-            SendCommand eCmd, sParam
-            If Status(ucsIslStbFiscalPrinting) Then
-                '--- note: this helps if sum payed is less than total receipt sum
-                pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
-                SendCommand eCmd, sParam
-                '--- note: when printing invoice, if no contragent info set then cancel fails!
-                pvGetCommandConfig CONF_NAME, "FiscalCgInfo", eCmd, ucsIslCmdFiscalCgInfo, sParam, "0000000000" & IIf(IsEcr, vbTab & "0", vbNullString)
-                SendCommand eCmd, sParam
-                '--- for FP-550
-                pvGetCommandConfig CONF_NAME, "FiscalClose", eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
-                SendCommand eCmd, sParam
-            End If
+    If C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) = lTransStatus Then
+        '--- nothing to do
+        CancelReceipt = True
+        GoTo QH
+    End If
+    If Status(ucsIslStbFiscalPrinting) Then
+        If IsDaisy Or IsIncotex Then
+            pvGetCommandConfig CONF_NAME, "ExtendedFiscalCancel", eCmd, ucsIslCmdExtendedFiscalCancel, sParam, vbNullString
         Else
-            pvGetCommandConfig CONF_NAME, "NonFiscalClose", eCmd, ucsIslCmdNonFiscalClose, sParam, vbNullString
+            '--- note: FP-3530 can cancel always, FP-550 sometimes can not
+            pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
+        End If
+        SendCommand eCmd, sParam
+        If Status(ucsIslStbFiscalPrinting) Then
+            '--- note: this helps if sum payed is less than total receipt sum
+            pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
+            SendCommand eCmd, sParam
+            '--- note: when printing invoice, if no contragent info set then cancel fails!
+            pvGetCommandConfig CONF_NAME, "FiscalCgInfo", eCmd, ucsIslCmdFiscalCgInfo, sParam, "0000000000" & IIf(IsEcr, vbTab & "0", vbNullString)
+            SendCommand eCmd, sParam
+            '--- for FP-550
+            pvGetCommandConfig CONF_NAME, "FiscalClose", eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
             SendCommand eCmd, sParam
         End If
-        '--- success (or failure)
-        CancelReceipt = C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) = lTransStatus
     Else
-        CancelReceipt = True
+        pvGetCommandConfig CONF_NAME, "NonFiscalClose", eCmd, ucsIslCmdNonFiscalClose, sParam, vbNullString
+        SendCommand eCmd, sParam
     End If
+    '--- success (or failure)
+    CancelReceipt = C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) = lTransStatus
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1319,7 +1327,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Const CONF_NAME     As String = FUNC_NAME
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
-    Dim vRetVal         As Variant
+    Dim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -1340,22 +1348,23 @@ Public Function GetTotalsByPaymentTypes() As Variant
             "Offset", lOffset, 0
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     End If
-    If UBound(vPmtSum) > 0 Then
-        ReDim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
-        For lIdx = 0 To UBound(vRetVal)
-            lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
-            If lPmtIndex >= 0 Then
-                If IsArray(vRevSum) Then
-                    vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
-                Else
-                    vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
-                End If
-            End If
-        Next
-        GetTotalsByPaymentTypes = vRetVal
-    Else
+    If LenB(m_uPrintData.LastError) <> 0 Or UBound(vPmtSum) <= 0 Then
         GetTotalsByPaymentTypes = Array()
+        GoTo QH
     End If
+    For lIdx = 0 To UBound(vRetVal)
+        lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
+        If lPmtIndex >= 0 Then
+            If IsArray(vRevSum) Then
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+            Else
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+            End If
+        End If
+    Next
+    '--- success
+    GetTotalsByPaymentTypes = vRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1367,7 +1376,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     Dim vTaxRates       As Variant
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
-    Dim vRetVal         As Variant
+    Dim vRetVal(0 To MAX_TAX_GROUP - 1) As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -1391,15 +1400,16 @@ Public Function GetTotalsByTaxGroups() As Variant
             "RevOffset", lRevOffset, IIf(IsIncotex Or IsDaisy, 1, 0)
         vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     End If
-    If UBound(vPmtSum) > 0 Or UBound(vRevSum) > 0 Then
-        ReDim vRetVal(0 To MAX_TAX_GROUP - 1) As Variant
-        For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
-        Next
-        GetTotalsByTaxGroups = vRetVal
-    Else
+    If LenB(m_uPrintData.LastError) <> 0 Or (UBound(vPmtSum) <= 0 And UBound(vRevSum) <= 0) Then
         GetTotalsByTaxGroups = Array()
+        GoTo QH
     End If
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
+    Next
+    '--- success
+    GetTotalsByTaxGroups = vRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1458,7 +1468,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
-    Dim vRetVal         As Variant
+    Dim vRetVal(0 To 2) As Double
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -1470,15 +1480,16 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
         "Format", sFormat, sFormat
     sParam = Printf(sParam, SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If UBound(vSplit) > 0 Then
-        ReDim vRetVal(0 To 2) As Double
-        For lIdx = 0 To UBound(vRetVal)
-            vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
-        Next
-        PrintServiceDeposit = vRetVal
-    Else
+    If LenB(m_uPrintData.LastError) <> 0 Then
         PrintServiceDeposit = EmptyDoubleArray
+        GoTo QH
     End If
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
+    Next
+    '--- success
+    PrintServiceDeposit = vRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1583,7 +1594,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
             "TaxIndex", lTaxIndex, 3
         sParam = Printf(sParam, DepartmentCode)
         vSplit = Split(Replace(SendCommand(eCmd, sParam), vbLf, DEF_SEP), DEF_SEP)
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             GetDepartmentName = RTrim$(At(vSplit, lIndex))
             TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
         End If
@@ -1593,7 +1604,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
             "TaxIndex", lTaxIndex, 0
         sParam = Printf(sParam, DepartmentCode)
         vSplit = Split(Mid$(SendCommand(eCmd, sParam), 2), DEF_SEP)
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             GetDepartmentName = RTrim$(At(vSplit, lIndex))
             TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
         End If
@@ -1615,10 +1626,16 @@ Public Function GetTaxRates() As Variant
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsIslCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GetTaxRates = EmptyDoubleArray
+        GoTo QH
+    End If
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
     Next
+    '--- success
     GetTaxRates = vRetVal
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2177,7 +2194,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sCodeType = "3"
             Case ucsFscBrcQRcode
                 If IsDaisy Or IsEcr Then
-                    pvSetLastError Printf("Barcode type %1 not supported", .BarcodeType)
+                    pvSetLastError Printf(pvInternal(ucsErrBarcodeNotSupported), .BarcodeType)
                     GoTo QH
                 End If
                 sCodeType = "Q"
