@@ -1890,8 +1890,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     DEF_SEP & Pad(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxPrsReceive) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNo) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxTaxNo) & _
-                    DEF_SEP & Pad(.InitInvData(ucsInvCgCity), m_uConfig.MaxCity) & IIf(m_uConfig.ExtendedPmtTypes, _
-                    DEF_SEP & .InitInvData(ucsInvCgTaxNoType), vbNullString), _
+                    DEF_SEP & Pad(.InitInvData(ucsInvCgCity), m_uConfig.MaxCity) & _
+                    DEF_SEP & .InitInvData(ucsInvCgTaxNoType), _
                 IIf(LenB(.InitUniqueSaleNo) <> 0, "$" & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString), _
                 .InitRevData(ucsRevType) & _
                     DEF_SEP & .InitRevData(ucsRevReceiptNo) & _
