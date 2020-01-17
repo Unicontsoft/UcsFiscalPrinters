@@ -164,6 +164,10 @@ End Sub
 ' Properties
 '=========================================================================
 
+Property Get Device() As String
+    Device = m_sDevice
+End Property
+
 Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
     LocalizedText = Join(m_vLocalizedText(eIdx), "|")
 End Property

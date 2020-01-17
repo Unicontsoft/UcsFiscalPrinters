@@ -43,6 +43,7 @@ Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Const STR_INTERNAL              As String = "No receipt started|Error in line %1: %2"
     
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CHEQUE|COUPON|EXT.COUPON|PACKAGING|INT.USAGE|DAMAGE|CARD|BANK|CUSTOM 1|CUSTOM 2|EUR|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1|EIC: %1"
+Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
@@ -213,7 +214,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim vRetVal         As Variant
     Dim vSpeed          As Variant
     Dim aPorts          As Variant
-    Dim oConnector      As IDeviceConnector
+    Dim oConnector      As cSerialPortConnector
     Dim lIdx            As Long
     Dim baBuffer()      As Byte
     Dim dblTimer        As Double
@@ -227,7 +228,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         ReDim aPorts(0 To UBound(vPorts)) As Variant
         For lIdx = 0 To UBound(aPorts)
             If Not IsArray(vRetVal(lIdx)) Then
-                Set oConnector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, 1000, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
+                Set oConnector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, DEF_AUTODETECTTIMEOUT, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
                 If Not oConnector Is Nothing Then
                     sCmd = STR_ESC & "@"            '--- Initialize printer
                     '--- STR_GS & "I1"
@@ -238,7 +239,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 End If
             End If
         Next
-        dblTimer = TimerEx + 0.2
+        dblTimer = TimerEx + DEF_AUTODETECTTIMEOUT / 1000#
         Do While TimerEx < dblTimer
             bHasMore = False
             For lIdx = 0 To UBound(aPorts)
@@ -247,6 +248,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     Set oConnector = aPorts(lIdx)
                     If oConnector.ReadData(baBuffer, 0) And UBound(baBuffer) >= 0 Then
                         If (baBuffer(0) And &H90) = 0 Then
+                            DebugLog FUNC_NAME, "Auto-detected " & oConnector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
                             sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
                                      pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
                             vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))

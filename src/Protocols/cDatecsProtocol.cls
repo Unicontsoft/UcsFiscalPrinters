@@ -188,7 +188,7 @@ Private Const STR_ERROR_CODES           As String = "-100001|ERR_IO|-100002|ERR_
                                                     "|-112214|ERR_FP_BAD_PARAM_14|-112215|ERR_FP_BAD_PARAM_15|-112216|ERR_FP_BAD_PARAM_16|-112299|_ERR_FP_BAD_PARAM_END|-112900|_ERR_RANGE_EM_BEGIN|-112999|_ERR_RANGE_EM_END|-113000|ERR_FLASH_WRONG_ID|-113001|ERR_FLASH_WRONG_SIZE|-114000|ERR_POS_TERM_CHAN_CLOSED|-118000|ERR_ECRSRV_NO_SOCKET_OPENED|-118001|ERR_ECRSRV_SET_IS_NOT_TAKEN|-118002|ERR_ECRSRV_WRONG_PARAM|-118003|ERR_ECRSRV_NOT_SEND|-118004|ERR_ECRSRV_RECV_TMOUT|-118005|ERR_ECRSRV_SOCKET_CLOSED|-118006|ERR_ECRSRV_UNKNOWN|-118007|ERR_ECRSRV_FORBIDEN|-120000|ERR_PGM_NAME_NOT_UNIQUE|-120001|ERR_PGM_OPER_PASS_NOT_UNIQUE|-120002|ERR_PGM_DATETIME_OUT_OF_RANGE_MIN|-120003|ERR_PGM_DATETIME_OUT_OF_RANGE_MAX|-121000|ERR_SCANNER_GENERAL|-121001|ERR_COURIER_EIK_INVALID|-170000|ERR_USB_HOST_INIT|-170001|ERR_USB_NO_DEVICE|-170002|ERR_USB_NO_FILESYSTEM|-170003|ERR_USB_FILE_OPEN|-170004|ERR_USB_FILE_COPY|-170005|ERR_FILE_UNPACK" & _
                                                     "|-171000|ERR_RENTAL_NOT_FOUND|-171001|ERR_RENTAL_FULL|-171002|ERR_RENTAL_POSITION_OCCUPIED|-171003|ERR_RENTAL_POSITION_FREE|-171004|ERR_RENTAL_SUBSCRIPTION_ACTIVE"
 Private Const DEF_SEP                   As String = vbTab
-Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
+Private Const DEF_AUTODETECTTIMEOUT     As Long = 52
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
 Private Const DEF_TIMEOUT               As Long = 3000
@@ -533,12 +533,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
+                            DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
 '                                Debug.Print "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware
                             End If
                         Else
-                            DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
+                            DebugLog FUNC_NAME, "Discarding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                         End If
                     End If
                 End If

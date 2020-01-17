@@ -222,7 +222,7 @@ Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|
                                                     "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const DEF_SEP                   As String = ","
-Private Const DEF_AUTODETECTTIMEOUT     As Long = 100
+Private Const DEF_AUTODETECTTIMEOUT     As Long = 51
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
 Private Const DEF_TIMEOUT               As Long = 3000
@@ -547,7 +547,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lIdx            As Long
     Dim sProbeText      As String
     Dim sReplyText      As String
-    Dim sReplyAlt     As String
+    Dim sReplyAlt       As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
@@ -642,12 +642,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyAlt)) = sReplyAlt Then
+                            DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
 '                                Debug.Print "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware
                             End If
                         Else
-                            DebugLog FUNC_NAME, "Unknown reply: 0x" & ToHexDump(.Buffer)
+                            DebugLog FUNC_NAME, "Discarding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                         End If
                     End If
                 End If
