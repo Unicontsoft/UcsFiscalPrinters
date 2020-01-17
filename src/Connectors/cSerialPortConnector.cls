@@ -277,9 +277,11 @@ WaitEvent:
                     Select Case lLastErr
                     Case ERROR_IO_PENDING
                         lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
+                        lLastErr = Err.LastDllError
                         If lResult = WAIT_OBJECT_0 Then
                             If GetOverlappedResult(m_hComm, uOver, lActual, 0) = 0 Then
-                                DebugLog FUNC_NAME, "GetOverlappedResult#1, Err.LastDllError=" & Err.LastDllError
+                                lLastErr = Err.LastDllError
+                                DebugLog FUNC_NAME, "GetOverlappedResult#1 failed, lLastErr=" & lLastErr
                                 lRetryCount = lRetryCount + 1
                                 If lRetryCount * m_lCommEventTimeout >= Timeout Then
                                     GoTo TimeoutReached
@@ -288,12 +290,12 @@ WaitEvent:
                         Else
                             lRetryCount = lRetryCount + 1
                             Call CancelIo(m_hComm)
-                            DebugLog FUNC_NAME, "CancelIo#1, lResult=" & lResult & ", lRetryCount= " & lRetryCount
+                            DebugLog FUNC_NAME, "CancelIo#1, lResult=" & lResult & ", lLastErr=" & lLastErr & ", lRetryCount= " & lRetryCount
                         End If
                     Case Else
                         m_bClearPersistent = True
                         m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
-                        DebugLog FUNC_NAME, "WaitCommEvent, Err.LastDllError=" & lLastErr
+                        DebugLog FUNC_NAME, "WaitCommEvent, lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError
                         GoTo QH
                     End Select
                 End If
@@ -304,9 +306,11 @@ WaitEvent:
                 Select Case lLastErr
                 Case ERROR_IO_PENDING
                     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, lIterTimeout)
+                    lLastErr = Err.LastDllError
                     If lResult = WAIT_OBJECT_0 Then
                         If GetOverlappedResult(m_hComm, uOver, lActual, 0) = 0 Then
-                            DebugLog FUNC_NAME, "GetOverlappedResult#2, Err.LastDllError=" & Err.LastDllError
+                            lLastErr = Err.LastDllError
+                            DebugLog FUNC_NAME, "GetOverlappedResult#2 failed, lLastErr=" & lLastErr
                             lRetryCount = lRetryCount + 1
                             If lRetryCount * m_lCommEventTimeout >= Timeout Then
                                 GoTo TimeoutReached
@@ -315,23 +319,23 @@ WaitEvent:
                     Else
                         lRetryCount = lRetryCount + 1
                         Call CancelIo(m_hComm)
-                        DebugLog FUNC_NAME, "CancelIo#2, lResult=" & lResult & ", lRetryCount= " & lRetryCount
+                        DebugLog FUNC_NAME, "CancelIo#2, lResult=" & lResult & ", lLastErr=" & lLastErr & ", lRetryCount= " & lRetryCount
                     End If
                 Case ERROR_HANDLE_EOF
                     GoTo WaitEvent
                 Case Else
                     m_bClearPersistent = True
                     m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(lLastErr))
-                    DebugLog FUNC_NAME, "ReadFile, Err.LastDllError=" & lLastErr
+                    DebugLog FUNC_NAME, "ReadFile, lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError
                     GoTo QH
                 End Select
             End If
             If lResult <> 0 And lRetryCount * m_lCommEventTimeout >= Timeout Then
 TimeoutReached:
                 Call CancelIo(m_hComm)
-                DebugLog FUNC_NAME, "CancelIo#3, lResult=" & lResult & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
                 m_bClearPersistent = True
                 m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+                DebugLog FUNC_NAME, "CancelIo#3, lResult=" & lResult & ", lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
                 GoTo QH
             End If
         End If
