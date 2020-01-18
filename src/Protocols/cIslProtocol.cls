@@ -100,6 +100,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdExtendedInitSetting = 150             '-- command above &H7F
     ucsIslCmdExtendedInitPayment = 151             '-- command above &H7F
     ucsIslCmdExtendedInitInvoiceNo = 180           '-- command above &H7F
+    ucsIslCmdExtendedInitEJ = 195                  '-- command above &H7F
     '--- transaction
     ucsIslCmdNonFiscalOpen = 38
     ucsIslCmdNonFiscalClose = 39
@@ -823,7 +824,6 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
-    Dim sFormat         As String
     
     On Error GoTo EH
     If LenB(ReceiptNumber) = 0 Then
@@ -833,10 +833,14 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
             GoTo QH
         End If
     Else
-        sParam = "P"
-        pvGetCommandConfig CONF_NAME, "InitEcTape" & sParam, eCmd, ucsIslCmdInitEcTape, sParam, sParam, _
-            "Format", sFormat, "%1" & DEF_SEP & "%2"
-        SendCommand eCmd, Printf(sFormat, sParam, ReceiptNumber)
+        If IsDaisy Then
+            sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%1"
+            pvGetCommandConfig CONF_NAME, "ExtendedInitEJ" & sParam, eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
+        Else
+            sParam = "P" & DEF_SEP & "%1"
+            pvGetCommandConfig CONF_NAME, "InitEcTape" & sParam, eCmd, ucsIslCmdInitEcTape, sParam, sParam
+        End If
+        SendCommand eCmd, Printf(sParam, ReceiptNumber)
         If LenB(m_uPrintData.LastError) <> 0 Then
             GoTo QH
         End If
