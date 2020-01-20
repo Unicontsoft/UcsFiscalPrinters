@@ -2122,6 +2122,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 9      ' 9=SR1 (Резерв 1)
         Case ucsFscPmtCustom2
             pvToDevicePmtIndex = 10     ' 10=SR2 (Резерв 2)
+        Case ucsFscPmtEUR
+            pvToDevicePmtIndex = 11     ' 0=SCash (Евро)
         End Select
     Else
         Select Case PmtType
@@ -2133,8 +2135,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 2      ' 1=SChecks (Чек)
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 3      ' 2=ST (Талон)
-'        Case ucsFscPmtCustom1
-'            pvToDevicePmtIndex = 4      ' 9=SR1 (Резерв 1)
+        Case ucsFscPmtEUR
+            pvToDevicePmtIndex = 4      ' 0=SCash (Евро)
         End Select
     End If
     Exit Function
