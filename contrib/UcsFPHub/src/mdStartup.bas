@@ -160,8 +160,8 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     '--- setup config filename
     sConfFile = C_Str(m_oOpt.Item("--config"))
     If LenB(sConfFile) = 0 Then
-        sConfFile = PathCombine(App.Path, App.EXEName & ".conf")
-        If Not FileExists(sConfFile) Then
+        sConfFile = LocateFile(PathCombine(App.Path, App.EXEName & ".conf"))
+        If LenB(sConfFile) = 0 Then
             sConfFile = PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf")
             If Not FileExists(sConfFile) Then
                 sConfFile = vbNullString

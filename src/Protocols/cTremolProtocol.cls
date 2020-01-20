@@ -411,7 +411,7 @@ Private Property Get pvPingTimeout() As Long
 End Property
 
 Private Property Get DEF_EXTENDED_PMTTYPES() As Boolean
-    DEF_EXTENDED_PMTTYPES = IsNumeric(At(Split(m_sPaymentTypes, DEF_SEP), 12))
+    DEF_EXTENDED_PMTTYPES = (Val(At(Split(m_sPaymentTypes, DEF_SEP), 12)) > 0)
 End Property
 
 '=========================================================================
@@ -619,7 +619,11 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxUniqueSaleNo = GetConfigNumber(sSerial, "MaxUniqueSaleNo", Znl(C_Lng(JsonItem(oOptions, "MaxUniqueSaleNo")), DEF_MAX_UNIQUESALENO))
         .MaxDepartmentCode = GetConfigNumber(sSerial, "MaxDepartmentCode", Znl(C_Lng(JsonItem(oOptions, "MaxDepartmentCode")), DEF_MAX_DEPARTMENTCODE))
         .MaxReceiptNo = GetConfigNumber(sSerial, "MaxReceiptNo", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptNo")), DEF_MAX_RECEIPTNO))
-        .ExtendedPmtTypes = GetConfigNumber(sSerial, "ExtendedPmtTypes", DEF_EXTENDED_PMTTYPES)
+        If Not IsEmpty(JsonItem(oOptions, "ExtendedPmtTypes")) Then
+            .ExtendedPmtTypes = JsonBoolItem(oOptions, "ExtendedPmtTypes")
+        Else
+            .ExtendedPmtTypes = GetConfigNumber(sSerial, "ExtendedPmtTypes", DEF_EXTENDED_PMTTYPES)
+        End If
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
