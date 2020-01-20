@@ -2450,9 +2450,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 1      ' N=SCheck (я вей)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (йпедхр)
-        Case ucsFscPmtBank
+'        Case ucsFscPmtBank
 '            pvToDevicePmtIndex = 3      ' D=SCash (USD)
-            pvToDevicePmtIndex = -1     ' unsuported
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 4      ' B=SCash (EURO)
         End Select
@@ -2466,9 +2465,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 4      ' J=SOT (бюсвеп)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (деа.йюпрю)
-        Case ucsFscPmtBank
+'        Case ucsFscPmtBank
 '            pvToDevicePmtIndex = 1      ' N=SCards (йпедхр)
-            pvToDevicePmtIndex = -1     ' unsuported
         Case ucsFscPmtCustom1
             pvToDevicePmtIndex = 3      ' D=SR1 (мгнй)
         End Select
