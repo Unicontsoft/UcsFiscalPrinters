@@ -1244,9 +1244,9 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     On Error GoTo EH
     '--- %1={Type}<SEP>%2={Amount}<SEP>
     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
-    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > DBL_EPSILON), eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _
+    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > -DBL_EPSILON), eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _
         "Format", sFormat, FORMAT_BASE_2
-    sParam = Printf(sParam, IIf(Amount >= 0, "0", "1"), SafeFormat(Amount, sFormat))
+    sParam = Printf(sParam, IIf(Amount > -DBL_EPSILON, "0", "1"), SafeFormat(Abs(Amount), sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If LenB(m_uPrintData.LastError) <> 0 Then
         PrintServiceDeposit = EmptyDoubleArray
