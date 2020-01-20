@@ -2101,40 +2101,40 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     If m_uConfig.ExtendedPmtTypes Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' 0=SCash (Cash)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Лева)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 1      ' 1=SChecks (Check)
+            pvToDevicePmtIndex = 1      ' 1=SChecks (Чек)
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 2      ' 2=ST (Talon)
+            pvToDevicePmtIndex = 2      ' 2=ST (Талон)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 3      ' 3=SOT (V.Talon)
+            pvToDevicePmtIndex = 3      ' 3=SOT (В.Талон)
         Case ucsFscPmtPackaging
-            pvToDevicePmtIndex = 4      ' 4=SP (Packaging)
+            pvToDevicePmtIndex = 4      ' 4=SP (Амбалаж)
         Case ucsFscPmtMaintenance
-            pvToDevicePmtIndex = 5      ' 5=SSelf (Service)
+            pvToDevicePmtIndex = 5      ' 5=SSelf (Обслужване)
         Case ucsFscPmtDamage
-            pvToDevicePmtIndex = 6      ' 6=SDmg (Damage)
+            pvToDevicePmtIndex = 6      ' 6=SDmg (Повреди)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 7      ' 7=SCards (Card)
+            pvToDevicePmtIndex = 7      ' 7=SCards (Карта)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 8      ' 8=SW (Bank)
+            pvToDevicePmtIndex = 8      ' 8=SW (Банка)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 9      ' 9=SR1 (Prg Name1)
+            pvToDevicePmtIndex = 9      ' 9=SR1 (Резерв 1)
         Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 10     ' 10=SR2 (Prg Name2)
+            pvToDevicePmtIndex = 10     ' 10=SR2 (Резерв 2)
         End Select
     Else
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' 0=SCash (Cash)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Лева)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1      ' 7=SCards (Card)
-        Case ucsFscPmtBank
-            pvToDevicePmtIndex = 2      ' 8=SW (Bank)
-        Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 3      ' 9=SR1 (Prg Name1)
-        Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 4      ' 10=SR2 (Prg Name2)
+            pvToDevicePmtIndex = 1      ' 7=SCards (Карта)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 2      ' 1=SChecks (Чек)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 3      ' 2=ST (Талон)
+'        Case ucsFscPmtCustom1
+'            pvToDevicePmtIndex = 4      ' 9=SR1 (Резерв 1)
         End Select
     End If
     Exit Function
