@@ -154,7 +154,6 @@ End Property
 
 Public Function Init(oForm As Form, sTooltip As String, Optional ByVal uID As Long) As Boolean
     Set m_oForm = oForm
-    m_oForm.ScaleMode = vbPixels
     With m_uData
         .cbSize = Len(m_uData)
         .hWnd = m_oForm.hWnd
@@ -196,7 +195,7 @@ End Sub
 
 Private Sub m_oForm_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Y = 0 Then
-        Select Case X
+        Select Case m_oForm.ScaleX(X, m_oForm.ScaleMode, vbPixels)
         Case WM_LBUTTONUP
             Call SetForegroundWindow(m_uData.hWnd)
             RaiseEvent Click
