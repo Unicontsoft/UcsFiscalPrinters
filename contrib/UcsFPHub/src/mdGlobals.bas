@@ -58,6 +58,8 @@ Private Const SM_REMOTESESSION              As Long = &H1000
 '--- for UrlUnescapeW
 Private Const URL_UNESCAPE_AS_UTF8          As Long = &H40000
 Private Const INTERNET_MAX_URL_LENGTH       As Long = 2048
+'--- for OpenProcessToken
+Private Const TOKEN_READ                    As Long = &H20008
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -83,6 +85,32 @@ Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, 
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetAdaptersInfo Lib "iphlpapi" (lpAdapterInfo As Any, lpSize As Long) As Long
 Private Declare Function SHGetFolderPath Lib "shfolder" Alias "SHGetFolderPathA" (ByVal hWnd As Long, ByVal csidl As Long, ByVal hToken As Long, ByVal dwFlags As Long, ByVal szPath As String) As Long
+Private Declare Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessID As Long) As Long
+Private Declare Function GetProcessTimes Lib "kernel32" (ByVal hProcess As Long, lpCreationTime As FILETIME, lpExitTime As FILETIME, lpKernelTime As FILETIME, lpUserTime As FILETIME) As Long
+Private Declare Function FileTimeToLocalFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
+Private Declare Function FileTimeToSystemTime Lib "kernel32" (lpFileTime As FILETIME, lpSystemTime As SYSTEMTIME) As Long
+Private Declare Function SystemTimeToVariantTime Lib "oleaut32" (lpSystemTime As SYSTEMTIME, pvTime As Date) As Long
+Private Declare Function GetCurrentProcess Lib "kernel32" () As Long
+Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+Private Declare Function OpenProcessToken Lib "advapi32" (ByVal ProcessHandle As Long, ByVal DesiredAccess As Long, TokenHandle As Long) As Long
+Private Declare Function GetTokenInformation Lib "advapi32" (ByVal TokenHandle As Long, ByVal TokenInformationClass As Long, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
+Private Declare Function LookupAccountSid Lib "advapi32" Alias "LookupAccountSidA" (ByVal lpSystemName As String, ByVal sID As Long, ByVal Name As String, cbName As Long, ByVal ReferencedDomainName As String, cbReferencedDomainName As Long, peUse As Long) As Long
+
+Private Type FILETIME
+    dwLowDateTime   As Long
+    dwHighDateTime  As Long
+End Type
+
+Private Type SYSTEMTIME
+    wYear           As Integer
+    wMonth          As Integer
+    wDayOfWeek      As Integer
+    wDay            As Integer
+    wHour           As Integer
+    wMinute         As Integer
+    wSecond         As Integer
+    wMilliseconds   As Integer
+End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -573,6 +601,67 @@ Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As Str
         If lSize <> -1 Then
             GetErrorComputerName = GetErrorComputerName & ":" & lSize
         End If
+    End If
+End Function
+
+Public Function GetErrorProcessCreationTime(Optional ByVal lPID As Long) As Date
+    Const PROCESS_QUERY_INFORMATION     As Long = &H400&
+    Dim hProcess    As Long
+    Dim uCreation   As FILETIME
+    Dim uDummy      As FILETIME
+    
+    If lPID = 0 Then
+        lPID = GetCurrentProcessId()
+    End If
+    hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, 0, lPID)
+    If hProcess <> 0 Then
+        If GetProcessTimes(hProcess, uCreation, uDummy, uDummy, uDummy) <> 0 Then
+            GetErrorProcessCreationTime = pvFromFileTime(uCreation)
+        End If
+        Call CloseHandle(hProcess)
+    End If
+End Function
+
+Private Function pvFromFileTime(uTime As FILETIME) As Date
+    Dim uLocalTime      As FILETIME
+    Dim uSysTime        As SYSTEMTIME
+    
+    If FileTimeToLocalFileTime(uTime, uLocalTime) <> 0 Then
+        If FileTimeToSystemTime(uLocalTime, uSysTime) <> 0 Then
+            Call SystemTimeToVariantTime(uSysTime, pvFromFileTime)
+        End If
+    End If
+End Function
+
+Public Function GetCurrentProcessUser(Optional ByVal IncludeDomain As Boolean = True) As String
+    Dim hProcessID      As Long
+    Dim hToken          As Long
+    Dim lNeeded         As Long
+    Dim baBuffer()      As Byte
+    Dim sUser           As String
+    Dim sDomain         As String
+    
+    hProcessID = GetCurrentProcess()
+    If hProcessID <> 0 Then
+        If OpenProcessToken(hProcessID, TOKEN_READ, hToken) = 1 Then
+            Call GetTokenInformation(hToken, 1, ByVal 0, 0, lNeeded)
+                ReDim baBuffer(0 To lNeeded) As Byte
+                '--- enum TokenInformationClass { TokenUser = 1, TokenGroups = 2, ... }
+                If GetTokenInformation(hToken, 1, baBuffer(0), UBound(baBuffer), lNeeded) = 1 Then
+                    sUser = String$(1000, 0)
+                    sDomain = String$(1000, 0)
+                    If LookupAccountSid(vbNullString, Peek(VarPtr(baBuffer(0))), sUser, Len(sUser), sDomain, Len(sDomain), 0) = 1 Then
+                        If IncludeDomain Then
+                            GetCurrentProcessUser = Left$(sDomain, InStr(sDomain, vbNullChar) - 1)
+                            If LenB(GetCurrentProcessUser) <> 0 Then
+                                GetCurrentProcessUser = GetCurrentProcessUser & "\"
+                            End If
+                        End If
+                        GetCurrentProcessUser = GetCurrentProcessUser & Left$(sUser, InStr(sUser, vbNullChar) - 1)
+                    End If
+                End If
+        End If
+        Call CloseHandle(hProcessID)
     End If
 End Function
 

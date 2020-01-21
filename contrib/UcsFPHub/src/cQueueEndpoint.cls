@@ -362,6 +362,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim vSqlServer      As Variant
     Dim vMirrorServer   As Variant
     Dim bReopen         As Boolean
+    Dim sAppName        As String
     
     On Error GoTo EH
     bReopen = Not m_oConn Is Nothing
@@ -447,6 +448,12 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         Set m_oSshTunnel = oTunnel
         m_lSshLocalPort = lLocalPort
         m_dSshLastAccess = Now
+    End If
+    If InStr(sLocalConnStr, "{APP_NAME}") > 0 Then
+        sAppName = App.ProductName & " " & STR_VERSION & _
+            " [" & GetCurrentProcessUser(False) & "@" & LCase$(GetErrorComputerName()) & "] " & _
+            Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
+        sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)
     End If
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
