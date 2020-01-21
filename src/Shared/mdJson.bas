@@ -175,7 +175,8 @@ Public Function JsonParse( _
             sText As String, _
             Optional RetVal As Variant, _
             Optional Error As String, _
-            Optional ByVal StrictMode As Boolean) As Boolean
+            Optional ByVal StrictMode As Boolean, _
+            Optional LastPos As Long) As Boolean
     Const FUNC_NAME     As String = "JsonParse"
     Dim uCtx            As JsonContext
 
@@ -196,8 +197,9 @@ Public Function JsonParse( _
         End With
         Call CopyMemory(ByVal ArrPtr(.Text), VarPtr(.TextArray), PTR_SIZE)
         AssignVariant RetVal, pvJsonParse(uCtx)
-        If LenB(.Error) <> 0 Then
-            Error = .Error
+        Error = .Error
+        LastPos = .Pos
+        If LenB(Error) <> 0 Then
             GoTo QH
         End If
         If pvJsonGetChar(uCtx) <> 0 Then
