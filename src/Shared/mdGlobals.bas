@@ -446,7 +446,6 @@ Property Get Logger() As cFileLogger
     If m_oLogger Is Nothing Then
         vErr = Array(Err.Number, Err.Description, Err.Source)
         On Error GoTo EH
-        Set m_oLogger = New cFileLogger
         sFileName = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
         If LenB(sFileName) = 0 Then
             sFileName = GetErrorTempPath() & "\UcsFP.log"
@@ -454,10 +453,9 @@ Property Get Logger() As cFileLogger
                 sFileName = vbNullString
             End If
         End If
-        If LenB(sFileName) <> 0 Then
-            m_oLogger.LogFileName = sFileName
-            m_oLogger.LogLevel = vbLogEventTypeInformation - CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")))
-        End If
+        Set m_oLogger = New cFileLogger
+        m_oLogger.LogFileName = sFileName
+        m_oLogger.LogLevel = vbLogEventTypeInformation - CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")))
         On Error GoTo 0
 QH:
         Err.Number = vErr(0)
