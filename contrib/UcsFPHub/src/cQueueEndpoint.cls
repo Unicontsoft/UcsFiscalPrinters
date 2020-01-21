@@ -388,7 +388,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
                     sSqlServer = pvGetProfileString(sIniFile, DEF_SECTION, PRM_SQLSERVER, "(local)")
                     sDbPass = CryptRC4(pvFromHexDump(sDbPass), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
                 End If
-                sLocalConnStr = sLocalConnStr & ";Password=" & sDbPass
+                sLocalConnStr = pvSetConnProp(sLocalConnStr, "Password", sDbPass)
             End If
         End If
         If oSshSettings Is Nothing Then
@@ -402,6 +402,11 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
                 JsonItem(oSshSettings, "Local Port") = At(vSplit, ucsSixLocalPort)
                 JsonItem(oSshSettings, "Extra Params") = At(vSplit, ucsSixExtraParams)
             End If
+        End If
+        If LenB(pvGetConnProp(sLocalConnStr, "Data Source")) <> 0 Then
+            sLocalConnStr = pvSetConnProp(sLocalConnStr, "Application Name", "{APP_NAME}")
+        Else
+            sLocalConnStr = pvSetConnProp(sLocalConnStr, "APP", "{APP_NAME}")
         End If
     End If
     If Not oSshSettings Is Nothing Then
