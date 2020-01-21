@@ -72,17 +72,6 @@ Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
-Private Property Get pvMainForm() As frmIcon
-    Dim oForm       As Object
-    
-    For Each oForm In Forms
-        If TypeOf oForm Is frmIcon Then
-            Set pvMainForm = oForm
-            Exit Property
-        End If
-    Next
-End Property
-
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -182,7 +171,7 @@ Public Sub ShowConfig()
     Dim oForm           As frmIcon
     
     On Error GoTo EH
-    Set oForm = pvMainForm
+    Set oForm = MainForm
     If Not oForm Is Nothing Then
         oForm.ShowConfig
     End If
@@ -198,7 +187,7 @@ Public Sub ShutDown()
     Dim oForm           As frmIcon
     
     On Error GoTo EH
-    Set oForm = pvMainForm
+    Set oForm = MainForm
     If Not oForm Is Nothing Then
         oForm.ShutDown
     End If
@@ -217,7 +206,7 @@ Public Sub Restart(Optional AddParam As Variant)
     Dim oForm           As frmIcon
     
     On Error GoTo EH
-    Set oForm = pvMainForm
+    Set oForm = MainForm
     If Not oForm Is Nothing Then
         oForm.Restart AddParam
     End If
