@@ -37,7 +37,8 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const LNG_MAX_SIZE          As Long = 10& * 1024 * 1024
+Private Const MAX_MEMORY_SIZE       As Long = 32& * 1024
+Private Const MAX_FILE_SIZE         As Long = 10& * 1024 * 1024
 Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
 Private Const FORMAT_BASE_3         As String = "0.000"
 Private Const vbLogEventTypeDataDump As Long = vbLogEventTypeInformation + 1
@@ -46,6 +47,9 @@ Private m_nLogFile              As Integer
 Private m_sLogFileName          As String
 Private m_eLogLevel             As LogEventTypeConstants
 Private m_bIsService            As Boolean
+Private m_cMemoryLog            As Collection
+Private m_lMemorySize           As Long
+Private m_lMemoryCount          As Long
 
 '=========================================================================
 ' Properties
@@ -81,6 +85,14 @@ Property Let IsService(ByVal bValue As Boolean)
     m_bIsService = bValue
 End Property
 
+Property Get MemoryLog() As Object
+    Set MemoryLog = m_cMemoryLog
+End Property
+
+Property Get MemoryCount() As Long
+    MemoryCount = m_lMemoryCount
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -95,17 +107,15 @@ Public Sub Log(ByVal eType As LogEventTypeConstants, sModule As String, sFunctio
     End If
     vErr = Array(Err.Number, Err.Description, Err.Source)
     On Error GoTo EH
-    If m_nLogFile <> -1 Then
-        If eType = vbLogEventTypeError Then
-            sPrefix = "[ERROR] "
-        ElseIf eType = vbLogEventTypeWarning Then
-            sPrefix = "[WARN ] "
-        ElseIf eType = vbLogEventTypeInformation Then
-            sPrefix = "[DEBUG] "
-        End If
-        If pvOutputLog(sModule, sFunction, sPrefix & sText) Then
-            GoTo QH
-        End If
+    If eType = vbLogEventTypeError Then
+        sPrefix = "[ERROR] "
+    ElseIf eType = vbLogEventTypeWarning Then
+        sPrefix = "[WARN ] "
+    ElseIf eType = vbLogEventTypeInformation Then
+        sPrefix = "[DEBUG] "
+    End If
+    If pvOutputLog(sModule, sFunction, sPrefix & sText) Then
+        GoTo QH
     End If
     If m_bIsService Then
         App.LogEvent sText, eType
@@ -195,6 +205,15 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
     Dim sPrefix         As String
     Dim sSuffix         As String
     
+    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): "
+    sSuffix = IIf(LenB(sModule) <> 0, " [" & sModule & "." & sFunction & "]", vbNullString)
+    m_lMemoryCount = m_lMemoryCount + 1
+    m_lMemorySize = m_lMemorySize + Len(sPrefix & sText & sSuffix) + 2
+    m_cMemoryLog.Add sPrefix & sText & sSuffix, "#" & m_lMemoryCount
+    Do While m_lMemorySize >= MAX_MEMORY_SIZE
+        m_lMemorySize = m_lMemorySize - Len(m_cMemoryLog.Item(1)) - 2
+        m_cMemoryLog.Remove 1
+    Loop
     If m_nLogFile = -1 Or LenB(m_sLogFileName) = 0 Then
         Exit Function
     End If
@@ -202,7 +221,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
     If m_nLogFile = 0 Then
         sFile = m_sLogFileName
         If FileExists(sFile) Then
-            If FileLen(sFile) > LNG_MAX_SIZE Then
+            If FileLen(sFile) > MAX_FILE_SIZE Then
                 If InStrRev(sFile, ".") > InStrRev(sFile, "\") Then
                     sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
                 Else
@@ -215,10 +234,8 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
         Open sFile For Append Access Write Shared As #nLogFile
         m_nLogFile = nLogFile
     End If
-    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(Now, FORMAT_DATETIME_LOG) & Right$(Format$(Timer, FORMAT_BASE_3), 4) & "): "
-    sSuffix = IIf(LenB(sModule) <> 0, " [" & sModule & "." & sFunction & "]", vbNullString)
     Print #m_nLogFile, sPrefix & sText & sSuffix
-    If LOF(m_nLogFile) > LNG_MAX_SIZE Then
+    If LOF(m_nLogFile) > MAX_FILE_SIZE Then
         Close #m_nLogFile
         m_nLogFile = 0
     End If
@@ -244,6 +261,7 @@ End Function
 
 Private Sub Class_Initialize()
     m_nLogFile = -1
+    Set m_cMemoryLog = New Collection
 End Sub
 
 Private Sub Class_Terminate()
