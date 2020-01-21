@@ -114,6 +114,17 @@ Property Set ProtocolConfig(oValue As Object)
     End With
 End Property
 
+Property Get MainForm() As frmIcon
+    Dim oForm       As Object
+    
+    For Each oForm In Forms
+        If TypeOf oForm Is frmIcon Then
+            Set MainForm = oForm
+            Exit Property
+        End If
+    Next
+End Property
+
 '=========================================================================
 ' Functions
 '=========================================================================
@@ -229,9 +240,6 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         If Not C_Bool(m_oOpt.Item("--hidden")) And Not InIde Then
             frmIcon.Restart AddParam:="--hidden"
             GoTo QH
-        ElseIf Not frmIcon.Init(m_oOpt, sConfFile, App.ProductName & " v" & STR_VERSION) Then
-            Process = 1
-            GoTo QH
         End If
         Process = -1
     End If
@@ -275,6 +283,9 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             DoEvents
             FlushDebugLog
         Loop
+    ElseIf Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+        Process = 1
+        GoTo QH
     End If
 QH:
     Exit Function

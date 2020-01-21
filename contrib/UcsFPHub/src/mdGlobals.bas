@@ -60,6 +60,11 @@ Private Const URL_UNESCAPE_AS_UTF8          As Long = &H40000
 Private Const INTERNET_MAX_URL_LENGTH       As Long = 2048
 '--- for OpenProcessToken
 Private Const TOKEN_READ                    As Long = &H20008
+'--- for SystemParametersInfo
+Private Const SPI_GETICONTITLELOGFONT       As Long = 31
+Private Const FW_NORMAL                     As Long = 400
+'--- GetDeviceCaps constants
+Private Const LOGPIXELSY                    As Long = 90
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -95,6 +100,11 @@ Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As L
 Private Declare Function OpenProcessToken Lib "advapi32" (ByVal ProcessHandle As Long, ByVal DesiredAccess As Long, TokenHandle As Long) As Long
 Private Declare Function GetTokenInformation Lib "advapi32" (ByVal TokenHandle As Long, ByVal TokenInformationClass As Long, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
 Private Declare Function LookupAccountSid Lib "advapi32" Alias "LookupAccountSidA" (ByVal lpSystemName As String, ByVal sID As Long, ByVal Name As String, cbName As Long, ByVal ReferencedDomainName As String, cbReferencedDomainName As Long, peUse As Long) As Long
+Private Declare Function SystemParametersInfo Lib "user32" Alias "SystemParametersInfoA" (ByVal uAction As Long, ByVal uParam As Long, ByRef lpvParam As Any, ByVal fuWinIni As Long) As Long
+Private Declare Function lstrlenA Lib "kernel32" (lpString As Any) As Long
+Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
 
 Private Type FILETIME
     dwLowDateTime   As Long
@@ -110,6 +120,23 @@ Private Type SYSTEMTIME
     wMinute         As Integer
     wSecond         As Integer
     wMilliseconds   As Integer
+End Type
+
+Private Type LOGFONT
+    lfHeight            As Long
+    lfWidth             As Long
+    lfEscapement        As Long
+    lfOrientation       As Long
+    lfWeight            As Long
+    lfItalic            As Byte
+    lfUnderline         As Byte
+    lfStrikeOut         As Byte
+    lfCharSet           As Byte
+    lfOutPrecision      As Byte
+    lfClipPrecision     As Byte
+    lfQuality           As Byte
+    lfPitchAndFamily    As Byte
+    lfFaceName(1 To 32) As Byte
 End Type
 
 '=========================================================================
@@ -963,4 +990,57 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
         JsonItem(oRetVal, sKey) = sValue
     Loop
     Set ParseDeviceString = oRetVal
+End Function
+
+Property Get SystemIconFont() As StdFont
+    Dim uFont           As LOGFONT
+    Dim sBuffer         As String
+    Dim hTempDC         As Long
+    
+    Call SystemParametersInfo(SPI_GETICONTITLELOGFONT, LenB(uFont), uFont, 0)
+    Set SystemIconFont = New StdFont
+    With SystemIconFont
+        sBuffer = Space$(lstrlenA(uFont.lfFaceName(1)))
+        CopyMemory ByVal sBuffer, uFont.lfFaceName(1), Len(sBuffer)
+        .Name = sBuffer
+        .Bold = (uFont.lfWeight >= FW_NORMAL)
+        .Charset = uFont.lfCharSet
+        .Italic = (uFont.lfItalic <> 0)
+        .Strikethrough = (uFont.lfStrikeOut <> 0)
+        .Underline = (uFont.lfUnderline <> 0)
+        .Weight = uFont.lfWeight
+        hTempDC = GetDC(0)
+        .Size = -(uFont.lfHeight * 72) / GetDeviceCaps(hTempDC, LOGPIXELSY)
+        Call ReleaseDC(0, hTempDC)
+    End With
+End Property
+
+Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal sFill As String) As String
+    If LenB(sFill) = 0 Then
+        sFill = IIf(lSize > 0, " ", "0")
+    End If
+    If lSize > 0 Then
+        Pad = Left$(sText & String(lSize, sFill), lSize)
+    Else
+        Pad = Right$(String(-lSize, sFill) & sText, -lSize)
+    End If
+End Function
+
+Public Function ConcatCollection(oCol As Collection, Optional Separator As String = vbCrLf) As String
+    Dim lSize           As Long
+    Dim vElem           As Variant
+    
+    For Each vElem In oCol
+        lSize = lSize + Len(vElem) + Len(Separator)
+    Next
+    If lSize > 0 Then
+        ConcatCollection = String$(lSize - Len(Separator), 0)
+        lSize = 1
+        For Each vElem In oCol
+            If lSize <= Len(ConcatCollection) Then
+                Mid$(ConcatCollection, lSize, Len(vElem) + Len(Separator)) = vElem & Separator
+            End If
+            lSize = lSize + Len(vElem) + Len(Separator)
+        Next
+    End If
 End Function
