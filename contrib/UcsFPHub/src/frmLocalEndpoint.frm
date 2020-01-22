@@ -31,6 +31,12 @@ Private Const MODULE_NAME As String = "frmLocalEndpoint"
 Implements IEndpoint
 
 '=========================================================================
+' API
+'=========================================================================
+
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -66,6 +72,10 @@ End Property
 
 Property Get Moniker() As String
     Moniker = STR_MONIKER
+End Property
+
+Property Get ProcessID() As String
+    ProcessID = GetCurrentProcessId()
 End Property
 
 Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
