@@ -51,6 +51,8 @@ Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
 Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
+Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
+Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да отворите предишната инстанция?"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
@@ -159,7 +161,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     On Error GoTo EH
     Set m_oOpt = GetOpt(vArgs, "config:-config:c")
     '--- normalize options: convert -o and -option to proper long form (--option)
-    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden help:h:?")
+    For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden console help:h:?")
         vKey = Split(vKey, ":")
         For lIdx = 0 To UBound(vKey)
             If IsEmpty(m_oOpt.Item("--" & At(vKey, 0))) And Not IsEmpty(m_oOpt.Item("-" & At(vKey, lIdx))) Then
@@ -176,7 +178,8 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
                     "  -c, --config FILE   read configuration from FILE" & vbCrLf & _
                     "  -i, --install       install NT service (with config file from -c option)" & vbCrLf & _
                     "  -u, --uninstall     remove NT service" & vbCrLf & _
-                    "  -s, --systray       show icon in systray" & vbCrLf
+                    "  -s, --systray       on startup minimize to systray" & vbCrLf & _
+                    "  --console           output to console" & vbCrLf
         GoTo QH
     End If
     '--- setup config filename
@@ -195,6 +198,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         m_bIsService = True
         '--- cannot handle these as NT service
         m_oOpt.Item("--systray") = Empty
+        m_oOpt.Item("--console") = Empty
         m_oOpt.Item("--install") = Empty
         m_oOpt.Item("--uninstall") = Empty
     End If
@@ -225,6 +229,15 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             ConsolePrint STR_SUCCESS & vbCrLf
         End If
         GoTo QH
+    End If
+    If IsObjectRunning(STR_MONIKER) And Not C_Bool(m_oOpt.Item("--hidden")) Then
+        Select Case MsgBox(Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbQuestion Or vbYesNoCancel)
+        Case vbYes
+            GetObject(STR_MONIKER).ShowConfig
+            GoTo QH
+        Case vbCancel
+            GoTo QH
+        End Select
     End If
     '--- read config file
     If LenB(sConfFile) <> 0 Then
@@ -286,16 +299,21 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         TerminateEndpoints
         NtServiceTerminate
         FlushDebugLog
-    ElseIf Not C_Bool(m_oOpt.Item("--systray")) Then
+    ElseIf C_Bool(m_oOpt.Item("--console")) Then
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
             DoEvents
             FlushDebugLog
         Loop
-    ElseIf Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION) Then
-        Process = 1
-        GoTo QH
+    Else
+        If Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+            Process = 1
+            GoTo QH
+        End If
+        If Not C_Bool(m_oOpt.Item("--systray")) Then
+            MainForm.ShowConfig
+        End If
     End If
 QH:
     Exit Function
