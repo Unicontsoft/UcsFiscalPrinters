@@ -565,7 +565,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim baText()        As Byte
     
     On Error GoTo EH
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(SYM_BASEDATA) & Chr$(&H5A) & Chr$(&H30) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3D) & Chr$(&H34) & Chr$(SYM_TERMINATOR))
+    sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sProbeText)
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN))  '--- SYN (&H16)
     sReplyAlt = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyAlt", Chr$(SYM_PREAMBLE))
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
