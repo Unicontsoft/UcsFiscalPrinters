@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdMST"
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -33,6 +33,8 @@ Private Declare Function CryptStringToBinary Lib "crypt32" Alias "CryptStringToB
 Private Declare Function CallWindowProc Lib "user32" Alias "CallWindowProcA" (ByVal lpPrevWndFunc As Long, ByVal hWnd As Long, ByVal Msg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA" (ByVal lpModuleName As String) As Long
 Private Declare Function GetProcAddress Lib "kernel32" (ByVal hModule As Long, ByVal lpProcName As String) As Long
+Private Declare Function GetProcByOrdinal Lib "kernel32" Alias "GetProcAddress" (ByVal hModule As Long, ByVal lpProcOrdinal As Long) As Long
+Private Declare Function DefSubclassProc Lib "comctl32" Alias "#413" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 #If Not ImplNoIdeProtection Then
     Private Declare Function FindWindowEx Lib "user32" Alias "FindWindowExA" (ByVal hWndParent As Long, ByVal hWndChildAfter As Long, ByVal lpszClass As String, ByVal lpszWindow As String) As Long
@@ -60,6 +62,53 @@ Public Function InitAddressOfMethod(pObj As Object, ByVal MethodParamCount As Lo
     Call CryptStringToBinary(STR_THUNK, Len(STR_THUNK), CRYPT_STRING_BASE64, hThunk, THUNK_SIZE)
     lSize = CallWindowProc(hThunk, ObjPtr(pObj), MethodParamCount, GetProcAddress(GetModuleHandle("kernel32"), "VirtualFree"), VarPtr(InitAddressOfMethod))
     Debug.Assert lSize = THUNK_SIZE
+End Function
+
+Public Function InitSubclassingThunk(ByVal hWnd As Long, pObj As Object, ByVal pfnCallback As Long) As IUnknown
+    Const STR_THUNK     As String = "6AAAAABag+oFgepwEB4BV1aLdCQUg8YIgz4AdC+L+oHHABIeAYvCBQgRHgGri8IFRBEeAauLwgVUER4Bq4vCBXwRHgGruQkAAADzpYHCABIeAVJqGP9SEFqL+IvCq7gBAAAAqzPAq4tEJAyri3QkFKWlg+8YagBX/3IM/3cM/1IYi0QkGIk4Xl+4NBIeAS1wEB4BwhAAZpCLRCQIgzgAdSqDeAQAdSSBeAjAAAAAdRuBeAwAAABGdRKLVCQE/0IEi0QkDIkQM8DCDAC4AkAAgMIMAJCLVCQE/0IEi0IEwgQADx8Ai1QkBP9KBItCBHUYiwpS/3EM/3IM/1Eci1QkBIsKUv9RFDPAwgQAkFWL7ItVGIsKi0EshcB0OFL/0FqJQgiD+AF3VIP4AHUJgX0MAwIAAHRGiwpS/1EwWoXAdTuLClJq8P9xJP9RKFqpAAAACHUoUjPAUFCNRCQEUI1EJARQ/3UU/3UQ/3UM/3UI/3IQ/1IUWVhahcl1EYsK/3UU/3UQ/3UM/3UI/1EgXcIYAA==" ' 1.4.2019 11:41:46
+    Const THUNK_SIZE    As Long = 452
+    Static hThunk       As Long
+    Dim aParams(0 To 10) As Long
+    Dim lSize           As Long
+    
+    aParams(0) = ObjPtr(pObj)
+    aParams(1) = pfnCallback
+    #If ImplSelfContained Then
+        If hThunk = 0 Then
+            hThunk = pvThunkGlobalData("InitSubclassingThunk")
+        End If
+    #End If
+    If hThunk = 0 Then
+        hThunk = VirtualAlloc(0, THUNK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE)
+        If hThunk = 0 Then
+            Exit Function
+        End If
+        Call CryptStringToBinary(STR_THUNK, Len(STR_THUNK), CRYPT_STRING_BASE64, hThunk, THUNK_SIZE)
+        aParams(2) = GetProcAddress(GetModuleHandle("ole32"), "CoTaskMemAlloc")
+        aParams(3) = GetProcAddress(GetModuleHandle("ole32"), "CoTaskMemFree")
+        Call DefSubclassProc(0, 0, 0, 0)                                            '--- load comctl32
+        aParams(4) = GetProcByOrdinal(GetModuleHandle("comctl32"), 410)             '--- 410 = SetWindowSubclass ordinal
+        aParams(5) = GetProcByOrdinal(GetModuleHandle("comctl32"), 412)             '--- 412 = RemoveWindowSubclass ordinal
+        aParams(6) = GetProcByOrdinal(GetModuleHandle("comctl32"), 413)             '--- 413 = DefSubclassProc ordinal
+        '--- for IDE protection
+        Debug.Assert pvGetIdeOwner(aParams(7))
+        If aParams(7) <> 0 Then
+            aParams(8) = GetProcAddress(GetModuleHandle("user32"), "GetWindowLongA")
+            aParams(9) = GetProcAddress(GetModuleHandle("vba6"), "EbMode")
+            aParams(10) = GetProcAddress(GetModuleHandle("vba6"), "EbIsResetting")
+        End If
+        #If ImplSelfContained Then
+            pvThunkGlobalData("InitSubclassingThunk") = hThunk
+        #End If
+    End If
+    lSize = CallWindowProc(hThunk, hWnd, 0, VarPtr(aParams(0)), VarPtr(InitSubclassingThunk))
+    Debug.Assert lSize = THUNK_SIZE
+End Function
+
+Public Function CallNextSubclassProc(pSubclass As IUnknown, ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+    #If pSubclass Then '--- touch args
+    #End If
+    CallNextSubclassProc = DefSubclassProc(hWnd, wMsg, wParam, lParam)
 End Function
 
 Public Function InitFireOnceTimerThunk(pObj As Object, ByVal pfnCallback As Long, Optional Delay As Long) As IUnknown
