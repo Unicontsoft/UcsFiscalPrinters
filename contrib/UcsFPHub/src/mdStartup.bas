@@ -170,7 +170,7 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             End If
         Next
     Next
-    If Not C_Bool(m_oOpt.Item("--nologo")) And Not bStarted And C_Bool(m_oOpt.Item("--console")) Then
+    If Not C_Bool(m_oOpt.Item("--nologo")) And Not bStarted Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & vbCrLf & Replace(App.LegalCopyright, "©", "(c)") & vbCrLf & vbCrLf
     End If
     If C_Bool(m_oOpt.Item("--help")) Then
