@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -221,6 +221,27 @@ EH:
     #If False Then '--- silence MZ-Tools
         Test
     #End If
+End Function
+
+Public Function JsonParseObject( _
+            sText As String, _
+            Optional Error As String, _
+            Optional ByVal StrictMode As Boolean) As Object
+    Const FUNC_NAME     As String = "JsonParseObject"
+    Dim vJson           As Variant
+    
+    On Error GoTo EH
+    If JsonParse(sText, RetVal:=vJson, Error:=Error, StrictMode:=StrictMode) Then
+        If IsObject(vJson) Then
+            Set JsonParseObject = vJson
+        End If
+    End If
+    Exit Function
+EH:
+    If PrintError(FUNC_NAME) = vbRetry Then
+        Resume
+    End If
+    Resume Next
 End Function
 
 Private Function pvJsonParse(uCtx As JsonContext) As Variant
