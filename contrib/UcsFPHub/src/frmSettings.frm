@@ -56,6 +56,7 @@ Begin VB.Form frmSettings
             Height          =   432
             Left            =   2772
             TabIndex        =   17
+            Tag             =   "FONT"
             Top             =   3192
             Width           =   1440
          End
