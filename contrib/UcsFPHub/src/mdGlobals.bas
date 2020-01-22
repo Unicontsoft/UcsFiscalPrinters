@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -64,6 +64,7 @@ Private Const TOKEN_READ                    As Long = &H20008
 Private Const SPI_GETICONTITLELOGFONT       As Long = 31
 Private Const FW_NORMAL                     As Long = 400
 '--- GetDeviceCaps constants
+Private Const LOGPIXELSX                    As Long = 88
 Private Const LOGPIXELSY                    As Long = 90
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
@@ -145,6 +146,10 @@ End Type
 
 Private m_cRegExpCache              As Collection
 Private m_sErrComputerName          As String
+Private m_sngScreenTwipsPerPixelX   As Single
+Private m_sngScreenTwipsPerPixelY   As Single
+Private m_sngOrigTwipsPerPixelX     As Single
+Private m_sngOrigTwipsPerPixelY     As Single
 
 '=========================================================================
 ' Error handling
@@ -156,6 +161,11 @@ Private Sub PrintError(sFunction As String)
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
+End Sub
+
+Private Sub RaiseError(sFunction As String)
+    PrintError sFunction
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & vbCrLf & Err.Source, Err.Description
 End Sub
 
 '=========================================================================
@@ -306,8 +316,7 @@ Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFil
     End With
     Exit Sub
 EH:
-    PrintError FUNC_NAME
-    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+    RaiseError FUNC_NAME
 End Sub
 
 Public Function MkPath(sPath As String) As Boolean
@@ -473,6 +482,16 @@ Public Function C_Bool(Value As Variant) As Boolean
         C_Bool = Value
     ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbBoolean) = 0 Then
         C_Bool = vDest
+    End If
+End Function
+
+Public Function C_Dbl(Value As Variant) As Double
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbDouble Then
+        C_Dbl = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbDouble) = 0 Then
+        C_Dbl = vDest
     End If
 End Function
 
@@ -1044,3 +1063,167 @@ Public Function ConcatCollection(oCol As Collection, Optional Separator As Strin
         Next
     End If
 End Function
+
+Public Sub MoveCtl( _
+            oCtl As Object, _
+            ByVal Left As Single, _
+            Optional Top As Variant, _
+            Optional Width As Variant, _
+            Optional Height As Variant)
+    Const FUNC_NAME     As String = "MoveCtl"
+    Dim oCtlExt         As VBControlExtender
+    
+    On Error GoTo EH
+    If oCtl Is Nothing Then
+        Exit Sub
+    End If
+    If TypeOf oCtl Is VBControlExtender Then
+        Set oCtlExt = oCtl
+        If IsMissing(Top) Then
+            If oCtlExt.Left <> Left Then
+                oCtlExt.Move Left
+            End If
+        ElseIf IsMissing(Width) Then
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                oCtlExt.Move Left, Top
+            End If
+        ElseIf IsMissing(Height) Then
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Or oCtlExt.Width <> Limit(Width, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtlExt.Move Left, Top, Limit(Width, 0)
+                ElseIf oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                    oCtlExt.Move oCtlExt.Left, oCtlExt.Top, Limit(Width, 0)
+                    oCtlExt.Move Left, Top
+                Else
+                    oCtlExt.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0)
+                    oCtlExt.Move Left
+                End If
+            End If
+        Else
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Or oCtlExt.Width <> Limit(Width, 0) Or oCtlExt.Height <> Limit(Height, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtlExt.Move Left, Top, Limit(Width, 0), Limit(Height, 0)
+                ElseIf oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                    oCtlExt.Move oCtlExt.Left, oCtlExt.Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtlExt.Move Left, Top
+                Else
+                    oCtlExt.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtlExt.Move Left
+                End If
+            End If
+        End If
+    Else
+        If IsMissing(Top) Then
+            If oCtl.Left <> Left Then
+                oCtl.Move Left
+            End If
+        ElseIf IsMissing(Width) Then
+            If oCtl.Left <> Left Or oCtl.Top <> Top Then
+                oCtl.Move Left, Top
+            End If
+        ElseIf IsMissing(Height) Then
+            If oCtl.Left <> Left Or oCtl.Top <> Top Or oCtl.Width <> Limit(Width, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtl.Move Left, Top, Limit(Width, 0)
+                ElseIf oCtl.Left <> Left Or oCtl.Top <> Top Then
+                    oCtl.Move oCtl.Left, oCtl.Top, Limit(Width, 0)
+                    oCtl.Move Left, Top
+                Else
+                    oCtl.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0)
+                    oCtl.Move Left
+                End If
+            End If
+        Else
+            If oCtl.Left <> Left Or oCtl.Top <> Top Or oCtl.Width <> Limit(Width, 0) Or oCtl.Height <> Limit(Height, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtl.Move Left, Top, Limit(Width, 0), Limit(Height, 0)
+                ElseIf oCtl.Left <> Left Or oCtl.Top <> Top Then
+                    oCtl.Move oCtl.Left, oCtl.Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtl.Move Left, Top
+                Else
+                    oCtl.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtl.Move Left
+                End If
+            End If
+        End If
+    End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
+End Sub
+
+Property Get ScreenTwipsPerPixelX() As Single
+    If m_sngScreenTwipsPerPixelX <> 0 Then
+        ScreenTwipsPerPixelX = m_sngScreenTwipsPerPixelX
+    ElseIf Screen.TwipsPerPixelX <> 0 Then
+        ScreenTwipsPerPixelX = Screen.TwipsPerPixelX
+    Else
+        ScreenTwipsPerPixelX = 15
+    End If
+End Property
+
+Property Get ScreenTwipsPerPixelY() As Single
+    If m_sngScreenTwipsPerPixelY <> 0 Then
+        ScreenTwipsPerPixelY = m_sngScreenTwipsPerPixelY
+    ElseIf Screen.TwipsPerPixelY <> 0 Then
+        ScreenTwipsPerPixelY = Screen.TwipsPerPixelY
+    Else
+        ScreenTwipsPerPixelY = 15
+    End If
+End Property
+
+Property Get OrigTwipsPerPixelX() As Single
+    If m_sngOrigTwipsPerPixelX <> 0 Then
+        OrigTwipsPerPixelX = m_sngOrigTwipsPerPixelX
+    Else
+        OrigTwipsPerPixelX = ScreenTwipsPerPixelX
+    End If
+End Property
+
+Property Get OrigTwipsPerPixelY() As Single
+    If m_sngOrigTwipsPerPixelY <> 0 Then
+        OrigTwipsPerPixelY = m_sngOrigTwipsPerPixelY
+    Else
+        OrigTwipsPerPixelY = ScreenTwipsPerPixelY
+    End If
+End Property
+
+Public Function Limit( _
+            ByVal Value As Double, _
+            Optional Min As Variant, _
+            Optional Max As Variant) As Double
+    Const FUNC_NAME     As String = "Limit"
+    
+    On Error GoTo EH
+    Limit = Value
+    If Not IsMissing(Min) Then
+        If Value < C_Dbl(Min) Then
+            Limit = C_Dbl(Min)
+        End If
+    End If
+    If Not IsMissing(Max) Then
+        If Value > C_Dbl(Max) Then
+            Limit = C_Dbl(Max)
+        End If
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Sub ApplyTheme()
+    Dim hScreenDC           As Long
+    
+    hScreenDC = GetDC(0)
+    m_sngScreenTwipsPerPixelX = GetDeviceCaps(hScreenDC, LOGPIXELSX)
+    m_sngScreenTwipsPerPixelY = GetDeviceCaps(hScreenDC, LOGPIXELSY)
+    Call ReleaseDC(0, hScreenDC)
+    If m_sngScreenTwipsPerPixelX <> 0 Then
+        m_sngOrigTwipsPerPixelX = Int(1440 / m_sngScreenTwipsPerPixelX)
+        m_sngScreenTwipsPerPixelX = 1440 / m_sngScreenTwipsPerPixelX
+    End If
+    If m_sngScreenTwipsPerPixelY <> 0 Then
+        m_sngOrigTwipsPerPixelY = Int(1440 / m_sngScreenTwipsPerPixelY)
+        m_sngScreenTwipsPerPixelY = 1440 / m_sngScreenTwipsPerPixelY
+    End If
+End Sub
