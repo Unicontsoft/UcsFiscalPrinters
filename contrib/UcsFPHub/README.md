@@ -5,7 +5,7 @@
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
-[![Download stable UcsFPHub-0.1.37.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.37.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.37/UcsFPHub-0.1.37.zip)
+[![Download stable UcsFPHub-0.1.38.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.38.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.38/UcsFPHub-0.1.38.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/wqweto/UcsFiscalPrinters/blob/master/LICENSE)
 </div>
@@ -18,6 +18,8 @@ The wire protocols implementation is provided by the parent `UcsFP20` component 
 
 You can use a settings file to allow and configure fiscal printers sharing, including the available endpoints on which `UcsFPHub` service is accessible as a JSON based REST service (local TCP/IP ports), a Service Broker queue (through Microsoft SQL Server connection) or a MySQL message queue (through as custom Poor Man's Message Queue™ implementation).
 
+![Config Form](res/ss_ucsfphub_main.png)
+
 ### Command-line options
 
 `UcsFPHub.exe` service executable accepts these command-line options:
@@ -27,7 +29,8 @@ Option&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Long&nbsp;Option&nbsp;&nbsp;&nbsp;&nbsp;&
 `-c` `FILE`    | `--config` `FILE` | `FILE` is the full pathname to `UcsFPHub` service configuration file. If no explicit configuration options are used the service tries to find `UcsFPHub.conf` configuration file in the application folder. If still no configuration file is found the service auto-detects printers and starts a local REST service listener on `127.0.0.1:8192` by default.
 `-i`           | `--install`       | Installs `UcsFPHub` as NT service. Can be used with `-c` to specify custom configuration file to be used by the NT service.
 `-u`           | `--uninstall`     | Stops and removes the `UcsFPHub` NT service.
-`-s`           | `--systray`       | Hides the process and only shows the application icon in the system notification area.
+`-s`           | `--systray`       | Starts hidden with the application icon in the system notification area only.
+               | `--console`       | Starts as a console application (no GUI) with output to console.
 
 ### Configuration
 
