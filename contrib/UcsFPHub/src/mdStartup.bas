@@ -28,6 +28,8 @@ Private Declare Function RegCreateKeyEx Lib "advapi32" Alias "RegCreateKeyExA" (
 Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
 Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long         ' Note that if you declare the lpData parameter as String, you must pass it By Value.
 Private Declare Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyA" (ByVal hKey As Long, ByVal szSubKey As String) As Long
+Private Declare Function LoadLibrary Lib "kernel32" Alias "LoadLibraryA" (ByVal lpLibFileName As String) As Long
+Private Declare Function InitCommonControls Lib "comctl32" () As Long
 
 '=========================================================================
 ' Constants and member variables
@@ -132,6 +134,14 @@ End Property
 Public Sub Main()
     Dim lExitCode       As Long
     
+    If Not m_bStarted Then
+        If Not InIde Then
+            '--- prepare for visual styles
+            Call LoadLibrary("shell32.dll")
+            Call InitCommonControls
+        End If
+        ApplyTheme
+    End If
     lExitCode = Process(SplitArgs(Command$), m_bStarted)
     m_bStarted = True
     If Not InIde And lExitCode <> -1 Then
