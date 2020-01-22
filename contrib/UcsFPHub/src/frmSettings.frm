@@ -20,7 +20,6 @@ Begin VB.Form frmSettings
    ScaleHeight     =   8124
    ScaleWidth      =   10764
    StartUpPosition =   3  'Windows Default
-   WindowState     =   2  'Maximized
    Begin VB.PictureBox picTab 
       BorderStyle     =   0  'None
       HasDC           =   0   'False
@@ -469,6 +468,7 @@ Public Function Init() As Boolean
     
     On Error GoTo EH
     If LenB(m_sConfFile) = 0 Then
+        WindowState = C_Lng(GetSetting(App.Title, MODULE_NAME, "WindowState", 0))
         Set m_pSubclass = InitSubclassingThunk(hWnd, Me, pvAddressOfSubclassProc.SubclassProc(0, 0, 0, 0, 0))
         '--- fix font size
         Set Me.Font = SystemIconFont
@@ -480,7 +480,7 @@ Public Function Init() As Boolean
         '--- setup caption
         sConfFile = MainForm.ConfFile
         m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
-        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, STR_SERVICE_NAME, STR_VERSION)
+        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, App.ProductName, STR_VERSION)
         '--- load combos
         pvLoadItemData cobProtocol, Split(STR_PROTOCOLS, "|")
         With New cFiscalPrinter
@@ -650,6 +650,7 @@ Private Sub pvMenuNegotiate(oCtl As Object)
     Const FUNC_NAME     As String = "pvMenuNegotiate"
     
     On Error GoTo EH
+    mnuFile(ucsMnuFileSave).Enabled = pvChanged
     mnuEdit(ucsMnuEditUndo).Enabled = pvCanExecute(ucsMnuEditUndo, oCtl)
     mnuEdit(ucsMnuEditCut).Enabled = pvCanExecute(ucsMnuEditCut, oCtl)
     mnuEdit(ucsMnuEditCopy).Enabled = pvCanExecute(ucsMnuEditCopy, oCtl)
@@ -774,7 +775,7 @@ Private Sub cmdApply_Click()
         End If
         sDeviceString = IIf(LenB(sDeviceString) <> 0, sDeviceString & ";", vbNullString) & vKey & "=" & sValue
     Next
-    JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = sDeviceString
+    JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(sDeviceString, Empty)
     txtConfig.Text = JsonDump(oConfig)
     pvChanged = True
     mnuFile_Click ucsMnuFileSave
@@ -860,6 +861,7 @@ Private Sub Form_Resize()
     
     On Error GoTo EH
     If WindowState <> vbMinimized Then
+        SaveSetting App.Title, MODULE_NAME, "WindowState", WindowState
         MoveCtl tabMain, GRID_SIZE, GRID_SIZE / 2, ScaleWidth - 2 * GRID_SIZE
         With picTab(tabMain.CurrentTab)
             dblTop = tabMain.Top + tabMain.Height + GRID_SIZE / 2
@@ -962,20 +964,3 @@ Private Sub txtConfig_Change()
 EH:
     PrintError FUNC_NAME
 End Sub
-
-'Private Sub chkAutoDetect_Click()
-'    Const FUNC_NAME     As String = "chkAutoDetect_Click"
-'    Dim bLocked         As Boolean
-'    Dim vElem           As Variant
-'
-'    On Error GoTo EH
-'    bLocked = (chkAutoDetect.Value = vbChecked)
-'    For Each vElem In Array(cobProtocol, cobPort, cobSpeed, txtDefPass)
-'        vElem.Locked = bLocked
-'        vElem.BackColor = IIf(bLocked, vbButtonFace, vbWindowBackground)
-'    Next
-'    Exit Sub
-'EH:
-'    PrintError FUNC_NAME
-'    Resume Next
-'End Sub
