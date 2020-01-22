@@ -56,6 +56,7 @@ Private m_dLastReceiptDate          As Date
 Private m_sResumeToken              As String
 
 Private Type UcsConfigValues
+    DefaultPassword     As String
     DeviceSerialNo      As String
     FiscalMemoryNo      As String
     DeviceModel         As String
@@ -173,6 +174,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .ItemChars = Znl(C_Lng(JsonItem(oResponse, "ItemNameMaxLength")), .ItemChars)
     End With
     With m_uConfig
+        .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .DeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
         .FiscalMemoryNo = Zn(C_Str(JsonItem(oResponse, "FiscalMemoryNo")), C_Str(JsonItem(oOptions, "FiscalMemoryNo")))
         .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), STR_PROTOCOL_PROXY)
@@ -459,7 +461,11 @@ Public Function GetDefaultPassword(OperatorCode As String) As String
     
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
-        GetDefaultPassword = OperatorCode
+        If LenB(m_uConfig.DefaultPassword) <> 0 Then
+            GetDefaultPassword = m_uConfig.DefaultPassword
+        Else
+            GetDefaultPassword = OperatorCode
+        End If
         GoTo QH
     End If
     JsonItem(oRequest, "Operator/Code") = OperatorCode

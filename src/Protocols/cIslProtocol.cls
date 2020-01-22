@@ -315,6 +315,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    DefaultPassword     As String
     CodePage            As Long
     ModelGroup          As UcsModelGroupEnum
     MaxPaymentLen       As Long
@@ -729,6 +730,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
+        .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
         If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             .ModelGroup = ucsModDaisy
@@ -1577,7 +1579,9 @@ EH:
 End Function
 
 Public Function GetDefaultPassword(OperatorCode As String) As String
-    If IsEcr Or IsDaisy Or IsIncotex Then
+    If LenB(m_uConfig.DefaultPassword) <> 0 Then
+        GetDefaultPassword = m_uConfig.DefaultPassword
+    ElseIf IsEcr Or IsDaisy Or IsIncotex Then
         GetDefaultPassword = OperatorCode
     Else
         GetDefaultPassword = DEF_PASSWORD

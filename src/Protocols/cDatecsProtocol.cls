@@ -267,6 +267,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    DefaultPassword     As String
     CodePage            As Long
     IsEcr               As VbTriState
     MaxPaymentLen       As Long
@@ -608,6 +609,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
+        .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
         .IsEcr = GetConfigNumber(sSerial, "IsEcr", Znl(C_Lng(JsonItem(oOptions, "IsEcr")), vbUseDefault))
         .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
@@ -1336,7 +1338,9 @@ EH:
 End Function
 
 Public Function GetDefaultPassword(OperatorCode As String) As String
-    If IsEcr Then
+    If LenB(m_uConfig.DefaultPassword) <> 0 Then
+        GetDefaultPassword = m_uConfig.DefaultPassword
+    ElseIf IsEcr Then
         GetDefaultPassword = OperatorCode
     Else
         GetDefaultPassword = DEF_PASSWORD
