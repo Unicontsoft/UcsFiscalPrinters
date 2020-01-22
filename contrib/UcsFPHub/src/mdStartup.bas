@@ -199,9 +199,10 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         m_bIsService = True
         '--- cannot handle these as NT service
         m_oOpt.Item("--systray") = Empty
-        m_oOpt.Item("--console") = Empty
         m_oOpt.Item("--install") = Empty
         m_oOpt.Item("--uninstall") = Empty
+        m_oOpt.Item("--console") = True
+        m_oOpt.Item("--hidden") = True
     End If
     If C_Bool(m_oOpt.Item("--install")) Then
         ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
@@ -231,7 +232,8 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         End If
         GoTo QH
     End If
-    If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) Then
+    '--- check for previous instance
+    If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) And Not C_Bool(m_oOpt.Item("--console")) Then
         If IsObjectRunning(STR_MONIKER) Then
             Select Case MsgBox(Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbQuestion Or vbYesNoCancel)
             Case vbYes
