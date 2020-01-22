@@ -17,7 +17,7 @@
 
 Here is a complete list of implemented protocols with corresponding tested and supported models:
 
-Name             | Manufacturer | Tested models  | Other supported models
+Protocol         | Manufacturer | Tested models  | Other supported models
 ----             | ------------ | -------------  | ----------------------
 `TREMOL`         | Tremol Ltd.  | M20            | All
 `DATECS/X`       | Datecs Ltd.  | DP-25X         | X models

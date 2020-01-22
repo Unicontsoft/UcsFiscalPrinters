@@ -84,7 +84,7 @@ With this flexible configuration options it is possible to setup none, one or se
 
 Currently the `UcsFPHub` service also checks these environment variables:
 
-Name                            | Description
+Variable                        | Description
 ----                            | -----------
 `_UCS_FISCAL_PRINTER_LOG`       | Set to `c:\path\to\UcsFP.log` to log client connections/requests and communication with fiscal devices
 `_UCS_FISCAL_PRINTER_DATA_DUMP` | Set to `1` to include data transfer dump in `_UCS_FISCAL_PRINTER_LOG`
@@ -94,11 +94,11 @@ Name                            | Description
 
 ### Device string
 
-The device strings are used to configure the connection used for communication with the fiscal device through a list of `Name=Value` pairs separated by `;` delimiter very similar to database connection strings.
+The device strings are used to configure the connection used for communication with the fiscal device through a list of `Key=Value` pairs separated by `;` delimiter very similar to database connection strings.
 
-Here is a (short) list of supported `Name` entries, all of which are optional unless marked required:
+Here is a (short) list of supported entries, all of which are optional unless marked required:
 
-Name             | Type   | Protocol | Description
+Key              | Type   | Protocol | Description
 ----             | ----   | ------- | -----------
 `Protocol`       | string |         | (Required) See [**Available protocols**](#available-protocols) below
 `Port`           | string |         | Serial port the device is attached to (e.g. `COM1`)
@@ -124,7 +124,7 @@ Name             | Type   | Protocol | Description
 
 Here is a complete list of implemented protocols with corresponding tested and supported models:
 
-Name             | Manufacturer | Tested models  | Other supported models
+Protocol         | Manufacturer | Tested models  | Other supported models
 ----             | ------------ | -------------  | ----------------------
 `TREMOL`         | Tremol Ltd.  | M20            | All
 `DATECS/X`       | Datecs Ltd.  | DP-25X         | X models
