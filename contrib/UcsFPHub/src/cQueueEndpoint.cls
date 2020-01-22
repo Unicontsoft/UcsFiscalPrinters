@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -455,7 +455,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         m_dSshLastAccess = Now
     End If
     If InStr(sLocalConnStr, "{APP_NAME}") > 0 Then
-        sAppName = App.ProductName & " " & STR_VERSION & _
+        sAppName = STR_SERVICE_NAME & " " & STR_VERSION & _
             " [" & GetCurrentProcessUser(False) & "@" & LCase$(GetErrorComputerName()) & "] " & _
             Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
         sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)
