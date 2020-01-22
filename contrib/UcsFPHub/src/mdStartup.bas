@@ -151,7 +151,7 @@ Public Sub Main()
     End If
 End Sub
 
-Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
+Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     Const FUNC_NAME     As String = "Process"
     Dim sConfFile       As String
     Dim sError          As String
@@ -159,6 +159,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
     Dim lIdx            As Long
     
     On Error GoTo EH
+    Screen.MousePointer = vbHourglass
     Set m_oOpt = GetOpt(vArgs, "config:-config:c")
     '--- normalize options: convert -o and -option to proper long form (--option)
     For Each vKey In Split("nologo config:c install:i uninstall:u systray:s hidden console help:h:?")
@@ -169,7 +170,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
             End If
         Next
     Next
-    If Not C_Bool(m_oOpt.Item("--nologo")) And Not bNoLogo Then
+    If Not C_Bool(m_oOpt.Item("--nologo")) And Not bStarted And C_Bool(m_oOpt.Item("--console")) Then
         ConsolePrint App.ProductName & " v" & STR_VERSION & vbCrLf & Replace(App.LegalCopyright, "©", "(c)") & vbCrLf & vbCrLf
     End If
     If C_Bool(m_oOpt.Item("--help")) Then
@@ -230,14 +231,24 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         End If
         GoTo QH
     End If
-    If IsObjectRunning(STR_MONIKER) And Not C_Bool(m_oOpt.Item("--hidden")) Then
-        Select Case MsgBox(Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbQuestion Or vbYesNoCancel)
-        Case vbYes
-            GetObject(STR_MONIKER).ShowConfig
+    If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) Then
+        If IsObjectRunning(STR_MONIKER) Then
+            Select Case MsgBox(Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbQuestion Or vbYesNoCancel)
+            Case vbYes
+                GetObject(STR_MONIKER).ShowConfig
+                GoTo QH
+            Case vbCancel
+                GoTo QH
+            End Select
+        End If
+    End If
+    '--- respawn hidden in systray
+    If Not C_Bool(m_oOpt.Item("--console")) Then
+        If Not C_Bool(m_oOpt.Item("--hidden")) And Not InIde Then
+            frmIcon.Restart AddParam:="--hidden"
             GoTo QH
-        Case vbCancel
-            GoTo QH
-        End Select
+        End If
+        Process = -1
     End If
     '--- read config file
     If LenB(sConfFile) <> 0 Then
@@ -257,14 +268,6 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         JsonItem(m_oConfig, "Printers/Autodetect") = True
         JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
         JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
-    End If
-    '--- respawn hidden in systray
-    If C_Bool(m_oOpt.Item("--systray")) Then
-        If Not C_Bool(m_oOpt.Item("--hidden")) And Not InIde Then
-            frmIcon.Restart AddParam:="--hidden"
-            GoTo QH
-        End If
-        Process = -1
     End If
     '--- setup environment and procotol configuration
     lIdx = JsonItem(m_oConfig, -1)
@@ -300,6 +303,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         NtServiceTerminate
         FlushDebugLog
     ElseIf C_Bool(m_oOpt.Item("--console")) Then
+        Screen.MousePointer = vbDefault
         ConsolePrint STR_PRESS_CTRLC & vbCrLf
         Do
             ConsoleRead
@@ -316,6 +320,7 @@ Private Function Process(vArgs As Variant, ByVal bNoLogo As Boolean) As Long
         End If
     End If
 QH:
+    Screen.MousePointer = vbDefault
     Exit Function
 EH:
     PrintError FUNC_NAME
