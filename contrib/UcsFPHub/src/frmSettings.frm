@@ -4,7 +4,7 @@ Begin VB.Form frmSettings
    ClientHeight    =   8124
    ClientLeft      =   192
    ClientTop       =   840
-   ClientWidth     =   10764
+   ClientWidth     =   14784
    BeginProperty Font 
       Name            =   "Tahoma"
       Size            =   7.8
@@ -18,7 +18,7 @@ Begin VB.Form frmSettings
    KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
    ScaleHeight     =   8124
-   ScaleWidth      =   10764
+   ScaleWidth      =   14784
    StartUpPosition =   3  'Windows Default
    Begin VB.PictureBox picTab 
       BorderStyle     =   0  'None
@@ -35,7 +35,7 @@ Begin VB.Form frmSettings
       Width           =   9924
       Begin VB.Frame fraQuickSetup 
          Caption         =   "Бързи настройки"
-         Height          =   5052
+         Height          =   4380
          Left            =   0
          TabIndex        =   12
          Tag             =   "FONT"
@@ -148,7 +148,7 @@ Begin VB.Form frmSettings
          BackColor       =   &H8000000F&
          BeginProperty Font 
             Name            =   "Courier New"
-            Size            =   10.2
+            Size            =   9
             Charset         =   204
             Weight          =   400
             Underline       =   0   'False
@@ -159,15 +159,15 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         ScrollBars      =   2  'Vertical
          TabIndex        =   10
+         Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
       End
       Begin VB.ListBox lstPrinters 
          BeginProperty Font 
             Name            =   "Courier New"
-            Size            =   10.2
+            Size            =   9
             Charset         =   204
             Weight          =   400
             Underline       =   0   'False
@@ -178,6 +178,7 @@ Begin VB.Form frmSettings
          IntegralHeight  =   0   'False
          Left            =   4620
          TabIndex        =   5
+         Tag             =   "MONO"
          Top             =   84
          Width           =   5052
       End
@@ -199,7 +200,7 @@ Begin VB.Form frmSettings
          BorderStyle     =   0  'None
          BeginProperty Font 
             Name            =   "Courier New"
-            Size            =   10.2
+            Size            =   9
             Charset         =   204
             Weight          =   400
             Underline       =   0   'False
@@ -211,6 +212,7 @@ Begin VB.Form frmSettings
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
          TabIndex        =   7
+         Tag             =   "MONO"
          Top             =   0
          Width           =   6396
       End
@@ -232,7 +234,7 @@ Begin VB.Form frmSettings
          BorderStyle     =   0  'None
          BeginProperty Font 
             Name            =   "Courier New"
-            Size            =   10.2
+            Size            =   9
             Charset         =   204
             Weight          =   400
             Underline       =   0   'False
@@ -245,6 +247,7 @@ Begin VB.Form frmSettings
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
          TabIndex        =   11
+         Tag             =   "MONO"
          Top             =   0
          Width           =   9252
       End
@@ -475,6 +478,9 @@ Public Function Init() As Boolean
         For Each oCtl In Controls
             If InStr(oCtl.Tag, "FONT") Then
                 Set oCtl.Font = Me.Font
+            ElseIf InStr(oCtl.Tag, "MONO") Then
+                oCtl.Font.Name = "Consolas"
+                oCtl.Font.Size = Me.Font.Size
             End If
         Next
         '--- setup caption
@@ -551,6 +557,7 @@ Private Function pvLoadPrinters() As Boolean
     '--- printers list
     Set oForm = MainForm
     vSplit = Split(STR_HEADER_PRINTERS, "|")
+    lstPrinters.Clear
     lstPrinters.AddItem Pad(At(vSplit, 0), 15) & vbTab & Pad(At(vSplit, 1), 15) & vbTab & Pad(At(vSplit, 2), 15) & vbTab & _
         Pad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
     For Each vKey In JsonItem(oForm.Printers, "*/DeviceSerialNo")
@@ -567,6 +574,19 @@ Private Function pvLoadPrinters() As Boolean
     End If
     '--- success
     pvLoadPrinters = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Private Function pvLoadLog() As Boolean
+    Const FUNC_NAME     As String = "pvLoadLog"
+    
+    On Error GoTo EH
+    txtLog.Text = ConcatCollection(Logger.MemoryLog) & vbCrLf
+    txtLog.SelStart = &H7FFF&
+    '--- success
+    pvLoadLog = True
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -657,7 +677,6 @@ Private Sub pvMenuNegotiate(oCtl As Object)
     mnuEdit(ucsMnuEditPaste).Enabled = pvCanExecute(ucsMnuEditPaste, oCtl)
     mnuEdit(ucsMnuEditDelete).Enabled = pvCanExecute(ucsMnuEditDelete, oCtl)
     mnuEdit(ucsMnuEditSelectAll).Enabled = pvCanExecute(ucsMnuEditSelectAll, oCtl)
-    mnuEdit(ucsMnuEditRefresh).Enabled = oCtl Is txtLog Or oCtl Is txtConfig
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -708,6 +727,8 @@ Private Function pvLoadItemData(oCombo As ComboBox, vItemData As Variant) As Boo
         For Each vElem In vItemData
             oCombo.AddItem vElem
         Next
+        '--- success
+        pvLoadItemData = True
     End If
     Exit Function
 EH:
@@ -835,15 +856,17 @@ Private Sub mnuEdit_Click(Index As Integer)
     Case ucsMnuEditSelectAll
         Call SendMessage(oCtl.hWnd, EM_SETSEL, 0, ByVal -1)
     Case ucsMnuEditRefresh
-        If tabMain.CurrentTab = ucsTabConfig Then
+        Select Case tabMain.CurrentTab
+        Case ucsTabPrinters
+            pvLoadPrinters
+        Case ucsTabConfig
             If Not pvQuerySaveConfig(m_sConfFile) Then
                 GoTo QH
             End If
             pvLoadConfig m_sConfFile
-        ElseIf tabMain.CurrentTab = ucsTabLog Then
-            txtLog.Text = ConcatCollection(Logger.MemoryLog) & vbCrLf
-            txtLog.SelStart = &H7FFF&
-        End If
+        Case ucsTabLog
+            pvLoadLog
+        End Select
     End Select
 QH:
     Screen.MousePointer = vbDefault
@@ -870,7 +893,7 @@ Private Sub Form_Resize()
             Case ucsTabPrinters
                 dblLeft = GRID_SIZE
                 dblTop = GRID_SIZE
-                MoveCtl fraQuickSetup, dblLeft, dblTop
+                MoveCtl fraQuickSetup, dblLeft, dblTop, fraQuickSetup.Width, .ScaleHeight - dblTop - GRID_SIZE
                 dblLeft = fraQuickSetup.Left + fraQuickSetup.Width + GRID_SIZE
                 dblHeight = (.ScaleHeight - GRID_SIZE) / 2
                 MoveCtl lstPrinters, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, dblHeight
@@ -878,10 +901,10 @@ Private Sub Form_Resize()
                 MoveCtl txtInfo, dblLeft, dblTop, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight - dblTop - GRID_SIZE
             Case ucsTabConfig
                 dblLeft = GRID_SIZE
-                MoveCtl txtConfig, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight
+                MoveCtl txtConfig, dblLeft, 0, .ScaleWidth - dblLeft, .ScaleHeight
             Case ucsTabLog
                 dblLeft = GRID_SIZE
-                MoveCtl txtLog, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight
+                MoveCtl txtLog, dblLeft, 0, .ScaleWidth - dblLeft, .ScaleHeight
             End Select
         End With
     End If
@@ -926,13 +949,21 @@ Private Sub tabMain_Click()
         picTab(lIdx).Visible = (lIdx = tabMain.CurrentTab)
     Next
     pvMenuNegotiate ActiveControl
-    If tabMain.CurrentTab = ucsTabPrinters And lstPrinters.ListCount = 0 Then
-        pvLoadPrinters
-    ElseIf tabMain.CurrentTab = ucsTabConfig And LenB(txtConfig.Text) = 0 Then
-        pvLoadConfig m_sConfFile
-    ElseIf tabMain.CurrentTab = ucsTabLog And LenB(txtLog.Text) = 0 Then
-        mnuEdit_Click ucsMnuEditRefresh
-    End If
+    '--- delay-load tabs
+    Select Case tabMain.CurrentTab
+    Case ucsTabPrinters
+        If lstPrinters.ListCount = 0 Then
+            pvLoadPrinters
+        End If
+    Case ucsTabConfig
+        If LenB(txtConfig.Text) = 0 Then
+            pvLoadConfig m_sConfFile
+        End If
+    Case ucsTabLog
+        If LenB(txtLog.Text) = 0 Then
+            pvLoadLog
+        End If
+    End Select
 QH:
     Screen.MousePointer = vbDefault
     Exit Sub
