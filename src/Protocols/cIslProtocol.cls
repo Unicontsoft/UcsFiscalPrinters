@@ -597,25 +597,16 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
-                    baText = ToAscii(sProbeText, m_uConfig.CodePage)
-                    Call WaitForMultipleObjects(1, .WriteOver.hEvent, 0, 10)
-                    lResult = WriteFile(.Connector.hComm, baText(0), Len(sProbeText), lActual, .WriteOver)
-                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Or lActual = 0 Then
-                        hEvents(lEventsCount) = .WriteOver.hEvent
-                        lEventsCount = lEventsCount + 1
-                    End If
+'                    Call WaitForMultipleObjects(1, .WriteOver.hEvent, 0, 10)
+                    lResult = WriteFile(.Connector.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
                 End If
             End With
         Next
-        If lEventsCount > 0 Then
-            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
-            lEventsCount = 0
-        End If
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
                     If GetOverlappedResult(.Connector.hComm, .WriteOver, lActual, 1) <> 0 Then
-'                        Debug.Print "Write GetOverlappedResult, vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", lActual=" & lActual, TimerEx
+'                        Debug.Print "Write GetOverlappedResult, vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", lActual=" & lActual, TimerEx, MODULE_NAME
                     End If
                     .Buffer = String$(BUFFER_SIZE, 0)
                     Call WaitForMultipleObjects(1, .ReadOver.hEvent, 0, 10)
@@ -639,7 +630,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 If Not .Connector Is Nothing Then
                     If Len(.Buffer) = BUFFER_SIZE Then
                         If GetOverlappedResult(.Connector.hComm, .ReadOver, lActual, 1) <> 0 Then
-'                            Debug.Print "Read GetOverlappedResult, vSpeed = " & vSpeed & ", lIdx = " & lIdx & ", lActual=" & lActual, TimerEx
+'                            Debug.Print "Read GetOverlappedResult, vSpeed = " & vSpeed & ", lIdx = " & lIdx & ", lActual=" & lActual, TimerEx, MODULE_NAME
                         End If
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
