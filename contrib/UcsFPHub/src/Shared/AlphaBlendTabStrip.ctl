@@ -185,7 +185,9 @@ Private Sub pvLoadTabs()
     On Error GoTo EH
     For lIdx = 0 To UBound(m_aTabCaptions)
         If labTab.ubound < lIdx + 1 Then
+            On Error GoTo QH
             Load labTab(lIdx + 1)
+            On Error GoTo EH
             labTab(lIdx + 1).ZOrder vbBringToFront
             labTab(lIdx + 1).BackColor = vbButtonFace
         End If
@@ -193,6 +195,7 @@ Private Sub pvLoadTabs()
     For lIdx = lIdx + 1 To labTab.ubound
         Unload labTab(lIdx)
     Next
+QH:
     Exit Sub
 EH:
     PrintError FUNC_NAME
