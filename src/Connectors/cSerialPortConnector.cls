@@ -117,7 +117,7 @@ End Type
 
 Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
 Private Const DEF_TIMEOUT               As Long = 3000
-Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
+Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 500
 
 Private m_hComm                 As Long
 Private m_lTimeout              As Long
