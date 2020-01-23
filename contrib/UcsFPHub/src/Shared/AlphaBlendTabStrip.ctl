@@ -17,22 +17,38 @@ Begin VB.UserControl AlphaBlendTabStrip
       Top             =   0
       Visible         =   0   'False
       Width           =   1020
-      _extentx        =   1799
-      _extenty        =   614
-      caption         =   "Tab"
-      font            =   "AlphaBlendTabStrip.ctx":0000
-      foreopacity     =   0.75
+      _ExtentX        =   1799
+      _ExtentY        =   614
+      Caption         =   "Tab"
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "Segoe UI"
+         Size            =   9
+         Charset         =   204
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      ForeOpacity     =   0.75
    End
    Begin UcsFPHub.AlphaBlendLabel labBackgr 
       Height          =   390
       Left            =   0
       Top             =   0
       Width           =   4968
-      _extentx        =   8763
-      _extenty        =   699
-      font            =   "AlphaBlendTabStrip.ctx":0028
-      backcolor       =   -2147483643
-      backopacity     =   0.75
+      _ExtentX        =   8763
+      _ExtentY        =   699
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "Segoe UI"
+         Size            =   9
+         Charset         =   204
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      BackColor       =   -2147483643
+      BackOpacity     =   0.75
    End
 End
 Attribute VB_Name = "AlphaBlendTabStrip"
