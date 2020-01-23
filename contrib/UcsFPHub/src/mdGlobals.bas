@@ -1250,3 +1250,14 @@ Property Get GetCurrentDate() As Date
     GetCurrentDate = Fix(GetCurrentNow)
 End Property
 
+Public Function IconScale(ByVal sngSize As Single) As Long
+    If ScreenTwipsPerPixelX < 6.5 Then
+        IconScale = Int(sngSize * 3)
+    ElseIf ScreenTwipsPerPixelX < 9.5 Then
+        IconScale = Int(sngSize * 2)
+    ElseIf ScreenTwipsPerPixelX < 11.5 Then
+        IconScale = Int(sngSize * 3 \ 2)
+    Else
+        IconScale = Int(sngSize * 1)
+    End If
+End Function

@@ -60,7 +60,7 @@ End Enum
 '=========================================================================
 
 Event Click()
-Event OwnerDraw(ByVal hGraphics As Long, ByVal hFont As Long, sCaption As String, lLeft As Long, lTop As Long, lWidth As Long, lHeight As Long)
+Event OwnerDraw(ByVal hGraphics As Long, ByVal hFont As Long, sCaption As String, sngLeft As Single, sngTop As Single, sngWidth As Single, sngHeight As Single)
 Event DblClick()
 Event ContextMenu()
 Event MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
@@ -111,7 +111,7 @@ Private Declare Function GdipDeleteGraphics Lib "gdiplus" (ByVal hGraphics As Lo
 Private Declare Function GdipSetStringFormatFlags Lib "gdiplus" (ByVal hStringFormat As Long, ByVal lFlags As Long) As Long
 Private Declare Function GdipSetStringFormatAlign Lib "gdiplus" (ByVal hStringFormat As Long, ByVal eAlign As StringAlignment) As Long
 Private Declare Function GdipSetStringFormatLineAlign Lib "gdiplus" (ByVal hStringFormat As Long, ByVal eAlign As StringAlignment) As Long
-Private Declare Function GdipFillRectangleI Lib "gdiplus" (ByVal hGraphics As Long, ByVal hBrush As Long, ByVal lX As Long, ByVal lY As Long, ByVal lWidth As Long, ByVal lHeight As Long) As Long
+Private Declare Function GdipFillRectangle Lib "gdiplus" (ByVal hGraphics As Long, ByVal hBrush As Long, ByVal sngX As Single, ByVal sngY As Single, ByVal sngWidth As Single, ByVal sngHeight As Single) As Long
 
 Private Type BITMAPINFOHEADER
     biSize              As Long
@@ -441,10 +441,10 @@ Private Function pvPaintControl(ByVal hDC As Long) As Boolean
     Dim hStringFormat   As Long
     Dim hBrush          As Long
     Dim uRect           As RECTF
-    Dim lLeft           As Long
-    Dim lTop            As Long
-    Dim lWidth          As Long
-    Dim lHeight         As Long
+    Dim sngLeft         As Single
+    Dim sngTop          As Single
+    Dim sngWidth        As Single
+    Dim sngHeight       As Single
     
     On Error GoTo EH
     If GdipCreateFromHDC(hDC, hGraphics) <> 0 Then
@@ -452,23 +452,23 @@ Private Function pvPaintControl(ByVal hDC As Long) As Boolean
     End If
     hFont = m_hFont
     sCaption = m_sCaption
-    lWidth = ScaleWidth
-    lHeight = ScaleHeight
-    RaiseEvent OwnerDraw(hGraphics, hFont, sCaption, lLeft, lTop, lWidth, lHeight)
-    If lWidth > 0 Then
+    sngWidth = ScaleWidth
+    sngHeight = ScaleHeight
+    RaiseEvent OwnerDraw(hGraphics, hFont, sCaption, sngLeft, sngTop, sngWidth, sngHeight)
+    If sngWidth > 0 Then
         If GdipCreateSolidFill(pvTranslateColor(m_clrBack, m_sngBackOpacity), hBrush) <> 0 Then
             GoTo QH
         End If
-        If GdipFillRectangleI(hGraphics, hBrush, lLeft, lTop, lWidth, lHeight) <> 0 Then
+        If GdipFillRectangle(hGraphics, hBrush, sngLeft, sngTop, sngWidth, sngHeight) <> 0 Then
             GoTo QH
         End If
         If Not pvPrepareStringFormat(m_eTextAlign Or m_eTextFlags, hStringFormat) Then
             GoTo QH
         End If
-        uRect.Left = lLeft + m_sngTextOffsetX
-        uRect.Top = lTop + m_sngTextOffsetY
-        uRect.Right = lLeft + lWidth
-        uRect.Bottom = lTop + lHeight
+        uRect.Left = sngLeft + m_sngTextOffsetX
+        uRect.Top = sngTop + m_sngTextOffsetY
+        uRect.Right = sngLeft + sngWidth
+        uRect.Bottom = sngTop + sngHeight
         If m_sngShadowOpacity <> 0 Then
             If GdipSetSolidFillColor(hBrush, pvTranslateColor(m_clrShadow, m_sngShadowOpacity)) <> 0 Then
                 GoTo QH
