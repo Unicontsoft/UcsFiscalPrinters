@@ -499,6 +499,7 @@ Public Function Init() As Boolean
         lstPrinters.Clear
         txtConfig.Text = vbNullString
         txtLog.Text = vbNullString
+        pvChanged = False
         tabMain_Click
     End If
     Show
@@ -755,6 +756,7 @@ Private Sub pvRestart()
     lstPrinters.Clear
     txtConfig.Text = vbNullString
     txtLog.Text = vbNullString
+    pvChanged = False
     tabMain_Click
     Exit Sub
 EH:
