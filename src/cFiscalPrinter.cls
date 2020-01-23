@@ -537,7 +537,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
         GoTo SkipSetClock
     End If
     If dDateTime = 0 Then
-        dDateTime = Now
+        dDateTime = GetCurrentNow
     End If
     If lTolerance = 0 Then
         bResult = oFP.SetClock(dDateTime)

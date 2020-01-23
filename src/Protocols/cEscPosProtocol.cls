@@ -370,7 +370,7 @@ EH:
 End Function
 
 Public Function GetClock() As Date
-    GetClock = Now
+    GetClock = GetCurrentNow
 End Function
 
 Public Function GetPaymentName(ByVal Index As Long) As String
@@ -535,7 +535,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case ucsFscRcpOrderList
                 pvPrintLine CenterText(pvText(ucsTxtOrderList), pvCommentChars)
                 pvPrintLine vbNullString
-                pvPrintLine Printf(pvText(ucsTxtHeaderDate), Now())
+                pvPrintLine Printf(pvText(ucsTxtHeaderDate), GetCurrentNow())
                 pvPrintLine Printf(pvText(ucsTxtHeaderOper), .InitOperatorName)
                 pvPrintLine Printf(pvText(ucsTxtHeaderTable), .InitTableNo)
                 pvPrintLine String(pvRowChars, "-")
@@ -765,7 +765,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         sData = IIf(uCtx.PluCount = 1, pvText(ucsTxtFooterArticleSingle), Printf(pvText(ucsTxtFooterArticles), uCtx.PluCount))
                         pvPrintLine CenterText(sData, pvCommentChars)
                     End If
-                    vSplit = Split(Now, " ")
+                    vSplit = Split(GetCurrentNow, " ")
                     sData = AlignText(At(vSplit, 0), At(vSplit, 1), pvCommentChars)
                     pvPrintLine sData
                     sData = CenterText(pvText(ucsTxtNonfiscalReceipt), pvCommentChars)

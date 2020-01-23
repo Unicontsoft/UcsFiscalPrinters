@@ -175,25 +175,27 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Public Const LIB_NAME               As String = "UcsFP20"
-Public Const STR_NONE               As String = "(Няма)"
-Public Const STR_PROTOCOL_DATECS_X  As String = "DATECS/X"
-Public Const STR_PROTOCOL_DATECS_FP As String = "DATECS"
-Public Const STR_PROTOCOL_DAISY     As String = "DAISY"
-Public Const STR_PROTOCOL_INCOTEX   As String = "INCOTEX"
-Public Const STR_PROTOCOL_TREMOL    As String = "TREMOL"
-Public Const STR_PROTOCOL_ESCPOS    As String = "ESC/POS"
-Public Const STR_PROTOCOL_PROXY     As String = "PROXY"
-Public Const STR_CHR1               As String = "" '--- CHAR(1)
-Public Const DBL_EPSILON            As Double = 0.0000000001
-Public Const FORMAT_BASE_2          As String = "0.00"
-Public Const FORMAT_BASE_3          As String = "0.000"
+Public Const LIB_NAME                   As String = "UcsFP20"
+Public Const STR_NONE                   As String = "(Няма)"
+Public Const STR_PROTOCOL_DATECS_X      As String = "DATECS/X"
+Public Const STR_PROTOCOL_DATECS_FP     As String = "DATECS"
+Public Const STR_PROTOCOL_DAISY         As String = "DAISY"
+Public Const STR_PROTOCOL_INCOTEX       As String = "INCOTEX"
+Public Const STR_PROTOCOL_TREMOL        As String = "TREMOL"
+Public Const STR_PROTOCOL_ESCPOS        As String = "ESC/POS"
+Public Const STR_PROTOCOL_PROXY         As String = "PROXY"
+Public Const STR_CHR1                   As String = "" '--- CHAR(1)
+Public Const DBL_EPSILON                As Double = 0.0000000001
+Public Const FORMAT_BASE_2              As String = "0.00"
+Public Const FORMAT_BASE_3              As String = "0.000"
 
-Private m_sDecimalSeparator     As String
-Private m_oConfig               As Object
-Private m_oProtocolConfig       As Object
-Private m_oPortWrapper          As cPortWrapper
-Private m_oLogger               As cFileLogger
+Private m_sDecimalSeparator         As String
+Private m_oConfig                   As Object
+Private m_oProtocolConfig           As Object
+Private m_oPortWrapper              As cPortWrapper
+Private m_oLogger                   As cFileLogger
+Private m_dCurrentStartDate         As Date
+Private m_dblCurrentStartTimer      As Double
 
 '=========================================================================
 ' Error handling
@@ -244,6 +246,7 @@ Private Sub Main()
     End If
     Set m_oConfig = C_Obj(vJson)
     Set m_oPortWrapper = New cPortWrapper
+    SetCurrentDateTimer VBA.Now, TimerEx
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -1538,3 +1541,23 @@ Public Function ParseUrl(sUrl As String, uParsed As UcsParsedUrl) As Boolean
 EH:
     RaiseError FUNC_NAME
 End Function
+
+Public Function SetCurrentDateTimer(ByVal dDate As Date, dblTimer As Double, Optional Error As String) As Boolean
+    m_dCurrentStartDate = dDate
+    m_dblCurrentStartTimer = dblTimer
+    Error = vbNullString
+    '--- success
+    SetCurrentDateTimer = True
+End Function
+
+Property Get GetCurrentNow() As Date
+    If m_dCurrentStartDate = 0 Then
+        GetCurrentNow = VBA.Now
+    Else
+        GetCurrentNow = DateAdd("s", TimerEx - m_dblCurrentStartTimer, m_dCurrentStartDate)
+    End If
+End Property
+
+Property Get GetCurrentDate() As Date
+    GetCurrentDate = Fix(GetCurrentNow)
+End Property

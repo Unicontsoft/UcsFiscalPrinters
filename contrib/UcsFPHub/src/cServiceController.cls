@@ -225,7 +225,7 @@ QH:
         JsonItem(oEntry, "QueryString") = sQueryString
         JsonItem(oEntry, "Request") = sRequest
         JsonItem(oEntry, "Response") = sResponse
-        JsonItem(oEntry, "DateTime") = Now
+        JsonItem(oEntry, "DateTime") = GetCurrentNow
         JsonItem(m_oRequestsCache, sRequestId) = oEntry
     End If
     Exit Function

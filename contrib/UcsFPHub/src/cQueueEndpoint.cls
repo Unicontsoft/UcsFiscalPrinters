@@ -452,7 +452,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         End If
         Set m_oSshTunnel = oTunnel
         m_lSshLocalPort = lLocalPort
-        m_dSshLastAccess = Now
+        m_dSshLastAccess = GetCurrentNow
     End If
     If InStr(sLocalConnStr, "{APP_NAME}") > 0 Then
         sAppName = App.Title & " " & STR_VERSION & _

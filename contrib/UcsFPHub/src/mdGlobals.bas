@@ -150,6 +150,8 @@ Private m_sngScreenTwipsPerPixelX   As Single
 Private m_sngScreenTwipsPerPixelY   As Single
 Private m_sngOrigTwipsPerPixelX     As Single
 Private m_sngOrigTwipsPerPixelY     As Single
+Private m_dCurrentStartDate         As Date
+Private m_dblCurrentStartTimer      As Double
 
 '=========================================================================
 ' Error handling
@@ -1227,3 +1229,24 @@ Public Sub ApplyTheme()
         m_sngScreenTwipsPerPixelY = 1440 / m_sngScreenTwipsPerPixelY
     End If
 End Sub
+
+Public Function SetCurrentDateTimer(ByVal dDate As Date, dblTimer As Double, Optional Error As String) As Boolean
+    m_dCurrentStartDate = dDate
+    m_dblCurrentStartTimer = dblTimer
+    Error = vbNullString
+    '--- success
+    SetCurrentDateTimer = True
+End Function
+
+Property Get GetCurrentNow() As Date
+    If m_dCurrentStartDate = 0 Then
+        GetCurrentNow = VBA.Now
+    Else
+        GetCurrentNow = DateAdd("s", TimerEx - m_dblCurrentStartTimer, m_dCurrentStartDate)
+    End If
+End Property
+
+Property Get GetCurrentDate() As Date
+    GetCurrentDate = Fix(GetCurrentNow)
+End Property
+

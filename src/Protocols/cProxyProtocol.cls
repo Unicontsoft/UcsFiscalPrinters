@@ -316,7 +316,7 @@ Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As 
     
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
-        m_dLastReceiptDate = Now
+        m_dLastReceiptDate = GetCurrentNow
         PrintServiceDeposit = vRetVal
         GoTo QH
     End If
@@ -379,7 +379,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
-        m_dLastReceiptDate = Now
+        m_dLastReceiptDate = GetCurrentNow
         GoTo QH
     End If
     Do While uCtx.Row < lRowCount
@@ -485,7 +485,7 @@ Public Function GetClock() As Date
     
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
-        GetClock = Now
+        GetClock = GetCurrentNow
         GoTo QH
     End If
     If Not pvSendRequest("GET", "/datetime", Nothing, oResponse) Then
@@ -794,17 +794,17 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
 End Function
 
 Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    m_dLastReceiptDate = Now
+    m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_RunPeriodReport = True
 End Function
 
 Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    m_dLastReceiptDate = Now
+    m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_RunXReport = True
 End Function
 
 Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    m_dLastReceiptDate = Now
+    m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_RunZReport = True
 End Function
 
