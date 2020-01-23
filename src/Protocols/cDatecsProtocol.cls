@@ -897,7 +897,7 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
         "Index", lIndex, 5, _
         "DateIndex", lDateIndex, 6
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Then
+    If UBound(vSplit) <= 0 Then
         GoTo QH
     End If
     LastReceiptDate = C_Date(At(vSplit, lDateIndex))
@@ -1016,9 +1016,6 @@ Public Function OpenDrawer() As Boolean
     On Error GoTo QH
     pvGetCommandConfig CONF_NAME, "InitOpenDrawer", eCmd, ucsDcsCmdInitOpenDrawer, sParam, vbNullString
     SendCommand eCmd, sParam
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
-    End If
     '--- success
     OpenDrawer = True
 QH:
@@ -1144,8 +1141,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "1" & DEF_SEP, _
         "RevOffset", lRevOffset, 1
     vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Or UBound(vPmtSum) <= 0 Then
-        GetTotalsByPaymentTypes = Array()
+    If UBound(vPmtSum) <= 0 Then
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
@@ -1188,7 +1184,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups2", eCmd, ucsDcsCmdInfoTotalsByTaxGroups, sParam, "2" & DEF_SEP, _
         "RevOffset", lRevOffset, 2
     vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Or (UBound(vPmtSum) <= 0 And UBound(vRevSum) <= 0) Then
+    If UBound(vPmtSum) <= 0 And UBound(vRevSum) <= 0 Then
         GetTotalsByTaxGroups = Array()
         GoTo QH
     End If
@@ -1242,8 +1238,7 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
         "Format", sFormat, FORMAT_BASE_2
     sParam = Printf(sParam, IIf(Amount > -DBL_EPSILON, "0", "1"), SafeFormat(Abs(Amount), sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        PrintServiceDeposit = EmptyDoubleArray
+    If UBound(vSplit) <= 0 Then
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
@@ -1366,10 +1361,6 @@ Public Function GetTaxRates() As Variant
         "Offset", lOffset, 0
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = ParseSum(pvSettings(sParam, lIdx + lOffset))
-        If LenB(m_uPrintData.LastError) <> 0 Then
-            GetTaxRates = EmptyDoubleArray
-            GoTo QH
-        End If
         If vRetVal(lIdx) >= 100 Then
             vRetVal(lIdx) = -1
         End If

@@ -330,7 +330,6 @@ Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As 
         JsonItem(oRequest, "Amount") = Amount
     End If
     If Not pvSendRequest(IIf(oRequest Is Nothing, "GET", "POST"), "/deposit", oRequest, oResponse) Then
-        PrintServiceDeposit = EmptyDoubleArray
         GoTo QH
     End If
     If Not IsEmpty(JsonItem(oResponse, "ReceiptNo")) Then
