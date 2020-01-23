@@ -17,38 +17,22 @@ Begin VB.UserControl AlphaBlendTabStrip
       Top             =   0
       Visible         =   0   'False
       Width           =   1020
-      _ExtentX        =   1799
-      _ExtentY        =   614
-      Caption         =   "Tab"
-      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "Segoe UI"
-         Size            =   9
-         Charset         =   204
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      ForeOpacity     =   0.75
+      _extentx        =   1799
+      _extenty        =   614
+      caption         =   "Tab"
+      font            =   "AlphaBlendTabStrip.ctx":0000
+      foreopacity     =   0.75
    End
    Begin UcsFPHub.AlphaBlendLabel labBackgr 
       Height          =   390
       Left            =   0
       Top             =   0
       Width           =   4968
-      _ExtentX        =   8763
-      _ExtentY        =   699
-      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "Segoe UI"
-         Size            =   9
-         Charset         =   204
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      BackColor       =   -2147483643
-      BackOpacity     =   0.75
+      _extentx        =   8763
+      _extenty        =   699
+      font            =   "AlphaBlendTabStrip.ctx":0028
+      backcolor       =   -2147483643
+      backopacity     =   0.75
    End
 End
 Attribute VB_Name = "AlphaBlendTabStrip"
@@ -65,7 +49,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const STR_MODULE_NAME As String = "AlphaBlendTabStrip"
+Private Const MODULE_NAME As String = "AlphaBlendTabStrip"
 
 '=========================================================================
 ' Events
@@ -107,7 +91,11 @@ End Type
 '=========================================================================
 
 Private Function PrintError(sFunction As String) As VbMsgBoxResult
-    Debug.Print "Critical error: " & Err.Description & " [" & STR_MODULE_NAME & "." & sFunction & "]", Timer
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Function
 
 '=========================================================================

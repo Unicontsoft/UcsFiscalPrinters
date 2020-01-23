@@ -26,7 +26,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const STR_MODULE_NAME As String = "AlphaBlendLabel"
+Private Const MODULE_NAME As String = "AlphaBlendLabel"
 
 '=========================================================================
 ' Public enums
@@ -209,7 +209,11 @@ Private m_sLastError            As String
 
 Private Function PrintError(sFunction As String) As VbMsgBoxResult
     m_sLastError = Err.Description
-    Debug.Print "Critical error: " & Err.Description & " [" & STR_MODULE_NAME & "." & sFunction & "]", Timer
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Function
 
 '=========================================================================
