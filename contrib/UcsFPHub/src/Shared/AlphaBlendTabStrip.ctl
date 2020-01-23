@@ -333,25 +333,25 @@ Private Function pvDrawRect(ByVal hGraphics As Long, _
     If GdipCreateSolidFill(clrLeft, hBrush) <> 0 Then
         GoTo QH
     End If
-    If GdipFillRectangle(hGraphics, hBrush, sngLeft, sngTop, sngPixel, sngHeight) <> 0 Then
+    If GdipFillRectangle(hGraphics, hBrush, sngLeft + 0.5, sngTop + 0.5, sngPixel, sngHeight) <> 0 Then
         GoTo QH
     End If
     If GdipSetSolidFillColor(hBrush, clrTop) <> 0 Then
         GoTo QH
     End If
-    If GdipFillRectangle(hGraphics, hBrush, sngLeft + sngPixel, sngTop, sngWidth, sngPixel) <> 0 Then
+    If GdipFillRectangle(hGraphics, hBrush, sngLeft + 0.5 + sngPixel, sngTop + 0.5, sngWidth, sngPixel) <> 0 Then
         GoTo QH
     End If
     If GdipSetSolidFillColor(hBrush, clrRight) <> 0 Then
         GoTo QH
     End If
-    If GdipFillRectangle(hGraphics, hBrush, sngLeft + sngWidth - sngPixel, sngTop + sngPixel, sngPixel, sngHeight - sngPixel) <> 0 Then
+    If GdipFillRectangle(hGraphics, hBrush, sngLeft + sngWidth - 0.5 - sngPixel, sngTop + 0.5 + sngPixel, sngPixel, sngHeight - sngPixel) <> 0 Then
         GoTo QH
     End If
     If GdipSetSolidFillColor(hBrush, clrBottom) <> 0 Then
         GoTo QH
     End If
-    If GdipFillRectangle(hGraphics, hBrush, sngLeft + sngPixel, sngTop + sngHeight - sngPixel, sngWidth - 2 * sngPixel, sngPixel) <> 0 Then
+    If GdipFillRectangle(hGraphics, hBrush, sngLeft + 0.5 + sngPixel, sngTop + sngHeight - 0.5 - sngPixel, sngWidth - 2 * sngPixel - 1, sngPixel) <> 0 Then
         GoTo QH
     End If
     pvDrawRect = True

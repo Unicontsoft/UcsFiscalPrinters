@@ -79,6 +79,8 @@ Private Const AC_SRC_ALPHA                  As Long = 1
 Private Const UnitPoint                     As Long = 3
 '--- for GdipSetTextRenderingHint
 Private Const TextRenderingHintAntiAlias    As Long = 4
+'--- for GdipSetSmoothingMode
+Private Const SmoothingModeAntiAlias        As Long = 4
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (lpDst As Any, lpSrc As Any, ByVal ByteLength As Long)
 Private Declare Function CreateCompatibleDC Lib "gdi32" (ByVal hDC As Long) As Long
@@ -112,6 +114,7 @@ Private Declare Function GdipSetStringFormatFlags Lib "gdiplus" (ByVal hStringFo
 Private Declare Function GdipSetStringFormatAlign Lib "gdiplus" (ByVal hStringFormat As Long, ByVal eAlign As StringAlignment) As Long
 Private Declare Function GdipSetStringFormatLineAlign Lib "gdiplus" (ByVal hStringFormat As Long, ByVal eAlign As StringAlignment) As Long
 Private Declare Function GdipFillRectangle Lib "gdiplus" (ByVal hGraphics As Long, ByVal hBrush As Long, ByVal sngX As Single, ByVal sngY As Single, ByVal sngWidth As Single, ByVal sngHeight As Single) As Long
+Private Declare Function GdipSetSmoothingMode Lib "gdiplus" (ByVal hGraphics As Long, ByVal lSmoothingMd As Long) As Long
 
 Private Type BITMAPINFOHEADER
     biSize              As Long
@@ -450,6 +453,9 @@ Private Function pvPaintControl(ByVal hDC As Long) As Boolean
     If GdipCreateFromHDC(hDC, hGraphics) <> 0 Then
         GoTo QH
     End If
+    If GdipSetSmoothingMode(hGraphics, SmoothingModeAntiAlias) <> 0 Then
+        GoTo QH
+    End If
     hFont = m_hFont
     sCaption = m_sCaption
     sngWidth = ScaleWidth
@@ -459,7 +465,7 @@ Private Function pvPaintControl(ByVal hDC As Long) As Boolean
         If GdipCreateSolidFill(pvTranslateColor(m_clrBack, m_sngBackOpacity), hBrush) <> 0 Then
             GoTo QH
         End If
-        If GdipFillRectangle(hGraphics, hBrush, sngLeft, sngTop, sngWidth, sngHeight) <> 0 Then
+        If GdipFillRectangle(hGraphics, hBrush, sngLeft + 0.5, sngTop + 0.5, sngWidth - 1, sngHeight - 1) <> 0 Then
             GoTo QH
         End If
         If Not pvPrepareStringFormat(m_eTextAlign Or m_eTextFlags, hStringFormat) Then
