@@ -166,9 +166,6 @@ Private Const STR_INTERNAL              As String = "Timeout waiting for respons
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
-Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
-                                                    "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
-                                                    "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1"
 Private Const STR_ERROR_CODES           As String = "-100001|ERR_IO|-100002|ERR_CHECKSUM|-100003|ERR_END_OF_DATA|-100004|ERR_NOTFOUND|-100005|ERR_NO_RECORDS|-100006|ERR_ABORTED|-100007|ERR_WRONG_MODE|-100008|ERR_NOT_READY|-100009|ERR_NOTHING_TO_PRINT|-100100|ERR_FM_BUSY|-100101|ERR_FM_FAILURE|-100102|ERR_FM_WRITE_PROTECTED|-100103|ERR_FM_WRONG_ADDRESS|-100104|ERR_FM_WRONG_SIZE|-100105|ERR_FM_NOT_CONNECTED|-100106|ERR_FM_WRONG_CHECK_SUM|-100107|ERR_FM_BLOCK_IS_EMPTY|-100108|ERR_FM_MAX_NUMBER|-100109|ERR_FM_WRONG_RANGE|-100110|ERR_FM_EMPTY_RANGE|-100111|ERR_FM_NEW_MODULE|-100112|ERR_FM_NOT_EMPTY|-100113|ERR_FM_NOT_EQUAL|-100114|ERR_FM_FULL|-100115|ERR_FM_NEED_UPDATE|-100116|ERR_FM_BLOCKED|-100400|ERR_LTP_VCCERR|-100401|ERR_LTP_SVPERR|-100402|ERR_LTP_STHERR|-100403|ERR_LTP_PESENS|-100404|ERR_LTP_HDSENS|-100405|ERR_LTP_NESENS|-100406|ERR_LTP_MKSENS|-100407|ERR_LTP_CUTERR|-100408|ERR_LTP_PR_ERR|-100409|ERR_LTP_PR_BUSY|-100410|ERR_LTP_BZLPDEC" & _
                                                     "|-100411|ERR_LTP_BZLCLMP|-100412|ERR_LTP_CHARGE_MODE|-100413|ERR_LTP_INZERR_MODE|-100414|ERR_LTP_MOTOR_OVERRUN|-100500|ERR_PROGRAM_SELF_CHECK_ERROR|-100501|ERR_SRAM_ERROR|-100502|ERR_FLASH_ERROR|-100503|ERR_SDCARD_ERROR|-100504|ERR_INVALID_MSG_FILE|-100505|ERR_FM_ERROR|-100506|ERR_NO_RAM_BATTERY|-100507|ERR_SAM_ERROR|-100508|ERR_RTC_ERROR|-100509|ERR_PROGRAM_EXRAM_CHECK_ERROR|-100510|ERR_SDCARD_WRONG_SIZE|-100511|ERR_TPM_ERROR|-101000|ERR_NO_HEAP_MEMORY|-101001|ERR_FILE_MANIPULATE|-101003|ERR_REJECTED|-101004|ERR_BAD_INPUT|-101005|ERR_IAP|-101006|ERR_NOT_POSSIBLE|-101007|ERR_TMOUT|-101007|ERR_TIMEOUT|-101008|ERR_INVALID_TIME|-101009|ERR_CANCELLED|-101010|ERR_INVALID_FORMAT|-101011|ERR_INVALID_DATA|-101012|ERR_PARSE_ERROR|-101013|ERR_HARDWARE_CONFIGURATION|-101014|ERR_ACCESS_DENIED|-101015|ERR_BAD_DATA_LENGTH|-101016|ERR_VERIFY_Z|-101017|ERR_NO_PERMISSION|-101500|ERR_NO_UPDATE" & _
@@ -206,7 +203,6 @@ Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 16
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
-Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -273,7 +269,6 @@ Private Type UcsConfigValues
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
     MaxOperatorName     As Long
-    CommEventTimeout    As Long
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
@@ -608,7 +603,6 @@ Public Function Init(sDeviceString As String) As Boolean
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
         .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
-        .CommEventTimeout = GetConfigNumber(sSerial, "CommEventTimeout", DEF_COMM_EVENT_TIMEOUT)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
@@ -2069,8 +2063,6 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS_ONLY
     LocalizedText(ucsFscLciMemoryTexts) = STR_MEMORY
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
-    LocalizedText(ucsFscLciExtendedErrors) = STR_EXT_ERRORS
-    m_uConfig.CommEventTimeout = DEF_COMM_EVENT_TIMEOUT * 2
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_X, "Commands")
 End Sub
 
