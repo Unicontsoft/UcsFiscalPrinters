@@ -73,8 +73,8 @@ Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker ус
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- defaults
-Private Const DEF_MSSQL_TIMEOUT         As Long = 30000
-Private Const DEF_MYSQL_TIMEOUT         As Long = 3000
+Private Const DEF_MSSQL_TIMEOUT         As Long = 15000
+Private Const DEF_MYSQL_TIMEOUT         As Long = 5000
 '--- params
 Private Const PRM_SQLSERVER             As String = "SqlServer"
 Private Const PRM_DBUSER                As String = "DbUser"
