@@ -266,7 +266,6 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             GoTo QH
         End If
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_LOADING_CONFIG, sConfFile)
-        JsonExpandEnviron m_oConfig
     Else
         JsonItem(m_oConfig, "Printers/Autodetect") = True
         JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
@@ -280,6 +279,7 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
         FlushDebugLog
+        JsonExpandEnviron m_oConfig
     End If
     Set ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
     '--- first register local endpoints
