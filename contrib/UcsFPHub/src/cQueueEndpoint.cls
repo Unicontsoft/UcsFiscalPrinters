@@ -375,7 +375,8 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             sSqlServer = Zn(C_Str(JsonItem(oConfig, "Server")), "(local)")
             sDbPass = CryptRC4(pvFromHexDump(sDbPass), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
         End If
-        sLocalConnStr = sLocalConnStr & ";Password=" & sDbPass
+        sLocalConnStr = pvSetConnProp(sLocalConnStr, "User ID", sDbUser)
+        sLocalConnStr = pvSetConnProp(sLocalConnStr, "Password", sDbPass)
     End If
     sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
     If LenB(sIniFile) <> 0 Then
@@ -460,6 +461,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
         sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)
     End If
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[CONN ] ", "sLocalConnStr=" & sLocalConnStr
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
@@ -571,9 +573,6 @@ Private Function pvMakeSshTunnel( _
     If LenB(sExeFile) = 0 Then
         sExeFile = PathCombine(App.Path, "plink.exe")
     End If
-    #If DebugMode Then
-        DebugPrint FUNC_NAME, MODULE_NAME, "lTimeout=" & lTimeout & ", lMaxAttempts=" & lMaxAttempts & ", bAcceptKeys=" & bAcceptKeys & ", sExeFile=" & sExeFile, 2
-    #End If
     '--- check plink.exe exists
     If Not FileExists(sExeFile) Then
         sError = Printf(STR_SSH_TUNNEL_MISSING_FILE, sExeFile)
@@ -627,9 +626,7 @@ Private Function pvMakeSshTunnel( _
         IIf(LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
         IIf(lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
         IIf(LenB(sExtraParams) <> 0, " " & sExtraParams, vbNullString)
-    #If DebugMode Then
-        DebugPrint FUNC_NAME, MODULE_NAME, "sParams=" & sParams, 2
-    #End If
+    DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "sParams=" & sParams
     '--- shell plink.exe
     Set oTunnel = New cExec
     With oTunnel
@@ -645,26 +642,19 @@ Private Function pvMakeSshTunnel( _
             End If
             Call Sleep(1)
             sLine = .ReadPendingOutput & .ReadPendingError
-            If LenB(sLine) Then
-                #If DebugMode Then
-                    DebugPrint FUNC_NAME, MODULE_NAME, "plink.exe output: " & sLine, 2
-                #End If
+            If Len(sLine) > 1 Then
+                DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", Left$(sLine, Len(sLine) - 2)
                 sInput = sInput & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
             If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
                 lExtraTimeout = lTimeout
-                #If DebugMode Then
-                    DebugPrint FUNC_NAME, MODULE_NAME, "lExtraTimeout=" & lExtraTimeout, 2
-                #End If
             End If
             If InStr(sInput, "y/n") > 0 Then
                 '--- find ssh server rsa key
                 For Each vElem In Split(sInput, vbCrLf)
                     If InStr(vElem, "ssh-rsa ") > 0 Then
                         sError = vElem & vbCrLf
-                        #If DebugMode Then
-                            DebugPrint FUNC_NAME, MODULE_NAME, "SSH server key: " & vElem, 2
-                        #End If
+                        DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "SSH server key: " & vElem
                     End If
                 Next
                 If bAcceptKeys Then
@@ -684,9 +674,7 @@ Private Function pvMakeSshTunnel( _
             End If
         Loop
         sError = sInput
-        #If DebugMode Then
-            DebugPrint FUNC_NAME, MODULE_NAME, "GetExitCode=" & .GetExitCode, 2
-        #End If
+        DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "GetExitCode=" & .GetExitCode
     End With
 QH:
     '--- trim ending new lines
