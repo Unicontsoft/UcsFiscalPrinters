@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -800,11 +800,11 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
         GoTo QH
     End If
     If Status(ucsIslStbPrintingError) Then
-        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus)))
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
         GoTo QH
     End If
     If Memory(ucsIslFmeMemoryError) Then
-        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory)))
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
         GoTo QH
     End If
 QH:
@@ -1331,9 +1331,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     If LenB(m_uPrintData.LastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsIslStbPrintingError) Then
-        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus)))
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
     ElseIf Memory(ucsIslFmeMemoryError) Then
-        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory)))
+        pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
     End If
     CurrentStatus = m_uPrintData.LastError
     '--- success
@@ -1773,9 +1773,12 @@ RetryParse:
             pvSetStatus vbNullString '--- clear
         End If
         pvTransmitCommand = Mid$(sText, 5, lSize - 4)
+        If Status(ucsIslStbPrintingError) Then
+            Error = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
+        End If
         DebugLog FUNC_NAME, "RetVal=" & pvTransmitCommand & _
-            IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "0x" & Hex$(m_eStatus))), vbNullString) & _
-            IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "0x" & Hex$(m_eMemory))), vbNullString)
+            IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Error, vbNullString) & _
+            IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory))), vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
         lIdx = InStr(sText, Chr$(SYM_PREAMBLE))

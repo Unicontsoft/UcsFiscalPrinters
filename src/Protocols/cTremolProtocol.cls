@@ -1622,7 +1622,7 @@ Private Function pvTransmitCommand( _
     On Error GoTo EH
     bLogging = (eCmd > [_ucsZekCmdFastMax])
     If bLogging Then
-        DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
+        DebugLog FUNC_NAME, "eCmd=&H" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
     End If
     dblTimerEx = TimerEx
 RetrySend:
@@ -1704,7 +1704,7 @@ RetryParse:
                     m_eError = Asc(Mid$(sText, 1)) - &H30
                     m_eStatus = Asc(Mid$(sText, 2)) - &H30
                     If m_eError <> 0 Or m_eStatus <> 0 Then
-                        DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", StatusText=" & StatusText & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
+                        DebugLog FUNC_NAME, "eCmd=&H" & Hex$(eCmd) & ", StatusText=" & StatusText & ", ErrorText=" & ErrorText & ", Received=0x" & ToHexDump(sText)
                         Error = IIf(LenB(StatusText) <> 0, StatusText & ". ", vbNullString) & ErrorText
                     Else
                         Error = vbNullString
@@ -1712,7 +1712,7 @@ RetryParse:
                     Exit Do
                 End If
             Case ZFP_RETRY          ' &HE
-                DebugLog FUNC_NAME, "eCmd=0x" & Hex$(eCmd) & ", Retry requested, sText=" & sText
+                DebugLog FUNC_NAME, "eCmd=&H" & Hex$(eCmd) & ", Retry requested, sText=" & sText
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
                 Error = Printf(pvInternal(ucsErrInvalidMessageFormatOrChecksum), "0x" & ToHexDump(sText))
