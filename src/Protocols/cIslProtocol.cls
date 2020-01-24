@@ -1690,6 +1690,10 @@ RetrySend:
         End If
         '--- remove SYN (&H16)
         sText = sText & Replace(sBuffer, Chr$(SYM_SYN), vbNullString)
+        '--- restart timeout timer
+        If InStr(sBuffer, Chr$(SYM_SYN)) > 0 Then
+            dblTimerEx = TimerEx
+        End If
     Loop
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)

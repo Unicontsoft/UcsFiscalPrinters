@@ -1625,6 +1625,10 @@ RetrySend:
         sBuffer = FromAscii(baText, m_uConfig.CodePage)
         DebugDataDump FUNC_NAME, "[RECV ] ", sBuffer
         sText = sText & sBuffer
+        '--- restart timeout timer
+        If LenB(sBuffer) <> 0 Then
+            dblTimerEx = TimerEx
+        End If
 RetryParse:
         If LenB(sText) <> 0 Then
             Select Case Asc(sText)
