@@ -454,7 +454,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sModel          As String
     Dim sFirmware       As String
     Dim vSpeeds         As Variant
-    Dim baText()        As Byte
     
     On Error GoTo EH
     sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3A) & Chr$(&H21) & Chr$(&H30) & Chr$(&H30) & Chr$(&H34) & Chr$(&H3A) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H30) & Chr$(SYM_TERMINATOR)
@@ -711,8 +710,12 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
         sParam = Printf(sParam, ReceiptNumber)
         SendCommand eCmd, sParam
     End If
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     '--- success
     CopyLastReceipt = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -775,6 +778,9 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     '--- success
     RunXReport = True
 QH:
@@ -802,6 +808,9 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     '--- success
     RunZReport = True
 QH:
@@ -838,6 +847,9 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     End Select
     sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
     SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     '--- success
     RunPeriodReport = True
 QH:
@@ -1239,6 +1251,9 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     sParam = Printf(sParam, IIf(Amount > -DBL_EPSILON, "0", "1"), SafeFormat(Abs(Amount), sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vSplit) <= 0 Then
+        GoTo QH
+    End If
+    If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)

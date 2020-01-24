@@ -210,7 +210,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
 Private Const STR_ERRORS_A              As String = "Syntax error in the received data|Invalid command code received|2|3|Printing unit fault|5|6|7|0|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|4|5|6|7|No paper"
 Private Const STR_MEMORY_A              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|The printing head is overheated|7|The fiscal memory is set in READONLY mode (locked)|The fiscal memory is formatted|The last fiscal memory store operation is not successful|The printer is in fiscal mode|The tax rates are set at least once|Fiscal memory read error"
@@ -276,6 +276,7 @@ Private Enum UcsInternalErrors
     ucsErrUnknownMemory
     ucsErrUnsupportedPaymentType
     ucsErrBarcodeNotSupported
+    ucsErrCannotPrint
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -563,7 +564,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sModel          As String
     Dim sFirmware       As String
     Dim vSpeeds         As Variant
-    Dim baText()        As Byte
     
     On Error GoTo EH
     sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
@@ -838,6 +838,9 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     End If
     sReceiptNo = GetLastReceiptNo()
     If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
         GoTo QH
     End If
     '--- success
@@ -886,12 +889,15 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
         pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
         pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "2"
@@ -914,6 +920,13 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
     '--- success
     RunXReport = True
 QH:
@@ -927,12 +940,15 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
         pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
         pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "0"
@@ -955,6 +971,13 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
     If IsDaisy Then
         pvGetCommandConfig CONF_NAME, "ExtendedOperatorsReset", eCmd, ucsIslCmdInitOperatorReset, sParam, "0,9999"
         SendCommand eCmd, sParam
@@ -973,12 +996,15 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Dim eCmd            As UcsIslCommandsEnum
     Dim sFormat         As String
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
         pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstPeriodShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsIslCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
@@ -992,6 +1018,13 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     End Select
     sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
     SendCommand eCmd, sParam
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
     '--- success
     RunPeriodReport = True
 QH:
@@ -1459,15 +1492,31 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
+    Dim bPrint          As Boolean
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     
     On Error GoTo EH
-    sFormat = IIf(Abs(Amount) > DBL_EPSILON, FORMAT_BASE_2, "\")
-    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > DBL_EPSILON), eCmd, ucsIslCmdFiscalServiceDeposit, sParam, "%1", _
+    bPrint = Abs(Amount) > DBL_EPSILON
+    If bPrint Then
+        sPrevReceiptNo = GetLastReceiptNo()
+    End If
+    sFormat = IIf(bPrint, FORMAT_BASE_2, "\")
+    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -bPrint, eCmd, ucsIslCmdFiscalServiceDeposit, sParam, "%1", _
         "Format", sFormat, sFormat
     sParam = Printf(sParam, SafeFormat(Amount, sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     If UBound(vRetVal) <= 0 Then
         GoTo QH
+    End If
+    If bPrint Then
+        sReceiptNo = GetLastReceiptNo()
+        If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+            If LenB(m_uPrintData.LastError) = 0 Then
+                pvSetLastError pvInternal(ucsErrCannotPrint)
+            End If
+            GoTo QH
+        End If
     End If
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))

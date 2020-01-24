@@ -139,7 +139,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported|Cannot print"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
@@ -215,6 +215,7 @@ Private Enum UcsInternalErrors
     ucsErrPasswordNotSet
     ucsErrUnsupportedPaymentType
     ucsErrBarcodeNotSupported
+    ucsErrCannotPrint
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -770,26 +771,25 @@ Public Function CopyLastReceipt(Optional ReceiptNo As String) As Boolean
     Dim lPrintTimeout   As Long
     
     On Error GoTo EH
+    sPrevReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Then
-        sPrevReceiptNo = GetLastReceiptNo()
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString, _
             "PrintTimeout", lPrintTimeout, 0
         SendCommand eCmd, sParam
-        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
-            GoTo QH
-        End If
-        sReceiptNo = GetLastReceiptNo()
-        If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
-            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterStatuses), ucsErrIllegalCommand)
-            GoTo QH
-        End If
     Else
         pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1" & DEF_SEP & "N" & DEF_SEP & "%1" & DEF_SEP & "%1", _
             "PrintTimeout", lPrintTimeout, 0
         SendCommand eCmd, Printf(sParam, Pad(ReceiptNo, -m_uConfig.MaxReceiptNo))
-        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
-            GoTo QH
+    End If
+    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+        GoTo QH
+    End If
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
         End If
+        GoTo QH
     End If
     '--- success
     CopyLastReceipt = True
@@ -840,12 +840,15 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     Dim lPrintTimeout   As Long
     
     If Not CancelReceipt() Then
         GoTo QH
     End If
     On Error GoTo EH
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
         pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "X", _
@@ -861,8 +864,18 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
-    '--- success (or failure)
-    RunXReport = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
+    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+        GoTo QH
+    End If
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
+    '--- success
+    RunXReport = True
 QH:
     Exit Function
 EH:
@@ -874,12 +887,15 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     Dim lPrintTimeout   As Long
     
     If Not CancelReceipt() Then
         GoTo QH
     End If
     On Error GoTo EH
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
         pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "Z", _
@@ -895,8 +911,18 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End Select
     SendCommand eCmd, sParam
-    '--- success (or failure)
-    RunZReport = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
+    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+        GoTo QH
+    End If
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
+    '--- success
+    RunZReport = True
 QH:
     Exit Function
 EH:
@@ -909,12 +935,15 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
     Dim lPrintTimeout   As Long
     
     If Not CancelReceipt() Then
         GoTo QH
     End If
     On Error GoTo EH
+    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstPeriodShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsZekCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
@@ -930,8 +959,18 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
     End Select
     sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
     SendCommand eCmd, sParam
-    '--- success (or failure)
-    RunPeriodReport = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
+    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+        GoTo QH
+    End If
+    sReceiptNo = GetLastReceiptNo()
+    If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+        If LenB(m_uPrintData.LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
+        GoTo QH
+    End If
+    '--- success
+    RunPeriodReport = True
 QH:
     Exit Function
 EH:

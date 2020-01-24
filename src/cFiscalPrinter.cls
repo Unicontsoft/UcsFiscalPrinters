@@ -53,7 +53,7 @@ Private Const STR_DATECS_FP_STATUSES    As String = "Получените данни имат синкт
 Private Const STR_DATECS_FP_ERRORS      As String = "Получените данни имат синктактична грешка|Кодът на получената команда е невалиден|2|3|Механизмът на печатащото устройство има неизправност|5|6|7|0|Изпълнението на командата не е позволено в текущия фискален режим|2|3|4|5|6|7|Свършила е хартията"
 Private Const STR_DATECS_FP_MEMORY      As String = "Грешка при запис във фискалната памет|Зададен е ЕИК|Зададени са индивидуален номер на ФУ и номер на ФП|Има място за по-малко от 50 записа във ФП|ФП е пълна|5|ФП не е намерена или е повредена|7|0|ФП е форматирана|2|ФУ е във фискален режим|Зададени са поне веднъж данъчните ставки"
 Private Const STR_DATECS_FP_TEXTS       As String = "В БРОЙ|НАДБАВКА %1|ОТСТЪПКА %1|МЕЖДИННА СУМА|Продажби %1"
-Private Const STR_ISL_FP_INTERNAL       As String = "Време за достъп изтече в очакване на отговор|Невалидна дължина на отговора: %1|Невалидна сума за проверка: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1|Неподдържан вид плащане %1|Баркод от тип  %1 не се поддържа"
+Private Const STR_ISL_FP_INTERNAL       As String = "Време за достъп изтече в очакване на отговор|Невалидна дължина на отговора: %1|Невалидна сума за проверка: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1|Неподдържан вид плащане %1|Баркод от тип  %1 не се поддържа|Невъзможно отпечатване"
 Private Const STR_ISL_FP_STATUSES_A     As String = "Получените данни имат синтактична грешка|Кодът на получената команда е невалиден|Часовникът не е установен|Не е свързан клиентски дисплей|Механизмът на печатащото устройство има неизправност|5|Отворен е капакът на принтера|7|При изпълнение на командата се е получило препълване на някои полета от сумите|Изпълнението на командата не е позволено в текущия фискален режим|Извършено е зануляване на оперативната памет|Слаба батерия (Часовникът за реално време е в състояние RESET)|Отворен сторно бон|Отворен е служебен бон за печат на завъртян на 90 градуса текст|Вграденият данъчен терминал не отговаря|7|Свършила е хартията|Останала е малко хартия|Край на КЛЕН (по-малко от 1 MB от КЛЕН свободни)|Отворен е фискален бон|Близък край на КЛЕН (по-малко от 10 MB от КЛЕН свободни)|Отворен е служебен бон|Много близък край на КЛЕН (допускат се само определени бонове)"
 Private Const STR_ISL_FP_ERRORS_A       As String = "Получените данни имат синтактична грешка|Кодът на получената команда е невалиден|2|3|Механизмът на печатащото устройство има неизправност|5|6|7|0|Изпълнението на командата не е позволено в текущия фискален режим|Извършено е зануляване на оперативната памет|Слаба батерия (Часовникът за реално време е в състояние RESET)|4|5|6|7|Свършила е хартията"
 Private Const STR_ISL_FP_MEMORY_A       As String = "Има грешка при запис във фискалната памет|Зададен е ЕИК по БУЛСТАТ|Зададени са индивидуален номер на принтера и номер на фискалната памет|Има място за по-малко от 50 записа във ФП|Фискалната памет е пълна|5|Печатащата глава е прегряла|7|Фискалната памет е установена в режим READONLY (заключена)|Фискалната памет е форматирана|Последният запис във фискалната памет не е успешен|Принтерът е във фискален режим|Зададени са поне веднъж данъчните ставки|Грешка при четене от фискалната памет"
@@ -62,7 +62,7 @@ Private Const STR_ISL_FP_ERRORS_B       As String = "Получените данни имат синкт
 Private Const STR_ISL_FP_MEMORY_B       As String = "Грешка при запис във ФП|Зададен е ЕИК|Зададени са индивидуален номер на ФУ и номер на ФП|Има място за по-малко от 50 записа във ФП|ФП е пълна|5|6|7|0|ФП е форматирана|2|ФУ е във фискален режим|Зададени са поне веднъж данъчните ставки"
 Private Const STR_ISL_FP_DIP_SWITCHES   As String = "Автоматично центриране на header и footer|Предварителен header|Sw1.3|Sw1.4|Нулиране на паметта|Прозрачен дисплей|Без данни на дисплея|7"
 Private Const STR_ISL_FP_TEXTS          As String = "В БРОЙ|С КАРТА|С ЧЕК|С КАРТА|НАДБАВКА %1|ОТСТЪПКА %1|МЕЖДИННА СУМА|Продажби %1|ЕИК"
-Private Const STR_TREMOL_FP_INTERNAL    As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Невалидна сума за проверка: %1|Липсва символ за начало на отговора: %1|Няма започната бележка|Грешка на ред %1: %2|Невалиден тип справка|Устройството е недостъпно|Устройството е заето| или невъзможно установяване парола на оператор|Неподдържан вид плащане %1|Баркод от тип %1 не се поддържа"
+Private Const STR_TREMOL_FP_INTERNAL    As String = "Време за достъп изтече в очакване на отговор|Невалиден формат на съобщение или сума за проверка (NAK)|Невалидна дължина на отговора: %1|Невалидна сума за проверка: %1|Липсва символ за начало на отговора: %1|Няма започната бележка|Грешка на ред %1: %2|Невалиден тип справка|Устройството е недостъпно|Устройството е заето| или невъзможно установяване парола на оператор|Неподдържан вид плащане %1|Баркод от тип %1 не се поддържа|Невъзможно отпечатване"
 Private Const STR_TREMOL_FP_STATUSES    As String = "Неизвестна грешка|Невалидна команда|Непозволена команда|Непозволена поради ненулев отчет|Синтактична грешка|Препълване на входните регистри|Нулев входен регистър|Липсва транзакция която да се войдира|Недостатъчна налична сума|Конфликт в данъчните групи"
 Private Const STR_TREMOL_FP_ERRORS      As String = "Неизвестна грешка|Няма хартия|Препълване на дневните регистри|Несверен/грешен часовник|Отворен фискален бон|Сметка с остатък за плащане|Отворен нефискален бон|Сметка с приключено плащане|Фискална памет само за четене|Грешна парола или непозволена команда|Липсващ външен дисплей|24 часа без дневен отчет|Прегрят принтер|Спад на напрежение във фискален бон|Препълване в електронната контролна лента|Недостатъчни условия"
 Private Const STR_TREMOL_FP_TEXTS       As String = "В брой|С карта|По банка|Надбавка%1|Отстъпка%1|Междинна сума|Продажби %1|ЕИК;ЕГН;ЛНЧ;Служебен No"
@@ -304,7 +304,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     sResumeToken = JsonItem(oJson, "ResumeToken")
     If LenB(sResumeToken) = 0 Then
         If Not oFP.CancelReceipt() Then
-            sLastErr = oFP.GetLastError(eLastNo)
+            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
@@ -347,7 +347,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
                 RevInvoiceNo:=JsonItem(oJson, "Reversal/InvoiceNo"), _
                 RevReason:=JsonItem(oJson, "Reversal/Reason")) Then
-            sLastErr = oFP.GetLastError(eLastNo)
+            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.StartReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
@@ -373,7 +373,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             End With
         Next
         If Not oFP.EndReceipt(sResumeToken) Then
-            sLastErr = oFP.GetLastError(eLastNo)
+            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
@@ -381,7 +381,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
     If JsonBoolItem(oJson, "PrintDuplicate") Then
         If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/DocNo")) Then
-            sLastErr = oFP.GetLastError(eLastNo)
+            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
@@ -461,7 +461,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         '--- ToDo: impl
     End Select
     If Not bResult Then
-        sLastErr = oFP.GetLastError(eLastNo)
+        sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
@@ -496,7 +496,7 @@ Public Function OpenDrawer(sRequest As String, sResponse As String) As Boolean
         GoTo QH
     End If
     If Not oFP.OpenDrawer() Then
-        sLastErr = oFP.GetLastError(eLastNo)
+        sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not oFP.OpenDrawer(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
@@ -547,7 +547,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
         GoTo SkipSetClock
     End If
     If Not bResult Then
-        sLastErr = oFP.GetLastError(eLastNo)
+        sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     Else
@@ -683,10 +683,11 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     End If
     vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
-        sLastErr = pvInternal(ucsErrNotImplemented)
+        sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
+        DebugLog FUNC_NAME, "Not IsArray(vTotals), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     ElseIf UBound(vTotals) < 0 Then
-        sLastErr = oFP.GetLastError(eLastNo)
+        sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "UBound(vTotals) < 0, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
@@ -731,6 +732,7 @@ Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Bool
         JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
     Else
         sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
+        DebugLog FUNC_NAME, "Not oFP.GetDeviceStatus, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
     End If
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
@@ -913,6 +915,7 @@ End Function
 
 Private Function pvCommonProlog(sRequest As String, oJson As Object, sLastErr As String, oFP As IDeviceProtocol, oRetVal As Object) As Boolean
     JsonItem(oRetVal, "Ok") = True
+    JsonItem(oRetVal, "ErrorText") = vbNullString
     If Not JsonParse(sRequest, oJson, Error:=sLastErr) Or oJson Is Nothing Then
         sLastErr = Zn(sLastErr, pvInternal(ucsErrInvalidJsonRequest))
         GoTo QH
@@ -924,12 +927,6 @@ QH:
 End Function
 
 Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVal eLastNo As UcsFiscalErrorsEnum, oRetVal As Object, sResponse As String) As Boolean
-    If Not oFP Is Nothing Then
-        If oFP.IsConnected Then
-            oFP.Disconnect
-        End If
-        m_sCommandLog = oFP.GetCommandLog()
-    End If
     If LenB(sLastErr) <> 0 Then
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorText") = sLastErr
@@ -944,7 +941,16 @@ Private Function pvCommonEpilog(oFP As IDeviceProtocol, sLastErr As String, ByVa
         JsonItem(oRetVal, "Ok") = False
         JsonItem(oRetVal, "ErrorCode") = "PasswordNotSet"
     End Select
+    If LenB(JsonItem(oRetVal, "ErrorText")) = 0 And Not oFP Is Nothing Then
+        JsonItem(oRetVal, "ErrorText") = Zn(oFP.GetLastError(), Empty)
+    End If
     sResponse = JsonDump(oRetVal, Minimize:=True)
+    If Not oFP Is Nothing Then
+        If oFP.IsConnected Then
+            oFP.Disconnect
+        End If
+        m_sCommandLog = oFP.GetCommandLog()
+    End If
     '--- success
     pvCommonEpilog = True
 End Function
