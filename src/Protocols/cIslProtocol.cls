@@ -217,10 +217,15 @@ Private Const STR_MEMORY_A              As String = "Fiscal memory store error|B
 Private Const STR_STATUSES_B            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|4|5|6|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|2|3|4|Unsend documents for more than duration set|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open"
 Private Const STR_ERRORS_B              As String = "Syntax error in the received data|Invalid command code received|2|3|4|5|6|7|0|The command is not allowed in the current fiscal mode|2|3|4|5|6|7|No paper"
 Private Const STR_MEMORY_B              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|6|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
+Private Const STR_STATUSES_INCO         As String = "Syntax error in the received data|Invalid command code received|The clock is not set|3|4|5|Printer cover is open|7|0|Command not allowed|FM is reset|Invoices range not set|4|Wrong password 3 times|6|7|End of paper|1|2|A fiscal receipt is open|4|A service receipt is open"
+Private Const STR_ERRORS_INCO           As String = "Syntax error in the received data|Invalid command code received|2|3|4|5|Printer cover is open|7|0|Command not allowed|FM is reset|Invoices range not set|4|5|6|7|End of paper"
+
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
-Private Const STR_EXT_ERRORS            As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|9|Invoice No range not set|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|42|Attempt to sell without barcode|" & _
-                                                    "43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|113|NRA server rejects data sent|" & _
-                                                    "117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
+Private Const STR_EXTENDED_DAISY        As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|9|Invoice No range not set|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|" & _
+                                                    "42|Attempt to sell without barcode|43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|" & _
+                                                    "113|NRA server rejects data sent|117|Failed to connect tax terminal with mobile operator network|118|The operation is denied|119|Incorrect value|120|Missing value"
+Private Const STR_EXTENDED_INCO         As String = "1|Multiplication overflow|2|Daily report overflow|3|Invalid operation|4|The amount of discount if more than subtotal|5|No sum|6|Fiscal receipt overflow|7|Quantity overflow|8|Price or total overflow|9|No value|10|Custom prices are not allowed for this department/item|11|Fraction quantity is not allowed|12|Maximum number of operation for single fiscal receipt reached. Current receipt has to be committed|13|The percent value is outside 0.00 – 99.99 range|14|The operation is not allow as it leads to a negative result|15|Error accessing item|16|Available quantity is less than entered|18|There are no rows in the fiscal receipt|19|Period report overflow|21|Mot enough available sum|22|Operators report overflow|24|Fiscal memory overflow|25|Invalid range for fiscal memory report|26|Items/groups report overflow|28|Cannot print duplicate|29|Invoices will be available after fiscalization|" & _
+                                                    "32|Barcode already used by another item|33|Item/group33|Item/group report required|34|Groups report overflow|36|Insufficient availability|37|Invalid (inactive) tax group|42|Payment type is disabled or does not allow change|43|Invoices range depleted|73|Battery error|75|Total/price overflow programed limit (parameter 2- field 9; parameter 4 – field 6 and 7 for EFSA)|76|Real-time clock error|77|EJ media communication error|78|EJ overflow|79|EJ media not found"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const DEF_SEP                   As String = ","
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 51
@@ -240,7 +245,6 @@ Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
-Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 250
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -295,7 +299,7 @@ Private Enum UcsModelGroupEnum
     ucsModFpModelA
     ucsModEcrModelB
     ucsModDaisy
-    ucsModIncotext
+    ucsModIncotex
 End Enum
 
 Private Enum UcsProtocolMarkers
@@ -322,7 +326,6 @@ Private Type UcsConfigValues
     MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
     MaxOperatorName     As Long
-    CommEventTimeout    As Long
     DefPmtTypes         As String
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
@@ -378,7 +381,7 @@ End Property
 
 Property Get ErrorText() As String
     ErrorText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterErrors))
-    If IsDaisy And (m_eDip And &H7F) <> 0 Then
+    If (IsDaisy Or IsIncotex) And (m_eDip And &H7F) <> 0 Then
         ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
             Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
     End If
@@ -441,7 +444,7 @@ Property Get IsDaisy() As Boolean
 End Property
 
 Property Get IsIncotex() As Boolean
-    IsIncotex = (m_uConfig.ModelGroup = ucsModIncotext)
+    IsIncotex = (m_uConfig.ModelGroup = ucsModIncotex)
 End Property
 
 Property Get DefPmtTypes() As String
@@ -449,8 +452,10 @@ Property Get DefPmtTypes() As String
     
     On Error GoTo EH
     If LenB(m_uConfig.DefPmtTypes) = 0 Then
-        If IsDaisy Or IsIncotex Then
+        If IsDaisy Then
             m_uConfig.DefPmtTypes = "PNCDB"
+        ElseIf IsIncotex Then
+            m_uConfig.DefPmtTypes = "PCNDB"
         ElseIf IsEcr Then
             m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
@@ -532,7 +537,7 @@ End Property
 Property Get pvLocalizedTextArray(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As Variant
     Dim lCurrentIdx     As Long
     
-    lCurrentIdx = IIf(m_uConfig.ModelGroup = ucsModEcrModelB, 1, 0)
+    lCurrentIdx = m_uConfig.ModelGroup
     pvLocalizedTextArray = m_uLConfig(lCurrentIdx).LocalizedText(eIdx)
     '--- fallback to default localization config
     If Not IsArray(pvLocalizedTextArray) And lCurrentIdx <> 0 Then
@@ -726,7 +731,7 @@ Public Function Init(sDeviceString As String) As Boolean
         If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             .ModelGroup = ucsModDaisy
         ElseIf Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
-            .ModelGroup = ucsModIncotext
+            .ModelGroup = ucsModIncotex
         Else
             pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
                 "Timeout", lTimeout, 100
@@ -742,7 +747,6 @@ Public Function Init(sDeviceString As String) As Boolean
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
         .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
-        .CommEventTimeout = GetConfigNumber(sSerial, "CommEventTimeout", DEF_COMM_EVENT_TIMEOUT)
         Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
     End With
     '--- success
@@ -2047,7 +2051,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "V", _
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "R", _
                         True, "S")
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4"
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & IIf(.InitReceiptType = ucsFscRcpCreditNote, "I%5", "%4%5")
                 Case Else
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "0" & IIf(.InitReceiptType = ucsFscRcpInvoice, DEF_SEP & "I", vbNullString)
                 End Select
@@ -2268,10 +2272,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     "FormatAmount", sFormatAmount, FORMAT_BASE_2
                 sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
                 SendCommand eCmd, sParam
-                If LenB(m_uPrintData.LastError) <> 0 Then
-                    GoTo QH
+                If LenB(m_uPrintData.LastError) = 0 Then
+                    uCtx.PmtPrinted = True
                 End If
-                uCtx.PmtPrinted = True
             Else
                 '--- check if anything left for payment
                 pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsIslCmdInfoTransaction, sParam, "T", _
@@ -2403,7 +2406,7 @@ Private Function pvStripBold(sText As String) As String
     Const FUNC_NAME     As String = "pvStripBold"
     
     On Error GoTo EH
-    pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/\^/i"), _
+    pvStripBold = preg_replace(GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Pattern", "/[!^]/i"), _
         sText, GetConfigForCommand(m_uConfig.ConfigCommands, m_uConfig.LocalizedCommands, FUNC_NAME, "Replace", vbNullString))
     Exit Function
 EH:
@@ -2480,7 +2483,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         If IsObject(vInfo) Then
             pvToDevicePmtIndex = C_Lng(JsonItem(C_Obj(vInfo), 0))
         End If
-    ElseIf IsDaisy Or IsIncotex Then
+    ElseIf IsDaisy Then
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (Â ÁÐÎÉ)
@@ -2492,6 +2495,19 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
 '            pvToDevicePmtIndex = 3      ' D=SCash (USD)
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 4      ' B=SCash (EURO)
+        End Select
+    ElseIf IsIncotex Then
+        Select Case PmtType
+        Case ucsFscPmtCash
+            pvToDevicePmtIndex = 0      ' P=SCash (Â ÁÐÎÉ)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 1      ' C=SCards (ÊÐ./ÄÅÁ.ÊÀÐÒÀ)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 2      ' N=SCheck (×ÅÊ)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 3      ' D=SR1 (ÍÇÎÊ)
+        Case ucsFscPmtEUR
+            pvToDevicePmtIndex = 4      ' B=SCash (ÄÎÏ.ÂÀËÓÒÀ)
         End Select
     ElseIf IsEcr Then
         Select Case PmtType
@@ -2552,10 +2568,7 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
         If IsDaisy Then
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (60 + lIndex)
         ElseIf IsIncotex Then
-            If PmtType >= 7 Then
-                GoTo QH
-            End If
-            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (7 + lIndex)
+            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (9 + lIndex)
         Else
             pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
         End If
@@ -2567,6 +2580,8 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
             Else
                 pvToDevicePmtName = vbNullString
             End If
+        ElseIf IsIncotex Then
+            pvToDevicePmtName = At(Split(pvToDevicePmtName, DEF_SEP), 1)
         End If
     End If
 QH:
@@ -2636,7 +2651,6 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     LocalizedText(ucsFscLciDipSwitchesTexts) = STR_DIP_SWITCHES
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
-    LocalizedText(ucsFscLciExtendedErrors) = STR_EXT_ERRORS
     eIdx = ucsIslCfgDatecsModelA
     LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_A
     LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_A
@@ -2645,7 +2659,12 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_B
     LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_B
     LocalizedText(ucsFscLciMemoryTexts, eIdx) = STR_MEMORY_B
-    m_uConfig.CommEventTimeout = DEF_COMM_EVENT_TIMEOUT * 2
+    eIdx = ucsIslCfgDaisy
+    LocalizedText(ucsFscLciExtendedErrors, eIdx) = STR_EXTENDED_DAISY
+    eIdx = ucsIslCfgIncotex
+    LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_INCO
+    LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_INCO
+    LocalizedText(ucsFscLciExtendedErrors, eIdx) = STR_EXTENDED_INCO
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
 End Sub
 
