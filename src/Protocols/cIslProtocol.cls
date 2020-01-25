@@ -2018,8 +2018,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             SendCommand eCmd, Printf(sParam, lEndIndex, .InitInvData(ucsInvDocNo))
                         End If
                     ElseIf IsIncotex Then
-                        pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsIslCmdExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%2"
-                        sParam = Printf(sParam, .InitInvData(ucsInvDocNo), .InitInvData(ucsInvDocNo) + 1)
+                        pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsIslCmdExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
+                        sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
                         SendCommand eCmd, sParam
                     Else
                         pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsIslCmdInitInvoiceNo, sParam, "%1" & DEF_SEP & "%1"
