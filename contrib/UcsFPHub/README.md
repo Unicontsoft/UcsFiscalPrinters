@@ -133,7 +133,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `DATECS/X`       | Datecs Ltd.  | DP-25X         | X models
 `DATECS`         | Datecs Ltd.  | DP-25, FP-650  | A models, B models
 `DAISY`          | Daisy Ltd.   | CompactM       | All
-`INCOTEX`        | Incotex Ltd. | 777            | All
+`INCOTEX`        | Incotex Ltd. | 181, 777       | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
