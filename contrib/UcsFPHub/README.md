@@ -5,7 +5,7 @@
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
-[![Download stable UcsFPHub-0.1.38.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.38.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.38/UcsFPHub-0.1.38.zip)
+[![Download stable UcsFPHub-0.1.39.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.39.zip-brightgreen)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.39/UcsFPHub-0.1.39.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/wqweto/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/wqweto/UcsFiscalPrinters/blob/master/LICENSE)
 </div>
@@ -134,6 +134,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `DATECS`         | Datecs Ltd.  | DP-25, FP-650  | A models, B models
 `DAISY`          | Daisy Ltd.   | CompactM       | All
 `INCOTEX`        | Incotex Ltd. | 181, 777       | All
+`ELTRADE`        | Eltrade Ltd. | A3             | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
