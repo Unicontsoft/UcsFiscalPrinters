@@ -205,6 +205,7 @@ Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
+Private Const LNG_OPEN_IMPULSE          As Long = 250
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
@@ -1020,8 +1021,8 @@ Public Function OpenDrawer() As Boolean
     Dim sParam          As String
     
     On Error GoTo QH
-    pvGetCommandConfig CONF_NAME, "InitOpenDrawer", eCmd, ucsDcsCmdInitOpenDrawer, sParam, vbNullString
-    SendCommand eCmd, sParam
+    pvGetCommandConfig CONF_NAME, "InitOpenDrawer", eCmd, ucsDcsCmdInitOpenDrawer, sParam, "%1" & DEF_SEP
+    SendCommand eCmd, Printf(sParam, LNG_OPEN_IMPULSE)
     '--- success
     OpenDrawer = True
 QH:
