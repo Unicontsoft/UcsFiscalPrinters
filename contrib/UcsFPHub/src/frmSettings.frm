@@ -393,7 +393,7 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 Private Const STR_CAPTION               As String = "Настройки на %1 v%2"
 Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
 Private Const STR_HEADER_PRINTERS       As String = "Сериен No.|Порт|Хост|Модел|Версия"
-Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOTEX|TREMOL|ESC/POS|PROXY"
+Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOTEX|ELTRADE|TREMOL|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
 '--- messages
 Private Const MSG_SAVE_CHANGES          As String = "Желаете ли да запазите модификациите на %1?"

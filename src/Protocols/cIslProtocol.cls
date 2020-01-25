@@ -120,6 +120,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdFiscalServiceDeposit = 70
     ucsIslCmdExtendedFiscalCancel = 130            '-- command above &H7F
     ucsIslCmdExtendedFiscalDepartmentSell = 138    '-- command above &H7F
+    ucsIslCmdExtendedFiscalOpen = 144              '-- command above &H7F
     '--- info
     ucsIslCmdInfoServiceContract = 34
     ucsIslCmdInfoNap = 37
@@ -143,6 +144,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInfoQRCode = 116
     ucsIslCmdExtendedInfoConsts = 128              '-- command above &H7F
     ucsIslCmdExtendedInfoDepartment = 131          '-- command above &H7F
+    ucsIslCmdExtendedInfoTotalsByPayments = 173    '-- command above &H7F
     '--- print
     ucsIslCmdPrintReportTaxRates = 50
     ucsIslCmdPrintDailyReport = 69
@@ -180,6 +182,7 @@ Public Enum UcsIslConfigIndexEnum
     ucsIslCfgDatecsModelB
     ucsIslCfgDaisy
     ucsIslCfgIncotex
+    ucsIslCfgEltrade
     [_ucsIslCfgMax]
 End Enum
 
@@ -220,7 +223,7 @@ Private Const STR_ERRORS_B              As String = "Syntax error in the receive
 Private Const STR_MEMORY_B              As String = "Fiscal memory store error|BULSTAT UIC is set|Unique Printer ID and Fiscal Memory ID are set|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|6|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
 Private Const STR_STATUSES_INCO         As String = "Syntax error in the received data|Invalid command code received|The clock is not set|3|4|5|Printer cover is open|7|0|Command not allowed|FM is reset|Invoices range not set|4|Wrong password 3 times|6|7|End of paper|1|2|A fiscal receipt is open|4|A service receipt is open"
 Private Const STR_ERRORS_INCO           As String = "Syntax error in the received data|Invalid command code received|2|3|4|5|Printer cover is open|7|0|Command not allowed|FM is reset|Invoices range not set|4|5|6|7|End of paper"
-
+Private Const STR_MEMORY_INCO           As String = "Fiscal memory store error|1|Wrong record|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|6|7|FM is in READONLY mode|1|2|Device is fiscalized|VAT are set at least once|Unique Printer ID and Fiscal Memory ID are set"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_EXTENDED_DAISY        As String = "1|Overflow after operation|3|No more sales in this bill|4|No more payments in this bill|5|Attempt to perform zero transaction|6|Attempt to perform a sale, after payment is initiated|7|Operation not allowed|8|TAX group with disabled sales|9|Invoice No range not set|11|More than one decimal point|12|More than one character '+' or '-'|13|Symbol '+' or '-' is not in the first position|14|Illegal symbol, e.g. barcode contains not only numbers|15|Extra numbers after decimal point|16|Extra characters|20|With current settings cannot process this command from PC|21|Value outside limits|22|Review system parameter 8|23|Attempt to ""deep"" void after discount/surcharge on subtotal|24|Attempt to ""deep"" void of non-existent transaction|25|Attempt to make a payment without having sales|26|Attempt to sell an item with quantity exceeding its stock|41|Barcode is incorrect (wrong checksum)|" & _
                                                     "42|Attempt to sell without barcode|43|Attempt to program with weight barcode|44|Attempt to sell without programmed barcode|45|Attempt to program already existing barcode|66|Incorrect password|71|!!! Incorrect data in fiscal memory !!!!|72|!!! Error saving in fiscal memory !!!!|76|Information needed from NRA servers|90|Needs a reset with monthly report|91|Needs a reset with daily z-report|92|Needs a reset with report by operators|93|Needs a reset with report by articles|94|Can not reprogram this field|81|Daily z-report overflow|83|Report by operators overflow|84|Report by articles overflow|84|Monthly report overflow|88|Electronic journal overflow|102|No communication between fiscal unit and tax terminal|104|Incorrect communication between fiscal unit and tax terminal|110|SIM card replaced|111|Error in communication between tax terminal and NRA servers|" & _
@@ -244,13 +247,14 @@ Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
-Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"
+Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
+Private Const FORMAT_DATE_XML          As String = "yyyy\-mm\-dd\Thh\:nn\:ss"
 Private Const MAX_HEADER_LINES          As Long = 6
 Private Const MAX_FOOTER_LINES          As Long = 2
 
@@ -301,6 +305,7 @@ Private Enum UcsModelGroupEnum
     ucsModEcrModelB
     ucsModDaisy
     ucsModIncotex
+    ucsModEltrade
 End Enum
 
 Private Enum UcsProtocolMarkers
@@ -311,6 +316,17 @@ Private Enum UcsProtocolMarkers
     SYM_NAK = &H15
     SYM_SYN = &H16
     SYM_BASEDATA = &H20
+End Enum
+
+Private Enum UcsMaxCgInfoEnum
+    ucsMciCgTaxNo
+    ucsMciOperatorName
+    ucsMciCgPrsReceive
+    ucsMciCgName
+    ucsMciCgVatNo
+    ucsMciCgCity
+    ucsMciCgAddress
+    [_ucsMciLast]
 End Enum
 
 Private Type UcsAutodetect
@@ -325,7 +341,7 @@ Private Type UcsConfigValues
     CodePage            As Long
     ModelGroup          As UcsModelGroupEnum
     MaxPaymentLen       As Long
-    MaxCgInfo(0 To 6)   As Long
+    MaxCgInfo(0 To [_ucsMciLast] - 1) As Long
     MaxOperatorName     As Long
     DefPmtTypes         As String
     ConfigCommands      As Collection
@@ -448,6 +464,10 @@ Property Get IsIncotex() As Boolean
     IsIncotex = (m_uConfig.ModelGroup = ucsModIncotex)
 End Property
 
+Property Get IsEltrade() As Boolean
+    IsEltrade = (m_uConfig.ModelGroup = ucsModEltrade)
+End Property
+
 Property Get DefPmtTypes() As String
     Const FUNC_NAME     As String = "DefPmtTypes [get]"
     
@@ -457,6 +477,8 @@ Property Get DefPmtTypes() As String
             m_uConfig.DefPmtTypes = "PNCDB"
         ElseIf IsIncotex Then
             m_uConfig.DefPmtTypes = "PCNDB"
+        ElseIf IsEltrade Then
+            m_uConfig.DefPmtTypes = "PNCDIJKLMNQR"
         ElseIf IsEcr Then
             m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
@@ -497,6 +519,9 @@ Private Property Get pvRowChars() As Long
             End If
             If m_uPrintData.Config.ItemChars = 0 Then
                 m_uPrintData.Config.ItemChars = C_Lng(At(vSplit, lIndex + 2))
+            End If
+            If m_uPrintData.Config.MaxReceiptRows = DEF_MAX_RECEIPT_ROWS And C_Lng(At(vSplit, lIndex + 15)) > 0 Then
+                m_uPrintData.Config.MaxReceiptRows = C_Lng(At(vSplit, lIndex + 15))
             End If
         Else
             pvGetCommandConfig CONF_NAME, "InitLogo", eCmd, ucsIslCmdInitLogo, sParam, "R0"
@@ -682,6 +707,7 @@ Public Function Init(sDeviceString As String) As Boolean
     Dim sParam          As String
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
+    Dim sEltradePrefix  As String
     Dim lSerialIndex    As Long
     Dim lSwitchesIndex  As Long
     Dim sError          As String
@@ -703,6 +729,7 @@ Public Function Init(sDeviceString As String) As Boolean
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsIslCmdInfoDiagnostics, sParam, "0", _
         "DaisyPrefix", sDaisyPrefix, "DY", _
         "IncotexPrefix", sIncotexPrefix, "IN", _
+        "EltradePrefix", sEltradePrefix, "ED", _
         "SerialIndex", lSerialIndex, 4, _
         "SwitchesIndex", lSwitchesIndex, 3
     m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
@@ -713,6 +740,11 @@ Public Function Init(sDeviceString As String) As Boolean
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
+    End If
+    If Left$(At(m_vInfoDiagnostics, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+        m_vInfoDiagnostics(0) = "Incotex " & m_vInfoDiagnostics(0)
+    ElseIf Left$(At(m_vInfoDiagnostics, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+        pvEltradeMergeInfoArray m_vInfoDiagnostics
     End If
     '--- load config values
     sSerial = At(m_vInfoDiagnostics, lSerialIndex)
@@ -733,6 +765,8 @@ Public Function Init(sDeviceString As String) As Boolean
             .ModelGroup = ucsModDaisy
         ElseIf Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             .ModelGroup = ucsModIncotex
+        ElseIf Left$(GetDeviceSerialNo(), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+            .ModelGroup = ucsModEltrade
         Else
             pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
                 "Timeout", lTimeout, 100
@@ -1353,6 +1387,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Const CONF_NAME     As String = FUNC_NAME
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
+    Dim vDepSum         As Variant
     Dim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
@@ -1369,8 +1404,12 @@ Public Function GetTotalsByPaymentTypes() As Variant
         pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments1", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, "1", _
             "RevOffset", lRevOffset, -10
         vRevSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    ElseIf IsIncotex Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdExtendedInfoTotalsByPayments, sParam, vbNullString, _
+            "Offset", lOffset, 0
+        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     Else
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", vbNullString), _
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", IIf(IsEltrade, "11", "*")), _
             "Offset", lOffset, 0
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
     End If
@@ -1379,9 +1418,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     End If
     For lIdx = 0 To UBound(vRetVal)
         lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
-        If IsIncotex And lPmtIndex > 3 Then
-            '--- do nothing
-        ElseIf lPmtIndex >= 0 Then
+        If lPmtIndex >= 0 Then
             If IsArray(vRevSum) Then
                 vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
             Else
@@ -1389,6 +1426,12 @@ Public Function GetTotalsByPaymentTypes() As Variant
             End If
         End If
     Next
+    If IsEltrade And IsArray(vRetVal(0)) Then
+        '--- eltrade idiosyncrasy: service deposit/withdraw is added to cash total
+        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsIslCmdFiscalServiceDeposit, sParam, "0"
+        vDepSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        vRetVal(0)(1) = vRetVal(0)(1) - ParseSum(At(vDepSum, 2)) - ParseSum(At(vDepSum, 3))
+    End If
     '--- success
     GetTotalsByPaymentTypes = vRetVal
 QH:
@@ -1429,6 +1472,13 @@ Public Function GetTotalsByTaxGroups() As Variant
             "RevOffset", lRevOffset, 9
         sParam = Printf(sParam, sClosure)
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        vRevSum = vPmtSum
+    ElseIf IsEltrade Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "0", _
+            "Offset", lOffset, 0, _
+            "RevOffset", lRevOffset, 8
+        vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        '--- eltrade idiosyncrasy: no reversals info
         vRevSum = vPmtSum
     Else
         pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "0", _
@@ -1499,7 +1549,7 @@ Public Function GetTotalsStats() As Variant
         pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, IIf(IsEcr, "*0", vbNullString), _
             "Index", lIndex, -1
         vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        dLastDate = pvToDate(At(vSplit, lIndex))
+        dLastDate = pvFromDdmmyyDate(At(vSplit, lIndex))
     Else
         pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
         dLastDate = C_Date(SendCommand(eCmd, sParam))
@@ -1533,13 +1583,14 @@ Public Function PrintServiceDeposit(OperatorCode As String, ByVal Amount As Doub
     If bPrint Then
         sPrevReceiptNo = GetLastReceiptNo()
     End If
-    sParam = "%1" & IIf(IsIncotex And LenB(OperatorCode), DEF_SEP & "%2", vbNullString)
-    sFormat = IIf(bPrint Or IsIncotex, FORMAT_BASE_2, "\")
+    sParam = "%1" & IIf(IsIncotex And LenB(OperatorCode) <> 0, DEF_SEP & "%2", vbNullString)
+    sFormat = IIf(bPrint Or IsIncotex Or IsEltrade, FORMAT_BASE_2, "\")
     pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -bPrint, eCmd, ucsIslCmdFiscalServiceDeposit, sParam, sParam, _
-        "Format", sFormat, sFormat, "Index", lIndex, 1
+        "Format", sFormat, sFormat, _
+        "Index", lIndex, 1
     sParam = Printf(sParam, SafeFormat(Amount, sFormat), OperatorCode)
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If UBound(vRetVal) <= 0 Then
+    If UBound(vSplit) <= 0 Then
         GoTo QH
     End If
     If bPrint Then
@@ -1554,6 +1605,10 @@ Public Function PrintServiceDeposit(OperatorCode As String, ByVal Amount As Doub
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + lIndex))
     Next
+    If IsEltrade Then
+        '--- eltrade idiosyncrasy: negative total on service withdraws
+        vRetVal(2) = -vRetVal(2)
+    End If
     '--- success
     PrintServiceDeposit = vRetVal
 QH:
@@ -2025,6 +2080,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         pvGetCommandConfig CONF_NAME, "ExtendedInitInvoiceNo", eCmd, ucsIslCmdExtendedInitInvoiceNo, sParam, "%1" & vbLf & "%1"
                         sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
                         SendCommand eCmd, sParam
+                    ElseIf IsEltrade Then
+                        sParam = IIf(.InitReceiptType = ucsFscRcpCreditNote, "S", vbNullString) & "%1" & DEF_SEP & "%1"
+                        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsIslCmdInitInvoiceNo, sParam, sParam
+                        sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
+                        SendCommand eCmd, sParam
                     Else
                         pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsIslCmdInitInvoiceNo, sParam, "%1" & DEF_SEP & "%1"
                         sParam = Printf(sParam, .InitInvData(ucsInvDocNo))
@@ -2089,9 +2149,30 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     Zn(.InitUniqueSaleNo, "0"), _
                     .InitRevData(ucsRevReceiptNo), _
                     sRevType, _
-                    sRevType & Zn(At(.InitRevData, ucsRevInvoiceNo), "0") & _
+                    sRevType & Zn(C_Str(.InitRevData(ucsRevInvoiceNo)), "0") & _
                         DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                         DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo))
+            ElseIf IsEltrade Then
+                '--- %1=<OperName>,%2=<UNP>[,Type[,%3=(<FMIN>,<Reason>,<num>,<time>)[,%4=<inv>]]]
+                Select Case .InitReceiptType
+                Case ucsFscRcpReversal, ucsFscRcpCreditNote
+                    sRevType = Switch( _
+                        .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "T", _
+                        .InitRevData(ucsRevType) = ucsFscRevOperatorError, "O", _
+                        True, "R")
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "S" & DEF_SEP & "%3" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "%4", vbNullString)
+                Case Else
+                    sParam = "%1" & DEF_SEP & "%2" & IIf(.InitReceiptType = ucsFscRcpInvoice, DEF_SEP & "I", vbNullString)
+                End Select
+                pvGetCommandConfig CONF_NAME, "ExtendedFiscalOpen" & .PrintRowType, eCmd, ucsIslCmdExtendedFiscalOpen, sParam, sParam, _
+                    "FormatDate", sFormatDate, FORMAT_DATE_XML
+                sParam = Printf(sParam, .InitOperatorName, _
+                    .InitUniqueSaleNo, _
+                    .InitRevData(ucsRevFiscalMemoryNo) & _
+                        DEF_SEP & sRevType & _
+                        DEF_SEP & .InitRevData(ucsRevReceiptNo) & _
+                        DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate), _
+                    .InitRevData(ucsRevInvoiceNo))
             ElseIf IsEcr Then
                 Select Case .InitReceiptType
                 Case ucsFscRcpReversal, ucsFscRcpCreditNote
@@ -2140,7 +2221,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & .InitUniqueSaleNo, vbNullString))
                 End Select
             End If
-            bInLogin = Not IsIncotex
+            bInLogin = Not IsIncotex And Not IsEltrade
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
@@ -2301,11 +2382,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sCodeType = "1"
                 sCodeData = Pad(sCodeData, 7, "0")
             Case ucsFscBrcEan13
-                If IsIncotex Then
-                    sCodeType = "3"
-                Else
-                    sCodeType = "2"
-                End If
+                sCodeType = IIf(IsIncotex, "3", "2")
                 sCodeData = Pad(sCodeData, 12, "0")
             Case ucsFscBrcCode128
                 If IsIncotex Then
@@ -2318,12 +2395,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvSetLastError Printf(pvInternal(ucsErrBarcodeNotSupported), .BarcodeType)
                     GoTo QH
                 End If
-                sCodeType = "Q"
+                sCodeType = IIf(IsEltrade, "6", "Q")
             End Select
             If IsDaisy Then
                 sParam = "%1" & DEF_SEP & "%2" & vbTab & "C" & DEF_SEP & "0" & DEF_SEP & "%3" & DEF_SEP & "0"
             ElseIf IsIncotex Then
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "0"
+            ElseIf IsEltrade Then
+                sParam = "%1" & DEF_SEP & "%2"
             ElseIf IsEcr Then
                 sParam = "%1" & ";" & "%2"
             Else
@@ -2437,19 +2516,23 @@ Private Function pvPrintCgDetails(uFirstRow As UcsPpdRowData) As Boolean
             End If
             pvGetCommandConfig CONF_NAME, "FiscalCgInfo" & .PrintRowType, eCmd, ucsIslCmdFiscalCgInfo, sParam, Replace(sParam, "#", vbTab), _
                 "FormatAddr", sFormatAddr, sFormatAddr
-            sFormatAddr = Printf(sFormatAddr, Left$(.InitInvData(ucsInvCgCity), m_uConfig.MaxCgInfo(5)), _
-                Left$(.InitInvData(ucsInvCgAddress), m_uConfig.MaxCgInfo(6)))
+            sFormatAddr = Printf(sFormatAddr, Left$(.InitInvData(ucsInvCgCity), m_uConfig.MaxCgInfo(ucsMciCgCity)), _
+                Left$(.InitInvData(ucsInvCgAddress), m_uConfig.MaxCgInfo(ucsMciCgAddress)))
             If IsEcr Then
                 sTaxNoSuffix = vbTab & .InitInvData(ucsInvCgTaxNoType)
+            ElseIf IsEltrade Then
+                If .InitInvData(ucsInvCgTaxNoType) = ucsFscTxnCitizenNo Then
+                    sTaxNoPrefix = "#"
+                End If
             ElseIf IsFP Then
                 sTaxNoPrefix = At(Split("|#|*|^", "|"), .InitInvData(ucsInvCgTaxNoType))
             End If
-            lMaxSize = m_uConfig.MaxCgInfo(0) - Len(sTaxNoPrefix) - Len(sTaxNoSuffix)
+            lMaxSize = m_uConfig.MaxCgInfo(ucsMciCgTaxNo) - Len(sTaxNoPrefix) - Len(sTaxNoSuffix)
             sParam = Printf(sParam, sTaxNoPrefix & Left$(.InitInvData(ucsInvCgTaxNo), lMaxSize) & sTaxNoSuffix, _
-                Left$(.InitOperatorName, m_uConfig.MaxCgInfo(1)), _
-                Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(2)), _
-                Left$(.InitInvData(ucsInvCgName), m_uConfig.MaxCgInfo(3)), _
-                Left$(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxCgInfo(4)), _
+                Left$(.InitOperatorName, m_uConfig.MaxCgInfo(ucsMciOperatorName)), _
+                Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(ucsMciCgPrsReceive)), _
+                Left$(.InitInvData(ucsInvCgName), m_uConfig.MaxCgInfo(ucsMciCgName)), _
+                Left$(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxCgInfo(ucsMciCgVatNo)), _
                 sFormatAddr)
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
@@ -2472,6 +2555,7 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     Dim sParam          As String
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
+    Dim sEltradePrefix  As String
     Dim lNameIndex      As Long
     Dim lSerialIndex    As Long
     Dim vSplit          As Variant
@@ -2480,6 +2564,7 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsIslCmdInfoDiagnostics, sParam, "0", _
         "DaisyPrefix", sDaisyPrefix, "DY", _
         "IncotexPrefix", sIncotexPrefix, "IN", _
+        "EltradePrefix", sEltradePrefix, "ED", _
         "NameIndex", lNameIndex, 0, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
@@ -2488,6 +2573,11 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             sParam = vbNullString
             vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         End If
+        If Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+            vResult(0) = "Incotex " & vResult(0)
+        ElseIf Left$(At(vResult, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+            pvEltradeMergeInfoArray vResult
+        End If
     End If
     If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
         '--- check serial
@@ -2495,6 +2585,8 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             sProtocol = STR_PROTOCOL_DAISY
         ElseIf Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             sProtocol = STR_PROTOCOL_INCOTEX
+        ElseIf Left$(At(vResult, lSerialIndex), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+            sProtocol = STR_PROTOCOL_ELTRADE
         ElseIf LenB(At(vResult, lSerialIndex)) <> 0 Then
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
@@ -2599,7 +2691,7 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 1      ' N=SCheck (С ЧЕК)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (КРЕДИТ)
-'        Case ucsFscPmtBank
+'        Case ucsFscPmtCash
 '            pvToDevicePmtIndex = 3      ' D=SCash (USD)
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 4      ' B=SCash (EURO)
@@ -2617,27 +2709,68 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 4      ' B=SCash (ДОП.ВАЛУТА)
         End Select
+    ElseIf IsEltrade Then
+        Select Case PmtType
+        Case ucsFscPmtCash
+            pvToDevicePmtIndex = 0      ' P=SCash (В брой)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 1      ' N=SCheck (С чек)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 2      ' C=ST (Талон)
+        Case ucsFscPmtVoucher
+            pvToDevicePmtIndex = 3      ' D=SOT (външни талони)
+        Case ucsFscPmtPackaging
+            pvToDevicePmtIndex = 4      ' I=SP (амбалаж)
+        Case ucsFscPmtMaintenance
+            pvToDevicePmtIndex = 5      ' J=SSelf (вътрешно обслужване)
+        Case ucsFscPmtDamage
+            pvToDevicePmtIndex = 6      ' K=SDmg (повреди)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 7      ' L=SCards (кредитни/дебитни карти)
+        Case ucsFscPmtBank
+            pvToDevicePmtIndex = 8      ' M=SW (банкови трансфери)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 9      ' Q=SR1 (НЗОК)
+        Case ucsFscPmtCustom2
+            pvToDevicePmtIndex = 10     ' R=SR2 (Резерв 2)
+        End Select
     ElseIf IsEcr Then
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
-        Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 5      ' I=ST (КУПОН)
-        Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 4      ' J=SOT (ВАУЧЕР)
+'        Case ucsFscPmtCard
+'            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (ДЕБ.КАРТА)
-'        Case ucsFscPmtBank
-'            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
         Case ucsFscPmtCustom1
             pvToDevicePmtIndex = 3      ' D=SR1 (НЗОК)
+        Case ucsFscPmtVoucher
+            pvToDevicePmtIndex = 4      ' J=SOT (ВАУЧЕР)
+        Case ucsFscPmtCoupon
+            pvToDevicePmtIndex = 5      ' I=ST (КУПОН)
         End Select
     Else
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (В брой)
+'        Case ucsFscPmtCard
+'            pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
         Case ucsFscPmtCheque
             pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
+        Case ucsFscPmtCustom1
+            pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
+'        Case ucsFscPmtCustom1
+'            pvToDevicePmtIndex = 5      ' J=SR1 (Програмируем тип плащане 2)
+'        Case ucsFscPmtCustom1
+'            pvToDevicePmtIndex = 6      ' K=SR1 (Програмируем тип плащане 3)
+        Case ucsFscPmtCustom2
+            pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 4)
+'        Case ucsFscPmtCash
+'            pvToDevicePmtIndex = 8      ' unused
+'        Case ucsFscPmtCash
+'            pvToDevicePmtIndex = 9      ' unused
         Case ucsFscPmtCoupon
             pvToDevicePmtIndex = 10     ' m=ST (Талони)
         Case ucsFscPmtVoucher
@@ -2648,14 +2781,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 13     ' p=SSelf (Вътрешно обслужване)
         Case ucsFscPmtDamage
             pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)
-        Case ucsFscPmtCard
-            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
         Case ucsFscPmtBank
             pvToDevicePmtIndex = 15     ' r=SW (Банкови трансфери)
-        Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
-        Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 2)
         End Select
     End If
     Exit Function
@@ -2676,6 +2803,10 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
         If IsDaisy Then
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (60 + lIndex)
         ElseIf IsIncotex Then
+            If lIndex = 0 Then
+                pvToDevicePmtName = pvText(ucsTxtPaymentCash)
+                GoTo QH
+            End If
             pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (9 + lIndex)
         Else
             pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
@@ -2735,17 +2866,30 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Function pvToDate(sText As String) As Date
-    Const FUNC_NAME     As String = "pvToDate"
+Private Function pvFromDdmmyyDate(sText As String) As Date
+    Const FUNC_NAME     As String = "pvFromDdmmyyDate"
     
     On Error GoTo EH
     If Len(sText) = 6 And IsNumeric(sText) Then
-        pvToDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
+        pvFromDdmmyyDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
     End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
+
+Private Sub pvEltradeMergeInfoArray(vResult As Variant)
+    Const FUNC_NAME     As String = "pvEltradeMergeInfoArray"
+    
+    On Error GoTo EH
+    vResult(2) = At(vResult, 0) & DEF_SEP & At(vResult, 1) & " " & At(vResult, 2)
+    vResult(1) = vbNullString
+    vResult(0) = vbNullString
+    vResult = Split(Mid$(Join(vResult, DEF_SEP), 3), DEF_SEP)
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
+End Sub
 
 '=========================================================================
 ' Base class events
@@ -2772,6 +2916,7 @@ Private Sub Class_Initialize()
     eIdx = ucsIslCfgIncotex
     LocalizedText(ucsFscLciPrinterStatuses, eIdx) = STR_STATUSES_INCO
     LocalizedText(ucsFscLciPrinterErrors, eIdx) = STR_ERRORS_INCO
+    LocalizedText(ucsFscLciMemoryTexts, eIdx) = STR_MEMORY_INCO
     LocalizedText(ucsFscLciExtendedErrors, eIdx) = STR_EXTENDED_INCO
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
 End Sub
