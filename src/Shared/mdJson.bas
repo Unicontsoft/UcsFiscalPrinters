@@ -555,7 +555,7 @@ EH:
     End If
 End Function
 
-Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean) As String
+Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean, Optional CompoundChars As String) As String
     Const STR_CODES     As String = "\u0000|\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007|\b|\t|\n|\u000B|\f|\r|\u000E|\u000F|\u0010|\u0011|" & _
                                     "\u0012|\u0013|\u0014|\u0015|\u0016|\u0017|\u0018|\u0019|\u001A|\u001B|\u001C|\u001D|\u001E|\u001F"
     Const LNG_INDENT    As Long = 4
@@ -564,7 +564,6 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Dim vItems          As Variant
     Dim lIdx            As Long
     Dim lSize           As Long
-    Dim sCompound       As String
     Dim sSpace          As String
     Dim lAsc            As Long
     Dim lCompareMode    As VbCompareMethod
@@ -584,10 +583,12 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             Exit Function
         End If
         lCompareMode = pvJsonCompareMode(oJson)
-        sCompound = IIf(lCompareMode = vbBinaryCompare, "{}", "[]")
+        If LenB(CompoundChars) = 0 Then
+            CompoundChars = IIf(lCompareMode = vbBinaryCompare, "{}", "[]")
+        End If
         lCount = oJson.Count
         If lCount <= 0 Then
-            JsonDump = sCompound
+            JsonDump = CompoundChars
         Else
             sSpace = IIf(Minimize, vbNullString, " ")
             ReDim vItems(0 To lCount - 1) As String
@@ -607,11 +608,11 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
                 lSize = lSize + Len(vItems(lIdx))
             Next
             If lSize > 100 And Not Minimize Then
-                JsonDump = Left$(sCompound, 1) & vbCrLf & _
+                JsonDump = Left$(CompoundChars, 1) & vbCrLf & _
                     Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT)) & vbCrLf & _
-                    Space$(IIf(Level > 0, Level, 0) * LNG_INDENT) & Right$(sCompound, 1)
+                    Space$(IIf(Level > 0, Level, 0) * LNG_INDENT) & Right$(CompoundChars, 1)
             Else
-                JsonDump = Left$(sCompound, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(sCompound, 1)
+                JsonDump = Left$(CompoundChars, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(CompoundChars, 1)
             End If
         End If
     Case vbNull
@@ -647,7 +648,10 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
         JsonDump = """" & JsonDump & """"
     Case Else
         If IsArray(vJson) Then
-            JsonDump = Join(vJson)
+            For Each vKeys In vJson
+                JsonItem(oJson, -1) = vKeys
+            Next
+            JsonDump = JsonDump(oJson)
         ElseIf IsNumeric(vJson) Then
             JsonDump = Trim$(Str$(vJson))
         Else
