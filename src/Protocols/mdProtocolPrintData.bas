@@ -211,6 +211,7 @@ Public Function PpdStartReceipt( _
         .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
             SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), SafeText(RevInvoiceNo), SafeText(RevReason))
         .InitOwnData = Split(OwnData, STR_CHR1)
+        .PrintRowType = uData.Row(0).InitReceiptType
     End With
     '--- success
     PpdStartReceipt = True
