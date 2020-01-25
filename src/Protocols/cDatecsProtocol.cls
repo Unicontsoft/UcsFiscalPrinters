@@ -1238,6 +1238,10 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim sFormat         As String
 
     On Error GoTo EH
+    If Not CancelReceipt() Then
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
+    End If
     '--- %1={Type}<SEP>%2={Amount}<SEP>
     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
     pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > -DBL_EPSILON), eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _

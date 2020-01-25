@@ -1375,6 +1375,9 @@ Public Function PrintServiceDeposit( _
     Dim lPrintTimeout   As Long
     Dim lPmtIndex       As Long
     
+    If Not CancelReceipt() Then
+        GoTo QH
+    End If
     On Error GoTo EH
     lPmtIndex = pvToDevicePmtIndex(PmtType)
     If Abs(Amount) > DBL_EPSILON Then

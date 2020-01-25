@@ -1525,6 +1525,10 @@ Public Function PrintServiceDeposit(OperatorCode As String, ByVal Amount As Doub
     Dim lIndex          As Long
     
     On Error GoTo EH
+    If Not CancelReceipt() Then
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
+    End If
     bPrint = Abs(Amount) > DBL_EPSILON
     If bPrint Then
         sPrevReceiptNo = GetLastReceiptNo()
