@@ -247,7 +247,9 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[ENTER] ", "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
+    End If
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
         sPrinterId = At(vSplit, 1)
@@ -291,7 +293,9 @@ QH:
     If Not frHandleRequest Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterId, sResponse)
     End If
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[RETRN] ", "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -461,7 +465,9 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
         sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)
     End If
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[CONN ] ", "sLocalConnStr=" & sLocalConnStr
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sLocalConnStr=" & sLocalConnStr
+    End If
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
@@ -626,7 +632,9 @@ Private Function pvMakeSshTunnel( _
         IIf(LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
         IIf(lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
         IIf(LenB(sExtraParams) <> 0, " " & sExtraParams, vbNullString)
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "sParams=" & sParams
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sParams=" & sParams
+    End If
     '--- shell plink.exe
     Set oTunnel = New cExec
     With oTunnel
@@ -643,7 +651,9 @@ Private Function pvMakeSshTunnel( _
             Call Sleep(1)
             sLine = .ReadPendingOutput & .ReadPendingError
             If Len(sLine) > 1 Then
-                DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", Left$(sLine, Len(sLine) - 2)
+                If IsDataDumpEnabled Then
+                    DebugLog MODULE_NAME, FUNC_NAME, Left$(sLine, Len(sLine) - 2)
+                End If
                 sInput = sInput & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
             If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
@@ -654,7 +664,9 @@ Private Function pvMakeSshTunnel( _
                 For Each vElem In Split(sInput, vbCrLf)
                     If InStr(vElem, "ssh-rsa ") > 0 Then
                         sError = vElem & vbCrLf
-                        DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "SSH server key: " & vElem
+                        If IsDataDumpEnabled Then
+                            DebugLog MODULE_NAME, FUNC_NAME, "SSH server key: " & vElem
+                        End If
                     End If
                 Next
                 If bAcceptKeys Then
@@ -674,7 +686,9 @@ Private Function pvMakeSshTunnel( _
             End If
         Loop
         sError = sInput
-        DebugDataDump MODULE_NAME, FUNC_NAME, "[PLINK] ", "GetExitCode=" & .GetExitCode
+        If IsDataDumpEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "GetExitCode=" & .GetExitCode
+        End If
     End With
 QH:
     '--- trim ending new lines

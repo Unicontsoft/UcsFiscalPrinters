@@ -174,7 +174,9 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     Dim baBody()        As Byte
     
     On Error GoTo EH
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[ENTER] ", "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p")
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p")
+    End If
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
         sStatusCode = STR_STATUS_CODE_BAD_REQUEST
         sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
@@ -219,7 +221,9 @@ QH:
             HDR_CONTENT_LENGTH & ": " & UBound(baBody) + 1 & vbCrLf & vbCrLf
         m_oSocket.SendArray baBody
     End If
-    DebugDataDump MODULE_NAME, FUNC_NAME, "[RETRN] ", "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse
+    If IsDataDumpEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME

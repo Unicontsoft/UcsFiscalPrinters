@@ -483,9 +483,9 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     End If
 End Sub
 
-Public Sub DebugDataDump(sModule As String, sFunction As String, sPrefix As String, sText As String)
-    Logger.DataDump sModule, sFunction, sPrefix, sText
-End Sub
+Public Property Get IsDataDumpEnabled() As Boolean
+    IsDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeInformation + 1
+End Property
 
 Public Sub FlushDebugLog()
     Set Logger = Nothing
