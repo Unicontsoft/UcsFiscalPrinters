@@ -453,7 +453,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     On Error GoTo EH
     sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3A) & Chr$(&H21) & Chr$(&H30) & Chr$(&H30) & Chr$(&H34) & Chr$(&H3A) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H30) & Chr$(SYM_TERMINATOR)
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sProbeText)
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN)) ' SYN (&H16)
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_TERMINATOR)) ' TERMINATOR (&H3)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_X, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -519,7 +519,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                     If LenB(.Buffer) <> 0 Then
-                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
+                        If Right(.Buffer, Len(sReplyText)) = sReplyText Then
                             DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
