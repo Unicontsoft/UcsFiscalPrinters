@@ -177,7 +177,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .DeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
         .FiscalMemoryNo = Zn(C_Str(JsonItem(oResponse, "FiscalMemoryNo")), C_Str(JsonItem(oOptions, "FiscalMemoryNo")))
-        .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), STR_PROTOCOL_PROXY)
+        .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), "Proxy")
         .FirmwareVersion = Zn(C_Str(JsonItem(oResponse, "FirmwareVersion")), "N/A")
         .TaxNo = Zn(C_Str(JsonItem(oResponse, "TaxNo")), Zn(C_Str(JsonItem(oOptions, "TaxNo")), DEF_TAXNO))
         .TaxCaption = Zn(C_Str(JsonItem(oResponse, "TaxCaption")), Zn(C_Str(JsonItem(oOptions, "TaxCaption")), DEF_TAXCAPTION))
