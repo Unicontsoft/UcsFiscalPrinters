@@ -204,6 +204,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
     Dim nLogFile        As Integer
     Dim sPrefix         As String
     Dim sSuffix         As String
+    Dim lIdx            As Long
     
     sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(GetCurrentNow, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): "
     sSuffix = IIf(LenB(sModule) <> 0, " [" & sModule & "." & sFunction & "]", vbNullString)
@@ -226,6 +227,14 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
                     sNewFile = Left$(sFile, InStrRev(sFile, ".") - 1) & Format$(Date, "_yyyy_mm_dd") & Mid$(sFile, InStrRev(sFile, "."))
                 Else
                     sNewFile = sFile & Format$(Date, "_yyyy_mm_dd")
+                End If
+                If FileExists(sNewFile) Then
+                    For lIdx = 2 To 100
+                        If Not FileExists(sNewFile & "." & lIdx) Then
+                            sNewFile = sNewFile & "." & lIdx
+                            Exit For
+                        End If
+                    Next
                 End If
                 Name sFile As sNewFile
             End If
