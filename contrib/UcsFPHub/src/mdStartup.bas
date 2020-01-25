@@ -282,9 +282,12 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         JsonExpandEnviron m_oConfig
     End If
     Set ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
-    '--- first register local endpoints
-    Set m_oPrinters = Nothing
+    '-- clear printers collection
     JsonItem(m_oPrinters, vbNullString) = Empty
+    For Each vKey In JsonKeys(m_oPrinters)
+        JsonItem(m_oPrinters, vKey) = Empty
+    Next
+    '--- first register local endpoints
     If Not pvCreateEndpoints(m_oPrinters, "local", m_cEndpoints) Then
         GoTo QH
     End If
