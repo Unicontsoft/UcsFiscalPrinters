@@ -365,6 +365,14 @@ End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue As String)
     m_uConfig.LocalizedText(eIdx) = Split(sValue, "|")
+    Select Case eIdx
+    Case ucsFscLciInternalErrors
+        m_uPrintData.LocalizedText.ErrNoReceiptStarted = pvInternal(ucsErrNoReceiptStarted)
+    Case ucsFscLciReceiptTexts
+        m_uPrintData.LocalizedText.TxtSurcharge = pvText(ucsTxtSurcharge)
+        m_uPrintData.LocalizedText.TxtDiscount = pvText(ucsTxtDiscount)
+        m_uPrintData.LocalizedText.TxtPluSales = pvText(ucsTxtPluSales)
+    End Select
 End Property
 
 Property Get IsEcr() As Boolean

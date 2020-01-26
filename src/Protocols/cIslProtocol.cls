@@ -447,6 +447,14 @@ End Property
 
 Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, Optional ByVal ConfigIndex As Long, sValue As String)
     m_uLConfig(ConfigIndex).LocalizedText(eIdx) = SplitOrReindex(sValue, "|")
+    Select Case eIdx
+    Case ucsFscLciInternalErrors
+        m_uPrintData.LocalizedText.ErrNoReceiptStarted = pvInternal(ucsErrNoReceiptStarted)
+    Case ucsFscLciReceiptTexts
+        m_uPrintData.LocalizedText.TxtSurcharge = pvText(ucsTxtSurcharge)
+        m_uPrintData.LocalizedText.TxtDiscount = pvText(ucsTxtDiscount)
+        m_uPrintData.LocalizedText.TxtPluSales = pvText(ucsTxtPluSales)
+    End Select
 End Property
 
 Property Get IsFP() As Boolean
