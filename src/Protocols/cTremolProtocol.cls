@@ -756,6 +756,14 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
                             DebugLog FUNC_NAME, "Ready after " & lIter
                         End If
                         GoTo QH
+                    Case LNG_STATUS_IS_BUSY
+                        '--- wait
+                    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
+                        GoTo QH
+                    Case LNG_STATUS_OVERHEATED
+                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
+                        GoTo QH
                     End Select
                 End If
                 Call Sleep(C_Lng(sDelay))
@@ -2055,7 +2063,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 GoTo QH
             End If
             uCtx.PmtPrinted = True
-            If .PmtType = 0 And m_uConfig.DelayPrint Then
+            If .PmtType = 0 And (m_uConfig.DelayPrint Or m_uConfig.BufferPrint) Then
                 If Not WaitDevice(lRowCount * m_lTimeout) Then
                     GoTo QH
                 End If
