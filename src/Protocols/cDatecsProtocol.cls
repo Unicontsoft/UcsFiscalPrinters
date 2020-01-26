@@ -255,6 +255,17 @@ Private Enum UcsProtocolMarkers
     SYM_BASEDATA = &H20
 End Enum
 
+Private Enum UcsMaxCgInfoEnum
+    ucsMciOperatorName
+    ucsMciCgPrsReceive
+    ucsMciCgName
+    ucsMciCgCity
+    ucsMciCgAddress
+    ucsMciCgTaxNo
+    ucsMciCgVatNo
+    [_ucsMciLast]
+End Enum
+
 Private Type UcsAutodetect
     Connector           As cSerialPortConnector
     WriteOver           As OVERLAPPED
@@ -266,7 +277,7 @@ Private Type UcsConfigValues
     DefaultPassword     As String
     CodePage            As Long
     IsEcr               As VbTriState
-    MaxCgInfo(0 To 6)   As Long
+    MaxCgInfo(0 To [_ucsMciLast] - 1) As Long
     MaxOperatorName     As Long
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
@@ -1866,14 +1877,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8" & DEF_SEP
                         pvGetCommandConfig CONF_NAME, "FiscalCgInfo", eCmd, ucsDcsCmdFiscalCgInfo, sParam, sParam
                         With uRow(0)
-                            sParam = Printf(sParam, Left$(.InitOperatorName, m_uConfig.MaxCgInfo(0)), _
-                                Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(1)), _
-                                Left$(.InitInvData(ucsInvCgName), m_uConfig.MaxCgInfo(2)), _
-                                Left$(.InitInvData(ucsInvCgCity), m_uConfig.MaxCgInfo(3)), _
-                                Left$(.InitInvData(ucsInvCgAddress), m_uConfig.MaxCgInfo(4)), _
+                            sParam = Printf(sParam, Left$(.InitOperatorName, m_uConfig.MaxCgInfo(ucsMciOperatorName)), _
+                                Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(ucsMciCgPrsReceive)), _
+                                Left$(.InitInvData(ucsInvCgName), m_uConfig.MaxCgInfo(ucsMciCgName)), _
+                                Left$(.InitInvData(ucsInvCgCity), m_uConfig.MaxCgInfo(ucsMciCgCity)), _
+                                Left$(.InitInvData(ucsInvCgAddress), m_uConfig.MaxCgInfo(ucsMciCgAddress)), _
                                 .InitInvData(ucsInvCgTaxNoType), _
-                                Left$(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxCgInfo(5)), _
-                                Left$(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxCgInfo(6)))
+                                Left$(.InitInvData(ucsInvCgTaxNo), m_uConfig.MaxCgInfo(ucsMciCgTaxNo)), _
+                                Left$(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxCgInfo(ucsMciCgVatNo)))
                         End With
                         SendCommand eCmd, sParam
                         If LenB(m_uPrintData.LastError) <> 0 Then
