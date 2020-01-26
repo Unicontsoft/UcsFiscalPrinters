@@ -200,7 +200,6 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_MAX_PAYMENT_LEN       As Long = 16
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_SEQUENCE              As Long = &H20
@@ -267,7 +266,6 @@ Private Type UcsConfigValues
     DefaultPassword     As String
     CodePage            As Long
     IsEcr               As VbTriState
-    MaxPaymentLen       As Long
     MaxCgInfo(0 To 6)   As Long
     MaxOperatorName     As Long
     ConfigCommands      As Collection
@@ -598,7 +596,6 @@ Public Function Init(sDeviceString As String) As Boolean
         .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
         .IsEcr = GetConfigNumber(sSerial, "IsEcr", Znl(C_Lng(JsonItem(oOptions, "IsEcr")), vbUseDefault))
-        .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))

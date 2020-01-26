@@ -249,7 +249,6 @@ Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_MAX_PAYMENT_LEN       As Long = 24
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_SEQUENCE              As Long = &H20
@@ -343,7 +342,6 @@ Private Type UcsConfigValues
     DefaultPassword     As String
     CodePage            As Long
     ModelGroup          As UcsModelGroupEnum
-    MaxPaymentLen       As Long
     MaxCgInfo(0 To [_ucsMciLast] - 1) As Long
     MaxOperatorName     As Long
     DefPmtTypes         As String
@@ -779,7 +777,6 @@ Public Function Init(sDeviceString As String) As Boolean
                 m_uConfig.ModelGroup = ucsModFpModelA
             End If
         End If
-        .MaxPaymentLen = GetConfigNumber(sSerial, "MaxPaymentLen", Znl(C_Lng(JsonItem(oOptions, "MaxPaymentLen")), DEF_MAX_PAYMENT_LEN))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
             .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
