@@ -319,6 +319,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
+    Else
+        JsonItem(oRetVal, "ResumeToken") = sResumeToken
     End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
@@ -328,8 +330,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceiptNo)) <> 0 Then
-            If Pad(sPrevReceiptNo, -Len(JsonItem(oRetVal, "PrevReceiptNo"))) <> JsonItem(oRetVal, "PrevReceiptNo") And C_Lng(JsonItem(oRetVal, "PrevReceiptCount")) <> 0 Then
-                If C_Str(JsonItem(oRetVal, "PrevReceiptCount")) <> At(oFP.GetTotalsStats(), 0) Then
+            If Pad(sPrevReceiptNo, -Len(JsonItem(oRetVal, "PrevReceiptNo"))) <> JsonItem(oRetVal, "PrevReceiptNo") And C_Lng(JsonItem(oJson, "PrevReceiptCount")) <> 0 Then
+                If C_Str(JsonItem(oJson, "PrevReceiptCount")) <> At(oFP.GetTotalsStats(), 0) Then
                     JsonItem(oRetVal, "PrevReceiptNo") = Empty
                     GoTo ReturnReceiptInfo
                 End If
@@ -408,13 +410,15 @@ ReturnReceiptInfo:
     JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
+    If LenB(sLastErr) <> 0 And Not oFP Is Nothing Then
+        JsonItem(oRetVal, "ResumeToken") = Zn(oFP.GetResumeToken(), Empty)
+    Else
+        JsonItem(oRetVal, "ResumeToken") = Empty
+    End If
     PrintReceipt = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)
     Exit Function
 EH:
     If pvCommonErrHandler(FUNC_NAME, oFP, sLastErr, eLastNo) Then
-        If Not oFP Is Nothing Then
-            JsonItem(oRetVal, "ResumeToken") = Zn(oFP.GetResumeToken(), Empty)
-        End If
         Resume QH
     End If
 End Function
