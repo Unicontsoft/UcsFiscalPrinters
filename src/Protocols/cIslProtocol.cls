@@ -744,6 +744,7 @@ Public Function Init(sDeviceString As String) As Boolean
     m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     If LenB(At(m_vInfoDiagnostics, 0)) = 0 And LenB(sParam) <> 0 Then
         sParam = vbNullString
+        sError = vbNullString
         m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
     End If
     If LenB(sError) <> 0 Then
@@ -1522,26 +1523,12 @@ Public Function GetTotalsStats() As Variant
     Dim lIdx            As Long
     
     On Error GoTo EH
-    If IsIncotex Then
-        pvGetCommandConfig CONF_NAME, "InfoDailyStats", eCmd, ucsIslCmdInfoDailyStats, sParam, vbNullString, _
-            "Index", lIndex, -2
-        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        If UBound(vSplit) >= 1 Then
-            lReceipts = C_Lng(At(vSplit, lIndex))
-        Else
-            vSplit = Empty
-        End If
-    ElseIf Not IsEcr Then
-        pvGetCommandConfig CONF_NAME, "InfoNap", eCmd, ucsIslCmdInfoNap, sParam, "1", _
-            "Index", lIndex, 2
-        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        If UBound(vSplit) >= lIndex Then
-            lReceipts = C_Lng(At(vSplit, lIndex))
-        Else
-            vSplit = Empty
-        End If
-    End If
-    If Not IsArray(vSplit) Then
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+        "Index", lIndex, -1
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If UBound(vSplit) >= 1 Then
+        lReceipts = C_Lng(At(vSplit, lIndex))
+    Else
         pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdInfoOperator, sParam, "%1", _
             "Index", lIndex, 0
         lReceipts = 0
@@ -1553,14 +1540,13 @@ Public Function GetTotalsStats() As Variant
             lReceipts = lReceipts + C_Lng(At(vSplit, lIndex))
         Next
     End If
-    If IsIncotex Or IsEcr Then
-        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, IIf(IsEcr, "*0", vbNullString), _
+    pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
+    dLastDate = C_Date(SendCommand(eCmd, sParam))
+    If dLastDate = 0 Then
+        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
             "Index", lIndex, -1
         vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
         dLastDate = pvFromDdmmyyDate(At(vSplit, lIndex))
-    Else
-        pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
-        dLastDate = C_Date(SendCommand(eCmd, sParam))
     End If
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
@@ -2579,6 +2565,7 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         If LenB(At(vResult, 0)) = 0 Then
             sParam = vbNullString
+            Error = vbNullString
             vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         End If
         If Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
@@ -2875,15 +2862,10 @@ EH:
 End Sub
 
 Private Function pvFromDdmmyyDate(sText As String) As Date
-    Const FUNC_NAME     As String = "pvFromDdmmyyDate"
-    
-    On Error GoTo EH
     If Len(sText) = 6 And IsNumeric(sText) Then
         pvFromDdmmyyDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
     End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
+QH:
 End Function
 
 Private Sub pvEltradeMergeInfoArray(vResult As Variant)
