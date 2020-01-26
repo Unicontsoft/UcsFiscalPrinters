@@ -65,11 +65,11 @@ End Enum
 '=========================================================================
 
 Private Const ERR_NO_RECEIPT_STARTED    As String = "No receipt started"
+Private Const ERR_INVALID_DISCTYPE      As String = "Invalid discount type: %1"
 Private Const TXT_SURCHARGE             As String = "Surcharge %1"
 Private Const TXT_DISCOUNT              As String = "Discount %1"
 Private Const TXT_PLUSALES              As String = "Sales %1"
 Public Const ucsFscDscPluAbs            As Long = ucsFscDscPlu + 100
-Public Const ucsFscDscSubtotalAbs       As Long = ucsFscDscSubtotal + 100
 Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
 Public Const MIN_TAX_GROUP              As Long = 1
 Public Const MAX_TAX_GROUP              As Long = 8
@@ -134,6 +134,7 @@ End Type
 
 Public Type UcsPpdLocalizedTexts
     ErrNoReceiptStarted As String
+    ErrInvalidDiscType  As String
     TxtSurcharge        As String
     TxtDiscount         As String
     TxtPluSales         As String
@@ -317,7 +318,7 @@ Public Function PpdAddDiscount( _
                 End If
             End With
         Next
-    Case Else
+    Case ucsFscDscSubtotal, ucsFscDscSubtotalAbs
         With uRow
             .RowType = ucsRowDiscount
             .DiscType = DiscType
@@ -325,6 +326,9 @@ Public Function PpdAddDiscount( _
             .PrintRowType = uData.Row(0).InitReceiptType
         End With
         pvInsertRow uData, BeforeIndex, uRow
+    Case Else
+        pvSetLastError uData, Printf(Zn(uData.LocalizedText.ErrInvalidDiscType, ERR_INVALID_DISCTYPE), DiscType)
+        GoTo QH
     End Select
     '--- success
     PpdAddDiscount = True
@@ -688,6 +692,7 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
                     uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) + dblTotal, DEF_PRICE_SCALE)
                 Next
             Case ucsFscDscSubtotalAbs
+                '--- ToDo: fix for multiple tax groups
                 For lJdx = 1 To UBound(uCtx.GrpTotal)
                     If Abs(uCtx.GrpTotal(lJdx)) > DBL_EPSILON Then
                         uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) - .DiscValue, DEF_PRICE_SCALE)

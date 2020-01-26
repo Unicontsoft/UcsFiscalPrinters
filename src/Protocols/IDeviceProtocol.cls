@@ -59,6 +59,7 @@ Public Enum UcsFiscalDiscountTypeEnum
     ucsFscDscPlu = 1
     ucsFscDscSubtotal
     ucsFscDscTotal
+    ucsFscDscSubtotalAbs
     [_ucsFscDscMax]
 End Enum
 
