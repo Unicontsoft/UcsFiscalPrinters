@@ -66,6 +66,9 @@ Private Const FW_NORMAL                     As Long = 400
 '--- GetDeviceCaps constants
 Private Const LOGPIXELSX                    As Long = 88
 Private Const LOGPIXELSY                    As Long = 90
+'--- for ShellExecuteEx
+Private Const SEE_MASK_NOASYNC              As Long = &H100
+Private Const SEE_MASK_FLAG_NO_UI           As Long = &H400
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -106,6 +109,7 @@ Private Declare Function lstrlenA Lib "kernel32" (lpString As Any) As Long
 Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+Private Declare Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExA" (lpExecInfo As SHELLEXECUTEINFO) As Long
 
 Private Type FILETIME
     dwLowDateTime   As Long
@@ -138,6 +142,25 @@ Private Type LOGFONT
     lfQuality           As Byte
     lfPitchAndFamily    As Byte
     lfFaceName(1 To 32) As Byte
+End Type
+
+Private Type SHELLEXECUTEINFO
+    cbSize              As Long
+    fMask               As Long
+    hWnd                As Long
+    lpVerb              As String
+    lpFile              As String
+    lpParameters        As String
+    lpDirectory         As Long
+    nShow               As Long
+    hInstApp            As Long
+    '  optional fields
+    lpIDList            As Long
+    lpClass             As Long
+    hkeyClass           As Long
+    dwHotKey            As Long
+    hIcon               As Long
+    hProcess            As Long
 End Type
 
 '=========================================================================
@@ -1260,4 +1283,16 @@ Public Function IconScale(ByVal sngSize As Single) As Long
     Else
         IconScale = Int(sngSize * 1)
     End If
+End Function
+
+Public Function ShellExec(sExeFile As String, sParams As String) As Boolean
+    Dim uShell          As SHELLEXECUTEINFO
+    
+    With uShell
+        .cbSize = Len(uShell)
+        .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
+        .lpFile = sExeFile
+        .lpParameters = sParams
+    End With
+    Call ShellExecuteEx(uShell)
 End Function

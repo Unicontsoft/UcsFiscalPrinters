@@ -1,13 +1,13 @@
 VERSION 5.00
 Begin VB.Form frmIcon 
    Caption         =   "Настройки"
-   ClientHeight    =   1764
+   ClientHeight    =   1776
    ClientLeft      =   192
    ClientTop       =   240
    ClientWidth     =   4944
    Icon            =   "frmIcon.frx":0000
    LinkTopic       =   "Form1"
-   ScaleHeight     =   1764
+   ScaleHeight     =   1776
    ScaleWidth      =   4944
    StartUpPosition =   1  'CenterOwner
    Begin VB.Menu mnuMainPopup 
@@ -42,7 +42,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -53,35 +53,6 @@ Attribute VB_Exposed = False
 Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "frmIcon"
-
-'=========================================================================
-' API
-'=========================================================================
-
-'--- for ShellExecuteEx
-Private Const SEE_MASK_NOASYNC              As Long = &H100
-Private Const SEE_MASK_FLAG_NO_UI           As Long = &H400
-
-Private Declare Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExA" (lpExecInfo As SHELLEXECUTEINFO) As Long
-
-Private Type SHELLEXECUTEINFO
-    cbSize              As Long
-    fMask               As Long
-    hWnd                As Long
-    lpVerb              As String
-    lpFile              As String
-    lpParameters        As String
-    lpDirectory         As Long
-    nShow               As Long
-    hInstApp            As Long
-    '  optional fields
-    lpIDList            As Long
-    lpClass             As Long
-    hkeyClass           As Long
-    dwHotKey            As Long
-    hIcon               As Long
-    hProcess            As Long
-End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -145,11 +116,11 @@ EH:
     PrintError FUNC_NAME
 End Function
 
-Public Sub ShowConfig()
+Public Sub ShowConfig(Optional OwnerForm As Object)
     Const FUNC_NAME     As String = "ShowConfig"
     
     On Error GoTo EH
-    frmSettings.Init
+    frmSettings.Init OwnerForm
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -174,20 +145,13 @@ End Sub
 
 Public Sub Restart(Optional AddParam As Variant)
     Const FUNC_NAME     As String = "Restart"
-    Dim uShell          As SHELLEXECUTEINFO
 
     On Error GoTo EH
     ShutDown
     If IsMissing(AddParam) Or InIde Then
         Main
     Else
-        With uShell
-            .cbSize = Len(uShell)
-            .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
-            .lpFile = GetProcessName()
-            .lpParameters = Trim$(Command$ & IIf(LenB(AddParam) <> 0, " " & ArgvQuote(AddParam & vbNullString), vbNullString))
-        End With
-        Call ShellExecuteEx(uShell)
+        ShellExec GetProcessName(), Trim$(Command$ & IIf(LenB(AddParam) <> 0, " " & ArgvQuote(AddParam & vbNullString), vbNullString))
     End If
     Exit Sub
 EH:

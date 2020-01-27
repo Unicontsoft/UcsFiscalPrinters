@@ -17,7 +17,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -80,6 +80,17 @@ End Property
 
 Private Property Get pvAddressOfTimerProc() As frmLocalEndpoint
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
+End Property
+
+Private Property Get pvSettingsForm() As frmSettings
+    Dim oForm       As Object
+    
+    For Each oForm In Forms
+        If TypeOf oForm Is frmSettings Then
+            Set pvSettingsForm = oForm
+            Exit Property
+        End If
+    Next
 End Property
 
 '=========================================================================
@@ -180,14 +191,14 @@ EH:
     Resume QH
 End Function
 
-Public Sub ShowConfig()
+Public Sub ShowConfig(Optional OwnerForm As Object)
     Const FUNC_NAME     As String = "ShowConfig"
     Dim oForm           As frmIcon
     
     On Error GoTo EH
     Set oForm = MainForm
     If Not oForm Is Nothing Then
-        oForm.ShowConfig
+        oForm.ShowConfig OwnerForm
     End If
 QH:
     Exit Sub
@@ -201,12 +212,13 @@ Public Sub ShutDown()
     Dim oForm           As frmIcon
     
     On Error GoTo EH
+    If IsRunningAsService Then
+        NtServiceStop
+        GoTo QH
+    End If
     Set oForm = MainForm
     If Not oForm Is Nothing Then
         oForm.ShutDown
-    End If
-    If IsRunningAsService Then
-        NtServiceStop
     End If
 QH:
     Exit Sub
@@ -215,14 +227,25 @@ EH:
     Resume QH
 End Sub
 
-Public Sub Restart(Optional AddParam As Variant)
+Public Sub Restart()
     Const FUNC_NAME     As String = "Restart"
+    Dim oSettings       As frmSettings
     Dim oForm           As frmIcon
     
     On Error GoTo EH
+    If IsRunningAsService Then
+        NtServiceStop
+        ShellExec "net", "start " & STR_SERVICE_NAME
+        GoTo QH
+    End If
+    Set oSettings = pvSettingsForm
+    If Not oSettings Is Nothing Then
+        oSettings.frRestart
+        GoTo QH
+    End If
     Set oForm = MainForm
     If Not oForm Is Nothing Then
-        oForm.Restart AddParam
+        oForm.Restart
     End If
 QH:
     Exit Sub

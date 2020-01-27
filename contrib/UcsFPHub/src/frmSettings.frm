@@ -4,7 +4,7 @@ Begin VB.Form frmSettings
    ClientHeight    =   8124
    ClientLeft      =   192
    ClientTop       =   840
-   ClientWidth     =   14784
+   ClientWidth     =   14772
    BeginProperty Font 
       Name            =   "Tahoma"
       Size            =   7.8
@@ -18,7 +18,7 @@ Begin VB.Form frmSettings
    KeyPreview      =   -1  'True
    LinkTopic       =   "Form1"
    ScaleHeight     =   8124
-   ScaleWidth      =   14784
+   ScaleWidth      =   14772
    StartUpPosition =   3  'Windows Default
    Begin VB.PictureBox picTab 
       BorderStyle     =   0  'None
@@ -464,7 +464,7 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init() As Boolean
+Public Function Init(Optional OwnerForm As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim sConfFile       As String
     Dim oCtl            As Object
@@ -502,7 +502,17 @@ Public Function Init() As Boolean
         pvChanged = False
         tabMain_Click
     End If
-    Show
+    If Not OwnerForm Is Nothing Then
+        On Error Resume Next
+        If pvShowModal(OwnerForm) Then
+            If pvShowModal() Then
+                Show
+            End If
+        End If
+        On Error GoTo EH
+    Else
+        Show
+    End If
     If WindowState = vbMinimized Then
         WindowState = vbNormal
     End If
@@ -737,8 +747,8 @@ EH:
     Resume Next
 End Function
 
-Private Sub pvRestart()
-    Const FUNC_NAME     As String = "pvRestart"
+Friend Sub frRestart()
+    Const FUNC_NAME     As String = "frRestart"
     Dim oFrm            As Object
     
     On Error GoTo EH
@@ -762,6 +772,11 @@ Private Sub pvRestart()
 EH:
     PrintError FUNC_NAME
 End Sub
+
+Private Function pvShowModal(Optional OwnerForm As Variant) As Boolean
+    '--- note: no error handling
+    Show vbModal, OwnerForm
+End Function
 
 '=========================================================================
 ' Events
@@ -820,14 +835,14 @@ Private Sub mnuFile_Click(Index As Integer)
                 GoTo QH
             End If
             If MsgBox(Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName), vbQuestion Or vbYesNo) = vbYes Then
-                pvRestart
+                frRestart
             End If
         End If
     Case ucsMnuFileRestart
         If Not pvQuerySaveConfig(m_sConfFile) Then
             GoTo QH
         End If
-        pvRestart
+        frRestart
     Case ucsMnuFileExit
         MainForm.ShutDown
     End Select
