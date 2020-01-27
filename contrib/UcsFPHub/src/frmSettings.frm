@@ -146,15 +146,6 @@ Begin VB.Form frmSettings
       End
       Begin VB.TextBox txtInfo 
          BackColor       =   &H8000000F&
-         BeginProperty Font 
-            Name            =   "Courier New"
-            Size            =   9
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
          Height          =   2868
          Left            =   4620
          Locked          =   -1  'True
@@ -165,15 +156,6 @@ Begin VB.Form frmSettings
          Width           =   5052
       End
       Begin VB.ListBox lstPrinters 
-         BeginProperty Font 
-            Name            =   "Courier New"
-            Size            =   9
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
          Height          =   2928
          IntegralHeight  =   0   'False
          Left            =   4620
@@ -198,15 +180,6 @@ Begin VB.Form frmSettings
       Width           =   9924
       Begin VB.TextBox txtConfig 
          BorderStyle     =   0  'None
-         BeginProperty Font 
-            Name            =   "Courier New"
-            Size            =   9
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
          Height          =   5640
          Left            =   0
          MultiLine       =   -1  'True
@@ -232,15 +205,6 @@ Begin VB.Form frmSettings
       Width           =   9924
       Begin VB.TextBox txtLog 
          BorderStyle     =   0  'None
-         BeginProperty Font 
-            Name            =   "Courier New"
-            Size            =   9
-            Charset         =   204
-            Weight          =   400
-            Underline       =   0   'False
-            Italic          =   0   'False
-            Strikethrough   =   0   'False
-         EndProperty
          Height          =   5808
          Left            =   0
          Locked          =   -1  'True
@@ -480,6 +444,9 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
                 Set oCtl.Font = Me.Font
             ElseIf InStr(oCtl.Tag, "MONO") Then
                 oCtl.Font.Name = "Consolas"
+                If oCtl.Font.Name <> "Consolas" Then
+                    oCtl.Font.Name = "Courier New"
+                End If
                 oCtl.Font.Size = Me.Font.Size
             End If
         Next
