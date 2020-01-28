@@ -1,5 +1,5 @@
 # Auto detect text files and perform LF normalization
-* text=auto eol=crlf working-tree-encoding=windows-1251
+* text=auto eol=crlf
 
 *.dll binary
 *.pdb binary
