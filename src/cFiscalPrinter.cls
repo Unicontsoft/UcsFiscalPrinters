@@ -84,6 +84,13 @@ Private Const STR_ESP_POS_INTERNAL      As String = "Няма започната бележка|Греш
 Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТАЛОНИ|В.ТАЛОНИ|АМБАЛАЖ|В.ОБСЛУЖВАНЕ|ПОВРЕДИ|С КАРТА|ПО БАНКA|НЗОК|ПРОГ.ТИП 2|ЕВРО|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Грешка при WaitCommEvent: %1"
 Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
+'--- enums texts
+Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packing|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
+Private Const STR_ENUM_RECEIPT_TYPE     As String = "|Sale|Reversal|Invoice|CreditNote|OrderList"
+Private Const STR_ENUM_CGTAXNO_TYPE     As String = "EIC|CitizenNo|ForeignerNo|OfficialNo"
+Private Const STR_ENUM_REVERSAL_TYPE    As String = "OperatorError|Refund|TaxBaseReduction"
+Private Const STR_ENUM_BARCODE_TYPE     As String = "|Ean8|Ean13|Code128|QRcode"
+Private Const STR_ENUM_REPOR_TYPE       As String = "|Daily|Number|Date|Operator"
 '--- config entries
 Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
 Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
@@ -339,7 +346,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
     If IsObject(JsonItem(oJson, "Rows")) Then
-        If Not oFP.StartReceipt(JsonEnumValue(JsonItem(oJson, "ReceiptType"), "|Sale|Reversal|Invoice|CreditNote|OrderList"), _
+        If Not oFP.StartReceipt(JsonEnumValue(JsonItem(oJson, "ReceiptType"), STR_ENUM_RECEIPT_TYPE), _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
@@ -348,13 +355,13 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 DisablePrinting:=JsonBoolItem(oJson, "DisablePrinting"), _
                 InvDocNo:=JsonItem(oJson, "Invoice/DocNo"), _
                 InvCgTaxNo:=JsonItem(oJson, "Invoice/CgTaxNo"), _
-                InvCgTaxNoType:=JsonEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), "EIC|CitizenNo|ForeignerNo|OfficialNo"), _
+                InvCgTaxNoType:=JsonEnumValue(JsonItem(oJson, "Invoice/CgTaxNoType"), STR_ENUM_CGTAXNO_TYPE), _
                 InvCgVatNo:=JsonItem(oJson, "Invoice/CgVatNo"), _
                 InvCgName:=JsonItem(oJson, "Invoice/CgName"), _
                 InvCgAddress:=JsonItem(oJson, "Invoice/CgAddress"), _
                 InvCgPrsReceive:=JsonItem(oJson, "Invoice/CgPrsReceive"), _
                 OwnData:=JsonItem(oJson, "OwnData"), _
-                RevType:=JsonEnumValue(JsonItem(oJson, "Reversal/ReversalType"), "OperatorError|Refund|TaxBaseReduction"), _
+                RevType:=JsonEnumValue(JsonItem(oJson, "Reversal/ReversalType"), STR_ENUM_REVERSAL_TYPE), _
                 RevReceiptNo:=JsonItem(oJson, "Reversal/ReceiptNo"), _
                 RevReceiptDate:=C_Date(JsonItem(oJson, "Reversal/ReceiptDateTime")), _
                 RevFiscalMemoryNo:=JsonItem(oJson, "Reversal/FiscalMemoryNo"), _
@@ -368,16 +375,16 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             With pvGetRowData(JsonItem(oJson, "Rows/" & vElem))
                 Select Case .RowType
                 Case ucsRwtSell
-                    oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure, C_Lng(.DepartmentNo)
+                    oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure, C_Dbl(.DepartmentNo)
                     If Abs(C_Dbl(.Discount)) > DBL_EPSILON Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
                 Case ucsRwtText
                     oFP.AddLine .Text
                 Case ucsRwtBarcode
-                    oFP.AddBarcode JsonEnumValue(.BarcodeType, "|Ean8|Ean13|Code128|QRcode"), .Text, C_Lng(.Height)
+                    oFP.AddBarcode JsonEnumValue(.BarcodeType, STR_ENUM_BARCODE_TYPE), .Text, C_Dbl(.Height)
                 Case ucsRwtPayment
-                    lIdx = JsonEnumValue(.PaymentType, "|Cash|Cheque|Coupon|Voucher|Packing|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR")
+                    lIdx = JsonEnumValue(.PaymentType, STR_ENUM_PAYMENT_TYPE)
                     If lIdx < MIN_PMT_TYPE Or lIdx > MAX_PMT_TYPE Then
                         lIdx = DEF_PMT_TYPE
                     End If
@@ -439,7 +446,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    Select Case JsonEnumValue(JsonItem(oJson, "ReportType"), "|Daily|Number|Date|Operator")
+    Select Case JsonEnumValue(JsonItem(oJson, "ReportType"), STR_ENUM_REPOR_TYPE)
     Case ucsFscRptDaily
         If JsonBoolItem(oJson, "IsItems") And JsonBoolItem(oJson, "IsDepartments") Then
             If JsonBoolItem(oJson, "IsClear") Then
@@ -618,7 +625,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
         JsonItem(oRetVal, "TotalReversal") = 0#
     End If
     If JsonBoolItem(oJson, "IncludeServiceDeposit") Or bIncludeAll Then
-        vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
+        vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), ucsFscPmtCash, 0)
         If IsArray(vTotals) Then
             JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
             JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
@@ -691,12 +698,18 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
+    Dim ePmtType        As UcsFiscalPaymentTypeEnum
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), C_Dbl(JsonItem(oJson, "Amount")))
+    ePmtType = JsonEnumValue(C_Str(JsonItem(oJson, "PaymentType")), STR_ENUM_PAYMENT_TYPE)
+    If ePmtType < MIN_PMT_TYPE Or ePmtType > MAX_PMT_TYPE Then
+        ePmtType = DEF_PMT_TYPE
+    End If
+    vTotals = oFP.PrintServiceDeposit(C_Str(JsonItem(oJson, "Operator/Code")), C_Str(JsonItem(oJson, "Operator/Password")), _
+        ePmtType, C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not IsArray(vTotals), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
