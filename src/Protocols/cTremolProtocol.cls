@@ -572,6 +572,7 @@ Public Function Init(sDeviceString As String) As Boolean
         GoTo QH
     End If
     If Not WaitDevice(-1, CheckFastStatus:=True) Then
+        pvSetLastError vbNullString
         Init = True
         GoTo QH
     End If
@@ -2300,8 +2301,8 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
-    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, ucsFscPmtCash, Amount)
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal PmtType As UcsFiscalPaymentTypeEnum, ByVal Amount As Double) As Variant
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, PmtType, Amount)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean

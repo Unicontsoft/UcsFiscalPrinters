@@ -670,14 +670,15 @@ End Function
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
+' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
 ' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
+            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
             ByVal Amount As Double) As Variant
-Attribute PrintServiceDeposit.VB_Description = "Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear"
     
 End Function
 

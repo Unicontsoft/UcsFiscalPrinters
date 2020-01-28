@@ -2111,7 +2111,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal PmtType As UcsFiscalPaymentTypeEnum, ByVal Amount As Double) As Variant
     IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(Amount)
 End Function
 
