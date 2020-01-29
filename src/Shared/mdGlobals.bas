@@ -1017,22 +1017,56 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
     End If
 End Sub
 
+Public Function preg_match(find_re As String, sText As String, Optional Matches As Variant, Optional Indexes As Variant) As Long
+    Dim lIdx            As Long
+    
+    With pvInitRegExp(find_re).Execute(sText)
+        preg_match = .Count
+        If Not IsMissing(Matches) Then
+            If .Count = 0 Then
+                Matches = Split(vbNullString)
+            ElseIf .Count = 1 Then
+                ReDim Matches(0 To 0) As String
+                Matches(0) = .Item(0).Value
+            Else
+                ReDim Matches(0 To .Count - 1) As String
+                For lIdx = 0 To .Count - 1
+                    Matches(lIdx) = .Item(lIdx).Value
+                Next
+            End If
+        End If
+        If Not IsMissing(Indexes) Then
+            If .Count = 0 Then
+                Indexes = Array()
+            ElseIf .Count = 1 Then
+                Indexes = Array(.Item(0).FirstIndex + 1)
+            Else
+                ReDim Indexes(0 To .Count - 1) As Variant
+                For lIdx = 0 To .Count - 1
+                    Indexes(lIdx) = .Item(lIdx).FirstIndex + 1
+                Next
+            End If
+        End If
+    End With
+End Function
+
 Public Function preg_replace(find_re As String, sText As String, Optional sReplace As String) As String
     preg_replace = pvInitRegExp(find_re).Replace(sText, sReplace)
 End Function
 
 Private Function pvInitRegExp(sPattern As String) As Object
-    Dim lIdx            As Long
+    Dim lPos            As Long
 
     Set pvInitRegExp = CreateObject("VBScript.RegExp")
     With pvInitRegExp
-        .Global = True
         If Left$(sPattern, 1) = "/" Then
-            lIdx = InStrRev(sPattern, "/")
-            .Pattern = Mid$(sPattern, 2, lIdx - 2)
-            .IgnoreCase = (InStr(lIdx, sPattern, "i") > 0)
-            .MultiLine = (InStr(lIdx, sPattern, "m") > 0)
+            lPos = InStrRev(sPattern, "/")
+            .Pattern = Mid$(sPattern, 2, lPos - 2)
+            .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
+            .MultiLine = (InStr(lPos, sPattern, "m") > 0)
+            .Global = (InStr(lPos, sPattern, "l") = 0)
         Else
+            .Global = True
             .Pattern = sPattern
         End If
     End With
@@ -1563,3 +1597,9 @@ End Property
 Property Get GetCurrentDate() As Date
     GetCurrentDate = Fix(GetCurrentNow)
 End Property
+
+Public Function ToDeviceSerialNo(sText As String) As String
+    If preg_match("^[a-zA-Z]{2}\d{6}$", sText) > 0 Then
+        ToDeviceSerialNo = Trim$(sText)
+    End If
+End Function

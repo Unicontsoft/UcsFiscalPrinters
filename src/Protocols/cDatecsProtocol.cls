@@ -582,7 +582,7 @@ Public Function Init(sDeviceString As String) As Boolean
     If Not Connect() Then
         GoTo QH
     End If
-    sDeviceSerialNo = JsonItem(oOptions, "DeviceSerialNo")
+    sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
         If Not pvGetDeviceInfo(m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
             pvSetLastError sError
