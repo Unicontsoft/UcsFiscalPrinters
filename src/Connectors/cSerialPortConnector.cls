@@ -61,6 +61,7 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
+Private Declare Function CancelIoEx Lib "kernel32" (ByVal hFile As Long, lpOverlapped As Any) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
 Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
@@ -221,12 +222,12 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
     End If
     lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, Timeout)
     If lResult <> WAIT_OBJECT_0 And Timeout <> 0 Then
-        Call CancelIo(m_hComm)
         If lResult = WAIT_TIMEOUT Then
             m_bClearPersistent = True
             m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
         End If
-        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult
+        pvCancelIoPending m_hComm, uOver
+        DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError
         GoTo QH
     End If
     '--- success
@@ -280,13 +281,13 @@ WaitEvent:
                             End If
                         Else
                             lRetryCount = lRetryCount + 1
-                            Call CancelIo(m_hComm)
-                            DebugLog FUNC_NAME, "CancelIo#1, lResult=" & lResult & ", lLastErr=" & lLastErr & ", lRetryCount= " & lRetryCount
                         End If
                     Case Else
                         m_bClearPersistent = True
                         m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
                         DebugLog FUNC_NAME, "WaitCommEvent, lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError
+                        pvCancelIoPending m_hComm, uOver
+                        DebugLog FUNC_NAME, "CancelIo#1, lRetryCount= " & lRetryCount
                         GoTo QH
                     End Select
                 End If
@@ -309,8 +310,6 @@ WaitEvent:
                         End If
                     Else
                         lRetryCount = lRetryCount + 1
-                        Call CancelIo(m_hComm)
-                        DebugLog FUNC_NAME, "CancelIo#2, lResult=" & lResult & ", lLastErr=" & lLastErr & ", lRetryCount= " & lRetryCount
                     End If
                 Case ERROR_HANDLE_EOF
                     GoTo WaitEvent
@@ -318,15 +317,18 @@ WaitEvent:
                     m_bClearPersistent = True
                     m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(lLastErr))
                     DebugLog FUNC_NAME, "ReadFile, lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError
+                    pvCancelIoPending m_hComm, uOver
+                    DebugLog FUNC_NAME, "CancelIo#2, lRetryCount= " & lRetryCount
                     GoTo QH
                 End Select
             End If
             If lResult <> 0 And lRetryCount * m_lCommEventTimeout >= Timeout Then
 TimeoutReached:
-                Call CancelIo(m_hComm)
                 m_bClearPersistent = True
                 m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                DebugLog FUNC_NAME, "CancelIo#3, lResult=" & lResult & ", lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
+                DebugLog FUNC_NAME, "ReadFile, lResult=" & lResult & ", lLastErr=" & lLastErr & ", m_sLastError=" & m_sLastError & ", lIterTimeout= " & lIterTimeout & ", m_lCommEventTimeout=" & m_lCommEventTimeout & ", Timeout=" & Timeout
+                pvCancelIoPending m_hComm, uOver
+                DebugLog FUNC_NAME, "CancelIo#3, lRetryCount= " & lRetryCount
                 GoTo QH
             End If
         End If
@@ -427,6 +429,14 @@ Private Function pvInternal(ByVal lIdx As UcsConnectorErrorsEnum) As String
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+Private Function pvCancelIoPending(ByVal hFile As Long, uOver As OVERLAPPED) As Long
+    On Error GoTo QH:
+    pvCancelIoPending = CancelIoEx(hFile, uOver)
+    Exit Function
+QH:
+    pvCancelIoPending = CancelIo(hFile)
 End Function
 
 '=========================================================================
