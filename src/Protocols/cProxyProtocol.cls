@@ -379,6 +379,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
         m_dLastReceiptDate = GetCurrentNow
+        pvPrintReceipt = True
         GoTo QH
     End If
     Do While uCtx.Row < lRowCount
