@@ -356,10 +356,8 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                 DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
-                    If LenB(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol")) <> 0 Then
-                        sDeviceString = "Protocol=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol") & _
-                            ";Port=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Port") & _
-                            ";Speed=" & JsonItem(oJson, "SerialPorts/" & vKey & "/Speed")
+                    If LenB(C_Str(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol"))) <> 0 Then
+                        sDeviceString = ToDeviceString(C_Obj(JsonItem(oJson, "SerialPorts/" & vKey)))
                         Set oRequest = Nothing
                         JsonItem(oRequest, "DeviceString") = sDeviceString
                         JsonItem(oRequest, "IncludeTaxNo") = True

@@ -1036,6 +1036,26 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
     Set ParseDeviceString = oRetVal
 End Function
 
+Public Function ToDeviceString(oDevice As Object) As String
+    Dim vKey            As Variant
+    Dim sValue          As String
+    Dim sRetVal         As String
+    
+    For Each vKey In JsonKeys(oDevice)
+        '--- try to escape value
+        sValue = C_Str(JsonItem(oDevice, vKey))
+        If InStr(sValue, ";") > 0 Then
+            If InStr(sValue, """") = 0 Then
+                sValue = """" & sValue & """"
+            Else
+                sValue = "'" & sValue & "'"
+            End If
+        End If
+        sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & ";", vbNullString) & vKey & "=" & sValue
+    Next
+    ToDeviceString = sRetVal
+End Function
+
 Property Get SystemIconFont() As StdFont
     Dim uFont           As LOGFONT
     Dim sBuffer         As String

@@ -753,9 +753,6 @@ Private Sub cmdApply_Click()
     Const FUNC_NAME     As String = "cmdApply_Click"
     Dim oConfig         As Object
     Dim oDevice         As Object
-    Dim sDeviceString   As String
-    Dim vKey            As Variant
-    Dim sValue          As String
     
     On Error GoTo EH
     If LenB(txtConfig.Text) = 0 Then
@@ -768,19 +765,7 @@ Private Sub cmdApply_Click()
     JsonItem(oDevice, "Port") = Zn(cobPort.Text, Empty)
     JsonItem(oDevice, "Speed") = Zn(cobSpeed.Text, Empty)
     JsonItem(oDevice, "DefaultPassword") = Zn(txtDefPass.Text, Empty)
-    For Each vKey In JsonKeys(oDevice)
-        '--- try to escape value
-        sValue = C_Str(JsonItem(oDevice, vKey))
-        If InStr(sValue, ";") > 0 Then
-            If InStr(sValue, """") = 0 Then
-                sValue = """" & sValue & """"
-            Else
-                sValue = "'" & sValue & "'"
-            End If
-        End If
-        sDeviceString = IIf(LenB(sDeviceString) <> 0, sDeviceString & ";", vbNullString) & vKey & "=" & sValue
-    Next
-    JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(sDeviceString, Empty)
+    JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     txtConfig.Text = JsonDump(oConfig)
     pvChanged = True
     mnuFile_Click ucsMnuFileSave
