@@ -189,6 +189,7 @@ Public Const STR_CHR1                   As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON                As Double = 0.0000000001
 Public Const FORMAT_BASE_2              As String = "0.00"
 Public Const FORMAT_BASE_3              As String = "0.000"
+Public Const STR_CONNECTOR_ERRORS       As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
 
 Private m_sDecimalSeparator         As String
 Private m_oConfig                   As Object

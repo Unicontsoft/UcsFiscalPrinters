@@ -115,7 +115,6 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 500
 
@@ -126,18 +125,6 @@ Private m_sLastError            As String
 Private m_vLocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 Private m_lCommEventTimeout     As Long
 Private m_bClearPersistent      As Boolean
-
-Private Enum UcsInternalErrors
-    ucsErrNoDeviceInfoSet
-    ucsErrCreateFileFailed
-    ucsErrSetCommTimeoutsFailed
-    ucsErrBuildCommDCBFailed
-    ucsErrSetCommStateFailed
-    ucsErrWriteFileFailure
-    ucsErrTimeoutWaitingForResponse
-    ucsErrReadFileFailed
-    ucsErrWaitCommEventFailed
-End Enum
 
 '=========================================================================
 ' Error handling
@@ -429,13 +416,13 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
+Private Function pvInternal(ByVal lIdx As UcsConnectorErrorsEnum) As String
     Const FUNC_NAME     As String = "pvInternal"
     
     On Error GoTo EH
     pvInternal = At(m_vLocalizedText(ucsFscLciInternalErrors), lIdx)
     If LenB(pvInternal) = 0 Then
-        pvInternal = At(Split(STR_INTERNAL, "|"), lIdx)
+        pvInternal = At(Split(STR_CONNECTOR_ERRORS, "|"), lIdx)
     End If
     Exit Function
 EH:
