@@ -267,7 +267,7 @@ Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIslStatusBitsEnum
 Private m_eDip                      As UcsIslDipSwitchesEnum
 Private m_eMemory                   As UcsIslFiscalMemoryEnum
-Private m_vInfoDiagnostics          As Variant
+Private m_vDeviceNumbers            As Variant
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
 Private m_uLConfig(0 To [_ucsIslCfgMax] - 1) As UcsLocalizedConfigType
@@ -603,6 +603,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sProtocol       As String
     Dim sModel          As String
     Dim sFirmware       As String
+    Dim sDeviceSerialNo As String
+    Dim sFiscalMemoryNo As String
     Dim vSpeeds         As Variant
     
     On Error GoTo EH
@@ -677,9 +679,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If LenB(.Buffer) <> 0 Then
                         If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyAlt)) = sReplyAlt Then
                             DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
-                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware) Then
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
-'                                Debug.Print "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware
+                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo)
+'                                Debug.Print "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware& ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo
                             End If
                         Else
                             DebugLog FUNC_NAME, "Discarding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
@@ -709,19 +711,18 @@ End Function
 Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Const CONF_NAME     As String = FUNC_NAME
+    Const CONF_INFODIAG As String = "GetDeviceInfo"
     Dim oOptions        As Object
-    Dim sSerial         As String
+    Dim sDeviceSerialNo As String
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
     Dim sEltradePrefix  As String
-    Dim lSerialIndex    As Long
-    Dim lSwitchesIndex  As Long
     Dim sError          As String
     Dim vSplit          As Variant
-    Dim lTimeout        As Long
+    Dim lEcrTimeout     As Long
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
@@ -735,52 +736,43 @@ Public Function Init(sDeviceString As String) As Boolean
     If Not Connect() Then
         GoTo QH
     End If
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsIslCmdInfoDiagnostics, sParam, "0", _
-        "DaisyPrefix", sDaisyPrefix, "DY", _
-        "IncotexPrefix", sIncotexPrefix, "IN", _
-        "EltradePrefix", sEltradePrefix, "ED", _
-        "SerialIndex", lSerialIndex, 4, _
-        "SwitchesIndex", lSwitchesIndex, 3
-    m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
-    If LenB(At(m_vInfoDiagnostics, 0)) = 0 And LenB(sParam) <> 0 Then
-        sParam = vbNullString
-        sError = vbNullString
-        m_vInfoDiagnostics = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, sError), DEF_SEP)
-    End If
-    If LenB(sError) <> 0 Then
-        pvSetLastError sError
-        GoTo QH
-    End If
-    If Left$(At(m_vInfoDiagnostics, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
-        m_vInfoDiagnostics(0) = "Incotex " & m_vInfoDiagnostics(0)
-    ElseIf Left$(At(m_vInfoDiagnostics, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
-        pvEltradeMergeInfoArray m_vInfoDiagnostics
+    sDeviceSerialNo = JsonItem(oOptions, "DeviceSerialNo")
+    If LenB(sDeviceSerialNo) = 0 Then
+        If Not pvGetDeviceInfo(m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
+            pvSetLastError sError
+            GoTo QH
+        End If
+    Else
+        m_vDeviceNumbers = sDeviceSerialNo
     End If
     '--- load config values
-    sSerial = At(m_vInfoDiagnostics, lSerialIndex)
+    pvGetCommandConfig CONF_INFODIAG, "InfoDiagnostics", 0, 0, vbNullString, vbNullString, _
+        "DaisyPrefix", sDaisyPrefix, "DY", _
+        "IncotexPrefix", sIncotexPrefix, "IN", _
+        "EltradePrefix", sEltradePrefix, "ED"
     With m_uPrintData.Config
-        .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .CommentChars = GetConfigNumber(sSerial, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
-        .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
-        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
-        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", True)))
-        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
-        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
+        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
+        .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
+        .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", True)))
+        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
-        .CodePage = GetConfigNumber(sSerial, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
-        If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
+        .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
+        If Left$(sDeviceSerialNo, Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             .ModelGroup = ucsModDaisy
-        ElseIf Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+        ElseIf Left$(sDeviceSerialNo, Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             .ModelGroup = ucsModIncotex
-        ElseIf Left$(GetDeviceSerialNo(), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+        ElseIf Left$(sDeviceSerialNo, Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
             .ModelGroup = ucsModEltrade
         Else
             pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "2;1;", _
-                "Timeout", lTimeout, 100
-            If LenB(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam)) <> 0 Then
+                "Timeout", lEcrTimeout, 100
+            If LenB(pvTransmitCommand(m_oConnector, lEcrTimeout, eCmd, sParam)) <> 0 Then
                 m_uConfig.ModelGroup = ucsModEcrModelB
             Else
                 m_uConfig.ModelGroup = ucsModFpModelA
@@ -788,10 +780,10 @@ Public Function Init(sDeviceString As String) As Boolean
         End If
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
-            .MaxCgInfo(lIdx) = GetConfigNumber(sSerial, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
+            .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
-        .MaxOperatorName = GetConfigNumber(sSerial, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
-        Set .ConfigCommands = GetConfigCollection(sSerial, "Commands")
+        .MaxOperatorName = GetConfigNumber(sDeviceSerialNo, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
+        Set .ConfigCommands = GetConfigCollection(sDeviceSerialNo, "Commands")
     End With
     '--- success
     Init = True
@@ -1156,13 +1148,12 @@ End Function
 
 Public Function GetDeviceSerialNo() As String
     Const FUNC_NAME     As String = "GetDeviceSerialNo"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim lIndex          As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", 0, 0, vbNullString, vbNullString, _
-        "Index", lIndex, 4
-    GetDeviceSerialNo = At(m_vInfoDiagnostics, lIndex)
+    GetDeviceSerialNo = C_Str(m_vDeviceNumbers)
+    If LenB(GetDeviceSerialNo) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1170,13 +1161,9 @@ End Function
 
 Public Function GetFiscalMemoryNo() As String
     Const FUNC_NAME     As String = "GetFiscalMemoryNo"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim lIndex          As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDiagnostics", 0, 0, vbNullString, vbNullString, _
-        "Index", lIndex, 5
-    GetFiscalMemoryNo = At(m_vInfoDiagnostics, lIndex)
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1341,7 +1328,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, GetDeviceProtocol, vbNullString, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1351,7 +1338,7 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, GetDeviceModel, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1361,7 +1348,7 @@ Public Function GetDeviceFirmware() As String
     Const FUNC_NAME     As String = "GetDeviceFirmware"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vInfoDiagnostics, vbNullString, vbNullString, GetDeviceFirmware
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1792,6 +1779,7 @@ Private Function pvTransmitCommand( _
     dblTimerEx = TimerEx
 RetrySend:
     If TimerEx > dblTimerEx + lTimeout / 1000# Then
+        Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
         GoTo QH
     End If
     DebugDataDump FUNC_NAME, "[SEND ] ", sSend
@@ -1805,6 +1793,7 @@ RetrySend:
     sText = vbNullString
     Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
         If TimerEx > dblTimerEx + lTimeout / 1000# Then
+            Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
             GoTo QH
         End If
         If Not oConnector.ReadData(baText, lTimeout) Then
@@ -1962,6 +1951,19 @@ Private Function pvText(ByVal lIdx As UcsReceiptTextsEnum) As String
     pvText = At(pvLocalizedTextArray(ucsFscLciReceiptTexts), lIdx)
     If LenB(pvText) = 0 Then
         pvText = At(Split(STR_RECEIPT_TEXTS, "|"), lIdx)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvConnectorError(ByVal lIdx As UcsConnectorErrorsEnum) As String
+    Const FUNC_NAME     As String = "pvConnectorError"
+    
+    On Error GoTo EH
+    pvConnectorError = At(pvLocalizedTextArray(ucsFscLciConnectorErrors), lIdx)
+    If LenB(pvConnectorError) = 0 Then
+        pvConnectorError = At(Split(STR_CONNECTOR_ERRORS, "|"), lIdx)
     End If
     Exit Function
 EH:
@@ -2542,7 +2544,16 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, vResult As Variant, sProtocol As String, sModel As String, sFirmware As String, Optional Error As String) As Boolean
+Private Function pvGetDeviceInfo( _
+            oConnector As IDeviceConnector, _
+            ByVal lTimeout As Long, _
+            vResult As Variant, _
+            sProtocol As String, _
+            sModel As String, _
+            sFirmware As String, _
+            sDeviceSerialNo As String, _
+            sFiscalMemoryNo As String, _
+            Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim eCmd            As UcsIslCommandsEnum
@@ -2562,19 +2573,22 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
         "NameIndex", lNameIndex, 0, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
-        vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
-        If LenB(At(vResult, 0)) = 0 Then
-            sParam = vbNullString
-            Error = vbNullString
-            vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
-        End If
-        If Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
-            vResult(0) = "Incotex " & vResult(0)
-        ElseIf Left$(At(vResult, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
-            pvEltradeMergeInfoArray vResult
+        vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        If UBound(vSplit) >= lSerialIndex Then
+            vResult = vSplit
+            If LenB(At(vResult, 0)) = 0 Then
+                sParam = vbNullString
+                Error = vbNullString
+                vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+            End If
+            If Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+                vResult(0) = "Incotex " & vResult(0)
+            ElseIf Left$(At(vResult, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+                pvEltradeMergeInfoArray vResult
+            End If
         End If
     End If
-    If UBound(vResult) >= lSerialIndex And LenB(Error) = 0 Then
+    If LenB(At(vResult, lSerialIndex)) <> 0 Then
         '--- check serial
         If Left$(At(vResult, lSerialIndex), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
             sProtocol = STR_PROTOCOL_DAISY
@@ -2586,8 +2600,10 @@ Private Function pvGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout 
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
         vSplit = Split2(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), " ")
-        sModel = RTrim$(vSplit(0))
-        sFirmware = RTrim$(vSplit(1))
+        sModel = RTrim$(At(vSplit, 0))
+        sFirmware = RTrim$(At(vSplit, 1))
+        sDeviceSerialNo = RTrim$(At(vResult, lSerialIndex))
+        sFiscalMemoryNo = RTrim$(At(vResult, lSerialIndex + 1))
         '--- success
         pvGetDeviceInfo = True
     End If

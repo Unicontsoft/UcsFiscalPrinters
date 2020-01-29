@@ -243,6 +243,8 @@ Public Function EnumPorts(sResponse As String) As Boolean
             JsonItem(oItem, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty)
             JsonItem(oItem, "Model") = Zn(Trim$(At(vElem, 3)), Empty)
             JsonItem(oItem, "Firmware") = Zn(Trim$(At(vElem, 4)), Empty)
+            JsonItem(oItem, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
+            JsonItem(oItem, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
         Else
             JsonItem(oItem, "Port") = Zn(Trim$(C_Str(vElem)), Empty)
         End If
@@ -757,7 +759,6 @@ Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Bool
     End If
     If oFP.GetDeviceStatus(sStatus) Then
         JsonItem(oRetVal, "DeviceStatus") = sStatus
-        JsonItem(oRetVal, "DeviceDateTime") = oFP.GetClock()
     Else
         sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
         DebugLog FUNC_NAME, "Not oFP.GetDeviceStatus, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
