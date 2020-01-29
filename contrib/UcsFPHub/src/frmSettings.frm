@@ -28,7 +28,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   8
+      TabIndex        =   9
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -37,10 +37,18 @@ Begin VB.Form frmSettings
          Caption         =   "Бързи настройки"
          Height          =   4380
          Left            =   0
-         TabIndex        =   12
+         TabIndex        =   13
          Tag             =   "FONT"
          Top             =   0
          Width           =   4464
+         Begin VB.TextBox txtSerialNo 
+            Height          =   288
+            Left            =   2772
+            TabIndex        =   4
+            Tag             =   "FONT"
+            Top             =   2520
+            Width           =   1440
+         End
          Begin VB.CheckBox chkAutoDetect 
             Caption         =   "Автоматично откриване на устройства"
             Height          =   348
@@ -54,17 +62,17 @@ Begin VB.Form frmSettings
             Caption         =   "Прилагане"
             Height          =   432
             Left            =   2772
-            TabIndex        =   17
+            TabIndex        =   18
             Tag             =   "FONT"
-            Top             =   3192
+            Top             =   3612
             Width           =   1440
          End
          Begin VB.TextBox txtDefPass 
             Height          =   288
             Left            =   2772
-            TabIndex        =   4
+            TabIndex        =   5
             Tag             =   "FONT"
-            Top             =   2520
+            Top             =   3024
             Width           =   1440
          End
          Begin VB.ComboBox cobProtocol 
@@ -91,26 +99,36 @@ Begin VB.Form frmSettings
             Top             =   1512
             Width           =   1440
          End
-         Begin VB.Label Label4 
+         Begin VB.Label Label5 
             AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
-            Caption         =   "Парола по подразбиране:"
+            Caption         =   "Сериен номер на ФУ:"
             Height          =   192
             Left            =   252
-            TabIndex        =   16
+            TabIndex        =   19
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
             Width           =   2640
             WordWrap        =   -1  'True
          End
+         Begin VB.Label Label4 
+            AutoSize        =   -1  'True
+            Caption         =   "Парола по подразбиране:"
+            Height          =   192
+            Left            =   252
+            TabIndex        =   17
+            Tag             =   "FONT"
+            Top             =   3024
+            UseMnemonic     =   0   'False
+            Width           =   2640
+            WordWrap        =   -1  'True
+         End
          Begin VB.Label Label3 
             AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
             Caption         =   "Протокол за комуникация:"
             Height          =   192
             Left            =   252
-            TabIndex        =   15
+            TabIndex        =   16
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
@@ -119,11 +137,10 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label Label2 
             AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
             Caption         =   "Скорост на комуникация:"
             Height          =   192
             Left            =   252
-            TabIndex        =   14
+            TabIndex        =   15
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
@@ -132,11 +149,10 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label Label1 
             AutoSize        =   -1  'True
-            BackStyle       =   0  'Transparent
             Caption         =   "Комуникационен порт:"
             Height          =   192
             Left            =   252
-            TabIndex        =   13
+            TabIndex        =   14
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
@@ -150,7 +166,7 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         TabIndex        =   10
+         TabIndex        =   11
          Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
@@ -159,7 +175,7 @@ Begin VB.Form frmSettings
          Height          =   2928
          IntegralHeight  =   0   'False
          Left            =   4620
-         TabIndex        =   5
+         TabIndex        =   6
          Tag             =   "MONO"
          Top             =   84
          Width           =   5052
@@ -173,7 +189,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   6
+      TabIndex        =   7
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -184,7 +200,7 @@ Begin VB.Form frmSettings
          Left            =   0
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   7
+         TabIndex        =   8
          Tag             =   "MONO"
          Top             =   0
          Width           =   6396
@@ -198,7 +214,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   9
+      TabIndex        =   10
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -210,7 +226,7 @@ Begin VB.Form frmSettings
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   11
+         TabIndex        =   12
          Tag             =   "MONO"
          Top             =   0
          Width           =   9252
@@ -222,18 +238,10 @@ Begin VB.Form frmSettings
       Tag             =   "FONT"
       Top             =   84
       Width           =   10512
-      _ExtentX        =   18542
-      _ExtentY        =   614
-      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
-         Name            =   "Tahoma"
-         Size            =   7.8
-         Charset         =   204
-         Weight          =   400
-         Underline       =   0   'False
-         Italic          =   0   'False
-         Strikethrough   =   0   'False
-      EndProperty
-      Layout          =   "Устройства|Конфигурация|Журнал"
+      _extentx        =   18542
+      _extenty        =   614
+      font            =   "frmSettings.frx":0E42
+      layout          =   "Устройства|Конфигурация|Журнал"
    End
    Begin VB.Menu mnuMain 
       Caption         =   "Файл"
@@ -460,6 +468,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
             pvLoadItemData cobPort, .SerialPorts
         End With
         pvLoadItemData cobSpeed, Split(STR_SPEEDS, "|")
+        txtSerialNo.Height = cobSpeed.Height
         txtDefPass.Height = cobSpeed.Height
         '--- delay-load UI
         m_sPrinterID = vbNullString
@@ -531,6 +540,7 @@ Private Function pvLoadPrinters() As Boolean
     cobProtocol.Text = JsonItem(oDevice, "Protocol")
     cobPort.Text = JsonItem(oDevice, "Port")
     cobSpeed.Text = JsonItem(oDevice, "Speed")
+    txtSerialNo.Text = JsonItem(oDevice, "DeviceSerialNo")
     txtDefPass.Text = JsonItem(oDevice, "DefaultPassword")
     '--- printers list
     Set oForm = MainForm
@@ -764,6 +774,7 @@ Private Sub cmdApply_Click()
     JsonItem(oDevice, "Protocol") = Zn(cobProtocol.Text, Empty)
     JsonItem(oDevice, "Port") = Zn(cobPort.Text, Empty)
     JsonItem(oDevice, "Speed") = Zn(cobSpeed.Text, Empty)
+    JsonItem(oDevice, "DeviceSerialNo") = Zn(txtSerialNo.Text, Empty)
     JsonItem(oDevice, "DefaultPassword") = Zn(txtDefPass.Text, Empty)
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     txtConfig.Text = JsonDump(oConfig)
