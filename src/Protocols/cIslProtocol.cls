@@ -2574,13 +2574,13 @@ Private Function pvGetDeviceInfo( _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
         vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        If LenB(At(vSplit, lNameIndex)) = 0 Then
+            sParam = vbNullString
+            Error = vbNullString
+            vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
+        End If
         If UBound(vSplit) >= lSerialIndex Then
             vResult = vSplit
-            If LenB(At(vResult, 0)) = 0 Then
-                sParam = vbNullString
-                Error = vbNullString
-                vResult = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
-            End If
             If Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
                 vResult(0) = "Incotex " & vResult(0)
             ElseIf Left$(At(vResult, lSerialIndex + 1), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
