@@ -236,7 +236,7 @@ Private Const STR_EXTENDED_INCO         As String = "1|Multiplication overflow|2
                                                     "32|Barcode already used by another item|33|Item/group33|Item/group report required|34|Groups report overflow|36|Insufficient availability|37|Invalid (inactive) tax group|42|Payment type is disabled or does not allow change|43|Invoices range depleted|73|Battery error|75|Total/price overflow programed limit (parameter 2- field 9; parameter 4 – field 6 and 7 for EFSA)|76|Real-time clock error|77|EJ media communication error|78|EJ overflow|79|EJ media not found"
 Private Const DEF_SEP                   As String = ","
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 51
-Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
+Private Const DEF_DEVICEINFOTIMEOUT     As Long = 100
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"

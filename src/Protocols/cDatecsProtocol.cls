@@ -186,7 +186,7 @@ Private Const STR_ERROR_CODES           As String = "-100001|ERR_IO|-100002|ERR_
                                                     "|-171000|ERR_RENTAL_NOT_FOUND|-171001|ERR_RENTAL_FULL|-171002|ERR_RENTAL_POSITION_OCCUPIED|-171003|ERR_RENTAL_POSITION_FREE|-171004|ERR_RENTAL_SUBSCRIPTION_ACTIVE"
 Private Const DEF_SEP                   As String = vbTab
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 52
-Private Const DEF_DEVICEINFOTIMEOUT     As Long = 1000
+Private Const DEF_DEVICEINFOTIMEOUT     As Long = 100
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_OPERNO                As String = "1"
