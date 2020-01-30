@@ -310,7 +310,7 @@ End Function
 
 Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
-    ReDim vRetVal(0 To 2) As Double
+    Dim vRetVal(0 To 2) As Double
     Dim oRequest        As Object
     Dim oResponse       As Object
     
