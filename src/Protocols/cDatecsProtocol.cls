@@ -290,12 +290,12 @@ End Type
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
@@ -501,9 +501,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
-                    If GetOverlappedResult(.Connector.hComm, .WriteOver, lActual, 1) <> 0 Then
-'                        Debug.Print "Write GetOverlappedResult, vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", lActual=" & lActual, TimerEx, MODULE_NAME
-                    End If
+                    Call GetOverlappedResult(.Connector.hComm, .WriteOver, lActual, 1)
                     .Buffer = String$(BUFFER_SIZE, 0)
                     Call WaitForMultipleObjects(1, .ReadOver.hEvent, 0, 10)
                     lResult = ReadFile(.Connector.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
@@ -525,17 +523,15 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
                     If Len(.Buffer) = BUFFER_SIZE Then
-                        If GetOverlappedResult(.Connector.hComm, .ReadOver, lActual, 1) <> 0 Then
-'                            Debug.Print "Read GetOverlappedResult, vSpeed = " & vSpeed & ", lIdx = " & lIdx & ", lActual=" & lActual, TimerEx
-                        End If
+                        Call GetOverlappedResult(.Connector.hComm, .ReadOver, lActual, 1)
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                     If LenB(.Buffer) <> 0 Then
                         If Right(.Buffer, Len(sReplyText)) = sReplyText Then
-                            DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
+                            DebugLog FUNC_NAME, "Auto-detecteding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
-'                                Debug.Print "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware& ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo
+                                DebugLog FUNC_NAME, "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware & ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo
                             End If
                         Else
                             DebugLog FUNC_NAME, "Discarding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
@@ -663,7 +659,6 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data A
     If eCmd = ucsDcsCmdNoop Then
         Exit Function
     End If
-    '--- auto-sense encoding
     SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
     RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     If LenB(sError) <> 0 Then

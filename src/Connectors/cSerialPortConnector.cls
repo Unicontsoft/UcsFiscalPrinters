@@ -134,13 +134,13 @@ Private m_bClearPersistent      As Boolean
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 

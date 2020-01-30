@@ -205,12 +205,12 @@ Private m_dblCurrentStartTimer      As Double
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
@@ -242,7 +242,6 @@ Private Sub Main()
     If LenB(sFile) <> 0 Then
         Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
         If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
-            Debug.Print "Error in config: " & sError
             Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Error in config: " & sError
         End If
     End If

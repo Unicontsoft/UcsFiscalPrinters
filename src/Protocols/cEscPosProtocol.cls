@@ -125,12 +125,12 @@ End Type
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction & "(" & Erl & ")", "Run-time error: " & Err.Description
+    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
@@ -248,7 +248,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     Set oConnector = aPorts(lIdx)
                     If oConnector.ReadData(baBuffer, 0) And UBound(baBuffer) >= 0 Then
                         If (baBuffer(0) And &H90) = 0 Then
-                            DebugLog FUNC_NAME, "Auto-detected " & oConnector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
+                            DebugLog FUNC_NAME, "Auto-detecting " & oConnector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
                             sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
                                      pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
                             vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
