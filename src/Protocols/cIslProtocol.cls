@@ -590,7 +590,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lIdx            As Long
     Dim sProbeText      As String
     Dim sReplyText      As String
-    Dim sReplyAlt       As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
     Dim vRetVal()       As Variant
@@ -609,9 +608,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     
     On Error GoTo EH
     sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sProbeText)
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_SYN))  '--- SYN (&H16)
-    sReplyAlt = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyAlt", Chr$(SYM_PREAMBLE))
+    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", sProbeText)
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(SYM_TERMINATOR)) ' TERMINATOR (&H3)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -677,7 +675,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                     If LenB(.Buffer) <> 0 Then
-                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Or Left$(.Buffer, Len(sReplyAlt)) = sReplyAlt Then
+                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Then
                             DebugLog FUNC_NAME, "Auto-detected " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo)
