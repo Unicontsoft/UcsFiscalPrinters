@@ -109,6 +109,7 @@ Private Enum UcsRowTypeEnum
     ucsRwtPayment
     ucsRwtText
     ucsRwtBarcode
+    ucsRwtDiscount
 End Enum
 
 Private Type UcsRowData
@@ -381,16 +382,18 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                     If Abs(C_Dbl(.Discount)) > DBL_EPSILON Then
                         oFP.AddDiscount ucsFscDscPlu, -C_Dbl(.Discount)
                     End If
-                Case ucsRwtText
-                    oFP.AddLine .Text
-                Case ucsRwtBarcode
-                    oFP.AddBarcode JsonEnumValue(.BarcodeType, STR_ENUM_BARCODE_TYPE), .Text, C_Dbl(.Height)
                 Case ucsRwtPayment
                     lIdx = JsonEnumValue(.PaymentType, STR_ENUM_PAYMENT_TYPE)
                     If lIdx < MIN_PMT_TYPE Or lIdx > MAX_PMT_TYPE Then
                         lIdx = DEF_PMT_TYPE
                     End If
                     oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
+                Case ucsRwtText
+                    oFP.AddLine .Text
+                Case ucsRwtBarcode
+                    oFP.AddBarcode JsonEnumValue(.BarcodeType, STR_ENUM_BARCODE_TYPE), .Text, C_Dbl(.Height)
+                Case ucsRwtDiscount
+                    oFP.AddDiscount C_Lng(.Discount), -C_Dbl(.Amount)
                 End Select
             End With
         Next
@@ -890,6 +893,16 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.RowType = ucsRwtText
         pvGetRowData.Text = C_Str(JsonItem(oRow, "Text"))
         GoTo QH
+    End If
+    If Not IsEmpty(JsonItem(oRow, "DiscountPercent")) Then
+        pvGetRowData.RowType = ucsRwtDiscount
+        pvGetRowData.Discount = ucsFscDscSubtotal
+        pvGetRowData.Amount = C_Str(JsonItem(oRow, "DiscountPercent"))
+    End If
+    If Not IsEmpty(JsonItem(oRow, "DiscountAmount")) Then
+        pvGetRowData.RowType = ucsRwtDiscount
+        pvGetRowData.Discount = ucsFscDscSubtotalAbs
+        pvGetRowData.Amount = C_Str(JsonItem(oRow, "DiscountAmount"))
     End If
     vRow = JsonItem(oRow, "*")
     If UBound(vRow) = ucsFscPixText Then
