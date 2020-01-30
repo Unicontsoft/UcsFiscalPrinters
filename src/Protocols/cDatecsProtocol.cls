@@ -109,7 +109,7 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdInfoOperator = 112
     ucsDcsCmdInfoMemoryDump = 116
     ucsDcsCmdInfoDevice = 123
-    ucsIslCmdInfoEJ = 125
+    ucsDcsCmdInfoEJ = 125
     ucsDcsCmdInfoProgramming = 255                 '-- command above &H7F
     '--- print
     ucsDcsCmdPrintReportTaxRates = 50
@@ -702,7 +702,7 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
         SendCommand eCmd, sParam
     Else
-        pvGetCommandConfig CONF_NAME, "ucsIslCmdInfoEJ" & sParam, eCmd, ucsIslCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "InfoEJ" & sParam, eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
         sParam = Printf(sParam, ReceiptNumber)
         SendCommand eCmd, sParam
     End If
