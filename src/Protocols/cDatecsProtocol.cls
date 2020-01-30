@@ -1259,6 +1259,8 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
     Next
+    '--- idiosyncrasy: negative total on service withdraws
+    vRetVal(2) = -vRetVal(2)
     '--- success
     PrintServiceDeposit = vRetVal
 QH:
@@ -1734,6 +1736,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             Next
             sData = At(vSplit, UBound(vSplit))
+            sDiscType = vbNullString
             Select Case .DiscType
             Case ucsFscDscPlu
                 If Abs(.PluPrice) > DBL_EPSILON Then
@@ -1779,6 +1782,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     Next
                 End If
             Case Else
+                sDiscType = vbNullString
                 Select Case .DiscType
                 Case ucsFscDscSubtotal
                     sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
