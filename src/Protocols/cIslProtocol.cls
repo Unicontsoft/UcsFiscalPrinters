@@ -2251,14 +2251,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Select Case .DiscType
                 Case ucsFscDscPlu
                     If Abs(.PluPrice) > DBL_EPSILON Then
-                        sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
+                        sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
                     End If
                 Case ucsFscDscPluAbs
-                    If IsIncotex Then
-                        pvSetLastError pvInternal(ucsErrCannotPrint) & " absolute discount"
-                        GoTo QH
-                    End If
-                    sData = sData & "$" & SafeFormat(.DiscValue, sFormatPrice)
+                    sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
                 End Select
                 If IsIncotex Then
                     sData = sData & "@" & SafeFormat(Abs(.PluPrice), sFormatPrice)
@@ -2298,7 +2294,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Select Case .DiscType
                 Case ucsFscDscPlu
                     If Abs(.PluPrice) > DBL_EPSILON Then
-                        sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
+                        sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
                     End If
                 Case ucsFscDscPluAbs
                     sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
@@ -2339,7 +2335,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsIslCmdFiscalSubtotal, sParam, "10" & DEF_SEP & "%1", _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 Case ucsFscDscSubtotalAbs
-                    pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsIslCmdFiscalSubtotal, sParam, "10" & ";" & "%1", _
+                    pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsIslCmdFiscalSubtotal, sParam, "10" & IIf(IsDaisy, "$", ";") & "%1", _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 End Select
                 sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
