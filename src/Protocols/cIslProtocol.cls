@@ -1388,6 +1388,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lPmtIndex       As Long
     Dim lOffset         As Long
     Dim lRevOffset      As Long
+    Dim vTemp           As Variant
     
     On Error GoTo EH
     If IsEcr Then
@@ -1407,6 +1408,10 @@ Public Function GetTotalsByPaymentTypes() As Variant
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
         If IsFP And UBound(vPmtSum) > 0 Then
             vPmtSum = ConcatArrays(Split(SendCommand(eCmd, vbNullString), DEF_SEP), vPmtSum)
+            '--- datecs FP idiosyncrasy: cheque and debit cards are swapped
+            vTemp = vPmtSum(2)
+            vPmtSum(2) = vPmtSum(3)
+            vPmtSum(3) = vTemp
         End If
     End If
     If UBound(vPmtSum) <= 0 Then
