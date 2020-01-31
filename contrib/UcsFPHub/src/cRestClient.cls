@@ -42,6 +42,7 @@ Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As L
 
 Private Const HDR_CONTENT_TYPE          As String = "Content-Type"
 Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
+Private Const HDR_EXPECT                As String = "Expect"
 Private Const STR_STATUS_CODE_BAD_REQUEST As String = "400 Bad request"
 Private Const STR_STATUS_CODE_INTERNAL_SERVER_ERROR As String = "500 Internal Server Error"
 Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
@@ -276,6 +277,9 @@ Private Sub m_oSocket_OnReceive()
                 lIdx = lIdx + 1
             Next
             m_lHdrSize = m_lHdrSize + 3
+            If LCase$(JsonItem(m_oHeaders, HDR_EXPECT)) = "100-continue" Then
+                m_oSocket.SendText "HTTP/1.1 100 Continue" & vbCrLf & vbCrLf
+            End If
         End If
     End If
     If Not m_oHeaders Is Nothing Then
