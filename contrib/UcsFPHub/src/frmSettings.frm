@@ -238,10 +238,18 @@ Begin VB.Form frmSettings
       Tag             =   "FONT"
       Top             =   84
       Width           =   10512
-      _extentx        =   18542
-      _extenty        =   614
-      font            =   "frmSettings.frx":0E42
-      layout          =   "Устройства|Конфигурация|Журнал"
+      _ExtentX        =   18542
+      _ExtentY        =   614
+      BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
+         Name            =   "Tahoma"
+         Size            =   7.8
+         Charset         =   204
+         Weight          =   400
+         Underline       =   0   'False
+         Italic          =   0   'False
+         Strikethrough   =   0   'False
+      EndProperty
+      Layout          =   "Устройства|Конфигурация|Журнал"
    End
    Begin VB.Menu mnuMain 
       Caption         =   "Файл"
@@ -378,6 +386,7 @@ Private m_sPrinterID                As String
 Private m_bInSet                    As Boolean
 Private m_bChanged                  As Boolean
 Private m_pSubclass                 As IUnknown
+Private m_lConfigPosition           As Long
 
 Private Enum UcsMenuItems
     ucsMnuFileSave = 0
@@ -432,6 +441,16 @@ Private Property Get pvAddressOfSubclassProc() As frmSettings
     Set pvAddressOfSubclassProc = InitAddressOfMethod(Me, 5)
 End Property
 
+Private Property Get pvConfigText() As String
+    pvConfigText = txtConfig.Text
+End Property
+
+Private Property Let pvConfigText(sValue As String)
+    m_bInSet = True
+    txtConfig.Text = sValue
+    m_bInSet = False
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -473,19 +492,17 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         '--- delay-load UI
         m_sPrinterID = vbNullString
         lstPrinters.Clear
-        txtConfig.Text = vbNullString
+        pvConfigText = vbNullString
         txtLog.Text = vbNullString
         pvChanged = False
         tabMain_Click
     End If
     If Not OwnerForm Is Nothing Then
-        On Error Resume Next
-        If pvShowModal(OwnerForm) Then
-            If pvShowModal() Then
+        If Not pvShowModal(OwnerForm) Then
+            If Not pvShowModal() Then
                 Show
             End If
         End If
-        On Error GoTo EH
     Else
         Show
     End If
@@ -521,10 +538,10 @@ Private Function pvLoadPrinters() As Boolean
     
     On Error GoTo EH
     '--- quick setup  frame
-    If LenB(txtConfig.Text) = 0 Then
+    If LenB(pvConfigText) = 0 Then
         pvLoadConfig m_sConfFile
     End If
-    Set oConfig = JsonParseObject(txtConfig.Text)
+    Set oConfig = JsonParseObject(pvConfigText)
     chkAutoDetect.Value = IIf(C_Bool(JsonItem(oConfig, "Printers/Autodetect")), vbChecked, vbUnchecked)
     m_sPrinterID = "DefaultPrinter"
     Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
@@ -586,18 +603,15 @@ Private Function pvLoadConfig(sConfFile As String) As Boolean
     
     On Error GoTo EH
     If FileExists(sConfFile) Then
-        m_bInSet = True
-        txtConfig.Text = ReadTextFile(sConfFile)
-        m_bInSet = False
+        pvConfigText = ReadTextFile(sConfFile)
     Else
         mnuFile(ucsMnuFileRestart).Enabled = False
         JsonItem(oConfig, "Printers/Autodetect") = True
         JsonItem(oConfig, "Endpoints/0/Binding") = "RestHttp"
         JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
-        m_bInSet = True
-        txtConfig.Text = JsonDump(oConfig)
-        m_bInSet = False
+        pvConfigText = JsonDump(oConfig)
     End If
+    txtConfig.SelStart = m_lConfigPosition
     pvChanged = False
     '--- success
     pvLoadConfig = True
@@ -613,13 +627,14 @@ Private Function pvSaveConfig(sConfFile As String) As Boolean
     
     On Error GoTo EH
     If LenB(sConfFile) <> 0 Then
-        If Not JsonParse(txtConfig.Text, Empty, Error:=sError, LastPos:=lPos) Then
+        If Not JsonParse(pvConfigText, Empty, Error:=sError, LastPos:=lPos) Then
             MsgBox sError, vbExclamation
             txtConfig.SelStart = lPos - 1
             txtConfig.SelLength = 1
+            m_lConfigPosition = txtConfig.SelStart
             GoTo QH
         End If
-        WriteTextFile sConfFile, txtConfig.Text, ucsFltUtf8
+        WriteTextFile sConfFile, pvConfigText, ucsFltUtf8
     End If
     pvChanged = False
     '--- success
@@ -729,6 +744,9 @@ Friend Sub frRestart()
     Dim oFrm            As Object
     
     On Error GoTo EH
+    If LenB(pvConfigText) <> 0 Then
+        m_lConfigPosition = txtConfig.SelStart
+    End If
     TerminateEndpoints
     FlushDebugLog
     For Each oFrm In Forms
@@ -741,7 +759,7 @@ Friend Sub frRestart()
     '--- delay-load UI
     m_sPrinterID = vbNullString
     lstPrinters.Clear
-    txtConfig.Text = vbNullString
+    pvConfigText = vbNullString
     txtLog.Text = vbNullString
     pvChanged = False
     tabMain_Click
@@ -751,8 +769,11 @@ EH:
 End Sub
 
 Private Function pvShowModal(Optional OwnerForm As Variant) As Boolean
-    '--- note: no error handling
+    On Error GoTo QH
     Show vbModal, OwnerForm
+    '--- success
+    pvShowModal = True
+QH:
 End Function
 
 '=========================================================================
@@ -765,10 +786,10 @@ Private Sub cmdApply_Click()
     Dim oDevice         As Object
     
     On Error GoTo EH
-    If LenB(txtConfig.Text) = 0 Then
+    If LenB(pvConfigText) = 0 Then
         pvLoadConfig m_sConfFile
     End If
-    Set oConfig = JsonParseObject(txtConfig.Text)
+    Set oConfig = JsonParseObject(pvConfigText)
     JsonItem(oConfig, "Printers/Autodetect") = (chkAutoDetect.Value = vbChecked)
     Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
     JsonItem(oDevice, "Protocol") = Zn(cobProtocol.Text, Empty)
@@ -777,7 +798,7 @@ Private Sub cmdApply_Click()
     JsonItem(oDevice, "DeviceSerialNo") = Zn(txtSerialNo.Text, Empty)
     JsonItem(oDevice, "DefaultPassword") = Zn(txtDefPass.Text, Empty)
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
-    txtConfig.Text = JsonDump(oConfig)
+    pvConfigText = JsonDump(oConfig)
     pvChanged = True
     mnuFile_Click ucsMnuFileSave
 QH:
@@ -854,6 +875,32 @@ QH:
 EH:
     PrintError FUNC_NAME
     Resume QH
+End Sub
+
+Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
+    Const FUNC_NAME     As String = "Form_KeyDown"
+    
+    On Error GoTo EH
+    Select Case KeyCode + Shift * &H1000&
+    Case vbKeyS + vbCtrlMask * &H1000&
+        mnuFile_Click ucsMnuFileSave
+    Case vbKeyZ + vbCtrlMask * &H1000&
+        If Not ActiveControl Is txtConfig Then
+            GoTo QH
+        End If
+        mnuEdit_Click ucsMnuEditUndo
+    Case vbKeyTab + vbCtrlMask * &H1000&, vbKeyTab + (vbCtrlMask Or vbShiftMask) * &H1000&
+        tabMain.CurrentTab = (tabMain.CurrentTab + IIf((Shift And vbShiftMask) <> 0, tabMain.TabCount - 1, 1)) Mod tabMain.TabCount
+        tabMain_Click
+    Case Else
+        GoTo QH
+    End Select
+    KeyCode = 0: Shift = 0
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Sub
 
 Private Sub Form_Resize()
@@ -936,7 +983,7 @@ Private Sub tabMain_Click()
             pvLoadPrinters
         End If
     Case ucsTabConfig
-        If LenB(txtConfig.Text) = 0 Then
+        If LenB(pvConfigText) = 0 Then
             pvLoadConfig m_sConfFile
         End If
     Case ucsTabLog
@@ -970,6 +1017,20 @@ Private Sub txtConfig_Change()
     On Error GoTo EH
     If Not m_bInSet Then
         pvChanged = True
+        m_lConfigPosition = txtConfig.SelStart
+    End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+End Sub
+
+Private Sub txtConfig_KeyPress(KeyAscii As Integer)
+    Const FUNC_NAME     As String = "txtConfig_KeyPress"
+    
+    On Error GoTo EH
+    '--- prevent beep (8 = backspace, 9 = tab, 13 = enter)
+    If KeyAscii < 32 And KeyAscii <> 8 And KeyAscii <> 9 And KeyAscii <> 13 Then
+        KeyAscii = 0
     End If
     Exit Sub
 EH:
