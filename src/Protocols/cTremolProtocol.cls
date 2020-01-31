@@ -184,6 +184,7 @@ Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
 Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
 Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
 Private Const LNG_STATUS_OVERHEATED     As Long = &H44
+Private Const LNG_STATUS_SWITCHED_OFF   As Long = &HF7
 Private Const LNG_DELAY_PRINT_TIMEOUT   As Long = 5500
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -744,7 +745,9 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
             lIter = lIter + 1
             pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
                 "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
-            If pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) = sStatus Then
+            sError = vbNullString
+            Select Case pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+            Case sStatus
                 lIter = lIter + 1
                 pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
                     "ReadyStatus", sStatus, LNG_STATUS_READY, _
@@ -770,9 +773,11 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
                     End Select
                 End If
                 Call Sleep(C_Lng(sDelay))
-            End If
+            Case Chr$(LNG_STATUS_SWITCHED_OFF)
+                Exit Do
+            End Select
         Loop
-        m_uPrintData.LastError = pvInternal(ucsErrDeviceNotReady)
+        m_uPrintData.LastError = Zn(sError, pvInternal(ucsErrDeviceNotOnline))
     End If
 QH:
     Exit Function
