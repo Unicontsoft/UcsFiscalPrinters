@@ -184,6 +184,7 @@ Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
 Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
 Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
 Private Const LNG_STATUS_OVERHEATED     As Long = &H44
+Private Const LNG_DELAY_PRINT_TIMEOUT   As Long = 5500
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
@@ -1212,6 +1213,14 @@ Public Function CancelReceipt() As Boolean
         "PrintTimeout", lPrintTimeout, 0
     SendCommand eCmd, sParam
     If LenB(m_uPrintData.LastError) <> 0 Then
+        If m_uConfig.DelayPrint Or m_uConfig.BufferPrint Then
+            Call Sleep(LNG_DELAY_PRINT_TIMEOUT)
+            If C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) = lTransStatus Then
+                '--- nothing to do
+                CancelReceipt = True
+                GoTo QH
+            End If
+        End If
         pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsZekCmdFiscalCancel, sParam, vbNullString
         SendCommand eCmd, sParam
         If LenB(m_uPrintData.LastError) <> 0 Then
