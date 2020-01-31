@@ -491,7 +491,7 @@ Property Get DefPmtTypes() As String
         ElseIf IsEcr Then
             m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
-            m_uConfig.DefPmtTypes = "PNDCIJKL  mnopqrs"
+            m_uConfig.DefPmtTypes = "PNCDIJKL  mnopqrs"
         End If
     End If
     DefPmtTypes = m_uConfig.DefPmtTypes
@@ -2762,10 +2762,10 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 0      ' P=SCash (В брой)
 '        Case ucsFscPmtCard
 '            pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
-        Case ucsFscPmtCard
-            pvToDevicePmtIndex = 2      ' D=SCards (С дебитна карта)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 3      ' C=SChecks (С чек)
+            pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
+        Case ucsFscPmtCard
+            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
         Case ucsFscPmtCustom1
             pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
 '        Case ucsFscPmtCustom1
