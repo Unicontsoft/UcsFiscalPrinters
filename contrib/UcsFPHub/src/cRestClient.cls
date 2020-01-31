@@ -256,9 +256,11 @@ Private Sub m_oSocket_OnReceive()
     lIdx = UBound(m_baBuffer) + 1
     If lIdx = 0 Then
         m_dblStartTimerEx = TimerEx
+        m_baBuffer = baBuffer
+    Else
+        ReDim Preserve m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
+        Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     End If
-    ReDim m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
-    Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     If m_oHeaders Is Nothing Then
         m_lHdrSize = InStrB(1, m_baBuffer, StrConv(vbCrLf & vbCrLf, vbFromUnicode))
         If m_lHdrSize > 0 Then
