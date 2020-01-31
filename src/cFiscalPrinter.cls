@@ -373,7 +373,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             GoTo QH
         End If
         For Each vElem In JsonKeys(oJson, "Rows")
-            With pvGetRowData(JsonItem(oJson, "Rows/" & vElem))
+            With pvGetRowData(C_Obj(JsonItem(oJson, "Rows/" & vElem)))
                 Select Case .RowType
                 Case ucsRwtSell
                     oFP.AddPLU .ItemName, C_Dbl(.Price), IIf(LenB(.Quantity) <> 0, C_Dbl(.Quantity), 1), pvGetTaxGroup(.TaxGroup), .UnitOfMeasure, C_Dbl(.DepartmentNo)
