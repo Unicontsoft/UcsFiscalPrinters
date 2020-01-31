@@ -241,6 +241,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
             End If
         End If
         nLogFile = FreeFile
+        m_nLogFile = -1
         Open sFile For Append Access Write Shared As #nLogFile
         m_nLogFile = nLogFile
     End If
