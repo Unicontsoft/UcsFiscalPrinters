@@ -1604,3 +1604,38 @@ Public Function ToDeviceSerialNo(sText As String) As String
         ToDeviceSerialNo = Trim$(sText)
     End If
 End Function
+
+Public Function ConcatArrays(vSrc As Variant, vDst As Variant) As Variant
+    Const FUNC_NAME     As String = "ConcatArrays"
+    Dim vResult         As Variant
+    Dim lIdx            As Long
+    Dim vElem           As Variant
+
+    On Error GoTo EH
+    If IsArray(vSrc) Then
+        lIdx = lIdx + UBound(vSrc) - LBound(vSrc) + 1
+    End If
+    If IsArray(vDst) Then
+        lIdx = lIdx + UBound(vDst) - LBound(vDst) + 1
+    End If
+    If lIdx > 0 Then
+        ReDim vResult(0 To lIdx - 1) As Variant
+        lIdx = 0
+        If IsArray(vSrc) Then
+            For Each vElem In vSrc
+                AssignVariant vResult(lIdx), vElem
+                lIdx = lIdx + 1
+            Next
+        End If
+        If IsArray(vDst) Then
+            For Each vElem In vDst
+                AssignVariant vResult(lIdx), vElem
+                lIdx = lIdx + 1
+            Next
+        End If
+    End If
+    ConcatArrays = vResult
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function

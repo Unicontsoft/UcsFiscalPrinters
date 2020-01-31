@@ -1405,6 +1405,9 @@ Public Function GetTotalsByPaymentTypes() As Variant
         pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, IIf(IsDaisy, "A", IIf(IsEltrade, "11", "*")), _
             "Offset", lOffset, 0
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        If IsFP And UBound(vPmtSum) > 0 Then
+            vPmtSum = ConcatArrays(Split(SendCommand(eCmd, vbNullString), DEF_SEP), vPmtSum)
+        End If
     End If
     If UBound(vPmtSum) <= 0 Then
         GoTo QH
