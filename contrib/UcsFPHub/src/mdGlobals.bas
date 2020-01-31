@@ -1316,3 +1316,17 @@ Public Function ShellExec(sExeFile As String, sParams As String) As Boolean
     End With
     Call ShellExecuteEx(uShell)
 End Function
+
+Public Function LimitLong( _
+            ByVal lValue As Long, _
+            Optional ByVal lMin As Long = -2147483647, _
+            Optional ByVal lMax As Long = 2147483647) As Long
+    If lValue < lMin Then
+        LimitLong = lMin
+    ElseIf lValue > lMax Then
+        LimitLong = lMax
+    Else
+        LimitLong = lValue
+    End If
+End Function
+

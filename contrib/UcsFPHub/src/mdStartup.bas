@@ -64,6 +64,9 @@ Public Const FORMAT_TIME_ONLY           As String = "hh:nn:ss"
 Public Const FORMAT_DATETIME_LOG        As String = "yyyy.MM.dd hh:nn:ss"
 Public Const FORMAT_BASE_2              As String = "0.00"
 Public Const FORMAT_BASE_3              As String = "0.000"
+'--- log level
+Public Const vbLogEventTypeDebug        As Long = vbLogEventTypeInformation + 1
+Public Const vbLogEventTypeDataDump     As Long = vbLogEventTypeInformation + 2
 
 Private m_oOpt                      As Object
 Private m_oPrinters                 As Object
@@ -473,7 +476,7 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & ": "
 '    sSuffix = " [" & sModule & "." & sFunction & "]"
     If Logger.LogFile = -1 And m_bIsService Then
-        App.LogEvent sText & sSuffix, eType
+        App.LogEvent sText & sSuffix, LimitLong(eType, 0, vbLogEventTypeInformation)
     ElseIf eType = vbLogEventTypeError Then
         ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & sSuffix & vbCrLf
     Else
@@ -481,8 +484,12 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     End If
 End Sub
 
-Public Property Get IsDataDumpEnabled() As Boolean
-    IsDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeInformation + 1
+Public Property Get IsLogDebugEnabled() As Boolean
+    IsLogDebugEnabled = Logger.LogLevel >= vbLogEventTypeDebug
+End Property
+
+Public Property Get IsLogDataDumpEnabled() As Boolean
+    IsLogDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeDataDump
 End Property
 
 Public Sub FlushDebugLog()

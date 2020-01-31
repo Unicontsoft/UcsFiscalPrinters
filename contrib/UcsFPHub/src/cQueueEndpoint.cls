@@ -247,8 +247,8 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     
     On Error GoTo EH
     dblStartTimerEx = TimerEx
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p"), vbLogEventTypeDebug
     End If
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
@@ -293,8 +293,8 @@ QH:
     If Not frHandleRequest Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterId, sResponse)
     End If
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse, vbLogEventTypeDebug
     End If
     Exit Function
 EH:
@@ -465,8 +465,8 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
         sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)
     End If
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sLocalConnStr=" & sLocalConnStr
+    If IsLogDataDumpEnabled Then '-- prevent password dump
+        DebugLog MODULE_NAME, FUNC_NAME, "sLocalConnStr=" & sLocalConnStr, vbLogEventTypeDebug
     End If
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
@@ -632,8 +632,8 @@ Private Function pvMakeSshTunnel( _
         IIf(LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
         IIf(lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
         IIf(LenB(sExtraParams) <> 0, " " & sExtraParams, vbNullString)
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sParams=" & sParams
+    If IsLogDataDumpEnabled Then '-- prevent password dump
+        DebugLog MODULE_NAME, FUNC_NAME, "sParams=" & sParams, vbLogEventTypeDebug
     End If
     '--- shell plink.exe
     Set oTunnel = New cExec
@@ -651,8 +651,8 @@ Private Function pvMakeSshTunnel( _
             Call Sleep(1)
             sLine = .ReadPendingOutput & .ReadPendingError
             If Len(sLine) > 1 Then
-                If IsDataDumpEnabled Then
-                    DebugLog MODULE_NAME, FUNC_NAME, Left$(sLine, Len(sLine) - 2)
+                If IsLogDebugEnabled Then
+                    DebugLog MODULE_NAME, FUNC_NAME, Left$(sLine, Len(sLine) - 2), vbLogEventTypeDebug
                 End If
                 sInput = sInput & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
@@ -664,8 +664,8 @@ Private Function pvMakeSshTunnel( _
                 For Each vElem In Split(sInput, vbCrLf)
                     If InStr(vElem, "ssh-rsa ") > 0 Then
                         sError = vElem & vbCrLf
-                        If IsDataDumpEnabled Then
-                            DebugLog MODULE_NAME, FUNC_NAME, "SSH server key: " & vElem
+                        If IsLogDebugEnabled Then
+                            DebugLog MODULE_NAME, FUNC_NAME, "SSH server key: " & vElem, vbLogEventTypeDebug
                         End If
                     End If
                 Next
@@ -686,8 +686,8 @@ Private Function pvMakeSshTunnel( _
             End If
         Loop
         sError = sInput
-        If IsDataDumpEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "GetExitCode=" & .GetExitCode
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "GetExitCode=" & .GetExitCode, vbLogEventTypeDebug
         End If
     End With
 QH:

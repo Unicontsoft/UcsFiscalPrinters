@@ -152,14 +152,14 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p")
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p"), vbLogEventTypeDebug
     End If
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 QH:
-    If IsDataDumpEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & sResponse
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & sResponse, vbLogEventTypeDebug
     End If
     Exit Function
 EH:

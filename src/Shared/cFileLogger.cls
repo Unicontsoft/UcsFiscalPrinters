@@ -41,7 +41,6 @@ Private Const MAX_MEMORY_SIZE       As Long = 32& * 1024
 Private Const MAX_FILE_SIZE         As Long = 10& * 1024 * 1024
 Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
 Private Const FORMAT_BASE_3         As String = "0.000"
-Private Const vbLogEventTypeDataDump As Long = vbLogEventTypeInformation + 1
 
 Private m_nLogFile              As Integer
 Private m_sLogFileName          As String
@@ -112,13 +111,15 @@ Public Sub Log(ByVal eType As LogEventTypeConstants, sModule As String, sFunctio
     ElseIf eType = vbLogEventTypeWarning Then
         sPrefix = "[WARN ] "
     ElseIf eType = vbLogEventTypeInformation Then
+        sPrefix = "[INFO ] "
+    ElseIf eType = vbLogEventTypeDebug Then
         sPrefix = "[DEBUG] "
     End If
     If pvOutputLog(sModule, sFunction, sPrefix & sText) Then
         GoTo QH
     End If
     If m_bIsService Then
-        App.LogEvent sText, eType
+        App.LogEvent sText, LimitLong(eType, 0, vbLogEventTypeInformation)
     End If
 QH:
     Err.Number = vErr(0)

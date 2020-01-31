@@ -173,7 +173,7 @@ Private Sub RaiseError(sFunction As String)
 End Sub
 
 Private Sub DebugLog(sFunction As String, sText As String)
-    Logger.Log vbLogEventTypeInformation, MODULE_NAME, sFunction, sText
+    Logger.Log vbLogEventTypeDebug, MODULE_NAME, sFunction, sText
 End Sub
 
 '=========================================================================

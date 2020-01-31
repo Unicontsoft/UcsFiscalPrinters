@@ -190,6 +190,8 @@ Public Const DBL_EPSILON                As Double = 0.0000000001
 Public Const FORMAT_BASE_2              As String = "0.00"
 Public Const FORMAT_BASE_3              As String = "0.000"
 Public Const STR_CONNECTOR_ERRORS       As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
+Public Const vbLogEventTypeDebug        As Long = vbLogEventTypeInformation + 1
+Public Const vbLogEventTypeDataDump     As Long = vbLogEventTypeInformation + 2
 
 Private m_sDecimalSeparator         As String
 Private m_oConfig                   As Object
@@ -240,9 +242,9 @@ Private Sub Main()
     m_sDecimalSeparator = GetDecimalSeparator()
     sFile = LocateFile(App.Path & "\" & App.EXEName & ".conf")
     If LenB(sFile) <> 0 Then
-        Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
+        Logger.Log vbLogEventTypeDebug, MODULE_NAME, FUNC_NAME, "Loading config file " & sFile
         If Not JsonParse(ReadTextFile(sFile), vJson, Error:=sError) Then
-            Logger.Log vbLogEventTypeInformation, MODULE_NAME, FUNC_NAME, "Error in config: " & sError
+            Logger.Log vbLogEventTypeError, MODULE_NAME, FUNC_NAME, "Error in config: " & sError
         End If
     End If
     Set m_oConfig = C_Obj(vJson)
@@ -459,7 +461,7 @@ Property Get Logger() As cFileLogger
         End If
         Set m_oLogger = New cFileLogger
         m_oLogger.LogFileName = sFileName
-        m_oLogger.LogLevel = vbLogEventTypeInformation - CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")))
+        m_oLogger.LogLevel = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), vbLogEventTypeDataDump, vbLogEventTypeDebug)
         On Error GoTo 0
 QH:
         Err.Number = vErr(0)
