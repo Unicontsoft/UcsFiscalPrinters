@@ -329,8 +329,6 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
-    Else
-        JsonItem(oRetVal, "ResumeToken") = sResumeToken
     End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
@@ -898,11 +896,13 @@ Private Function pvGetRowData(oRow As Object) As UcsRowData
         pvGetRowData.RowType = ucsRwtDiscount
         pvGetRowData.Discount = ucsFscDscSubtotal
         pvGetRowData.Amount = C_Str(JsonItem(oRow, "DiscountPercent"))
+        GoTo QH
     End If
     If Not IsEmpty(JsonItem(oRow, "DiscountAmount")) Then
         pvGetRowData.RowType = ucsRwtDiscount
         pvGetRowData.Discount = ucsFscDscSubtotalAbs
         pvGetRowData.Amount = C_Str(JsonItem(oRow, "DiscountAmount"))
+        GoTo QH
     End If
     vRow = JsonItem(oRow, "*")
     If UBound(vRow) = ucsFscPixText Then
