@@ -214,10 +214,17 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     '--- success
     ServiceRequest = True
 QH:
-    If LCase$(JsonItem(oParams, "format")) = "xml" And LenB(sResponse) <> 0 Then
-        If JsonParse(sResponse, vJson) Then
-            sResponse = JsonToXmlDocument(vJson).Xml
-        End If
+    If LenB(sResponse) <> 0 Then
+        Select Case LCase$(JsonItem(oParams, "format"))
+        Case "xml"
+            If JsonParse(sResponse, vJson) Then
+                sResponse = JsonToXmlDocument(vJson).Xml
+            End If
+        Case "json"
+            If JsonParse(sResponse, vJson) Then
+                sResponse = JsonDump(vJson)
+            End If
+        End Select
     End If
     If ServiceRequest And LenB(sRequestId) <> 0 And InStr(sResponse, """Ok"":true") <> 0 Then
         Set oEntry = Nothing

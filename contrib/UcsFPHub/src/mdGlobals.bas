@@ -415,7 +415,7 @@ Continue:
     Set GetOpt = oRetVal
 End Function
 
-Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
+Public Property Get At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
     On Error GoTo QH
     At = sDefault
     If IsArray(vData) Then
@@ -428,7 +428,7 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
         End If
     End If
 QH:
-End Function
+End Property
 
 Public Function Peek(ByVal lPtr As Long) As Long
     Call CopyMemory(Peek, ByVal lPtr, 4)
