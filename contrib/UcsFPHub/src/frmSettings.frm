@@ -373,6 +373,7 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 Private Const STR_CAPTION               As String = "Настройки на %1 v%2"
 Private Const STR_CAPTION_PRINTERS      As String = "Устройства"
 Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
+Private Const STR_CAPTION_LOG           As String = "Журнал"
 Private Const STR_HEADER_PRINTERS       As String = "Сериен No.|Порт|Хост|Модел|Версия"
 Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOTEX|ELTRADE|TREMOL|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
@@ -389,10 +390,13 @@ Private Const GRID_SIZE                 As Long = 60
 Private m_sConfFile                 As String
 Private m_sPrinterID                As String
 Private m_bInSet                    As Boolean
-Private m_bConfigChanged            As Boolean
 Private m_bQuickSettingsChanged     As Boolean
+Private m_bConfigChanged            As Boolean
+Private m_bLogChanged               As Boolean
 Private m_pSubclass                 As IUnknown
 Private m_lConfigPosition           As Long
+Private m_pTimerLog                 As IUnknown
+Private m_lLogMemoryCount           As Long
 
 Private Enum UcsMenuItems
     ucsMnuFileSave = 0
@@ -452,6 +456,15 @@ Private Property Let pvConfigChanged(ByVal bValue As Boolean)
     tabMain.TabCaption(ucsTabConfig) = STR_CAPTION_CONFIG & IIf(bValue, "*", vbNullString)
 End Property
 
+Private Property Get pvLogChanged() As Boolean
+    pvLogChanged = m_bLogChanged
+End Property
+
+Private Property Let pvLogChanged(ByVal bValue As Boolean)
+    m_bLogChanged = bValue
+    tabMain.TabCaption(ucsTabLog) = STR_CAPTION_LOG & IIf(bValue, "*", vbNullString)
+End Property
+
 Private Property Get pvAddressOfSubclassProc() As frmSettings
     Set pvAddressOfSubclassProc = InitAddressOfMethod(Me, 5)
 End Property
@@ -464,6 +477,10 @@ Private Property Let pvConfigText(sValue As String)
     m_bInSet = True
     txtConfig.Text = sValue
     m_bInSet = False
+End Property
+
+Private Property Get pvAddressOfTimerProc() As frmSettings
+    Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
 '=========================================================================
@@ -507,9 +524,11 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         '--- delay-load UI
         m_sPrinterID = vbNullString
         lstPrinters.Clear
+        pvQuickSettingsChanged = False
         pvConfigText = vbNullString
-        txtLog.Text = vbNullString
         pvConfigChanged = False
+        pvLoadLog
+        Set m_pTimerLog = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=1000)
         tabMain_Click
     End If
     If Not OwnerForm Is Nothing Then
@@ -533,12 +552,34 @@ End Function
 
 Public Function SubclassProc(ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long, Handled As Boolean) As Long
 Attribute SubclassProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "SubclassProc"
+    
+    On Error GoTo EH
     #If hWnd And wParam And lParam And Handled Then '--- touch args
     #End If
     Select Case wMsg
     Case WM_INITMENU
         pvMenuNegotiate ActiveControl
     End Select
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function TimerProc() As Long
+Attribute TimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "TimerProc"
+    
+    On Error GoTo EH
+    If tabMain.CurrentTab = ucsTabLog Then
+        pvLoadLog
+    ElseIf LenB(txtLog.Text) <> 0 Then
+        pvLogChanged = (Logger.MemoryCount <> m_lLogMemoryCount)
+    End If
+    Set m_pTimerLog = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=1000)
+    Exit Function
+EH:
+    PrintError FUNC_NAME
 End Function
 
 '= private ===============================================================
@@ -606,8 +647,12 @@ Private Function pvLoadLog() As Boolean
     Const FUNC_NAME     As String = "pvLoadLog"
     
     On Error GoTo EH
-    txtLog.Text = ConcatCollection(Logger.MemoryLog) & vbCrLf
-    txtLog.SelStart = &H7FFF&
+    If Logger.MemoryCount <> m_lLogMemoryCount Then
+        m_lLogMemoryCount = Logger.MemoryCount
+        txtLog.Text = ConcatCollection(Logger.MemoryLog) & vbCrLf
+        txtLog.SelStart = &H7FFF&
+    End If
+    pvLogChanged = False
     '--- success
     pvLoadLog = True
     Exit Function
@@ -754,7 +799,6 @@ Private Function pvLoadItemData(oCombo As ComboBox, vItemData As Variant) As Boo
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume Next
 End Function
 
 Friend Sub frRestart()
@@ -777,9 +821,11 @@ Friend Sub frRestart()
     '--- delay-load UI
     m_sPrinterID = vbNullString
     lstPrinters.Clear
+    pvQuickSettingsChanged = False
     pvConfigText = vbNullString
-    txtLog.Text = vbNullString
     pvConfigChanged = False
+    pvLoadLog
+    Set m_pTimerLog = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=1000)
     tabMain_Click
     Exit Sub
 EH:
@@ -821,13 +867,11 @@ RetryRestart:
     JsonItem(oDevice, "DefaultPassword") = Zn(Trim$(txtDefPass.Text), Empty)
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     pvConfigText = JsonDump(oConfig)
-    If Not pvSaveConfig(m_sConfFile) Then
-        GoTo QH
+    If pvSaveConfig(m_sConfFile) Then
+        frRestart
+        pvLoadPrinters
+        sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
     End If
-    frRestart
-    pvLoadPrinters
-    sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
-QH:
     cmdApply.Caption = STR_CAPTION_APPLY
     cmdApply.Enabled = True
     cmdApply.SetFocus
@@ -900,7 +944,7 @@ Private Sub mnuEdit_Click(Index As Integer)
             End If
             pvLoadConfig m_sConfFile
         Case ucsTabLog
-            pvLoadLog
+            TimerProc
         End Select
     End Select
 QH:
@@ -934,7 +978,7 @@ QH:
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
 End Sub
 
 Private Sub Form_Resize()
@@ -1021,9 +1065,7 @@ Private Sub tabMain_Click()
             pvLoadConfig m_sConfFile
         End If
     Case ucsTabLog
-        If LenB(txtLog.Text) = 0 Then
-            pvLoadLog
-        End If
+        TimerProc
     End Select
 QH:
     Screen.MousePointer = vbDefault
