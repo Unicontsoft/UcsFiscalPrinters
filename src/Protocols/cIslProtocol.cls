@@ -1094,8 +1094,9 @@ Public Function GetLastInvoiceNo() As String
     
     On Error GoTo EH
     If IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "ExtendedInitSetting", eCmd, ucsIslCmdExtendedInitSetting, sParam, "R19", _
-            "Index", lIndex, 1
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+            "Index", lIndex, -1, _
+            "Offset", lOffset, -1
     ElseIf IsIncotex Then
         pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
             "Index", lIndex, 10, _
