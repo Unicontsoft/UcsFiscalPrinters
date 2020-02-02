@@ -69,6 +69,7 @@ Private Const ERR_INVALID_DISCTYPE      As String = "Invalid discount type: %1"
 Private Const TXT_SURCHARGE             As String = "Surcharge %1"
 Private Const TXT_DISCOUNT              As String = "Discount %1"
 Private Const TXT_PLUSALES              As String = "Sales %1"
+Private Const STR_SEP                   As String = "|"
 Public Const ucsFscDscPluAbs            As Long = ucsFscDscPlu + 100
 Public Const ucsFscRcpNonfiscal         As Long = ucsFscRcpSale + 100
 Public Const MIN_TAX_GROUP              As Long = 1
@@ -211,7 +212,7 @@ Public Function PpdStartReceipt( _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
         .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
             SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), SafeText(RevInvoiceNo), SafeText(RevReason))
-        .InitOwnData = Split(OwnData, STR_CHR1)
+        .InitOwnData = Split(OwnData, STR_SEP)
         .PrintRowType = uData.Row(0).InitReceiptType
     End With
     '--- success
@@ -409,7 +410,7 @@ Public Function PpdEndReceipt( _
         GoTo QH
     End If
     '--- restore context
-    vSplit = Split(sResumeToken, STR_CHR1)
+    vSplit = Split(sResumeToken, STR_SEP)
     With uData.ExecCtx
         For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
             .GrpTotal(lIdx) = C_Dbl(At(vSplit, lPos)): lPos = lPos + 1
@@ -449,9 +450,9 @@ Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
     With uData.ExecCtx
         If .PmtPrinted Then
             For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                PpdGetResumeToken = PpdGetResumeToken & .GrpTotal(lIdx) & STR_CHR1
+                PpdGetResumeToken = PpdGetResumeToken & .GrpTotal(lIdx) & STR_SEP
             Next
-            PpdGetResumeToken = PpdGetResumeToken & .Paid & STR_CHR1 & .PluCount & STR_CHR1 & -.PmtPrinted & STR_CHR1 & -.ChangePrinted & STR_CHR1 & .Row
+            PpdGetResumeToken = PpdGetResumeToken & .Paid & STR_SEP & .PluCount & STR_SEP & -.PmtPrinted & STR_SEP & -.ChangePrinted & STR_SEP & .Row
         End If
     End With
 QH:
