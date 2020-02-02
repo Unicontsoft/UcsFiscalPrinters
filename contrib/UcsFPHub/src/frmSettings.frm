@@ -38,6 +38,7 @@ Begin VB.Form frmSettings
          Height          =   432
          Left            =   8484
          TabIndex        =   20
+         Tag             =   "FONT"
          Top             =   2436
          Width           =   1104
       End
@@ -361,7 +362,9 @@ Private Const MODULE_NAME As String = "frmSettings"
 ' API
 '=========================================================================
 
+'--- Windows Messages
 Private Const WM_GETTEXTLENGTH          As Long = &HE
+Private Const WM_GETMINMAXINFO          As Long = &H24
 Private Const EM_SETSEL                 As Long = &HB1
 Private Const EM_CANUNDO                As Long = &HC6
 Private Const EM_UNDO                   As Long = &HC7
@@ -370,9 +373,24 @@ Private Const WM_CUT                    As Long = &H300
 Private Const WM_COPY                   As Long = &H301
 Private Const WM_PASTE                  As Long = &H302
 Private Const WM_CLEAR                  As Long = &H303
+'--- clipboard format
 Private Const CF_UNICODETEXT            As Long = 13
 
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+
+Private Type POINTAPI
+    X                   As Long
+    Y                   As Long
+End Type
+
+Private Type MINMAXINFO
+    ptReserved          As POINTAPI
+    ptMaxSize           As POINTAPI
+    ptMaxPosition       As POINTAPI
+    ptMinTrackSize      As POINTAPI
+    ptMaxTrackSize      As POINTAPI
+End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -395,6 +413,8 @@ Private Const MSG_PRINTER_NOT_FOUND     As String = "Не е открито фискалното уст
 Private Const MSG_SUCCESS_FOUND         As String = "Успешно конфигуриране на фискално устройство %1!"
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
+Private Const DEF_MIN_WIDTH             As Single = 10000
+Private Const DEF_MIN_HEIGHT            As Single = 6000
 
 Private m_sConfFile                 As String
 Private m_sPrinterID                As String
@@ -562,6 +582,7 @@ End Function
 Public Function SubclassProc(ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long, Handled As Boolean) As Long
 Attribute SubclassProc.VB_MemberFlags = "40"
     Const FUNC_NAME     As String = "SubclassProc"
+    Dim uInfo           As MINMAXINFO
     
     On Error GoTo EH
     #If hWnd And wParam And lParam And Handled Then '--- touch args
@@ -569,6 +590,12 @@ Attribute SubclassProc.VB_MemberFlags = "40"
     Select Case wMsg
     Case WM_INITMENU
         pvMenuNegotiate ActiveControl
+    Case WM_GETMINMAXINFO
+        Call CopyMemory(uInfo, ByVal lParam, LenB(uInfo))
+        uInfo.ptMinTrackSize.X = DEF_MIN_WIDTH / ScreenTwipsPerPixelX
+        uInfo.ptMinTrackSize.Y = DEF_MIN_HEIGHT / ScreenTwipsPerPixelY
+        Call CopyMemory(ByVal lParam, uInfo, LenB(uInfo))
+        Handled = True
     End Select
     Exit Function
 EH:
