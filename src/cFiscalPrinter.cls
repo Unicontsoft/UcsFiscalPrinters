@@ -314,9 +314,10 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vElem           As Variant
     Dim lIdx            As Long
-    Dim sResumeToken   As String
+    Dim sResumeToken    As String
     Dim sPrevReceiptNo  As String
     Dim dLastDateTime   As Date
+    Dim eReceiptType    As UcsFiscalReceiptTypeEnum
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -347,7 +348,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
     If IsObject(JsonItem(oJson, "Rows")) Then
-        If Not oFP.StartReceipt(JsonEnumValue(JsonItem(oJson, "ReceiptType"), STR_ENUM_RECEIPT_TYPE), _
+        eReceiptType = JsonEnumValue(JsonItem(oJson, "ReceiptType"), STR_ENUM_RECEIPT_TYPE)
+        If Not oFP.StartReceipt(eReceiptType, _
                 JsonItem(oJson, "Operator/Code"), _
                 Zn(JsonItem(oJson, "Operator/Name"), pvText(ucsTxtCashier)), _
                 JsonItem(oJson, "Operator/Password"), _
@@ -418,6 +420,9 @@ ReturnReceiptInfo:
     End If
     JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
     JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
+    If eReceiptType = ucsFscRcpInvoice Or eReceiptType = ucsFscRcpCreditNote Then
+        JsonItem(oRetVal, "LastInvoiceNo") = StripZeros(oFP.GetLastInvoiceNo())
+    End If
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     If LenB(sLastErr) <> 0 And Not oFP Is Nothing Then
@@ -484,6 +489,10 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         End If
     Case ucsFscRptOperator
         '--- ToDo: impl
+    Case Else
+        sLastErr = "Invalid or missing report type"
+        DebugLog FUNC_NAME, "Case Else, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
+        GoTo QH
     End Select
     If Not bResult Then
         sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
