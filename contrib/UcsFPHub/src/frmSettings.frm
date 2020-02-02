@@ -371,20 +371,26 @@ Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hW
 '=========================================================================
 
 Private Const STR_CAPTION               As String = "Настройки на %1 v%2"
+Private Const STR_CAPTION_PRINTERS      As String = "Устройства"
 Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
 Private Const STR_HEADER_PRINTERS       As String = "Сериен No.|Порт|Хост|Модел|Версия"
 Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOTEX|ELTRADE|TREMOL|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
+Private Const STR_CAPTION_APPLY         As String = "Прилагане"
+Private Const STR_CAPTION_DISCOVERY     As String = "Търсене"
 '--- messages
 Private Const MSG_SAVE_CHANGES          As String = "Желаете ли да запазите модификациите на %1?"
 Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на %1!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
+Private Const MSG_PRINTER_NOT_FOUND     As String = "Не е открито фискалното устройство с тези настройки." & vbCrLf & vbCrLf & "Желаете ли повторно прилагане?"
+Private Const MSG_SUCCESS_FOUND         As String = "Успешно конфигуриране на фискално устройство %1!"
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 
 Private m_sConfFile                 As String
 Private m_sPrinterID                As String
 Private m_bInSet                    As Boolean
-Private m_bChanged                  As Boolean
+Private m_bConfigChanged            As Boolean
+Private m_bQuickSettingsChanged     As Boolean
 Private m_pSubclass                 As IUnknown
 Private m_lConfigPosition           As Long
 
@@ -428,12 +434,21 @@ End Sub
 ' Properties
 '=========================================================================
 
-Private Property Get pvChanged() As Boolean
-    pvChanged = m_bChanged
+Private Property Get pvQuickSettingsChanged() As Boolean
+    pvQuickSettingsChanged = m_bQuickSettingsChanged
 End Property
 
-Private Property Let pvChanged(ByVal bValue As Boolean)
-    m_bChanged = bValue
+Private Property Let pvQuickSettingsChanged(ByVal bValue As Boolean)
+    m_bQuickSettingsChanged = bValue
+    tabMain.TabCaption(ucsTabPrinters) = STR_CAPTION_PRINTERS & IIf(bValue, "*", vbNullString)
+End Property
+
+Private Property Get pvConfigChanged() As Boolean
+    pvConfigChanged = m_bConfigChanged
+End Property
+
+Private Property Let pvConfigChanged(ByVal bValue As Boolean)
+    m_bConfigChanged = bValue
     tabMain.TabCaption(ucsTabConfig) = STR_CAPTION_CONFIG & IIf(bValue, "*", vbNullString)
 End Property
 
@@ -494,7 +509,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         lstPrinters.Clear
         pvConfigText = vbNullString
         txtLog.Text = vbNullString
-        pvChanged = False
+        pvConfigChanged = False
         tabMain_Click
     End If
     If Not OwnerForm Is Nothing Then
@@ -554,11 +569,13 @@ Private Function pvLoadPrinters() As Boolean
             End If
         Next
     End If
+    m_bInSet = True
     cobProtocol.Text = JsonItem(oDevice, "Protocol")
     cobPort.Text = JsonItem(oDevice, "Port")
     cobSpeed.Text = JsonItem(oDevice, "Speed")
     txtSerialNo.Text = JsonItem(oDevice, "DeviceSerialNo")
     txtDefPass.Text = JsonItem(oDevice, "DefaultPassword")
+    m_bInSet = False
     '--- printers list
     Set oForm = MainForm
     vSplit = Split(STR_HEADER_PRINTERS, "|")
@@ -577,6 +594,7 @@ Private Function pvLoadPrinters() As Boolean
     If lstPrinters.ListCount > 1 Then
         lstPrinters.ListIndex = 1
     End If
+    pvQuickSettingsChanged = False
     '--- success
     pvLoadPrinters = True
     Exit Function
@@ -612,7 +630,7 @@ Private Function pvLoadConfig(sConfFile As String) As Boolean
         pvConfigText = JsonDump(oConfig)
     End If
     txtConfig.SelStart = m_lConfigPosition
-    pvChanged = False
+    pvConfigChanged = False
     '--- success
     pvLoadConfig = True
     Exit Function
@@ -636,7 +654,7 @@ Private Function pvSaveConfig(sConfFile As String) As Boolean
         End If
         WriteTextFile sConfFile, pvConfigText, ucsFltUtf8
     End If
-    pvChanged = False
+    pvConfigChanged = False
     '--- success
     pvSaveConfig = True
 QH:
@@ -651,7 +669,7 @@ Private Function pvQuerySaveConfig(sConfFile As String) As Boolean
     Const FUNC_NAME     As String = "pvQuerySaveConfig"
     
     On Error GoTo EH
-    If pvChanged Then
+    If pvConfigChanged Then
         Select Case MsgBox(Printf(MSG_SAVE_CHANGES, sConfFile), vbQuestion Or vbYesNoCancel)
         Case vbYes
             If Not pvSaveConfig(sConfFile) Then
@@ -673,7 +691,7 @@ Private Sub pvMenuNegotiate(oCtl As Object)
     Const FUNC_NAME     As String = "pvMenuNegotiate"
     
     On Error GoTo EH
-    mnuFile(ucsMnuFileSave).Enabled = pvChanged
+    mnuFile(ucsMnuFileSave).Enabled = pvConfigChanged
     mnuEdit(ucsMnuEditUndo).Enabled = pvCanExecute(ucsMnuEditUndo, oCtl)
     mnuEdit(ucsMnuEditCut).Enabled = pvCanExecute(ucsMnuEditCut, oCtl)
     mnuEdit(ucsMnuEditCopy).Enabled = pvCanExecute(ucsMnuEditCopy, oCtl)
@@ -761,7 +779,7 @@ Friend Sub frRestart()
     lstPrinters.Clear
     pvConfigText = vbNullString
     txtLog.Text = vbNullString
-    pvChanged = False
+    pvConfigChanged = False
     tabMain_Click
     Exit Sub
 EH:
@@ -784,24 +802,40 @@ Private Sub cmdApply_Click()
     Const FUNC_NAME     As String = "cmdApply_Click"
     Dim oConfig         As Object
     Dim oDevice         As Object
+    Dim sDeviceSerialNo As String
     
     On Error GoTo EH
+RetryRestart:
+    cmdApply.Enabled = False
+    cmdApply.Caption = STR_CAPTION_DISCOVERY
     If LenB(pvConfigText) = 0 Then
         pvLoadConfig m_sConfFile
     End If
     Set oConfig = JsonParseObject(pvConfigText)
     JsonItem(oConfig, "Printers/Autodetect") = (chkAutoDetect.Value = vbChecked)
     Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
-    JsonItem(oDevice, "Protocol") = Zn(cobProtocol.Text, Empty)
-    JsonItem(oDevice, "Port") = Zn(cobPort.Text, Empty)
-    JsonItem(oDevice, "Speed") = Zn(cobSpeed.Text, Empty)
-    JsonItem(oDevice, "DeviceSerialNo") = Zn(txtSerialNo.Text, Empty)
-    JsonItem(oDevice, "DefaultPassword") = Zn(txtDefPass.Text, Empty)
+    JsonItem(oDevice, "Protocol") = Zn(Trim$(cobProtocol.Text), Empty)
+    JsonItem(oDevice, "Port") = Zn(Trim$(cobPort.Text), Empty)
+    JsonItem(oDevice, "Speed") = Zn(Trim$(cobSpeed.Text), Empty)
+    JsonItem(oDevice, "DeviceSerialNo") = Zn(Trim$(txtSerialNo.Text), Empty)
+    JsonItem(oDevice, "DefaultPassword") = Zn(Trim$(txtDefPass.Text), Empty)
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     pvConfigText = JsonDump(oConfig)
-    pvChanged = True
-    mnuFile_Click ucsMnuFileSave
+    If Not pvSaveConfig(m_sConfFile) Then
+        GoTo QH
+    End If
+    frRestart
+    pvLoadPrinters
+    sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
 QH:
+    cmdApply.Caption = STR_CAPTION_APPLY
+    cmdApply.Enabled = True
+    cmdApply.SetFocus
+    If LenB(sDeviceSerialNo) <> 0 Then
+        MsgBox Printf(MSG_SUCCESS_FOUND, sDeviceSerialNo), vbExclamation
+    ElseIf MsgBox(MSG_PRINTER_NOT_FOUND, vbQuestion Or vbYesNo) = vbYes Then
+        GoTo RetryRestart
+    End If
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -814,7 +848,7 @@ Private Sub mnuFile_Click(Index As Integer)
     Screen.MousePointer = vbHourglass
     Select Case Index
     Case ucsMnuFileSave
-        If pvChanged Then
+        If pvConfigChanged Then
             If Not pvSaveConfig(m_sConfFile) Then
                 GoTo QH
             End If
@@ -1016,7 +1050,7 @@ Private Sub txtConfig_Change()
     
     On Error GoTo EH
     If Not m_bInSet Then
-        pvChanged = True
+        pvConfigChanged = True
         m_lConfigPosition = txtConfig.SelStart
     End If
     Exit Sub
@@ -1036,3 +1070,45 @@ Private Sub txtConfig_KeyPress(KeyAscii As Integer)
 EH:
     PrintError FUNC_NAME
 End Sub
+
+Private Sub cobProtocol_Change()
+    Const FUNC_NAME     As String = "cobProtocol_Change"
+    
+    On Error GoTo EH
+    If Not m_bInSet Then
+        pvQuickSettingsChanged = True
+    End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
+Private Sub cobProtocol_Click()
+    cobProtocol_Change
+End Sub
+
+Private Sub cobPort_Change()
+    cobProtocol_Change
+End Sub
+
+Private Sub cobPort_Click()
+    cobProtocol_Change
+End Sub
+
+Private Sub cobSpeed_Change()
+    cobProtocol_Change
+End Sub
+
+Private Sub cobSpeed_Click()
+    cobProtocol_Change
+End Sub
+
+Private Sub txtSerialNo_Change()
+    cobProtocol_Change
+End Sub
+
+Private Sub txtDefPass_Change()
+    cobProtocol_Change
+End Sub
+
