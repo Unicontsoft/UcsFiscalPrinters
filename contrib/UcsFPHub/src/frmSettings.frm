@@ -33,6 +33,14 @@ Begin VB.Form frmSettings
       Top             =   504
       Visible         =   0   'False
       Width           =   9924
+      Begin VB.CommandButton cmdTest 
+         Caption         =   "Тест"
+         Height          =   432
+         Left            =   8484
+         TabIndex        =   20
+         Top             =   2436
+         Width           =   1104
+      End
       Begin VB.Frame fraQuickSetup 
          Caption         =   "Бързи настройки"
          Height          =   4380
@@ -379,6 +387,7 @@ Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOT
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
 Private Const STR_CAPTION_APPLY         As String = "Прилагане"
 Private Const STR_CAPTION_DISCOVERY     As String = "Търсене"
+Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 '--- messages
 Private Const MSG_SAVE_CHANGES          As String = "Желаете ли да запазите модификациите на %1?"
 Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на %1!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
@@ -885,6 +894,27 @@ EH:
     PrintError FUNC_NAME
 End Sub
 
+Private Sub cmdTest_Click()
+    Const FUNC_NAME     As String = "cmdTest_Click"
+    Const URL_INFO      As String = "/printers/%1?format=json"
+    Dim sPrinterID      As String
+    Dim sResponse       As String
+    
+    On Error GoTo EH
+    Screen.MousePointer = vbHourglass
+    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
+    If Not GetObject(STR_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), vbNullString, sResponse) Then
+        GoTo QH
+    End If
+    txtInfo.Text = sResponse
+QH:
+    Screen.MousePointer = vbDefault
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
 Private Sub mnuFile_Click(Index As Integer)
     Const FUNC_NAME     As String = "mnuFile_Click"
     
@@ -1000,8 +1030,9 @@ Private Sub Form_Resize()
                 dblTop = GRID_SIZE
                 MoveCtl fraQuickSetup, dblLeft, dblTop, fraQuickSetup.Width, .ScaleHeight - dblTop - GRID_SIZE
                 dblLeft = fraQuickSetup.Left + fraQuickSetup.Width + GRID_SIZE
-                dblHeight = (.ScaleHeight - GRID_SIZE) / 2
-                MoveCtl lstPrinters, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, dblHeight
+                dblHeight = (.ScaleHeight - GRID_SIZE) / 2 - cmdTest.Height
+                MoveCtl lstPrinters, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, dblHeight - GRID_SIZE
+                MoveCtl cmdTest, lstPrinters.Left + lstPrinters.Width - cmdTest.Width - GRID_SIZE, dblHeight + 2 * GRID_SIZE
                 dblTop = dblHeight + GRID_SIZE
                 MoveCtl txtInfo, dblLeft, dblTop, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight - dblTop - GRID_SIZE
             Case ucsTabConfig
@@ -1077,11 +1108,12 @@ End Sub
 
 Private Sub lstPrinters_Click()
     Const FUNC_NAME     As String = "lstPrinters_Click"
-    Dim sKey            As String
+    Dim sPrinterID      As String
     
     On Error GoTo EH
-    sKey = Trim$(At(Split(lstPrinters.List(lstPrinters.ListIndex), vbTab), 0))
-    txtInfo.Text = JsonDump(JsonItem(MainForm.Printers, sKey), Level:=-1)
+    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
+    txtInfo.Text = JsonDump(JsonItem(MainForm.Printers, sPrinterID))
+    cmdTest.Enabled = (lstPrinters.ListIndex > 0)
     Exit Sub
 EH:
     PrintError FUNC_NAME
