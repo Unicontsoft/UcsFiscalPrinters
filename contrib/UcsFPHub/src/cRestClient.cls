@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -223,7 +223,7 @@ QH:
         m_oSocket.SendArray baBody
     End If
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sStatusCode=" & sStatusCode & ", sResponse=" & sResponse, vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sStatusCode=" & sStatusCode & ", sResponse=" & Replace(sResponse, vbCrLf, "^p"), vbLogEventTypeDebug
     End If
     Exit Function
 EH:

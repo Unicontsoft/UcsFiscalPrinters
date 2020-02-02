@@ -239,7 +239,7 @@ End Sub
 Friend Function frHandleRequest(sSvcName As String, sRequest As String, sResponse As String, lErrorCode As Long) As Boolean
     Const FUNC_NAME     As String = "frHandleRequest"
     Dim vJson           As Variant
-    Dim sPrinterId      As String
+    Dim sPrinterID      As String
     Dim sError          As String
     Dim sRawUrl         As String
     Dim dblStartTimerEx As Double
@@ -252,8 +252,8 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     End If
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
-        sPrinterId = At(vSplit, 1)
-        If LenB(sPrinterId) = 0 Then
+        sPrinterID = At(vSplit, 1)
+        If LenB(sPrinterID) = 0 Then
             lErrorCode = 400
             sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
             GoTo QH
@@ -277,7 +277,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         sResponse = Printf(ERR_INVALID_URL, sRawUrl)
         GoTo QH
     End If
-    If LenB(sPrinterId) <> 0 And LCase$("/printers/" & sPrinterId) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterId))) Then
+    If LenB(sPrinterID) <> 0 And LCase$("/printers/" & sPrinterID) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterID))) Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
     End If
     vSplit = Split2(sRawUrl, "?")
@@ -286,15 +286,15 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ELAPSED, Zn(sPrinterId, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3))
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ELAPSED, Zn(sPrinterID, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3))
     '--- success
     frHandleRequest = True
 QH:
     If Not frHandleRequest Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterId, sResponse)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterID, sResponse)
     End If
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & sResponse, vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & Replace(sResponse, vbCrLf, "^p"), vbLogEventTypeDebug
     End If
     Exit Function
 EH:

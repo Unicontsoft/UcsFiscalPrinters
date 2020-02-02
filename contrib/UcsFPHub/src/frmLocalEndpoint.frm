@@ -159,7 +159,7 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)
 QH:
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & sResponse, vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & Replace(sResponse, vbCrLf, "^p"), vbLogEventTypeDebug
     End If
     Exit Function
 EH:
