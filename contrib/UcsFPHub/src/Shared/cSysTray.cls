@@ -75,6 +75,7 @@ Private Const NIS_HIDDEN                        As Long = 1
 
 Private Declare Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconA" (ByVal dwMessage As Long, pnid As NOTIFYICONDATA) As Boolean
 Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As Long) As Long
+Private Declare Function SetCapture Lib "user32" (ByVal hWnd As Long) As Long
 
 Private Type NOTIFYICONDATA
     cbSize              As Long
@@ -197,9 +198,11 @@ Private Sub m_oForm_MouseDown(Button As Integer, Shift As Integer, X As Single, 
     If Y = 0 Then
         Select Case m_oForm.ScaleX(X, m_oForm.ScaleMode, vbPixels)
         Case WM_LBUTTONUP
+            Call SetCapture(0)
             Call SetForegroundWindow(m_uData.hWnd)
             RaiseEvent Click
         Case WM_LBUTTONDBLCLK
+            Call SetCapture(0)
             Call SetForegroundWindow(m_uData.hWnd)
             RaiseEvent DblClick
         Case WM_RBUTTONUP
