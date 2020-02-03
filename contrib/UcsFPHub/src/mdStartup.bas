@@ -160,7 +160,7 @@ Public Sub Main()
     End If
 End Sub
 
-Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
+Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     Const FUNC_NAME     As String = "Process"
     Dim sConfFile       As String
     Dim sError          As String

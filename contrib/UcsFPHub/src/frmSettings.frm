@@ -853,7 +853,7 @@ Friend Sub frRestart()
         End If
     Next
     Set frmIcon = Nothing
-    Main
+    Process SplitArgs(Command$ & " --systray"), True
     '--- delay-load UI
     m_sPrinterID = vbNullString
     lstPrinters.Clear
