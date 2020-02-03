@@ -849,8 +849,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    Const FUNC_NAME     As String = "CopyLastReceipt"
+Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+    Const FUNC_NAME     As String = "PrintDuplicate"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -880,48 +880,15 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
         GoTo QH
     End If
     '--- success
-    CopyLastReceipt = True
+    PrintDuplicate = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetClock() As Date
-    Const FUNC_NAME     As String = "GetClock"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIslCommandsEnum
-    Dim sParam          As String
-    
-    On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsIslCmdInfoDateTime, sParam, vbNullString
-    GetClock = ParseExtendedDate(SendCommand(eCmd, sParam))
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function SetClock(ByVal NewDate As Date) As Boolean
-    Const FUNC_NAME     As String = "SetClock"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsIslCommandsEnum
-    Dim sParam          As String
-    Dim sFormat         As String
-    
-    On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsIslCmdInitDateTime, sParam, "%1", _
-        "Format", sFormat, FORMAT_DATE_EXTENDED
-    SendCommand eCmd, Printf(sParam, Format$(NewDate, sFormat))
-    '--- success
-    SetClock = True
-QH:
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    Const FUNC_NAME     As String = "RunXReport"
+Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "PrintDailyXReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -964,15 +931,15 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End If
     '--- success
-    RunXReport = True
+    PrintDailyXReport = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    Const FUNC_NAME     As String = "RunZReport"
+Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "PrintDailyZReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -1019,15 +986,15 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         SendCommand eCmd, sParam
     End If
     '--- success
-    RunZReport = True
+    PrintDailyZReport = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    Const FUNC_NAME     As String = "RunPeriodReport"
+Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    Const FUNC_NAME     As String = "PrintMonthlyReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
     Dim sFormat         As String
@@ -1062,7 +1029,97 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
         GoTo QH
     End If
     '--- success
-    RunPeriodReport = True
+    PrintMonthlyReport = True
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function PrintServiceDeposit(OperatorCode As String, ByVal Amount As Double) As Variant
+    Const FUNC_NAME     As String = "PrintServiceDeposit"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim vSplit          As Variant
+    Dim vRetVal(0 To 2) As Double
+    Dim lIdx            As Long
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim sFormat         As String
+    Dim bPrint          As Boolean
+    Dim sPrevReceiptNo  As String
+    Dim sReceiptNo      As String
+    Dim lIndex          As Long
+    
+    On Error GoTo EH
+    If Not CancelReceipt() Then
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
+    End If
+    bPrint = Abs(Amount) > DBL_EPSILON
+    If bPrint Then
+        sPrevReceiptNo = GetLastReceiptNo()
+    End If
+    sParam = "%1" & IIf(IsIncotex And LenB(OperatorCode) <> 0, DEF_SEP & "%2", vbNullString)
+    sFormat = IIf(bPrint Or IsIncotex Or IsEltrade, FORMAT_BASE_2, "\")
+    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -bPrint, eCmd, ucsIslCmdFiscalServiceDeposit, sParam, sParam, _
+        "Format", sFormat, sFormat, _
+        "Index", lIndex, 1
+    sParam = Printf(sParam, SafeFormat(Amount, sFormat), OperatorCode)
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If UBound(vSplit) <= 0 Then
+        GoTo QH
+    End If
+    If bPrint Then
+        sReceiptNo = GetLastReceiptNo()
+        If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
+            If LenB(m_uPrintData.LastError) = 0 Then
+                pvSetLastError pvInternal(ucsErrCannotPrint)
+            End If
+            GoTo QH
+        End If
+    End If
+    For lIdx = 0 To UBound(vRetVal)
+        vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + lIndex))
+    Next
+    If IsEltrade Then
+        '--- eltrade idiosyncrasy: negative total on service withdraws
+        vRetVal(2) = -vRetVal(2)
+    End If
+    '--- success
+    PrintServiceDeposit = vRetVal
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetClock() As Date
+    Const FUNC_NAME     As String = "GetClock"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsIslCmdInfoDateTime, sParam, vbNullString
+    GetClock = ParseExtendedDate(SendCommand(eCmd, sParam))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function SetClock(ByVal NewDate As Date) As Boolean
+    Const FUNC_NAME     As String = "SetClock"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim sFormat         As String
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsIslCmdInitDateTime, sParam, "%1", _
+        "Format", sFormat, FORMAT_DATE_EXTENDED
+    SendCommand eCmd, Printf(sParam, Format$(NewDate, sFormat))
+    '--- success
+    SetClock = True
 QH:
     Exit Function
 EH:
@@ -1542,63 +1599,6 @@ Public Function GetTotalsStats() As Variant
         dLastDate = pvFromDdmmyyDate(At(vSplit, lIndex))
     End If
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function PrintServiceDeposit(OperatorCode As String, ByVal Amount As Double) As Variant
-    Const FUNC_NAME     As String = "PrintServiceDeposit"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim vSplit          As Variant
-    Dim vRetVal(0 To 2) As Double
-    Dim lIdx            As Long
-    Dim eCmd            As UcsIslCommandsEnum
-    Dim sParam          As String
-    Dim sFormat         As String
-    Dim bPrint          As Boolean
-    Dim sPrevReceiptNo  As String
-    Dim sReceiptNo      As String
-    Dim lIndex          As Long
-    
-    On Error GoTo EH
-    If Not CancelReceipt() Then
-        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
-        GoTo QH
-    End If
-    bPrint = Abs(Amount) > DBL_EPSILON
-    If bPrint Then
-        sPrevReceiptNo = GetLastReceiptNo()
-    End If
-    sParam = "%1" & IIf(IsIncotex And LenB(OperatorCode) <> 0, DEF_SEP & "%2", vbNullString)
-    sFormat = IIf(bPrint Or IsIncotex Or IsEltrade, FORMAT_BASE_2, "\")
-    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -bPrint, eCmd, ucsIslCmdFiscalServiceDeposit, sParam, sParam, _
-        "Format", sFormat, sFormat, _
-        "Index", lIndex, 1
-    sParam = Printf(sParam, SafeFormat(Amount, sFormat), OperatorCode)
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If UBound(vSplit) <= 0 Then
-        GoTo QH
-    End If
-    If bPrint Then
-        sReceiptNo = GetLastReceiptNo()
-        If LenB(sReceiptNo) = 0 Or sReceiptNo = sPrevReceiptNo Then
-            If LenB(m_uPrintData.LastError) = 0 Then
-                pvSetLastError pvInternal(ucsErrCannotPrint)
-            End If
-            GoTo QH
-        End If
-    End If
-    For lIdx = 0 To UBound(vRetVal)
-        vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + lIndex))
-    Next
-    If IsEltrade Then
-        '--- eltrade idiosyncrasy: negative total on service withdraws
-        vRetVal(2) = -vRetVal(2)
-    End If
-    '--- success
-    PrintServiceDeposit = vRetVal
-QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2973,17 +2973,17 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt(ReceiptNumber)
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNumber)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
-        IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
 End Function
 
@@ -3104,16 +3104,16 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = OpenDrawer()
 End Function
 
-Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    IDeviceProtocol_RunPeriodReport = RunPeriodReport(ReportType, StartDate, EndDate)
+Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    IDeviceProtocol_PrintMonthlyReport = PrintMonthlyReport(ReportType, StartDate, EndDate)
 End Function
 
-Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    IDeviceProtocol_RunXReport = RunXReport(ReportType)
+Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    IDeviceProtocol_PrintDailyXReport = PrintDailyXReport(ReportType)
 End Function
 
-Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    IDeviceProtocol_RunZReport = RunZReport(ReportType)
+Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    IDeviceProtocol_PrintDailyZReport = PrintDailyZReport(ReportType)
 End Function
 
 Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean

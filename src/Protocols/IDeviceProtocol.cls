@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "IDeviceProtocol is a common interface implemented by all device protocol handlers. It can be used to access a fiscal device independently of the implemented protocol so that the particular protocol selection can be left to be chosen by the end-user or as an application configuration option"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -308,6 +308,22 @@ Attribute AddPayment.VB_Description = "Used to finalize PLU rows and print payme
 End Function
 
 ''
+' Used to print barcode
+'
+' @param `BarcodeType`      [input] type of barcode. See `UcsFiscalBarcodeTypeEnum`
+' @param `Text`             [input] barcode contents. Allowed symbols depend on type of barcode
+' @param `Height`           [input] barcode height in mm
+' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
+'
+Public Function AddBarcode( _
+            ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, _
+            Text As String, _
+            Optional ByVal Height As Long) As Boolean
+Attribute AddBarcode.VB_Description = "Used to print barcode"
+            
+End Function
+
+''
 ' Used to finalize receipt payments and batch print the complete receipt
 '
 ' @param `ResumeToken`     [in, optional] if previous invocation failed can be used to resume printing on the same line
@@ -315,8 +331,8 @@ End Function
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
 '
-Public Function EndReceipt(Optional ResumeToken As String) As Boolean
-Attribute EndReceipt.VB_Description = "Used to finalize receipt payments and batch print the complete receipt"
+Public Function PrintReceipt(Optional ResumeToken As String) As Boolean
+Attribute PrintReceipt.VB_Description = "Used to finalize receipt payments and batch print the complete receipt"
 
 End Function
 
@@ -327,9 +343,64 @@ End Function
 ' @remark Most fiscal devices are able to print a single duplicate of last fiscal receipt only. On second copy request
 ' an error is returned.
 '
-Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-Attribute CopyLastReceipt.VB_Description = "Used to print a duplicate of the last fiscal receipt"
+Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+Attribute PrintDuplicate.VB_Description = "Used to print a duplicate of the last fiscal receipt"
 
+End Function
+
+''
+' Used to print fiscal x-report
+'
+' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
+' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
+'
+Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Attribute PrintDailyXReport.VB_Description = "Used to print fiscal x-report"
+
+End Function
+
+''
+' Used to print fiscal z-report and clear fiscal memory for the day
+'
+' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
+' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
+'
+Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Attribute PrintDailyZReport.VB_Description = "Used to print fiscal z-report and clear fiscal memory for the day"
+
+End Function
+
+''
+' Used to print monthly fiscal report by date range
+'
+' @param `ReportType`       [input] type of report to print: short or details
+' @param `StartDate`        [input] start of date range
+' @param `EndDate`          [input] end of date range
+' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
+'
+Public Function PrintMonthlyReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            ByVal StartDate As Date, _
+            ByVal EndDate As Date) As Boolean
+Attribute PrintMonthlyReport.VB_Description = "Used to print monthly fiscal report by date range"
+
+End Function
+
+''
+' Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear
+'
+' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
+' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
+' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
+' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
+' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
+'
+Public Function PrintServiceDeposit( _
+            OperatorCode As String, _
+            OperatorPassword As String, _
+            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
+            ByVal Amount As Double) As Variant
+    
 End Function
 
 ''
@@ -350,44 +421,6 @@ End Function
 '
 Public Function SetClock(ByVal NewDate As Date) As Boolean
 Attribute SetClock.VB_Description = "Used to set current date/time of the clock on the fiscal device"
-
-End Function
-
-''
-' Used to print fiscal x-report
-'
-' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
-' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
-'
-Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-Attribute RunXReport.VB_Description = "Used to print fiscal x-report"
-
-End Function
-
-''
-' Used to print fiscal z-report and clear fiscal memory for the day
-'
-' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
-' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
-'
-Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-Attribute RunZReport.VB_Description = "Used to print fiscal z-report and clear fiscal memory for the day"
-
-End Function
-
-''
-' Used to print monthly fiscal report by date range
-'
-' @param `ReportType`       [input] type of report to print: short or details
-' @param `StartDate`        [input] start of date range
-' @param `EndDate`          [input] end of date range
-' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
-'
-Public Function RunPeriodReport( _
-            ByVal ReportType As UcsFiscalReportsTypeEnum, _
-            ByVal StartDate As Date, _
-            ByVal EndDate As Date) As Boolean
-Attribute RunPeriodReport.VB_Description = "Used to print monthly fiscal report by date range"
 
 End Function
 
@@ -663,39 +696,6 @@ End Function
 Public Function AutodetectDevices(Ports As Variant) As Variant
 Attribute AutodetectDevices.VB_Description = "Used to auto-detect devices that implemented current protocol on the selected COM ports"
 
-End Function
-
-''
-' Used to debit (and credit) cashdesk outside of regular sales and daily z-report with memory clear
-'
-' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
-' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
-' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
-' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
-'
-Public Function PrintServiceDeposit( _
-            OperatorCode As String, _
-            OperatorPassword As String, _
-            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
-            ByVal Amount As Double) As Variant
-    
-End Function
-
-''
-' Used to print barcode
-'
-' @param `BarcodeType`      [input] type of barcode. See `UcsFiscalBarcodeTypeEnum`
-' @param `Text`             [input] barcode contents. Allowed symbols depend on type of barcode
-' @param `Height`           [input] barcode height in mm
-' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
-'
-Public Function AddBarcode( _
-            ByVal BarcodeType As UcsFiscalBarcodeTypeEnum, _
-            Text As String, _
-            Optional ByVal Height As Long) As Boolean
-Attribute AddBarcode.VB_Description = "Used to print barcode"
-            
 End Function
 
 ''

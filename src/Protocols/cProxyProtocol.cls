@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -221,72 +221,6 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvSendRequest( _
-            sVerb As String, _
-            sPath As String, _
-            oRequest As Object, _
-            oResponse As Object, _
-            Optional Error As String) As Boolean
-    Const FUNC_NAME     As String = "pvSendRequest"
-    Const DBL_TIMEOUT   As Double = 30
-    Const Async         As Boolean = False
-    Const USER_AGENT    As String = "Proxy Protocol"
-    Dim dblTimerEx      As Double
-    Dim sPayload        As String
-    Dim vJson           As Object
-    
-    On Error GoTo EH
-    dblTimerEx = TimerEx
-    DebugLog FUNC_NAME, "sVerb=" & sVerb & ", sPath=" & sPath
-    If LenB(m_uRemote.Host) = 0 Then
-        GoTo QH
-    End If
-    '--- note: Timeout:=30 forces MSXML2.XMLHTTP usage
-    With InitRequest(sVerb, pvBaseAddress & sPath & IIf(sVerb = "GET", "?ts=" & TimerEx, vbNullString), Timeout:=DBL_TIMEOUT, Async:=Async)
-        .SetRequestHeader "User-Agent", USER_AGENT & " " & LIB_NAME & "/" & App.Major & "." & App.Minor & "." & App.Revision
-        .SetRequestHeader "Content-Type", "application/json"
-        If LenB(m_uRemote.User) <> 0 Then
-            .SetRequestHeader m_uRemote.User, m_uRemote.Pass
-        End If
-        If Not oRequest Is Nothing Then
-            sPayload = JsonDump(oRequest, Minimize:=True)
-            DebugDataDump FUNC_NAME, "[SEND ] ", sPayload
-            .Send sPayload
-        Else
-            .Send
-        End If
-        If .ReadyState <> READYSTATE_COMPLETE Then
-            Error = Printf(ERR_INVALID_READYSTATE, .ReadyState)
-            GoTo QH
-        ElseIf .Status < 200 Or .Status > 299 Then
-            Error = .Status & " " & .StatusText
-            GoTo QH
-        End If
-        DebugDataDump FUNC_NAME, "[RECV ] ", .ResponseText
-        If Not JsonParse(.ResponseText, vJson, Error:=Error) Then
-            DebugLog FUNC_NAME, "Error parsing ResponseText=" & .ResponseText & ", Error=" & Error
-            Error = Printf(ERR_INVALID_JSON, Error)
-            GoTo QH
-        End If
-    End With
-    Set oResponse = C_Obj(vJson)
-    If Not C_Bool(JsonItem(oResponse, "Ok")) Then
-        DebugLog FUNC_NAME, "Request failed, vJson=" & JsonDump(vJson, Minimize:=True)
-        Error = C_Str(JsonItem(oResponse, "ErrorText"))
-        GoTo QH
-    End If
-    Error = vbNullString
-    '--- success
-    pvSendRequest = True
-QH:
-    m_uPrintData.LastError = Error
-    DebugLog FUNC_NAME, "RetVal=" & pvSendRequest & ", Error=" & Error & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-    Exit Function
-EH:
-    Error = Err.Description
-    Resume QH
-End Function
-
 Public Function CancelReceipt() As Boolean
     Const FUNC_NAME     As String = "CancelReceipt"
     Dim oRequest        As Object
@@ -347,8 +281,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    Const FUNC_NAME     As String = "CopyLastReceipt"
+Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+    Const FUNC_NAME     As String = "PrintDuplicate"
     Dim oRequest        As Object
     Dim oResponse       As Object
     
@@ -363,91 +297,7 @@ Public Function CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
     '--- success
-    CopyLastReceipt = True
-QH:
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
-    Const FUNC_NAME     As String = "pvPrintReceipt"
-    Dim oRequest        As Object
-    Dim oResponse       As Object
-    Dim oItem           As Object
-    
-    On Error GoTo EH
-    If LenB(m_uRemote.Host) = 0 Then
-        m_dLastReceiptDate = GetCurrentNow
-        pvPrintReceipt = True
-        GoTo QH
-    End If
-    Do While uCtx.Row < lRowCount
-        With uRow(uCtx.Row)
-        Select Case .RowType
-        Case ucsRowInit
-            JsonItem(oRequest, "ReceiptType") = .InitReceiptType
-            JsonItem(oRequest, "Operator/Code") = .InitOperatorCode
-            JsonItem(oRequest, "Operator/Name") = .InitOperatorName
-            JsonItem(oRequest, "Operator/Password") = .InitOperatorPassword
-            Select Case .InitReceiptType
-            Case ucsFscRcpInvoice
-                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
-                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
-                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
-                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
-                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
-                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
-            Case ucsFscRcpReversal
-                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
-                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
-                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
-                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
-            Case ucsFscRcpCreditNote
-                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
-                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
-                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
-                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
-                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
-                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
-                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
-                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
-                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
-                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
-                JsonItem(oRequest, "Reversal/InvoiceNo") = .InitRevData(ucsRevInvoiceNo)
-                JsonItem(oRequest, "Reversal/Reason") = .InitRevData(ucsRevReason)
-            End Select
-            JsonItem(oRequest, "UniqueSaleNo") = .InitUniqueSaleNo
-        Case ucsRowPlu
-            JsonItem(oRequest, "Rows/-1") = Array(.PluItemName, .PluPrice, .PluTaxGroup, .PluQuantity)
-        Case ucsRowDiscount
-        Case ucsRowLine
-            JsonItem(oRequest, "Rows/-1") = Array(.LineText)
-        Case ucsRowBarcode
-            Set oItem = Nothing
-            JsonItem(oItem, "Text") = .BarcodeText
-            JsonItem(oItem, "BarcodeType") = .BarcodeType
-            JsonItem(oItem, "Height") = .BarcodeHeight
-            JsonItem(oRequest, "Rows/-1") = oItem
-        Case ucsRowPayment
-            If .PmtType > 0 Then
-                JsonItem(oRequest, "Rows/-1") = Array(.PmtName, .PmtType, .PmtAmount)
-            End If
-        End Select
-        End With
-        uCtx.Row = uCtx.Row + 1
-    Loop
-    If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
-        If JsonItem(oResponse, "ErrorCode") = "InvalidPassword" Then
-            m_uPrintData.LastErrNo = ucsFerInvalidPassword
-        End If
-        GoTo QH
-    End If
-    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-    m_sResumeToken = C_Str(JsonItem(oResponse, "ResumeToken"))
-    '--- success
-    pvPrintReceipt = True
+    PrintDuplicate = True
 QH:
     Exit Function
 EH:
@@ -571,7 +421,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function GetTotalsByTaxGroups() As Variant
+Public Function GetTotalsByTaxGroups() As Variant
     Const FUNC_NAME     As String = "GetTotalsByTaxGroups"
     Dim oRequest        As Object
     Dim oResponse       As Object
@@ -601,7 +451,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function GetTotalsStats() As Variant
+Public Function GetTotalsStats() As Variant
     Const FUNC_NAME     As String = "GetTotalsByPaymentTypes"
     Dim oRequest        As Object
     Dim oResponse       As Object
@@ -619,6 +469,158 @@ QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+'= private ===============================================================
+
+Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
+    Const FUNC_NAME     As String = "pvPrintReceipt"
+    Dim oRequest        As Object
+    Dim oResponse       As Object
+    Dim oItem           As Object
+    
+    On Error GoTo EH
+    If LenB(m_uRemote.Host) = 0 Then
+        m_dLastReceiptDate = GetCurrentNow
+        pvPrintReceipt = True
+        GoTo QH
+    End If
+    Do While uCtx.Row < lRowCount
+        With uRow(uCtx.Row)
+        Select Case .RowType
+        Case ucsRowInit
+            JsonItem(oRequest, "ReceiptType") = .InitReceiptType
+            JsonItem(oRequest, "Operator/Code") = .InitOperatorCode
+            JsonItem(oRequest, "Operator/Name") = .InitOperatorName
+            JsonItem(oRequest, "Operator/Password") = .InitOperatorPassword
+            Select Case .InitReceiptType
+            Case ucsFscRcpInvoice
+                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
+                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
+                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
+                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
+                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
+                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
+            Case ucsFscRcpReversal
+                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
+                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
+                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
+                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
+            Case ucsFscRcpCreditNote
+                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
+                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
+                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
+                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
+                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
+                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
+                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
+                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
+                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
+                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
+                JsonItem(oRequest, "Reversal/InvoiceNo") = .InitRevData(ucsRevInvoiceNo)
+                JsonItem(oRequest, "Reversal/Reason") = .InitRevData(ucsRevReason)
+            End Select
+            JsonItem(oRequest, "UniqueSaleNo") = .InitUniqueSaleNo
+        Case ucsRowPlu
+            JsonItem(oRequest, "Rows/-1") = Array(.PluItemName, .PluPrice, .PluTaxGroup, .PluQuantity)
+        Case ucsRowDiscount
+        Case ucsRowLine
+            JsonItem(oRequest, "Rows/-1") = Array(.LineText)
+        Case ucsRowBarcode
+            Set oItem = Nothing
+            JsonItem(oItem, "Text") = .BarcodeText
+            JsonItem(oItem, "BarcodeType") = .BarcodeType
+            JsonItem(oItem, "Height") = .BarcodeHeight
+            JsonItem(oRequest, "Rows/-1") = oItem
+        Case ucsRowPayment
+            If .PmtType > 0 Then
+                JsonItem(oRequest, "Rows/-1") = Array(.PmtName, .PmtType, .PmtAmount)
+            End If
+        End Select
+        End With
+        uCtx.Row = uCtx.Row + 1
+    Loop
+    If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
+        If JsonItem(oResponse, "ErrorCode") = "InvalidPassword" Then
+            m_uPrintData.LastErrNo = ucsFerInvalidPassword
+        End If
+        GoTo QH
+    End If
+    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
+    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+    m_sResumeToken = C_Str(JsonItem(oResponse, "ResumeToken"))
+    '--- success
+    pvPrintReceipt = True
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvSendRequest( _
+            sVerb As String, _
+            sPath As String, _
+            oRequest As Object, _
+            oResponse As Object, _
+            Optional Error As String) As Boolean
+    Const FUNC_NAME     As String = "pvSendRequest"
+    Const DBL_TIMEOUT   As Double = 30
+    Const Async         As Boolean = False
+    Const USER_AGENT    As String = "Proxy Protocol"
+    Dim dblTimerEx      As Double
+    Dim sPayload        As String
+    Dim vJson           As Object
+    
+    On Error GoTo EH
+    dblTimerEx = TimerEx
+    DebugLog FUNC_NAME, "sVerb=" & sVerb & ", sPath=" & sPath
+    If LenB(m_uRemote.Host) = 0 Then
+        GoTo QH
+    End If
+    '--- note: Timeout:=30 forces MSXML2.XMLHTTP usage
+    With InitRequest(sVerb, pvBaseAddress & sPath & IIf(sVerb = "GET", "?ts=" & TimerEx, vbNullString), Timeout:=DBL_TIMEOUT, Async:=Async)
+        .SetRequestHeader "User-Agent", USER_AGENT & " " & LIB_NAME & "/" & App.Major & "." & App.Minor & "." & App.Revision
+        .SetRequestHeader "Content-Type", "application/json"
+        If LenB(m_uRemote.User) <> 0 Then
+            .SetRequestHeader m_uRemote.User, m_uRemote.Pass
+        End If
+        If Not oRequest Is Nothing Then
+            sPayload = JsonDump(oRequest, Minimize:=True)
+            DebugDataDump FUNC_NAME, "[SEND ] ", sPayload
+            .Send sPayload
+        Else
+            .Send
+        End If
+        If .ReadyState <> READYSTATE_COMPLETE Then
+            Error = Printf(ERR_INVALID_READYSTATE, .ReadyState)
+            GoTo QH
+        ElseIf .Status < 200 Or .Status > 299 Then
+            Error = .Status & " " & .StatusText
+            GoTo QH
+        End If
+        DebugDataDump FUNC_NAME, "[RECV ] ", .ResponseText
+        If Not JsonParse(.ResponseText, vJson, Error:=Error) Then
+            DebugLog FUNC_NAME, "Error parsing ResponseText=" & .ResponseText & ", Error=" & Error
+            Error = Printf(ERR_INVALID_JSON, Error)
+            GoTo QH
+        End If
+    End With
+    Set oResponse = C_Obj(vJson)
+    If Not C_Bool(JsonItem(oResponse, "Ok")) Then
+        DebugLog FUNC_NAME, "Request failed, vJson=" & JsonDump(vJson, Minimize:=True)
+        Error = C_Str(JsonItem(oResponse, "ErrorText"))
+        GoTo QH
+    End If
+    Error = vbNullString
+    '--- success
+    pvSendRequest = True
+QH:
+    m_uPrintData.LastError = Error
+    DebugLog FUNC_NAME, "RetVal=" & pvSendRequest & ", Error=" & Error & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+    Exit Function
+EH:
+    Error = Err.Description
+    Resume QH
 End Function
 
 '=========================================================================
@@ -661,17 +663,17 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = True
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt(ReceiptNumber)
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNumber)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = True
 End Function
 
-Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
-        IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
 End Function
 
@@ -793,19 +795,19 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = True
 End Function
 
-Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
     m_dLastReceiptDate = GetCurrentNow
-    IDeviceProtocol_RunPeriodReport = True
+    IDeviceProtocol_PrintMonthlyReport = True
 End Function
 
-Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     m_dLastReceiptDate = GetCurrentNow
-    IDeviceProtocol_RunXReport = True
+    IDeviceProtocol_PrintDailyXReport = True
 End Function
 
-Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
     m_dLastReceiptDate = GetCurrentNow
-    IDeviceProtocol_RunZReport = True
+    IDeviceProtocol_PrintDailyZReport = True
 End Function
 
 Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean

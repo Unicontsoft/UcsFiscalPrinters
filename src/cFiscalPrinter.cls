@@ -397,7 +397,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 End Select
             End With
         Next
-        If Not oFP.EndReceipt(sResumeToken) Then
+        If Not oFP.PrintReceipt(sResumeToken) Then
             sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -407,9 +407,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
     If JsonBoolItem(oJson, "PrintDuplicate") Then
-        If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/DocNo")) Then
+        If Not oFP.PrintDuplicate(JsonItem(oJson, "Invoice/DocNo")) Then
             sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
-            DebugLog FUNC_NAME, "Not oFP.CopyLastReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
+            DebugLog FUNC_NAME, "Not oFP.PrintDuplicate(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
     End If
@@ -460,34 +460,34 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     Case ucsFscRptDaily
         If JsonBoolItem(oJson, "IsItems") And JsonBoolItem(oJson, "IsDepartments") Then
             If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.RunZReport(ucsFscRstDailyByItemsAndDepartment)
+                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByItemsAndDepartment)
             Else
-                bResult = oFP.RunXReport(ucsFscRstDailyByItemsAndDepartment)
+                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByItemsAndDepartment)
             End If
         ElseIf JsonBoolItem(oJson, "IsItems") Then
             If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.RunZReport(ucsFscRstDailyByItems)
+                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByItems)
             Else
-                bResult = oFP.RunXReport(ucsFscRstDailyByItems)
+                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByItems)
             End If
         ElseIf JsonBoolItem(oJson, "IsDepartments") Then
             If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.RunZReport(ucsFscRstDailyByDepartment)
+                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByDepartment)
             Else
-                bResult = oFP.RunXReport(ucsFscRstDailyByDepartment)
+                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByDepartment)
             End If
         Else
             If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.RunZReport(ucsFscRstDaily)
+                bResult = oFP.PrintDailyZReport(ucsFscRstDaily)
             Else
-                bResult = oFP.RunXReport(ucsFscRstDaily)
+                bResult = oFP.PrintDailyXReport(ucsFscRstDaily)
             End If
         End If
     Case ucsFscRptNumber
         '--- ToDo: impl
     Case ucsFscRptDate
         If C_Date(JsonItem(oJson, "FromDate")) <> 0 And C_Date(JsonItem(oJson, "ToDate")) <> 0 Then
-            bResult = oFP.RunPeriodReport(IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
+            bResult = oFP.PrintMonthlyReport(IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
         End If
     Case ucsFscRptOperator
         '--- ToDo: impl
@@ -569,7 +569,7 @@ Public Function InitDateTime(sRequest As String, sResponse As String) As Boolean
     dDateTime = C_Date(JsonItem(oJson, "DeviceDateTime"))
     lTolerance = C_Lng(JsonItem(oJson, "AdjustTolerance"))
     dCurrent = oFP.GetClock()
-    If dDateTime = 0 And lTolerance = 0 Then
+    If dCurrent = 0 Or (dDateTime = 0 And lTolerance = 0) Then
         GoTo SkipSetClock
     End If
     If dDateTime = 0 Then

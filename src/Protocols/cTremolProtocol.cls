@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -783,8 +783,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function CopyLastReceipt(Optional ReceiptNo As String) As Boolean
-    Const FUNC_NAME     As String = "CopyLastReceipt"
+Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
+    Const FUNC_NAME     As String = "PrintDuplicate"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -814,51 +814,15 @@ Public Function CopyLastReceipt(Optional ReceiptNo As String) As Boolean
         GoTo QH
     End If
     '--- success
-    CopyLastReceipt = True
+    PrintDuplicate = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetClock() As Date
-    Const FUNC_NAME     As String = "GetClock"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsTremolCommandsEnum
-    Dim sParam          As String
-    
-    On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsZekCmdInfoDateTime, sParam, vbNullString
-    GetClock = ParseExtendedDate(SendCommand(eCmd, sParam))
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function SetClock(ByVal NewDate As Date) As Boolean
-    Const FUNC_NAME     As String = "SetClock"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsTremolCommandsEnum
-    Dim sParam          As String
-    Dim sFormat         As String
-    Dim lPrintTimeout   As Long
-    
-    On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsZekCmdInitDateTime, sParam, "%1", _
-        "Format", sFormat, FORMAT_DATE_EXTENDED, _
-        "PrintTimeout", lPrintTimeout, 0
-    sParam = Printf(sParam, Format$(NewDate, sFormat))
-    SendCommand eCmd, sParam
-    '--- success (or failure)
-    SetClock = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
-QH:
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    Const FUNC_NAME     As String = "RunXReport"
+Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "PrintDailyXReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -897,15 +861,15 @@ Public Function RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End If
     '--- success
-    RunXReport = True
+    PrintDailyXReport = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    Const FUNC_NAME     As String = "RunZReport"
+Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    Const FUNC_NAME     As String = "PrintDailyZReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -944,15 +908,15 @@ Public Function RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Bool
         GoTo QH
     End If
     '--- success
-    RunZReport = True
+    PrintDailyZReport = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    Const FUNC_NAME     As String = "RunPeriodReport"
+Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    Const FUNC_NAME     As String = "PrintMonthlyReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -992,7 +956,151 @@ Public Function RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, By
         GoTo QH
     End If
     '--- success
-    RunPeriodReport = True
+    PrintMonthlyReport = True
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function PrintServiceDeposit( _
+        Optional ByVal OperatorCode As String, _
+        Optional ByVal OperatorPassword As String, _
+        Optional ByVal PmtType As UcsFiscalPaymentTypeEnum, _
+        Optional ByVal Amount As Double, _
+        Optional Comment As String) As Variant
+    Const FUNC_NAME     As String = "PrintServiceDeposit"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim vSplit          As Variant
+    Dim vRetVal(0 To 2) As Double
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim sFormat         As String
+    Dim lIndex          As Long
+    Dim lPrintTimeout   As Long
+    Dim lPmtIndex       As Long
+    
+    If Not CancelReceipt() Then
+        GoTo QH
+    End If
+    On Error GoTo EH
+    lPmtIndex = pvToDevicePmtIndex(PmtType)
+    If Abs(Amount) > DBL_EPSILON Then
+        pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
+            "Index", lIndex, 9
+        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        If C_Bool(At(vSplit, lIndex)) Then
+            '--- use single operator
+            OperatorCode = DEF_OPERNO
+            OperatorPassword = GetDefaultPassword(DEF_OPERNO)
+        End If
+        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4@%5", _
+            "Format", sFormat, FORMAT_BASE_2, _
+            "PrintTimeout", lPrintTimeout, 0
+        sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
+            Pad(Zn(OperatorPassword, GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
+            lPmtIndex, _
+            SafeFormat(Amount, sFormat), _
+            Left$(Comment, m_uConfig.MaxComment))
+        SendCommand eCmd, sParam
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
+        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
+            GoTo QH
+        End If
+    End If
+    pvGetCommandConfig CONF_NAME, "InfoRegisters0", eCmd, ucsZekCmdInfoRegisters, sParam, "0"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vRetVal(1) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    '--- success
+    PrintServiceDeposit = vRetVal
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function PrintBarcode(ByVal eType As UcsFiscalBarcodeTypeEnum, ByVal sCodeData As String, Optional ByVal Height As Long) As Boolean
+    Const FUNC_NAME     As String = "PrintBarcode"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim sCodeType       As String
+    
+    #If Height Then '--- touch args
+    #End If
+    If Not CancelReceipt() Then
+        GoTo QH
+    End If
+    On Error GoTo EH
+    Select Case eType
+    Case ucsFscBrcEan8
+        sCodeType = "D"
+        sCodeData = Pad(sCodeData, 7, "0")
+    Case ucsFscBrcEan13
+        sCodeType = "C"
+        sCodeData = Pad(sCodeData, 12, "0")
+    Case ucsFscBrcCode128
+        sCodeType = "I"
+    Case Else
+        pvSetLastError Printf(pvInternal(ucsErrBarcodeNotSupported), eType)
+        GoTo QH
+    End Select
+    pvGetCommandConfig CONF_NAME, "PrintBarcode", eCmd, ucsZekCmdPrintBarcode, sParam, "P" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP & "%3"
+    sParam = Printf(sParam, sCodeType, Len(sCodeData), sCodeData)
+    SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    '--- success
+    PrintBarcode = True
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Public Function GetClock() As Date
+    Const FUNC_NAME     As String = "GetClock"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsZekCmdInfoDateTime, sParam, vbNullString
+    GetClock = ParseExtendedDate(SendCommand(eCmd, sParam))
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function SetClock(ByVal NewDate As Date) As Boolean
+    Const FUNC_NAME     As String = "SetClock"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsTremolCommandsEnum
+    Dim sParam          As String
+    Dim sFormat         As String
+    Dim lPrintTimeout   As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsZekCmdInitDateTime, sParam, "%1", _
+        "Format", sFormat, FORMAT_DATE_EXTENDED, _
+        "PrintTimeout", lPrintTimeout, 0
+    sParam = Printf(sParam, Format$(NewDate, sFormat))
+    SendCommand eCmd, sParam
+    '--- success (or failure)
+    SetClock = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
 QH:
     Exit Function
 EH:
@@ -1381,111 +1489,6 @@ Public Function GetTotalsStats() As Variant
     Exit Function
 EH:
     RaiseError FUNC_NAME
-End Function
-
-Public Function PrintServiceDeposit( _
-        Optional ByVal OperatorCode As String, _
-        Optional ByVal OperatorPassword As String, _
-        Optional ByVal PmtType As UcsFiscalPaymentTypeEnum, _
-        Optional ByVal Amount As Double, _
-        Optional Comment As String) As Variant
-    Const FUNC_NAME     As String = "PrintServiceDeposit"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim vSplit          As Variant
-    Dim vRetVal(0 To 2) As Double
-    Dim eCmd            As UcsTremolCommandsEnum
-    Dim sParam          As String
-    Dim sFormat         As String
-    Dim lIndex          As Long
-    Dim lPrintTimeout   As Long
-    Dim lPmtIndex       As Long
-    
-    If Not CancelReceipt() Then
-        GoTo QH
-    End If
-    On Error GoTo EH
-    lPmtIndex = pvToDevicePmtIndex(PmtType)
-    If Abs(Amount) > DBL_EPSILON Then
-        pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
-            "Index", lIndex, 9
-        vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-        If C_Bool(At(vSplit, lIndex)) Then
-            '--- use single operator
-            OperatorCode = DEF_OPERNO
-            OperatorPassword = GetDefaultPassword(DEF_OPERNO)
-        End If
-        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4@%5", _
-            "Format", sFormat, FORMAT_BASE_2, _
-            "PrintTimeout", lPrintTimeout, 0
-        sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
-            Pad(Zn(OperatorPassword, GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
-            lPmtIndex, _
-            SafeFormat(Amount, sFormat), _
-            Left$(Comment, m_uConfig.MaxComment))
-        SendCommand eCmd, sParam
-        If LenB(m_uPrintData.LastError) <> 0 Then
-            GoTo QH
-        End If
-        If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
-            GoTo QH
-        End If
-    End If
-    pvGetCommandConfig CONF_NAME, "InfoRegisters0", eCmd, ucsZekCmdInfoRegisters, sParam, "0"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
-    End If
-    vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    vRetVal(1) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    '--- success
-    PrintServiceDeposit = vRetVal
-QH:
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function PrintBarcode(ByVal eType As UcsFiscalBarcodeTypeEnum, ByVal sCodeData As String, Optional ByVal Height As Long) As Boolean
-    Const FUNC_NAME     As String = "PrintBarcode"
-    Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsTremolCommandsEnum
-    Dim sParam          As String
-    Dim sCodeType       As String
-    
-    On Error GoTo EH
-    #If Height Then '--- touch args
-    #End If
-    Select Case eType
-    Case ucsFscBrcEan8
-        sCodeType = "D"
-        sCodeData = Pad(sCodeData, 7, "0")
-    Case ucsFscBrcEan13
-        sCodeType = "C"
-        sCodeData = Pad(sCodeData, 12, "0")
-    Case ucsFscBrcCode128
-        sCodeType = "I"
-    Case Else
-        pvSetLastError Printf(pvInternal(ucsErrBarcodeNotSupported), eType)
-        GoTo QH
-    End Select
-    pvGetCommandConfig CONF_NAME, "PrintBarcode", eCmd, ucsZekCmdPrintBarcode, sParam, "P" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP & "%3"
-    sParam = Printf(sParam, sCodeType, Len(sCodeData), sCodeData)
-    SendCommand eCmd, sParam
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
-    End If
-    '--- success
-    PrintBarcode = True
-QH:
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
 End Function
 
 Public Sub SetLocalizedCommand( _
@@ -2347,17 +2350,17 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_CopyLastReceipt(Optional ReceiptNumber As String) As Boolean
-    IDeviceProtocol_CopyLastReceipt = CopyLastReceipt(ReceiptNumber)
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNumber)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_EndReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
-        IDeviceProtocol_EndReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If
 End Function
 
@@ -2478,16 +2481,16 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = OpenDrawer()
 End Function
 
-Private Function IDeviceProtocol_RunPeriodReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
-    IDeviceProtocol_RunPeriodReport = RunPeriodReport(ReportType, StartDate, EndDate)
+Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+    IDeviceProtocol_PrintMonthlyReport = PrintMonthlyReport(ReportType, StartDate, EndDate)
 End Function
 
-Private Function IDeviceProtocol_RunXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    IDeviceProtocol_RunXReport = RunXReport(ReportType)
+Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    IDeviceProtocol_PrintDailyXReport = PrintDailyXReport(ReportType)
 End Function
 
-Private Function IDeviceProtocol_RunZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-    IDeviceProtocol_RunZReport = RunZReport(ReportType)
+Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+    IDeviceProtocol_PrintDailyZReport = PrintDailyZReport(ReportType)
 End Function
 
 Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean
