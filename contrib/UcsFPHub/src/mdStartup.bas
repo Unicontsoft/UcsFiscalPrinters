@@ -73,6 +73,7 @@ Private m_oPrinters                 As Object
 Private m_oConfig                   As Object
 Private m_cEndpoints                As Collection
 Private m_bIsService                As Boolean
+Private m_bIsHidden                 As Boolean
 Private m_oLogger                   As Object
 Private m_bStarted                  As Boolean
 
@@ -94,6 +95,10 @@ End Sub
 
 Property Get IsRunningAsService() As Boolean
     IsRunningAsService = m_bIsService
+End Property
+
+Property Get IsRunningHidden() As Boolean
+    IsRunningHidden = m_bIsHidden
 End Property
 
 Property Get Logger() As Object
@@ -208,6 +213,7 @@ Private Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         m_oOpt.Item("--console") = True
         m_oOpt.Item("--hidden") = True
     End If
+    m_bIsHidden = C_Bool(m_oOpt.Item("--hidden"))
     If C_Bool(m_oOpt.Item("--install")) Then
         ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
@@ -470,17 +476,18 @@ End Function
 
 Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
     Dim sPrefix         As String
-    Dim sSuffix         As String
     
     Logger.Log eType, sModule, sFunction, sText
     sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & ": "
-'    sSuffix = " [" & sModule & "." & sFunction & "]"
     If Logger.LogFile = -1 And m_bIsService Then
-        App.LogEvent sText & sSuffix, LimitLong(eType, 0, vbLogEventTypeInformation)
-    ElseIf eType = vbLogEventTypeError Then
-        ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & sText & sSuffix & vbCrLf
-    Else
-        ConsolePrint sPrefix & sText & sSuffix & vbCrLf
+        App.LogEvent sText, LimitLong(eType, 0, vbLogEventTypeInformation)
+    ElseIf Not m_bIsHidden Then
+        sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
+        If eType = vbLogEventTypeError Then
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix
+        Else
+            ConsolePrint sPrefix
+        End If
     End If
 End Sub
 
