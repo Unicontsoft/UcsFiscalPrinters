@@ -1941,7 +1941,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
                 IIf(m_uConfig.DetailedReceipt, 1, 0), _
                 IIf(m_uConfig.PrintVat, 1, 0), _
-                Chr$(IIf(m_uConfig.DelayPrint, 2, 0) Or IIf(m_uConfig.BufferPrint, 4, 0) Or lPrintType), _
+                Chr$(IIf(.InitDisablePrinting, 8, IIf(m_uConfig.DelayPrint, 2, 0) Or IIf(m_uConfig.BufferPrint, 4, 0)) Or lPrintType), _
                 Pad(.InitInvData(ucsInvCgName), m_uConfig.MaxCompany) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxPrsReceive) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNo) & _
