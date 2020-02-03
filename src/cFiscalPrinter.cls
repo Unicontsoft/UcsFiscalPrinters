@@ -402,7 +402,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
         End If
-        oFP.OpenDrawer
+        If JsonBoolItem(oJson, "OpenDrawer") Then
+            oFP.OpenDrawer
+        End If
     End If
     If JsonBoolItem(oJson, "PrintDuplicate") Then
         If Not oFP.CopyLastReceipt(JsonItem(oJson, "Invoice/DocNo")) Then
