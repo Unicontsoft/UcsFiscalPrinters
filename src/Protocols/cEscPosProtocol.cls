@@ -247,7 +247,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     bHasMore = True
                     Set oConnector = aPorts(lIdx)
                     If oConnector.ReadData(baBuffer, 0) And UBound(baBuffer) >= 0 Then
-                        If (baBuffer(0) And &H90) = 0 Then
+                        If (baBuffer(0) And &H90) = 0 And baBuffer(0) <> 0 Then
                             DebugLog FUNC_NAME, "Auto-detecting " & oConnector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
                             sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
                                      pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
