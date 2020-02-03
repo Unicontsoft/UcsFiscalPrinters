@@ -686,8 +686,6 @@ Public Function SendCommand(ByVal eCmd As UcsTremolCommandsEnum, Optional Data A
     If LenB(m_uPrintData.LastError) <> 0 Then
         m_uPrintData.LastErrNo = IIf(m_eError = ucsErrBadPassword, ucsFerInvalidPassword, ucsFerGeneralError)
     End If
-    '--- raise event
-    RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1767,6 +1765,7 @@ RetryParse:
         End If
     Loop
 QH:
+    RaiseEvent CommandComplete(eCmd, Data, pvTransmitCommand)
     Exit Function
 EH:
     PrintError FUNC_NAME

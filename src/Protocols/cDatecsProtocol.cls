@@ -660,7 +660,6 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Optional Data A
         Exit Function
     End If
     SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
-    RaiseEvent CommandComplete(eCmd, Data, SendCommand)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
@@ -1498,6 +1497,7 @@ RetryParse:
         pvSetStatus vbNullString '--- clear
     End If
 QH:
+    RaiseEvent CommandComplete(eCmd, Data, pvTransmitCommand)
     Exit Function
 EH:
     PrintError FUNC_NAME
