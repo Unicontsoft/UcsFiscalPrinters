@@ -1077,7 +1077,7 @@ Public Function GetLastReceiptNo() As String
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsIslCmdInfoLastReceipt, sParam, vbNullString
-    GetLastReceiptNo = SendCommand(eCmd, sParam)
+    GetLastReceiptNo = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam, vbNullString)
     Exit Function
 EH:
     RaiseError FUNC_NAME
