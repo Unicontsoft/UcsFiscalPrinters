@@ -726,7 +726,7 @@ Public Function GetClock() As Date
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsDcsCmdInfoDateTime, sParam, vbNullString, _
         "Index", lIndex, 1
-    GetClock = C_Date(Replace(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex), "DST", vbNullString))
+    GetClock = ParseExtendedDate(Replace(At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex), "DST", vbNullString))
     Exit Function
 EH:
     RaiseError FUNC_NAME

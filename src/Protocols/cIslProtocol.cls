@@ -895,7 +895,7 @@ Public Function GetClock() As Date
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsIslCmdInfoDateTime, sParam, vbNullString
-    GetClock = C_Date(SendCommand(eCmd, sParam))
+    GetClock = ParseExtendedDate(SendCommand(eCmd, sParam))
     Exit Function
 EH:
     RaiseError FUNC_NAME
