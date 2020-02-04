@@ -191,6 +191,8 @@ Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
 Private Const MAX_HEADER_LINES          As Long = 6
 Private Const MAX_FOOTER_LINES          As Long = 1
+Private Const IDX_EURO_RATE             As Long = 12
+Private Const IDX_CODE_PAYM1            As Long = 6
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -283,6 +285,7 @@ Private Type UcsConfigValues
     MaxDepartmentCode   As Long
     MaxReceiptNo        As Long
     ExtendedPmtTypes    As VbTriState
+    PmtMapping          As Object
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
@@ -426,17 +429,31 @@ Private Property Get pvPaymentTypes() As String
     Const CONF_NAME     As String = "PaymentTypes"
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
+    Dim vSplit          As Variant
+    Dim lIdx            As Long
+    Dim lTagNo          As Long
+    Dim oRetVal         As Object
     
     If LenB(m_sPaymentTypes) = 0 Then
         pvGetCommandConfig CONF_NAME, "InfoPaymentTypes", eCmd, ucsZekCmdInfoPaymentTypes, sParam, vbNullString
         m_sPaymentTypes = SendCommand(eCmd, sParam)
+        vSplit = Split(m_sPaymentTypes, DEF_SEP)
+        If Abs(Val(At(vSplit, IDX_EURO_RATE))) < DBL_EPSILON Then
+            For lIdx = 0 To UBound(vSplit) - IDX_CODE_PAYM1 - 1
+                lTagNo = C_Lng(At(vSplit, IDX_CODE_PAYM1 + lIdx))
+                If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
+                    JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, lIdx))
+                End If
+            Next
+            Set m_uConfig.PmtMapping = oRetVal
+        End If
     End If
     pvPaymentTypes = m_sPaymentTypes
 End Property
 
 Private Property Get pvExtendedPmtTypes() As Boolean
     If m_uConfig.ExtendedPmtTypes = vbUseDefault Then
-        pvExtendedPmtTypes = (Val(At(Split(pvPaymentTypes, DEF_SEP), 12)) > 0)
+        pvExtendedPmtTypes = (Val(At(Split(pvPaymentTypes, DEF_SEP), IDX_EURO_RATE)) > 0)
     Else
         pvExtendedPmtTypes = (m_uConfig.ExtendedPmtTypes = vbTrue)
     End If
@@ -2163,6 +2180,7 @@ End Function
 
 Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Long
     Const FUNC_NAME     As String = "pvToDevicePmtIndex"
+    Dim vInfo           As Variant
     
     On Error GoTo EH
     pvToDevicePmtIndex = -1             ' unsupported
@@ -2193,6 +2211,11 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 11     ' 0=SCash (Евро)
         End Select
+    ElseIf Not m_uConfig.PmtMapping Is Nothing Then
+        AssignVariant vInfo, JsonItem(C_Obj(m_uConfig.PmtMapping), "#" & (PmtType - ucsFscPmtCash))
+        If IsObject(vInfo) Then
+            pvToDevicePmtIndex = C_Lng(JsonItem(C_Obj(vInfo), 0))
+        End If
     Else
         Select Case PmtType
         Case ucsFscPmtCash
