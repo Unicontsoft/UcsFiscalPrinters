@@ -1189,7 +1189,7 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
         "DateIndex", lDateIndex, 2, _
         "Delimiter", sDelimiter, "*"
     vSplit = Split(SendCommand(eCmd, sParam), sDelimiter)
-    LastReceiptDate = C_Date(At(vSplit, lDateIndex))
+    LastReceiptDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
     '--- success
     GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
 QH:
@@ -1507,8 +1507,8 @@ Public Function GetTotalsStats() As Variant
     pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
         "Index", lIndex, 4
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    dLastDate = C_Date(At(vSplit, lIndex))
-    GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0 Or dLastDate = #1/1/2008#, Empty, dLastDate))
+    dLastDate = ParseExtendedDate(At(vSplit, lIndex))
+    GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0 Or dLastDate = #1/1/2008# Or dLastDate = #1/1/2018#, Empty, dLastDate))
     Exit Function
 EH:
     RaiseError FUNC_NAME

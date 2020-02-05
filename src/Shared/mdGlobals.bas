@@ -1647,8 +1647,12 @@ Public Function ParseExtendedDate(sText As String) As Date
     On Error GoTo QH
     ParseExtendedDate = C_Date(sText)
     If preg_match("\d+", sText, vMatches) > 0 Then
-        lYear = At(vMatches, 2)
-        ParseExtendedDate = DateSerial(IIf(lYear < 2000, lYear + 2000, lYear), At(vMatches, 1), At(vMatches, 0))
+        If C_Lng(At(vMatches, 0)) < 2000 Then
+            lYear = At(vMatches, 2)
+            ParseExtendedDate = DateSerial(IIf(lYear < 2000, lYear + 2000, lYear), At(vMatches, 1), At(vMatches, 0))
+        Else
+            ParseExtendedDate = DateSerial(At(vMatches, 0), At(vMatches, 1), At(vMatches, 2))
+        End If
         ParseExtendedDate = ParseExtendedDate + TimeSerial(At(vMatches, 3), At(vMatches, 4), At(vMatches, 5, 0))
     End If
 QH:

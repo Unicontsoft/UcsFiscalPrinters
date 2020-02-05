@@ -334,6 +334,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
+        dLastDateTime = 0
         JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
         If LenB(JsonItem(oRetVal, "PrevReceiptNo")) = 0 Then
             JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastReceiptNo())
@@ -415,6 +416,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
 ReturnReceiptInfo:
+    dLastDateTime = 0
     JsonItem(oRetVal, "ReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
     JsonItem(oRetVal, "ReceiptDateTime") = dLastDateTime
     If LenB(JsonItem(oRetVal, "ReceiptNo")) = 0 And dLastDateTime = 0 Then
@@ -1070,6 +1072,7 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     If JsonBoolItem(oJson, "IncludeReceiptNo") Or bIncludeAll Then
         JsonItem(oRetVal, "LastReceiptNo") = StripZeros(oFP.GetLastReceiptNo())
         If LenB(JsonItem(oRetVal, "LastReceiptNo")) = 0 Then
+            dLastDateTime = 0
             JsonItem(oRetVal, "LastReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
             JsonItem(oRetVal, "LastReceiptDateTime") = dLastDateTime
         Else

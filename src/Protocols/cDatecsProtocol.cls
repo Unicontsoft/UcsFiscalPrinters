@@ -951,7 +951,7 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
     If UBound(vSplit) <= 0 Then
         GoTo QH
     End If
-    LastReceiptDate = C_Date(At(vSplit, lDateIndex))
+    LastReceiptDate = ParseExtendedDate(At(vSplit, lDateIndex))
     '--- success
     GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
 QH:
@@ -1260,7 +1260,7 @@ Public Function GetTotalsStats() As Variant
         "Index", lIndex, 3
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     lReceipts = C_Lng(At(vSplit, lIndex))
-    dLastDate = C_Date(At(vSplit, lIndex + 1))
+    dLastDate = ParseExtendedDate(At(vSplit, lIndex + 1))
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
 EH:

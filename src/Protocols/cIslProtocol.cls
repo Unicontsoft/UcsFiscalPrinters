@@ -1195,7 +1195,7 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
         If UBound(vSplit) <= 0 Then
             GoTo QH
         End If
-        LastReceiptDate = C_Date(At(vSplit, lDateIndex))
+        LastReceiptDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
         '--- success
         GetLastQRCodeInfo = RTrim$(At(vSplit, lIndex))
     End If
@@ -1595,7 +1595,7 @@ Public Function GetTotalsStats() As Variant
         Next
     End If
     pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
-    dLastDate = C_Date(SendCommand(eCmd, sParam))
+    dLastDate = ParseExtendedDate(SendCommand(eCmd, sParam))
     If dLastDate = 0 Then
         pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
             "Index", lIndex, -1
