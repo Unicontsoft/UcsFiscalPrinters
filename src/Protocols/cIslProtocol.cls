@@ -903,21 +903,23 @@ Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "2"
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReport, sParam, "2"
     Case ucsFscRstDailyByItems
-        pvGetCommandConfig CONF_NAME, "PrintDailyReportItems", eCmd, ucsIslCmdPrintDailyReportItems, sParam, "2"
-    Case ucsFscRstDailyByDepartment
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItems, sParam, "2"
+    Case ucsFscRstDailyByDepartments
         If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "9"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReport, sParam, "9"
         Else
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsIslCmdPrintDailyReportDepartments, sParam, "2"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportDepartments, sParam, "2"
         End If
-    Case ucsFscRstDailyByItemsAndDepartment
+    Case ucsFscRstDailyByItemsAndDepartments
         If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReportItems", eCmd, ucsIslCmdPrintDailyReportItems, sParam, "9"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItems, sParam, "9"
         Else
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsIslCmdPrintDailyReportItemsDepartments, sParam, "2"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItemsDepartments, sParam, "2"
         End If
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintReportByOperators, sParam, vbNullString
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
@@ -954,21 +956,23 @@ Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "0"
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReport, sParam, "0"
     Case ucsFscRstDailyByItems
-        pvGetCommandConfig CONF_NAME, "PrintDailyReportItems", eCmd, ucsIslCmdPrintDailyReportItems, sParam, "0"
-    Case ucsFscRstDailyByDepartment
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItems, sParam, "0"
+    Case ucsFscRstDailyByDepartments
         If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReport", eCmd, ucsIslCmdPrintDailyReport, sParam, "8"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReport, sParam, "8"
         Else
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsIslCmdPrintDailyReportDepartments, sParam, "0"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportDepartments, sParam, "0"
         End If
-    Case ucsFscRstDailyByItemsAndDepartment
+    Case ucsFscRstDailyByItemsAndDepartments
         If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedPrintDailyReportItems", eCmd, ucsIslCmdPrintDailyReportItems, sParam, "8"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItems, sParam, "8"
         Else
-            pvGetCommandConfig CONF_NAME, "PrintDailyReportItemsDepartments", eCmd, ucsIslCmdPrintDailyReportItemsDepartments, sParam, "0"
+            pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintDailyReportItemsDepartments, sParam, "0"
         End If
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsIslCmdPrintReportByOperators, sParam, vbNullString
     Case Else
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
@@ -981,8 +985,8 @@ Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
         End If
         GoTo QH
     End If
-    If IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "ExtendedOperatorsReset", eCmd, ucsIslCmdInitOperatorReset, sParam, "0" & DEF_SEP & "9999"
+    If (IsDaisy Or IsIncotex) And (ReportType = ucsFscRstDailyByOperators Or ReportType = ucsFscRstDaily) Then
+        pvGetCommandConfig CONF_NAME, "InitOperatorReset", eCmd, ucsIslCmdInitOperatorReset, sParam, "0" & DEF_SEP & "9999"
         SendCommand eCmd, sParam
     End If
     '--- success
@@ -1009,10 +1013,10 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     End If
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
-    Case ucsFscRstPeriodShort
+    Case ucsFscRstMonthlyShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsIslCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT
-    Case ucsFscRstPeriodDetailed
+    Case ucsFscRstMonthlyDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsIslCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case Else

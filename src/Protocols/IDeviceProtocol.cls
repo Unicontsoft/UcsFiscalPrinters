@@ -102,10 +102,11 @@ End Enum
 Public Enum UcsFiscalReportsTypeEnum
     ucsFscRstDaily
     ucsFscRstDailyByItems
-    ucsFscRstDailyByDepartment
-    ucsFscRstDailyByItemsAndDepartment
-    ucsFscRstPeriodShort
-    ucsFscRstPeriodDetailed
+    ucsFscRstDailyByDepartments
+    ucsFscRstDailyByItemsAndDepartments
+    ucsFscRstDailyByOperators
+    ucsFscRstMonthlyShort
+    ucsFscRstMonthlyDetailed
 End Enum
 
 Public Enum UcsFiscalErrorsEnum

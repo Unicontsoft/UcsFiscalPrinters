@@ -36,9 +36,9 @@ Private Const MODULE_NAME As String = "cFiscalPrinter"
 
 Public Enum UcsFiscalPrintReportTypeEnum
     ucsFscRptDaily = 1
-    ucsFscRptNumber
-    ucsFscRptDate
-    ucsFscRptOperator
+    ucsFscRptMonthlyByReceiptNo
+    ucsFscRptMonthlyByDate
+    ucsFscRptDailyByOperators
 End Enum
 
 '=========================================================================
@@ -47,7 +47,7 @@ End Enum
 
 '--- strings
 Private Const STR_TEXTS                 As String = "Касиер"
-Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Командата не се поддържа от протокола|Невалидна JSON заявка"
+Private Const STR_INTERNAL              As String = "Грешка при инициализация на протокол %1|Командата не се поддържа от протокола|Невалидна JSON заявка|Невалиден тип справка: %1"
 Private Const STR_DATECS_INTERNAL       As String = "Време за достъп изтече в очакване на отговор|Невалидна дължина на отговора: %1|Невалидна сума за проверка: %1|Липсва символ за край на отговора: %1|Липсва символ за начало на отговора: %1|Няма започната бележка| или невалидна парола на оператор|Грешка на ред %1: %2|Невъзможно отказване на предишна транзакция|Невалиден тип справка|Грешка %1|Памет %1|Неподдържан вид плащане %1"
 Private Const STR_DATECS_STATUSES       As String = "Получените данни имат синктактична грешка|Кодът на получената команда е невалиден|Не е сверен часовника|3|Механизмът на печатащото устройство има неизправност|5|Отворен е капакът на принтера|7|При изпълнение на командата се е получило препълване на някои полета от сумите|Изпълнението на командата не е позволено в текущия фискален режим|2|3|4|5|6|7|Свършила е хартията|Останала е малко хартия|Край на КЛЕН|Отворен е фискален бон|Близък край на КЛЕН|Отворен е служебен бон"
 Private Const STR_DATECS_ERRORS         As String = "Получените данни имат синктактична грешка|Кодът на получената команда е невалиден|2|3|Механизмът на печатащото устройство има неизправност|5|6|7|0|Изпълнението на командата не е позволено в текущия фискален режим|2|3|4|5|6|7|Свършила е хартията"
@@ -90,7 +90,7 @@ Private Const STR_ENUM_RECEIPT_TYPE     As String = "|Sale|Reversal|Invoice|Cred
 Private Const STR_ENUM_CGTAXNO_TYPE     As String = "EIC|CitizenNo|ForeignerNo|OfficialNo"
 Private Const STR_ENUM_REVERSAL_TYPE    As String = "OperatorError|Refund|TaxBaseReduction"
 Private Const STR_ENUM_BARCODE_TYPE     As String = "|Ean8|Ean13|Code128|QRcode"
-Private Const STR_ENUM_REPOR_TYPE       As String = "|Daily|Number|Date|Operator"
+Private Const STR_ENUM_REPORT_TYPE      As String = "|Daily|MonthlyByReceiptNo|MonthlyByDate|DailyByOperators"
 '--- config entries
 Private Const CFG_INTERNAL_ERRORS       As String = "InternalErrors"
 Private Const CFG_PRINTER_STATUSES      As String = "PrinterStatuses"
@@ -137,6 +137,7 @@ Private Enum UcsInternalErrors
     ucsErrInitProtocol
     ucsErrNotImplemented
     ucsErrInvalidJsonRequest
+    ucsErrInvalidReportType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -451,48 +452,46 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim bResult         As Boolean
+    Dim ePrintType      As UcsFiscalPrintReportTypeEnum
+    Dim eReportType     As UcsFiscalReportsTypeEnum
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    Select Case JsonEnumValue(JsonItem(oJson, "ReportType"), STR_ENUM_REPOR_TYPE)
+    ePrintType = JsonEnumValue(JsonItem(oJson, "ReportType"), STR_ENUM_REPORT_TYPE)
+    Select Case ePrintType
     Case ucsFscRptDaily
         If JsonBoolItem(oJson, "IsItems") And JsonBoolItem(oJson, "IsDepartments") Then
-            If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByItemsAndDepartment)
-            Else
-                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByItemsAndDepartment)
-            End If
+            eReportType = ucsFscRstDailyByItemsAndDepartments
         ElseIf JsonBoolItem(oJson, "IsItems") Then
-            If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByItems)
-            Else
-                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByItems)
-            End If
+            eReportType = ucsFscRstDailyByItems
         ElseIf JsonBoolItem(oJson, "IsDepartments") Then
-            If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.PrintDailyZReport(ucsFscRstDailyByDepartment)
-            Else
-                bResult = oFP.PrintDailyXReport(ucsFscRstDailyByDepartment)
-            End If
+            eReportType = ucsFscRstDailyByDepartments
         Else
-            If JsonBoolItem(oJson, "IsClear") Then
-                bResult = oFP.PrintDailyZReport(ucsFscRstDaily)
-            Else
-                bResult = oFP.PrintDailyXReport(ucsFscRstDaily)
-            End If
+            eReportType = ucsFscRstDaily
         End If
-    Case ucsFscRptNumber
+        If JsonBoolItem(oJson, "IsClear") Then
+            bResult = oFP.PrintDailyZReport(eReportType)
+        Else
+            bResult = oFP.PrintDailyXReport(eReportType)
+        End If
+    Case ucsFscRptMonthlyByReceiptNo
         '--- ToDo: impl
-    Case ucsFscRptDate
+    Case ucsFscRptMonthlyByDate
+        eReportType = IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstMonthlyDetailed, ucsFscRstMonthlyShort)
         If C_Date(JsonItem(oJson, "FromDate")) <> 0 And C_Date(JsonItem(oJson, "ToDate")) <> 0 Then
-            bResult = oFP.PrintMonthlyReport(IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstPeriodDetailed, ucsFscRstPeriodShort), C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
+            bResult = oFP.PrintMonthlyReport(eReportType, C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")))
         End If
-    Case ucsFscRptOperator
-        '--- ToDo: impl
+    Case ucsFscRptDailyByOperators
+        eReportType = ucsFscRstDailyByOperators
+        If JsonBoolItem(oJson, "IsClear") Then
+            bResult = oFP.PrintDailyZReport(eReportType)
+        Else
+            bResult = oFP.PrintDailyXReport(eReportType)
+        End If
     Case Else
-        sLastErr = "Invalid or missing report type"
+        sLastErr = Printf(pvInternal(ucsErrInvalidReportType), ePrintType)
         DebugLog FUNC_NAME, "Case Else, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End Select

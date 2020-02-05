@@ -729,11 +729,13 @@ Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     End If
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsDcsCmdPrintDailyReport, sParam, "X" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintDailyReport, sParam, "X" & DEF_SEP
     Case ucsFscRstDailyByItems
-        pvGetCommandConfig CONF_NAME, "PrintDailyReportItems", eCmd, ucsDcsCmdPrintDailyReport, sParam, "G" & DEF_SEP
-    Case ucsFscRstDailyByDepartment
-        pvGetCommandConfig CONF_NAME, "PrintDailyReportDepartments", eCmd, ucsDcsCmdPrintDailyReport, sParam, "D" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintDailyReport, sParam, "G" & DEF_SEP
+    Case ucsFscRstDailyByDepartments
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintDailyReport, sParam, "D" & DEF_SEP
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintReportByOperators, sParam, DEF_SEP & DEF_SEP & "0" & DEF_SEP
     Case Else
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
@@ -763,7 +765,9 @@ Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     End If
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintDailyReport", eCmd, ucsDcsCmdPrintDailyReport, sParam, "Z" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintDailyReport, sParam, "Z" & DEF_SEP
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintReportByOperators, sParam, DEF_SEP & DEF_SEP & "1" & DEF_SEP
     Case Else
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
@@ -793,12 +797,12 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
         GoTo QH
     End If
     Select Case ReportType
-    Case ucsFscRstPeriodShort
+    Case ucsFscRstMonthlyShort
         '--- {Type}<SEP>{Start}<SEP>{End}<SEP>
         sParam = "0" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsDcsCmdPrintReportByDateDetailed, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT
-    Case ucsFscRstPeriodDetailed
+    Case ucsFscRstMonthlyDetailed
         sParam = "1" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsDcsCmdPrintReportByDateDetailed, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT

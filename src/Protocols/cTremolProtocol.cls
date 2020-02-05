@@ -854,13 +854,16 @@ Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "X", _
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDaily, sParam, "X", _
             "PrintTimeout", lPrintTimeout, 0
     Case ucsFscRstDailyByItems
-        pvGetCommandConfig CONF_NAME, "PrintReportDailyItems", eCmd, ucsZekCmdPrintReportDailyItems, sParam, "X", _
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDailyItems, sParam, "X", _
             "PrintTimeout", lPrintTimeout, 0
-    Case ucsFscRstDailyByDepartment
-        pvGetCommandConfig CONF_NAME, "PrintReportDailyDepartments", eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "X", _
+    Case ucsFscRstDailyByDepartments
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "X", _
+            "PrintTimeout", lPrintTimeout, 0
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportByOperators, sParam, "X" & DEF_SEP & "0", _
             "PrintTimeout", lPrintTimeout, 0
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
@@ -901,13 +904,16 @@ Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstDaily
-        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "Z", _
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDaily, sParam, "Z", _
             "PrintTimeout", lPrintTimeout, 0
     Case ucsFscRstDailyByItems
-        pvGetCommandConfig CONF_NAME, "PrintReportDailyItems", eCmd, ucsZekCmdPrintReportDailyItems, sParam, "Z", _
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDailyItems, sParam, "Z", _
             "PrintTimeout", lPrintTimeout, 0
-    Case ucsFscRstDailyByDepartment
-        pvGetCommandConfig CONF_NAME, "PrintReportDailyDepartments", eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "Z", _
+    Case ucsFscRstDailyByDepartments
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportDailyDepartments, sParam, "Z", _
+            "PrintTimeout", lPrintTimeout, 0
+    Case ucsFscRstDailyByOperators
+        pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsZekCmdPrintReportByOperators, sParam, "Z" & DEF_SEP & "0", _
             "PrintTimeout", lPrintTimeout, 0
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
@@ -948,11 +954,11 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     On Error GoTo EH
     sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
-    Case ucsFscRstPeriodShort
+    Case ucsFscRstMonthlyShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsZekCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT, _
             "PrintTimeout", lPrintTimeout, 0
-    Case ucsFscRstPeriodDetailed
+    Case ucsFscRstMonthlyDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsZekCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT, _
             "PrintTimeout", lPrintTimeout, 0
