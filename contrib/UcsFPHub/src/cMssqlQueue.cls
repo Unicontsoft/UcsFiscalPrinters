@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -46,8 +46,8 @@ Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
-Private m_pTimer                    As IUnknown
-Attribute m_pTimer.VB_VarHelpID = -1
+Private m_pTimeoutTimer             As IUnknown
+Attribute m_pTimeoutTimer.VB_VarHelpID = -1
 Private WithEvents m_oConn          As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
 Private m_vPrinters                 As Variant
@@ -205,7 +205,7 @@ Private Sub pvRestartTimer()
     
     On Error GoTo EH
     '--- start heart-beat timer
-    Set m_pTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+    Set m_pTimeoutTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -222,7 +222,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
     Dim sHandle         As String
     Dim sResponse       As String
     Dim lErrorCode      As Long
-    Dim sPrinterId      As String
+    Dim sPrinterID      As String
     Dim vErr            As Variant
     
     On Error GoTo EH
@@ -240,7 +240,7 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
         If (pRecordset.State And adStateOpen) <> 0 Then
             If pRecordset.Fields.Count = LNG_QUEUE_FIELDS Then
                 pvQueueLoopAsync
-                pvRestartTimer
+                Set m_pTimeoutTimer = Nothing
                 sHandle = C_Str(pRecordset!Handle.Value)
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
@@ -253,10 +253,11 @@ Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError 
                 ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
                     sResponse = C_Str(pRecordset!ErrorText.Value)
                     If LenB(sResponse) <> 0 Then
-                        sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse), vbLogEventTypeError
+                        sPrinterID = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
+                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
                     End If
                 End If
+                pvRestartTimer
             End If
         End If
     End If
@@ -281,8 +282,8 @@ NextLine:
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
-        pvRestartTimer
     End If
+    pvRestartTimer
     GoTo QH
 End Sub
 
@@ -296,6 +297,7 @@ End Function
 
 Private Function IQueue_LoopAsync() As Boolean
     IQueue_LoopAsync = pvQueueLoopAsync
+    pvRestartTimer
 End Function
 
 Private Function IQueue_Terminate() As Boolean

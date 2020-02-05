@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -55,7 +55,7 @@ Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
-Private m_pTimeoutTimer           As IUnknown
+Private m_pTimeoutTimer             As IUnknown
 Private m_pCompleteTimer            As IUnknown
 Private m_oConn                     As ADODB.Connection
 Private WithEvents m_oAsyncConn     As ADODB.Connection
@@ -234,7 +234,7 @@ Attribute CompleteTimerProc.VB_MemberFlags = "40"
     Dim sHandle         As String
     Dim sResponse       As String
     Dim lErrorCode      As Long
-    Dim sPrinterId      As String
+    Dim sPrinterID      As String
     
     On Error GoTo EH
     Set pRecordset = m_pRecordset
@@ -242,7 +242,7 @@ Attribute CompleteTimerProc.VB_MemberFlags = "40"
         pvQueueSetup
     End If
     pvQueueLoopAsync
-    pvRestartTimer
+    Set m_pTimeoutTimer = Nothing
     sHandle = C_Str(pRecordset!Handle.Value)
     If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
         If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
@@ -255,10 +255,11 @@ Attribute CompleteTimerProc.VB_MemberFlags = "40"
     ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
         sResponse = C_Str(pRecordset!ErrorText.Value)
         If LenB(sResponse) <> 0 Then
-            sPrinterId = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterId, sResponse), vbLogEventTypeError
+            sPrinterID = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
         End If
     End If
+    pvRestartTimer
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -310,8 +311,8 @@ NextLine:
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
-        pvRestartTimer
     End If
+    pvRestartTimer
     GoTo QH
 End Sub
 
@@ -325,6 +326,7 @@ End Function
 
 Private Function IQueue_LoopAsync() As Boolean
     IQueue_LoopAsync = pvQueueLoopAsync
+    pvRestartTimer
 End Function
 
 Private Function IQueue_Terminate() As Boolean
