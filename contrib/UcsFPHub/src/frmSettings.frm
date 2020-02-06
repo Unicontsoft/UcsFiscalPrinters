@@ -366,8 +366,10 @@ Private Const MODULE_NAME As String = "frmSettings"
 Private Const WM_GETTEXTLENGTH          As Long = &HE
 Private Const WM_GETMINMAXINFO          As Long = &H24
 Private Const EM_SETSEL                 As Long = &HB1
+Private Const EM_REPLACESEL             As Long = &HC2
 Private Const EM_CANUNDO                As Long = &HC6
 Private Const EM_UNDO                   As Long = &HC7
+Private Const WM_VSCROLL                As Long = &H115
 Private Const WM_INITMENU               As Long = &H116
 Private Const WM_CUT                    As Long = &H300
 Private Const WM_COPY                   As Long = &H301
@@ -375,6 +377,8 @@ Private Const WM_PASTE                  As Long = &H302
 Private Const WM_CLEAR                  As Long = &H303
 '--- clipboard format
 Private Const CF_UNICODETEXT            As Long = 13
+'--- for WM_VSCROLL
+Private Const SB_BOTTOM                 As Long = 7
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
@@ -609,7 +613,7 @@ Attribute TimerProc.VB_MemberFlags = "40"
     On Error GoTo EH
     If tabMain.CurrentTab = ucsTabLog Then
         pvLoadLog
-    ElseIf LenB(txtLog.Text) <> 0 Then
+    ElseIf pvGetLogTextLength <> 0 Then
         pvLogChanged = (Logger.MemoryCount <> m_lLogMemoryCount)
     End If
     Set m_pTimerLog = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=1000)
@@ -681,12 +685,22 @@ End Function
 
 Private Function pvLoadLog() As Boolean
     Const FUNC_NAME     As String = "pvLoadLog"
+    Dim oMemoryLog      As Object
+    Dim cNewChunk       As Collection
+    Dim lIdx            As Long
+    Dim vItem           As Variant
     
     On Error GoTo EH
-    If Logger.MemoryCount <> m_lLogMemoryCount Then
+    If m_lLogMemoryCount <> Logger.MemoryCount Then
+        Set oMemoryLog = Logger.MemoryLog
+        Set cNewChunk = New Collection
+        For lIdx = m_lLogMemoryCount + 1 To Logger.MemoryCount
+            If SearchCollection(oMemoryLog, "#" & lIdx, RetVal:=vItem) Then
+                cNewChunk.Add vItem
+            End If
+        Next
         m_lLogMemoryCount = Logger.MemoryCount
-        txtLog.Text = ConcatCollection(Logger.MemoryLog) & vbCrLf
-        txtLog.SelStart = &H7FFF&
+        pvAppendLogText ConcatCollection(cNewChunk) & vbCrLf
     End If
     pvLogChanged = False
     '--- success
@@ -875,6 +889,17 @@ Private Function pvShowModal(Optional OwnerForm As Variant) As Boolean
     pvShowModal = True
 QH:
 End Function
+
+Private Function pvGetLogTextLength() As Long
+    pvGetLogTextLength = SendMessage(txtLog.hWnd, WM_GETTEXTLENGTH, 0, ByVal 0&)
+End Function
+
+Private Sub pvAppendLogText(sValue As String)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal 0)
+    Call SendMessage(txtLog.hWnd, EM_REPLACESEL, 1, ByVal sValue)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal 0)
+    Call SendMessage(txtLog.hWnd, WM_VSCROLL, SB_BOTTOM, ByVal 0)
+End Sub
 
 '=========================================================================
 ' Events
@@ -1212,4 +1237,3 @@ End Sub
 Private Sub txtDefPass_Change()
     cobProtocol_Change
 End Sub
-
