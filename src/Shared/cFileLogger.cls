@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -37,7 +37,7 @@ Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const MAX_MEMORY_SIZE       As Long = 32& * 1024
+Private Const MAX_MEMORY_SIZE       As Long = 1& * 1024 * 1024
 Private Const MAX_FILE_SIZE         As Long = 10& * 1024 * 1024
 Private Const FORMAT_DATETIME_LOG   As String = "yyyy.MM.dd hh:nn:ss"
 Private Const FORMAT_BASE_3         As String = "0.000"
