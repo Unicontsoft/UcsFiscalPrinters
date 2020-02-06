@@ -142,8 +142,10 @@ End Property
 '=========================================================================
 
 Public Sub Main()
+    Const FUNC_NAME     As String = "Main"
     Dim lExitCode       As Long
     
+    On Error GoTo EH
     If Not m_bStarted Then
         If Not InIde Then
             '--- prepare for visual styles
@@ -158,6 +160,9 @@ Public Sub Main()
     If Not InIde And lExitCode <> -1 Then
         Call ExitProcess(lExitCode)
     End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
 End Sub
 
 Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
@@ -326,7 +331,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             FlushDebugLog
         Loop
     Else
-        If Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION) Then
+        If Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION, GetEnvironmentVar("_UCS_FP_HUB_AUTO_UPDATE")) Then
             Process = 1
             GoTo QH
         End If

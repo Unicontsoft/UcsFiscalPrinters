@@ -338,6 +338,22 @@ Begin VB.Form frmSettings
          Shortcut        =   {F5}
       End
    End
+   Begin VB.Menu mnuMain 
+      Caption         =   "Помощ"
+      Index           =   2
+      Begin VB.Menu mnuHelp 
+         Caption         =   "Проверка нова версия"
+         Index           =   0
+      End
+      Begin VB.Menu mnuHelp 
+         Caption         =   "-"
+         Index           =   1
+      End
+      Begin VB.Menu mnuHelp 
+         Caption         =   "Относно"
+         Index           =   2
+      End
+   End
 End
 Attribute VB_Name = "frmSettings"
 Attribute VB_GlobalNameSpace = False
@@ -400,7 +416,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_CAPTION               As String = "Настройки на %1 v%2"
+Private Const STR_CAPTION               As String = "Настройки на %1"
 Private Const STR_CAPTION_PRINTERS      As String = "Устройства"
 Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
 Private Const STR_CAPTION_LOG           As String = "Журнал"
@@ -415,6 +431,8 @@ Private Const MSG_SAVE_CHANGES          As String = "Желаете ли да запазите моди
 Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на %1!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
 Private Const MSG_PRINTER_NOT_FOUND     As String = "Не е открито фискалното устройство с тези настройки." & vbCrLf & vbCrLf & "Желаете ли повторно прилагане?"
 Private Const MSG_SUCCESS_FOUND         As String = "Успешно конфигуриране на фискално устройство %1!"
+Private Const MSG_UPDATE_FOUND          As String = "Желаете ли да обновите %1 до последна версия след рестартиране?"
+Private Const MSG_NO_UPDATE             As String = "Не е намерена по-нова версия на %1"
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000
@@ -447,6 +465,9 @@ Private Enum UcsMenuItems
     ucsMnuEditSelectAll
     ucsMnuEditSep3
     ucsMnuEditRefresh
+    ucsMnuHelpAutoUpdate = 0
+    ucsMnuHelpSep1
+    ucsMnuHelpAbout
 End Enum
 
 Private Enum UcsTabsEnums
@@ -545,7 +566,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         '--- setup caption
         sConfFile = MainForm.ConfFile
         m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
-        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, App.ProductName, STR_VERSION)
+        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, App.ProductName & " v" & STR_VERSION)
         '--- load combos
         pvLoadItemData cobProtocol, Split(STR_PROTOCOLS, "|")
         With New cFiscalPrinter
@@ -564,6 +585,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         Set m_pTimerLog = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=1000)
         tabMain_Click
     End If
+    mnuHelp(ucsMnuHelpAutoUpdate).Enabled = (LenB(MainForm.ExeAutoUpdate) <> 0)
     If Not OwnerForm Is Nothing Then
         If Not pvShowModal(OwnerForm) Then
             If Not pvShowModal() Then
@@ -978,7 +1000,7 @@ Private Sub mnuFile_Click(Index As Integer)
             If Not pvSaveConfig(m_sConfFile) Then
                 GoTo QH
             End If
-            If MsgBox(Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName), vbQuestion Or vbYesNo) = vbYes Then
+            If MsgBox(Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
                 frRestart
             End If
         End If
@@ -1028,6 +1050,35 @@ Private Sub mnuEdit_Click(Index As Integer)
         Case ucsTabLog
             TimerProc
         End Select
+    End Select
+QH:
+    Screen.MousePointer = vbDefault
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
+Private Sub mnuHelp_Click(Index As Integer)
+    Const FUNC_NAME     As String = "mnuHelp_Click"
+    Dim bResult         As Boolean
+    
+    On Error GoTo EH
+    Select Case Index
+    Case ucsMnuHelpAutoUpdate
+        Screen.MousePointer = vbHourglass
+        bResult = MainForm.StartAutoUpdate(vbTrue)
+        Screen.MousePointer = vbDefault
+        If bResult Then
+            If MsgBox(Printf(MSG_UPDATE_FOUND, App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
+                Screen.MousePointer = vbHourglass
+                MainForm.StartAutoUpdate vbFalse
+            End If
+        Else
+            MsgBox Printf(MSG_NO_UPDATE, App.ProductName & " v" & STR_VERSION), vbInformation
+        End If
+    Case ucsMnuHelpAbout
+        MsgBox App.ProductName & " v" & STR_VERSION & vbCrLf & App.LegalCopyright, vbInformation
     End Select
 QH:
     Screen.MousePointer = vbDefault
@@ -1120,6 +1171,7 @@ Private Sub Form_Unload(Cancel As Integer)
     
     On Error GoTo EH
     Set m_pSubclass = Nothing
+    Set m_pTimerLog = Nothing
     m_sConfFile = vbNullString
     Exit Sub
 EH:

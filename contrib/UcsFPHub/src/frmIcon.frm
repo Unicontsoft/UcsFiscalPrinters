@@ -58,10 +58,14 @@ Private Const MODULE_NAME As String = "frmIcon"
 ' Constants and member variables
 '=========================================================================
 
+Private Const LNG_AUTO_UPDATE_DELAY     As Long = 24& * 60 * 60  '--- 24h
+
 Private m_oPrinters                 As Object
 Private m_sConfFile                 As String
 Private WithEvents m_oSysTray       As cSysTray
 Attribute m_oSysTray.VB_VarHelpID = -1
+Private m_sExeAutoUpdate            As String
+Private m_pUpdateTimer              As IUnknown
 
 Private Enum UcsMenuItems
     ucsMnuPopupConfig = 0
@@ -95,17 +99,29 @@ Property Get ConfFile() As String
      ConfFile = m_sConfFile
 End Property
 
+Property Get ExeAutoUpdate() As String
+    ExeAutoUpdate = m_sExeAutoUpdate
+End Property
+
+Private Property Get pvAddressOfTimerProc() As frmIcon
+    Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
 
-Public Function Init(oPrinters As Object, sConfFile As String, sProductName As String) As Boolean
+Public Function Init(oPrinters As Object, sConfFile As String, sProductName As String, sExeAutoUpdate As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
     Set m_oPrinters = oPrinters
     m_sConfFile = sConfFile
     Caption = sProductName
+    m_sExeAutoUpdate = sExeAutoUpdate
+    If LenB(sExeAutoUpdate) <> 0 Then
+        Set m_pUpdateTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.AutoUpdateTimerProc, LNG_AUTO_UPDATE_DELAY * 1000)
+    End If
     '--- setup systray
     Set m_oSysTray = New cSysTray
     m_oSysTray.Init Me, sProductName
@@ -158,6 +174,51 @@ EH:
     PrintError FUNC_NAME
 End Sub
 
+Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUseDefault) As Boolean
+    Const FUNC_NAME     As String = "StartAutoUpdate"
+    Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
+
+    On Error GoTo EH
+    If LenB(m_sExeAutoUpdate) = 0 Then
+        GoTo QH
+    End If
+    If CheckUpdate = vbFalse Then
+        StartAutoUpdate = True
+    Else
+        With New cExec
+            .Run m_sExeAutoUpdate, "/checkupdate", StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            StartAutoUpdate = .GetExitCode() <> 0
+        End With
+    End If
+    If CheckUpdate = vbTrue Then
+        GoTo QH
+    End If
+    If StartAutoUpdate Then
+        ShutDown
+        ShellExec m_sExeAutoUpdate, vbNullString
+        If InIde Then
+            Main
+        End If
+    End If
+QH:
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function AutoUpdateTimerProc() As Long
+Attribute AutoUpdateTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "AutoUpdateTimerProc"
+    
+    On Error GoTo EH
+    Set m_pUpdateTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.AutoUpdateTimerProc, LNG_AUTO_UPDATE_DELAY * 1000)
+    StartAutoUpdate
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
 '=========================================================================
 ' Events
 '=========================================================================
@@ -207,6 +268,7 @@ Private Sub Form_Unload(Cancel As Integer)
         m_oSysTray.Terminate
         Set m_oSysTray = Nothing
     End If
+    Set m_pUpdateTimer = Nothing
     Exit Sub
 EH:
     PrintError FUNC_NAME
