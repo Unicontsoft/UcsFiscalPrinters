@@ -989,7 +989,6 @@ End Function
 Public Function PrintServiceDeposit( _
         Optional ByVal OperatorCode As String, _
         Optional ByVal OperatorPassword As String, _
-        Optional ByVal PmtType As UcsFiscalPaymentTypeEnum, _
         Optional ByVal Amount As Double, _
         Optional Comment As String) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
@@ -1007,7 +1006,8 @@ Public Function PrintServiceDeposit( _
         GoTo QH
     End If
     On Error GoTo EH
-    lPmtIndex = pvToDevicePmtIndex(PmtType)
+    '--- new firmware versions support SCash only
+    lPmtIndex = 0
     If Abs(Amount) > DBL_EPSILON Then
         pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
             "Index", lIndex, 9
@@ -1017,14 +1017,14 @@ Public Function PrintServiceDeposit( _
             OperatorCode = DEF_OPERNO
             OperatorPassword = GetDefaultPassword(DEF_OPERNO)
         End If
-        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4@%5", _
+        pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsZekCmdFiscalServiceDeposit, sParam, "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4%5", _
             "Format", sFormat, FORMAT_BASE_2, _
             "PrintTimeout", lPrintTimeout, 0
         sParam = Printf(sParam, Pad(Zn(OperatorCode, DEF_OPERNO), -m_uConfig.MaxOperCode), _
             Pad(Zn(OperatorPassword, GetDefaultPassword(Zn(OperatorCode, DEF_OPERNO))), m_uConfig.MaxOperPassword), _
             lPmtIndex, _
             SafeFormat(Amount, sFormat), _
-            Left$(Comment, m_uConfig.MaxComment))
+            IIf(LenB(Comment) <> 0, "$1" & DEF_SEP & Left$(Comment, m_uConfig.MaxComment), vbNullString))
         SendCommand eCmd, sParam
         If LenB(m_uPrintData.LastError) <> 0 Then
             GoTo QH
@@ -2372,7 +2372,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
 End Function
 
 Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal PmtType As UcsFiscalPaymentTypeEnum, ByVal Amount As Double) As Variant
-    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, PmtType, Amount)
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, Amount)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
