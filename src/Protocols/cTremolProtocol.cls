@@ -1139,8 +1139,8 @@ Public Function GetLastReceiptNo() As String
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoLastReceipt, sParam, vbNullString, _
-        "Index", lIndex, 0
+    pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
+        "Index", lIndex, 19
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     '--- success
     GetLastReceiptNo = RTrim$(At(vSplit, lIndex))

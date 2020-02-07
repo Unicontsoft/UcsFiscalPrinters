@@ -906,13 +906,10 @@ Public Function GetLastReceiptNo() As String
     Dim lIndex          As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
-        "Index", lIndex, 1
+    pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoTransaction, sParam, vbNullString, _
+        "Index", lIndex, 2
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     GetLastReceiptNo = At(vSplit, lIndex)
-    If C_Lng(GetLastReceiptNo) <> 0 Then
-        GetLastReceiptNo = C_Lng(GetLastReceiptNo) - (C_Lng(pvSettings("DFR_needed")) = 0)
-    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
