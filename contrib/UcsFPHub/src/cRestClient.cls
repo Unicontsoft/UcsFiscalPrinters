@@ -223,7 +223,7 @@ QH:
         m_oSocket.SendArray baBody
     End If
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sStatusCode=" & sStatusCode & ", sResponse=" & Replace(sResponse, vbCrLf, "^p"), vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & Replace(sResponse, vbCrLf, "^p") & ", sStatusCode=" & sStatusCode, vbLogEventTypeDebug
     End If
     Exit Function
 EH:

@@ -153,7 +153,7 @@ Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse 
     
     On Error GoTo EH
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sRawUrl=" & sRawUrl & ", sRequest=" & Replace(sRequest, vbCrLf, "^p"), vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sRequest=" & Replace(sRequest, vbCrLf, "^p") & ", sRawUrl=" & sRawUrl, vbLogEventTypeDebug
     End If
     vSplit = Split2(sRawUrl, "?")
     ServiceRequest = m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse)

@@ -248,7 +248,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     On Error GoTo EH
     dblStartTimerEx = TimerEx
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "sSvcName=" & sSvcName & ", sRequest=" & Replace(sRequest, vbCrLf, "^p"), vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sRequest=" & Replace(sRequest, vbCrLf, "^p") & ", sSvcName=" & sSvcName, vbLogEventTypeDebug
     End If
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
@@ -294,7 +294,7 @@ QH:
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterID, sResponse)
     End If
     If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "lErrorCode=" & lErrorCode & ", sResponse=" & Replace(sResponse, vbCrLf, "^p"), vbLogEventTypeDebug
+        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & Replace(sResponse, vbCrLf, "^p") & IIf(lErrorCode <> 0, ", lErrorCode=" & lErrorCode, vbNullString), vbLogEventTypeDebug
     End If
     Exit Function
 EH:
