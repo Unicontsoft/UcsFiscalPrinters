@@ -344,7 +344,7 @@ End Function
 ' @remark Most fiscal devices are able to print a single duplicate of last fiscal receipt only. On second copy request
 ' an error is returned.
 '
-Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
 Attribute PrintDuplicate.VB_Description = "Used to print a duplicate of the last fiscal receipt"
 
 End Function

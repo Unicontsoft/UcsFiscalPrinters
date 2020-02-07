@@ -883,7 +883,7 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNo As String) As Boolean
     
 End Function
 

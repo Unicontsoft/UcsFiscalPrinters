@@ -690,19 +690,19 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
     Const FUNC_NAME     As String = "PrintDuplicate"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
-    If LenB(ReceiptNumber) = 0 Then
+    If LenB(ReceiptNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
         SendCommand eCmd, sParam
     Else
         pvGetCommandConfig CONF_NAME, "InfoEJ" & sParam, eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
-        sParam = Printf(sParam, ReceiptNumber)
+        sParam = Printf(sParam, ReceiptNo)
         SendCommand eCmd, sParam
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
@@ -2142,8 +2142,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
-    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNumber)
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNo As String) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNo)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean

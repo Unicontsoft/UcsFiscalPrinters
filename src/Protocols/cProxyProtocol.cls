@@ -281,15 +281,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDuplicate(Optional ReceiptNumber As String) As Boolean
+Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
     Const FUNC_NAME     As String = "PrintDuplicate"
     Dim oRequest        As Object
     Dim oResponse       As Object
     
     On Error GoTo EH
     JsonItem(oRequest, "PrintDuplicate") = True
-    If LenB(ReceiptNumber) <> 0 Then
-        JsonItem(oRequest, "Invoice/DocNo") = ReceiptNumber
+    If LenB(ReceiptNo) <> 0 Then
+        JsonItem(oRequest, "Invoice/DocNo") = ReceiptNo
     End If
     If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
         GoTo QH
@@ -663,8 +663,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = True
 End Function
 
-Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNumber As String) As Boolean
-    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNumber)
+Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNo As String) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNo)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
