@@ -317,8 +317,10 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim lIdx            As Long
     Dim sResumeToken    As String
     Dim sPrevReceiptNo  As String
-    Dim dLastDateTime   As Date
     Dim eReceiptType    As UcsFiscalReceiptTypeEnum
+    Dim sReceiptNo      As String
+    Dim dReceiptDate    As Date
+    Dim sInvoiceNo      As String
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -334,8 +336,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
-        dLastDateTime = 0
-        JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
+        JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo())
         If LenB(JsonItem(oRetVal, "PrevReceiptNo")) = 0 Then
             JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastReceiptNo())
         End If
@@ -399,7 +400,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 End Select
             End With
         Next
-        If Not oFP.PrintReceipt(sResumeToken) Then
+        If Not oFP.PrintReceipt(sReceiptNo, dReceiptDate, sInvoiceNo, sResumeToken) Then
             sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -416,18 +417,22 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
     End If
 ReturnReceiptInfo:
-    dLastDateTime = 0
-    JsonItem(oRetVal, "ReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo(dLastDateTime))
-    JsonItem(oRetVal, "ReceiptDateTime") = dLastDateTime
-    If LenB(JsonItem(oRetVal, "ReceiptNo")) = 0 And dLastDateTime = 0 Then
-        JsonItem(oRetVal, "ReceiptNo") = StripZeros(oFP.GetLastReceiptNo())
-        JsonItem(oRetVal, "ReceiptDateTime") = oFP.GetClock()
+    If LenB(sReceiptNo) = 0 And dReceiptDate = 0 Then
+        sReceiptNo = oFP.GetLastQRCodeInfo(dReceiptDate)
+        If LenB(sReceiptNo) = 0 And dReceiptDate = 0 Then
+            sReceiptNo = oFP.GetLastReceiptNo()
+            dReceiptDate = oFP.GetClock()
+        End If
     End If
-    JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
-    JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
-    If eReceiptType = ucsFscRcpInvoice Or eReceiptType = ucsFscRcpCreditNote Then
-        JsonItem(oRetVal, "LastInvoiceNo") = StripZeros(oFP.GetLastInvoiceNo())
-    End If
+    Select Case eReceiptType
+    Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+        If LenB(sInvoiceNo) = 0 Then
+            sInvoiceNo = oFP.GetLastInvoiceNo()
+        End If
+    End Select
+    JsonItem(oRetVal, "ReceiptNo") = StripZeros(sReceiptNo)
+    JsonItem(oRetVal, "ReceiptDateTime") = dReceiptDate
+    JsonItem(oRetVal, "LastInvoiceNo") = Zn(StripZeros(sInvoiceNo), Empty)
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     If LenB(sLastErr) <> 0 And Not oFP Is Nothing Then

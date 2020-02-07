@@ -332,7 +332,7 @@ End Function
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
 '
-Public Function PrintReceipt(Optional ResumeToken As String) As Boolean
+Public Function PrintReceipt(ReceiptNo As String, ReceiptDate As Date, InvoiceNo As String, Optional ResumeToken As String) As Boolean
 Attribute PrintReceipt.VB_Description = "Used to finalize receipt payments and batch print the complete receipt"
 
 End Function

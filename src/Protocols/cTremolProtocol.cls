@@ -2108,17 +2108,18 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sParam = Printf(sParam, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
             ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
                 pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
+                uCtx.ReceiptNo = GetLastReceiptNo()
+                uCtx.ReceiptDate = GetClock()
+                Select Case uRow(0).InitReceiptType
+                Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                    uCtx.InvoiceNo = GetLastInvoiceNo()
+                End Select
             End If
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
             uCtx.PmtPrinted = True
-            If .PmtType = 0 And (m_uConfig.DelayPrint Or m_uConfig.BufferPrint) Then
-                If Not WaitDevice(lRowCount * m_lTimeout) Then
-                    GoTo QH
-                End If
-            End If
         End Select
         End With
         If LenB(m_uPrintData.LastError) <> 0 Then
@@ -2387,9 +2388,14 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(ReceiptNo As String, ReceiptDate As Date, InvoiceNo As String, Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        With m_uPrintData.ExecCtx
+            ReceiptNo = .ReceiptNo
+            ReceiptDate = .ReceiptDate
+            InvoiceNo = .InvoiceNo
+        End With
     End If
 End Function
 

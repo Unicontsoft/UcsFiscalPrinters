@@ -671,7 +671,7 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = True
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(ReceiptNo As String, ReceiptDate As Date, InvoiceNo As String, Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If

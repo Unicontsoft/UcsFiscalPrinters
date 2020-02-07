@@ -120,6 +120,9 @@ Public Type UcsPpdExecuteContext
     PmtPrinted          As Boolean
     ChangePrinted       As Boolean
     Row                 As Long
+    ReceiptNo           As String
+    ReceiptDate         As Date
+    InvoiceNo           As String
 End Type
 
 Public Type UcsPpdConfigValues

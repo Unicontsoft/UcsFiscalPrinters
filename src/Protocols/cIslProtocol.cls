@@ -2459,6 +2459,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             GoTo QH
                         End If
                     End If
+                    uCtx.ReceiptNo = GetLastReceiptNo()
+                    uCtx.ReceiptDate = GetClock()
+                    Select Case uRow(0).InitReceiptType
+                    Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                        uCtx.InvoiceNo = GetLastInvoiceNo()
+                    End Select
                     If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                         pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
                     Else
@@ -2985,9 +2991,14 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(ReceiptNo As String, ReceiptDate As Date, InvoiceNo As String, Optional ResumeToken As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        With m_uPrintData.ExecCtx
+            ReceiptNo = .ReceiptNo
+            ReceiptDate = .ReceiptDate
+            InvoiceNo = .InvoiceNo
+        End With
     End If
 End Function
 
