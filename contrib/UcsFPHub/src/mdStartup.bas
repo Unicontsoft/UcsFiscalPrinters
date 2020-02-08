@@ -52,13 +52,13 @@ Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
 Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
+Private Const STR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да отворите предишната инстанция?"
 '--- errors
-Private Const ERR_CONFIG_NOT_FOUND      As String = "Грешка: Конфигурационен файл %1 не е намерен"
-Private Const ERR_PARSING_CONFIG        As String = "Грешка: Невалиден %1: %2"
-Private Const ERR_ENUM_PORTS            As String = "Грешка: Енумериране на серийни портове: %1"
-Private Const ERR_WARN_ACCESS           As String = "Предупреждение: Принтер %1: %2"
-Private Const ERR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
+Private Const ERR_CONFIG_NOT_FOUND      As String = "Конфигурационен файл %1 не е намерен"
+Private Const ERR_PARSING_CONFIG        As String = "Невалиден %1: %2"
+Private Const ERR_ENUM_PORTS            As String = "Енумериране на серийни портове: %1"
+Private Const ERR_WARN_ACCESS           As String = "Принтер %1 е недостъпен: %2"
 '--- formats
 Public Const FORMAT_TIME_ONLY           As String = "hh:nn:ss"
 Public Const FORMAT_DATETIME_LOG        As String = "yyyy.MM.dd hh:nn:ss"
@@ -483,10 +483,16 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     Dim sPrefix         As String
     
     Logger.Log eType, sModule, sFunction, sText
-    sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & ": "
     If Logger.LogFile = -1 And m_bIsService Then
         App.LogEvent sText, LimitLong(eType, 0, vbLogEventTypeInformation)
     ElseIf Not m_bIsHidden Then
+        sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & ": "
+        Select Case eType
+        Case vbLogEventTypeError
+            sPrefix = sPrefix & "[Грешка] "
+        Case vbLogEventTypeWarning
+            sPrefix = sPrefix & "[Внимание] "
+        End Select
         sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
         If eType = vbLogEventTypeError Then
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix
@@ -533,7 +539,7 @@ Private Function pvRegisterServiceAppID(sServiceName As String, sDisplayName As 
     pvRegisterServiceAppID = True
 QH:
     If Not pvRegisterServiceAppID Then
-        Error = Printf(ERR_REGISTER_APPID_FAILED, GetErrorDescription(Err.LastDllError))
+        Error = Printf(STR_REGISTER_APPID_FAILED, GetErrorDescription(Err.LastDllError))
     End If
 End Function
 
