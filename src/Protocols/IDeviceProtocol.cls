@@ -327,13 +327,19 @@ End Function
 ''
 ' Used to finalize receipt payments and batch print the complete receipt
 '
-' @param `ResumeToken`     [in, optional] if previous invocation failed can be used to resume printing on the same line
+' @param `ResumeToken`     [in, optional]  if previous invocation failed can be used to resume printing on the same line
+' @param `ReceiptNo`       [out, optional] receipt number of the receipt printed
+' @param `ReceiptDate`     [out, optional] date/time of the receipt printed
+' @param `InvoiceNo`       [out, optional] invoice number of the extended receipt printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
 '
-Public Function PrintReceipt(ReceiptNo As String, ReceiptDate As Date, InvoiceNo As String, Optional ResumeToken As String) As Boolean
-Attribute PrintReceipt.VB_Description = "Used to finalize receipt payments and batch print the complete receipt"
+Public Function PrintReceipt( _
+            Optional ResumeToken As String, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date, _
+            Optional InvoiceNo As String) As Boolean
 
 End Function
 
@@ -392,14 +398,12 @@ End Function
 '
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
-' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
 ' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
-            ByVal PmtType As UcsFiscalPaymentTypeEnum, _
             ByVal Amount As Double) As Variant
     
 End Function
@@ -426,7 +430,7 @@ Attribute SetClock.VB_Description = "Used to set current date/time of the clock 
 End Function
 
 ''
-' Used to retrieve the receipt number of the last fiscal slip printed. This includes sales receipts, invoices, fiscal
+' Used to retrieve the receipt number of the last receipt printed. This includes fiscal receipts, invoices, fiscal
 ' reports and service deposits/withdraw
 '
 ' @return Last receipt number as string

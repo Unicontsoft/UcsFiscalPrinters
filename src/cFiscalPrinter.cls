@@ -400,7 +400,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 End Select
             End With
         Next
-        If Not oFP.PrintReceipt(sReceiptNo, dReceiptDate, sInvoiceNo, sResumeToken) Then
+        If Not oFP.PrintReceipt(sResumeToken, sReceiptNo, dReceiptDate, sInvoiceNo) Then
             sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -645,7 +645,7 @@ Public Function GetDailyTotals(sRequest As String, sResponse As String) As Boole
         JsonItem(oRetVal, "TotalReversal") = 0#
     End If
     If JsonBoolItem(oJson, "IncludeServiceDeposit") Or bIncludeAll Then
-        vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), ucsFscPmtCash, 0)
+        vTotals = oFP.PrintServiceDeposit(JsonItem(oJson, "Operator/Code"), JsonItem(oJson, "Operator/Password"), 0)
         If IsArray(vTotals) Then
             JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
             JsonItem(oRetVal, "TotalDeposits") = vTotals(1)
@@ -718,18 +718,13 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
     Dim vTotals         As Variant
-    Dim ePmtType        As UcsFiscalPaymentTypeEnum
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    ePmtType = JsonEnumValue(C_Str(JsonItem(oJson, "PaymentType")), STR_ENUM_PAYMENT_TYPE)
-    If ePmtType < MIN_PMT_TYPE Or ePmtType > MAX_PMT_TYPE Then
-        ePmtType = DEF_PMT_TYPE
-    End If
     vTotals = oFP.PrintServiceDeposit(C_Str(JsonItem(oJson, "Operator/Code")), C_Str(JsonItem(oJson, "Operator/Password")), _
-        ePmtType, C_Dbl(JsonItem(oJson, "Amount")))
+        C_Dbl(JsonItem(oJson, "Amount")))
     If Not IsArray(vTotals) Then
         sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not IsArray(vTotals), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
