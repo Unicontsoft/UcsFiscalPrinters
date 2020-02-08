@@ -281,15 +281,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
+Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
     Const FUNC_NAME     As String = "PrintDuplicate"
     Dim oRequest        As Object
     Dim oResponse       As Object
     
     On Error GoTo EH
     JsonItem(oRequest, "PrintDuplicate") = True
-    If LenB(ReceiptNo) <> 0 Then
-        JsonItem(oRequest, "Invoice/DocNo") = ReceiptNo
+    If LenB(DuplicateNo) <> 0 Then
+        JsonItem(oRequest, "Invoice/DocNo") = DuplicateNo
     End If
     If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
         GoTo QH
@@ -655,7 +655,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
     IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, Amount)
 End Function
 
@@ -663,8 +663,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = True
 End Function
 
-Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNo As String) As Boolean
-    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNo)
+Private Function IDeviceProtocol_PrintDuplicate(Optional DuplicateNo As String, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(DuplicateNo)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
@@ -795,17 +795,17 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = True
 End Function
 
-Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_PrintMonthlyReport = True
 End Function
 
-Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_PrintDailyXReport = True
 End Function
 
-Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     m_dLastReceiptDate = GetCurrentNow
     IDeviceProtocol_PrintDailyZReport = True
 End Function

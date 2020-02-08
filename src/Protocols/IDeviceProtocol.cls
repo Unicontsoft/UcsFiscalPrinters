@@ -327,10 +327,10 @@ End Function
 ''
 ' Used to finalize receipt payments and batch print the complete receipt
 '
-' @param `ResumeToken`     [in, optional]  if previous invocation failed can be used to resume printing on the same line
-' @param `ReceiptNo`       [out, optional] receipt number of the receipt printed
-' @param `ReceiptDate`     [out, optional] date/time of the receipt printed
-' @param `InvoiceNo`       [out, optional] invoice number of the extended receipt printed
+' @param `ResumeToken`      [in, optional]  if previous invocation failed can be used to resume printing on the same line
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
+' @param `InvoiceNo`        [out, optional] invoice number of the extended receipt printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
 ' incl. discounted/surcharged rows
@@ -346,12 +346,17 @@ End Function
 ''
 ' Used to print a duplicate of the last fiscal receipt
 '
+' @param `DuplicateNo`      [in, optional]  uses EJ to copy receipt by number if set
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark Most fiscal devices are able to print a single duplicate of last fiscal receipt only. On second copy request
 ' an error is returned.
 '
-Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
-Attribute PrintDuplicate.VB_Description = "Used to print a duplicate of the last fiscal receipt"
+Public Function PrintDuplicate( _
+            Optional DuplicateNo As String, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
 
 End Function
 
@@ -359,10 +364,14 @@ End Function
 ' Used to print fiscal x-report
 '
 ' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-Attribute PrintDailyXReport.VB_Description = "Used to print fiscal x-report"
+Public Function PrintDailyXReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
 
 End Function
 
@@ -370,10 +379,14 @@ End Function
 ' Used to print fiscal z-report and clear fiscal memory for the day
 '
 ' @param `ReportType`       [input] type of detailed report to print: by products, by departments, by both
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
-Attribute PrintDailyZReport.VB_Description = "Used to print fiscal z-report and clear fiscal memory for the day"
+Public Function PrintDailyZReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
 
 End Function
 
@@ -383,13 +396,16 @@ End Function
 ' @param `ReportType`       [input] type of report to print: short or details
 ' @param `StartDate`        [input] start of date range
 ' @param `EndDate`          [input] end of date range
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
 Public Function PrintMonthlyReport( _
             ByVal ReportType As UcsFiscalReportsTypeEnum, _
             ByVal StartDate As Date, _
-            ByVal EndDate As Date) As Boolean
-Attribute PrintMonthlyReport.VB_Description = "Used to print monthly fiscal report by date range"
+            ByVal EndDate As Date, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
 
 End Function
 
@@ -399,12 +415,16 @@ End Function
 ' @param `OperatorCode`     [input] operator number to be authenticated (usually 1-8)
 ' @param `OperatorPassword` [input] operator password, can be `Empty` if default for device
 ' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
+' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
+' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             OperatorPassword As String, _
-            ByVal Amount As Double) As Variant
+            ByVal Amount As Double, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Variant
     
 End Function
 

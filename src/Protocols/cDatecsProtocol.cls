@@ -690,19 +690,19 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDuplicate(Optional ReceiptNo As String) As Boolean
+Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
     Const FUNC_NAME     As String = "PrintDuplicate"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     
     On Error GoTo EH
-    If LenB(ReceiptNo) = 0 Then
+    If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
         SendCommand eCmd, sParam
     Else
         pvGetCommandConfig CONF_NAME, "InfoEJ" & sParam, eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
-        sParam = Printf(sParam, ReceiptNo)
+        sParam = Printf(sParam, DuplicateNo)
         SendCommand eCmd, sParam
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
@@ -2140,7 +2140,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
     IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(Amount)
 End Function
 
@@ -2148,8 +2148,8 @@ Private Function IDeviceProtocol_Connect() As Boolean
     IDeviceProtocol_Connect = Connect()
 End Function
 
-Private Function IDeviceProtocol_PrintDuplicate(Optional ReceiptNo As String) As Boolean
-    IDeviceProtocol_PrintDuplicate = PrintDuplicate(ReceiptNo)
+Private Function IDeviceProtocol_PrintDuplicate(Optional DuplicateNo As String, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(DuplicateNo)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
@@ -2284,15 +2284,15 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
     IDeviceProtocol_OpenDrawer = OpenDrawer()
 End Function
 
-Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     IDeviceProtocol_PrintMonthlyReport = PrintMonthlyReport(ReportType, StartDate, EndDate)
 End Function
 
-Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     IDeviceProtocol_PrintDailyXReport = PrintDailyXReport(ReportType)
 End Function
 
-Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
     IDeviceProtocol_PrintDailyZReport = PrintDailyZReport(ReportType)
 End Function
 
