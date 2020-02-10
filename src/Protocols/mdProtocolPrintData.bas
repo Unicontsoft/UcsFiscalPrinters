@@ -402,9 +402,8 @@ Public Function PpdEndReceipt( _
             uData As UcsProtocolPrintData, _
             sResumeToken As String) As Boolean
     Const FUNC_NAME     As String = "PpdEndReceipt"
-    Dim vSplit          As Variant
+    Dim oToken          As Object
     Dim lIdx            As Long
-    Dim lPos            As Long
 
     On Error GoTo EH
     '--- sanity check
@@ -413,16 +412,19 @@ Public Function PpdEndReceipt( _
         GoTo QH
     End If
     '--- restore context
-    vSplit = Split(sResumeToken, STR_SEP)
+    Set oToken = JsonParseObject(sResumeToken)
     With uData.ExecCtx
         For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-            .GrpTotal(lIdx) = C_Dbl(At(vSplit, lPos)): lPos = lPos + 1
+            .GrpTotal(lIdx) = C_Dbl(JsonItem(oToken, "GrpTotal/" & lIdx - LBound(.GrpTotal)))
         Next
-        .Paid = C_Dbl(At(vSplit, lPos)): lPos = lPos + 1
-        .PluCount = C_Lng(At(vSplit, lPos)): lPos = lPos + 1
-        .PmtPrinted = C_Bool(At(vSplit, lPos)): lPos = lPos + 1
-        .ChangePrinted = C_Bool(At(vSplit, lPos)): lPos = lPos + 1
-        .Row = C_Lng(At(vSplit, lPos)): lPos = lPos + 1
+        .Paid = C_Dbl(JsonItem(oToken, "Paid"))
+        .PluCount = C_Lng(JsonItem(oToken, "Paid"))
+        .PmtPrinted = C_Bool(JsonItem(oToken, "PmtPrinted"))
+        .ChangePrinted = C_Bool(JsonItem(oToken, "ChangePrinted"))
+        .Row = C_Lng(JsonItem(oToken, "Row"))
+        .ReceiptNo = C_Str(JsonItem(oToken, "ReceiptNo"))
+        .ReceiptDate = C_Date(JsonItem(oToken, "ReceiptDate"))
+        .InvoiceNo = C_Str(JsonItem(oToken, "InvoiceNo"))
     End With
     '--- fix fiscal receipts with for more than uData.MaxReceiptRows PLUs
     pvConvertExtraRows uData
@@ -441,7 +443,7 @@ End Function
 
 Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
     Const FUNC_NAME     As String = "PpdGetResumeToken"
-    Dim lIdx            As Long
+    Dim oToken          As Object
 
     On Error GoTo EH
     '--- sanity check
@@ -452,10 +454,20 @@ Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
     '--- need resume token only if payment processed
     With uData.ExecCtx
         If .PmtPrinted Then
-            For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-                PpdGetResumeToken = PpdGetResumeToken & .GrpTotal(lIdx) & STR_SEP
-            Next
-            PpdGetResumeToken = PpdGetResumeToken & .Paid & STR_SEP & .PluCount & STR_SEP & -.PmtPrinted & STR_SEP & -.ChangePrinted & STR_SEP & .Row
+            JsonItem(oToken, "GrpTotal/*") = .GrpTotal
+            JsonItem(oToken, "Paid") = .Paid
+            JsonItem(oToken, "PluCount") = .PluCount
+            If .PmtPrinted Then
+                JsonItem(oToken, "PmtPrinted") = True
+            End If
+            If .ChangePrinted Then
+                JsonItem(oToken, "ChangePrinted") = True
+            End If
+            JsonItem(oToken, "Row") = .Row
+            JsonItem(oToken, "ReceiptNo") = Zn(.ReceiptNo, Empty)
+            JsonItem(oToken, "ReceiptDate") = IIf(.ReceiptDate <> 0, .ReceiptDate, Empty)
+            JsonItem(oToken, "InvoiceNo") = Zn(.InvoiceNo, Empty)
+            PpdGetResumeToken = JsonDump(oToken, Minimize:=True)
         End If
     End With
 QH:
