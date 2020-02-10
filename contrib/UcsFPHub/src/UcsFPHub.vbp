@@ -25,7 +25,6 @@ Class=cMysqlQueue; cMysqlQueue.cls
 UserControl=Shared\AlphaBlendLabel.ctl
 UserControl=Shared\AlphaBlendTabStrip.ctl
 Form=frmSettings.frm
-Module=mdJson; ..\..\..\src\Shared\mdJson.bas
 IconForm="frmIcon"
 Startup="Sub Main"
 HelpFile=""
