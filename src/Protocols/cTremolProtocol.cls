@@ -828,7 +828,9 @@ Public Function PrintDuplicate( _
         GoTo QH
     End If
     ReceiptNo = GetLastReceiptNo()
-    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+    If LenB(ReceiptNo) = 0 Then
+        ReceiptNo = Val(sPrevReceiptNo) + 1
+    ElseIf ReceiptNo = sPrevReceiptNo Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
@@ -880,7 +882,9 @@ Public Function PrintDailyReport( _
         GoTo QH
     End If
     ReceiptNo = GetLastReceiptNo()
-    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+    If LenB(ReceiptNo) = 0 Then
+        ReceiptNo = Val(sPrevReceiptNo) + 1
+    ElseIf ReceiptNo = sPrevReceiptNo Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
@@ -909,7 +913,6 @@ Public Function PrintMonthlyReport( _
         GoTo QH
     End If
     On Error GoTo EH
-    sPrevReceiptNo = GetLastReceiptNo()
     Select Case ReportType
     Case ucsFscRstMonthlyShort
         pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsZekCmdPrintReportByDateShort, sParam, "%1" & DEF_SEP & "%2", _
@@ -932,7 +935,9 @@ Public Function PrintMonthlyReport( _
         GoTo QH
     End If
     ReceiptNo = GetLastReceiptNo()
-    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+    If LenB(ReceiptNo) = 0 Then
+        ReceiptNo = Val(sPrevReceiptNo) + 1
+    ElseIf ReceiptNo = sPrevReceiptNo Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
