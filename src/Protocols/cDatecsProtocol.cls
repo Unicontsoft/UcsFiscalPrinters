@@ -162,7 +162,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Wrong invoice number %1 generated"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -235,6 +235,7 @@ Private Enum UcsInternalErrors
     ucsErrUnknownError
     ucsErrUnknownMemory
     ucsErrUnsupportedPaymentType
+    ucsErrCannotPrint
     ucsErrWrongInvoiceNo
 End Enum
 
@@ -691,22 +692,35 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
+Public Function PrintDuplicate( _
+            Optional DuplicateNo As String, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
     Const FUNC_NAME     As String = "PrintDuplicate"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
     
     On Error GoTo EH
     If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
-        SendCommand eCmd, sParam
     Else
         pvGetCommandConfig CONF_NAME, "InfoEJ" & sParam, eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
         sParam = Printf(sParam, DuplicateNo)
-        SendCommand eCmd, sParam
     End If
+    sPrevReceiptNo = GetLastReceiptNo()
+    ReceiptDate = GetClock()
     If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    SendCommand eCmd, sParam
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    ReceiptNo = GetLastReceiptNo()
+    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+        pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
     '--- success
@@ -717,11 +731,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Public Function PrintDailyXReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
     Const FUNC_NAME     As String = "PrintDailyXReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -741,8 +759,18 @@ Public Function PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
     End Select
+    sPrevReceiptNo = GetLastReceiptNo()
+    ReceiptDate = GetClock()
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     SendCommand eCmd, sParam
     If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    ReceiptNo = GetLastReceiptNo()
+    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+        pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
     '--- success
@@ -753,11 +781,15 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) As Boolean
+Public Function PrintDailyZReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
     Const FUNC_NAME     As String = "PrintDailyZReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -773,8 +805,18 @@ Public Function PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum) 
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
         GoTo QH
     End Select
+    sPrevReceiptNo = GetLastReceiptNo()
+    ReceiptDate = GetClock()
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     SendCommand eCmd, sParam
     If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    ReceiptNo = GetLastReceiptNo()
+    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+        pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
     '--- success
@@ -785,12 +827,18 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date) As Boolean
+Public Function PrintMonthlyReport( _
+            ByVal ReportType As UcsFiscalReportsTypeEnum, _
+            ByVal StartDate As Date, _
+            ByVal EndDate As Date, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Boolean
     Const FUNC_NAME     As String = "PrintMonthlyReport"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sFormat         As String
     Dim sParam          As String
+    Dim sPrevReceiptNo  As String
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -811,9 +859,19 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
     End Select
+    sPrevReceiptNo = GetLastReceiptNo()
+    ReceiptDate = GetClock()
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
     SendCommand eCmd, sParam
     If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
+    ReceiptNo = GetLastReceiptNo()
+    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+        pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
     '--- success
@@ -824,7 +882,10 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
+Public Function PrintServiceDeposit( _
+            ByVal Amount As Double, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
@@ -833,15 +894,25 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim sFormat         As String
-
+    Dim sPrevReceiptNo  As String
+    Dim bPrint          As Boolean
+    
     On Error GoTo EH
     If Not CancelReceipt() Then
         pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
         GoTo QH
     End If
+    bPrint = Abs(Amount) > DBL_EPSILON
+    If bPrint Then
+        sPrevReceiptNo = GetLastReceiptNo()
+        ReceiptDate = GetClock()
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
+    End If
     '--- %1={Type}<SEP>%2={Amount}<SEP>
     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
-    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -(Abs(Amount) > -DBL_EPSILON), eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _
+    pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit" & -bPrint, eCmd, ucsDcsCmdFiscalServiceDeposit, sParam, sParam, _
         "Format", sFormat, FORMAT_BASE_2
     sParam = Printf(sParam, IIf(Amount > -DBL_EPSILON, "0", "1"), SafeFormat(Abs(Amount), sFormat))
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -850,6 +921,13 @@ Public Function PrintServiceDeposit(ByVal Amount As Double) As Variant
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
+    End If
+    If bPrint Then
+        ReceiptNo = GetLastReceiptNo()
+        If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+            GoTo QH
+        End If
     End If
     For lIdx = 0 To UBound(vRetVal)
         vRetVal(lIdx) = ParseSum(At(vSplit, lIdx + 1))
@@ -2148,7 +2226,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
 End Function
 
 Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
-    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(Amount)
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(Amount, ReceiptNo, ReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
@@ -2156,7 +2234,7 @@ Private Function IDeviceProtocol_Connect() As Boolean
 End Function
 
 Private Function IDeviceProtocol_PrintDuplicate(Optional DuplicateNo As String, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
-    IDeviceProtocol_PrintDuplicate = PrintDuplicate(DuplicateNo)
+    IDeviceProtocol_PrintDuplicate = PrintDuplicate(DuplicateNo, ReceiptNo, ReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
@@ -2292,15 +2370,15 @@ Private Function IDeviceProtocol_OpenDrawer() As Boolean
 End Function
 
 Private Function IDeviceProtocol_PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum, ByVal StartDate As Date, ByVal EndDate As Date, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
-    IDeviceProtocol_PrintMonthlyReport = PrintMonthlyReport(ReportType, StartDate, EndDate)
+    IDeviceProtocol_PrintMonthlyReport = PrintMonthlyReport(ReportType, StartDate, EndDate, ReceiptNo, ReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_PrintDailyXReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
-    IDeviceProtocol_PrintDailyXReport = PrintDailyXReport(ReportType)
+    IDeviceProtocol_PrintDailyXReport = PrintDailyXReport(ReportType, ReceiptNo, ReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_PrintDailyZReport(ByVal ReportType As UcsFiscalReportsTypeEnum, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
-    IDeviceProtocol_PrintDailyZReport = PrintDailyZReport(ReportType)
+    IDeviceProtocol_PrintDailyZReport = PrintDailyZReport(ReportType, ReceiptNo, ReceiptDate)
 End Function
 
 Private Function IDeviceProtocol_SetClock(ByVal NewDate As Date) As Boolean
