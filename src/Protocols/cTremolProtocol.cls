@@ -139,7 +139,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported|Cannot print"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
@@ -220,6 +220,7 @@ Private Enum UcsInternalErrors
     ucsErrUnsupportedPaymentType
     ucsErrBarcodeNotSupported
     ucsErrCannotPrint
+    ucsErrWrongInvoiceNo
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -1128,7 +1129,7 @@ Public Function GetLastInvoiceNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoInvoiceNo", eCmd, ucsZekCmdInfoInvoiceNo, sParam, vbNullString, _
         "Index", lIndex, 0
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
     If Not IsNumeric(At(vSplit, lIndex)) Then
         GoTo QH
     End If
@@ -1957,6 +1958,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
+            Select Case .InitReceiptType
+            Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                uCtx.InvoiceNo = GetLastInvoiceNo()
+                If LenB(.InitInvData(ucsInvDocNo)) <> 0 And LenB(uCtx.InvoiceNo) <> 0 Then
+                    If Val(.InitInvData(ucsInvDocNo)) <> Val(uCtx.InvoiceNo) Then
+                        pvSetLastError Printf(pvInternal(ucsErrWrongInvoiceNo), uCtx.InvoiceNo)
+                        GoTo QH
+                    End If
+                End If
+            End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
@@ -2010,6 +2021,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             sParam = Printf(sParam, sData)
             SendCommand eCmd, sParam
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
@@ -2036,6 +2050,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
                     sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
                     SendCommand eCmd, sParam
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
+                    End If
                 End If
             End Select
             If .DiscType = ucsFscDscSubtotal Then
@@ -2077,21 +2094,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
                 uCtx.ReceiptNo = GetLastReceiptNo()
                 uCtx.ReceiptDate = GetClock()
-                Select Case uRow(0).InitReceiptType
-                Case ucsFscRcpInvoice, ucsFscRcpCreditNote
-                    uCtx.InvoiceNo = GetLastInvoiceNo()
-                End Select
             End If
             SendCommand eCmd, sParam
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
-            uCtx.PmtPrinted = True
+            If Not (m_uConfig.DelayPrint Or m_uConfig.BufferPrint) Then
+                uCtx.PmtPrinted = True
+            End If
         End Select
         End With
-        If LenB(m_uPrintData.LastError) <> 0 Then
-            GoTo QH
-        End If
         uCtx.Row = uCtx.Row + 1
     Loop
     '--- success

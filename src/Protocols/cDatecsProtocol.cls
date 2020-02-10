@@ -162,7 +162,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Wrong invoice number %1 generated"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -235,6 +235,7 @@ Private Enum UcsInternalErrors
     ucsErrUnknownError
     ucsErrUnknownMemory
     ucsErrUnsupportedPaymentType
+    ucsErrWrongInvoiceNo
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -908,7 +909,7 @@ Public Function GetLastReceiptNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoTransaction, sParam, vbNullString, _
         "Index", lIndex, 2
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
     GetLastReceiptNo = At(vSplit, lIndex)
     Exit Function
 EH:
@@ -925,7 +926,7 @@ Public Function GetLastInvoiceNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, vbNullString, _
         "Index", lIndex, 3
-    GetLastInvoiceNo = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)
+    GetLastInvoiceNo = At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1714,6 +1715,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
+            Select Case .InitReceiptType
+            Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                uCtx.InvoiceNo = GetLastInvoiceNo()
+                If LenB(.InitInvData(ucsInvDocNo)) <> 0 And LenB(uCtx.InvoiceNo) <> 0 Then
+                    If Val(.InitInvData(ucsInvDocNo)) <> Val(uCtx.InvoiceNo) Then
+                        pvSetLastError Printf(pvInternal(ucsErrWrongInvoiceNo), uCtx.InvoiceNo)
+                        GoTo QH
+                    End If
+                End If
+            End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
@@ -1901,10 +1912,6 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     End Select
                     uCtx.ReceiptNo = GetLastReceiptNo()
                     uCtx.ReceiptDate = GetClock()
-                    Select Case uRow(0).InitReceiptType
-                    Case ucsFscRcpInvoice, ucsFscRcpCreditNote
-                        uCtx.InvoiceNo = GetLastInvoiceNo()
-                    End Select
                     If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                         pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsDcsCmdFiscalClose, sParam, vbNullString
                     Else

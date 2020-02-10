@@ -214,7 +214,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
@@ -288,6 +288,7 @@ Private Enum UcsInternalErrors
     ucsErrUnsupportedPaymentType
     ucsErrBarcodeNotSupported
     ucsErrCannotPrint
+    ucsErrWrongInvoiceNo
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -1153,20 +1154,10 @@ Public Function GetLastInvoiceNo() As String
     Dim lOffset         As Long
     
     On Error GoTo EH
-    If IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
-            "Index", lIndex, -1, _
-            "Offset", lOffset, -1
-    ElseIf IsIncotex Then
-        pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
-            "Index", lIndex, 10, _
-            "Offset", lOffset, -1
-    Else
-        pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsIslCmdInitInvoiceNo, sParam, vbNullString, _
-            "Index", lIndex, -1, _
-            "Offset", lOffset, -1
-    End If
-    GetLastInvoiceNo = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lIndex)
+    pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
+        "Index", lIndex, 10, _
+        "Offset", lOffset, -1
+    GetLastInvoiceNo = At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)
     If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
         GetLastInvoiceNo = Val(GetLastInvoiceNo) + lOffset
     End If
@@ -1521,7 +1512,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsIslCmdInfoTaxRates, sParam, vbNullString
     vTaxRates = Split(Replace(SendCommand(eCmd, sParam), "%", vbNullString), DEF_SEP)
     If IsDaisy Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "T", _
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "T", _
             "Offset", lOffset, 0, _
             "RevOffset", lRevOffset, 8
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -1537,7 +1528,7 @@ Public Function GetTotalsByTaxGroups() As Variant
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
         vRevSum = vPmtSum
     ElseIf IsEltrade Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups0", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "0", _
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "0", _
             "Offset", lOffset, 0, _
             "RevOffset", lRevOffset, 8
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -2234,6 +2225,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 GoTo QH
             End If
             bInLogin = False
+            Select Case .InitReceiptType
+            Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                uCtx.InvoiceNo = GetLastInvoiceNo()
+                If LenB(.InitInvData(ucsInvDocNo)) <> 0 And LenB(uCtx.InvoiceNo) <> 0 Then
+                    If Val(.InitInvData(ucsInvDocNo)) <> Val(uCtx.InvoiceNo) Then
+                        pvSetLastError Printf(pvInternal(ucsErrWrongInvoiceNo), uCtx.InvoiceNo)
+                        GoTo QH
+                    End If
+                End If
+            End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
@@ -2460,11 +2461,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         End If
                     End If
                     uCtx.ReceiptNo = GetLastReceiptNo()
+                    If LenB(uCtx.ReceiptNo) <> 0 Then
+                        uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
+                    End If
                     uCtx.ReceiptDate = GetClock()
-                    Select Case uRow(0).InitReceiptType
-                    Case ucsFscRcpInvoice, ucsFscRcpCreditNote
-                        uCtx.InvoiceNo = GetLastInvoiceNo()
-                    End Select
                     If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                         pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
                     Else
