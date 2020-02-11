@@ -36,7 +36,7 @@ Private Declare Function InitCommonControls Lib "comctl32" () As Long
 '=========================================================================
 
 Private Const STR_LATEST_COMMIT         As String = ""
-Public Const STR_VERSION                As String = "0.1.43" & STR_LATEST_COMMIT
+Public Const STR_VERSION                As String = "0.1.44" & STR_LATEST_COMMIT
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
@@ -227,7 +227,8 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         If Not pvRegisterServiceAppID(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
             ConsoleError STR_WARN & sError & vbCrLf
         End If
-        If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, Error:=sError) Then
+        If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, _
+                AccountName:="NT AUTHORITY\Network Service", Error:=sError) Then
             ConsoleError STR_FAILURE
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
