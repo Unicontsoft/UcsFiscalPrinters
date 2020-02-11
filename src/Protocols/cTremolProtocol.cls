@@ -623,7 +623,7 @@ Public Function Init(sDeviceString As String) As Boolean
             GoTo QH
         End If
     Else
-        m_vDeviceNumbers = sDeviceSerialNo
+        m_vDeviceNumbers = sDeviceSerialNo & "|" & JsonItem(oOptions, "FiscalMemoryNo") & "|" & JsonItem(oOptions, "Protocol") & "|" & JsonItem(oOptions, "Model") & "|" & JsonItem(oOptions, "Firmware")
     End If
     '--- load config values
     With m_uPrintData.Config
@@ -1018,7 +1018,9 @@ Public Function PrintServiceDeposit( _
             GoTo QH
         End If
         ReceiptNo = GetLastReceiptNo()
-        If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+        If LenB(ReceiptNo) = 0 Then
+            ReceiptNo = Val(sPrevReceiptNo) + 1
+        ElseIf ReceiptNo = sPrevReceiptNo Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
             GoTo QH
         End If
@@ -1192,7 +1194,7 @@ Public Function GetDeviceSerialNo() As String
     Const FUNC_NAME     As String = "GetDeviceSerialNo"
     
     On Error GoTo EH
-    GetDeviceSerialNo = C_Str(m_vDeviceNumbers)
+    GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
     If LenB(GetDeviceSerialNo) = 0 Then
         pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
     End If
@@ -1205,7 +1207,10 @@ Public Function GetFiscalMemoryNo() As String
     Const FUNC_NAME     As String = "GetFiscalMemoryNo"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
+    GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
+    If LenB(GetFiscalMemoryNo) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1373,7 +1378,10 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
+    GetDeviceProtocol = At(Split(C_Str(m_vDeviceNumbers), "|"), 2)
+    If LenB(GetDeviceProtocol) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1383,7 +1391,10 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
+    GetDeviceModel = At(Split(C_Str(m_vDeviceNumbers), "|"), 3)
+    If LenB(GetDeviceModel) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1393,7 +1404,10 @@ Public Function GetDeviceFirmware() As String
     Const FUNC_NAME     As String = "GetDeviceFirmware"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
+    GetDeviceFirmware = At(Split(C_Str(m_vDeviceNumbers), "|"), 4)
+    If LenB(GetDeviceFirmware) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
