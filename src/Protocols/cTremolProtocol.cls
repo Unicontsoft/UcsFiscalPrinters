@@ -743,7 +743,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
                         DebugLog FUNC_NAME, "Ready after " & lIter
                     End If
                 Case LNG_STATUS_IS_BUSY
-                    pvSetLastError pvInternal(ucsErrDeviceNotOnline)
+                    pvSetLastError pvInternal(ucsErrDeviceNotReady)
                 Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
                     pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
                 Case LNG_STATUS_OVERHEATED
