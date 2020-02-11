@@ -207,7 +207,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
     Dim sSuffix         As String
     Dim lIdx            As Long
     
-    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(GetCurrentNow, FORMAT_DATETIME_LOG) & Right$(Format$(TimerEx, FORMAT_BASE_3), 4) & "): "
+    sPrefix = GetCurrentProcessId() & ": " & GetCurrentThreadId() & ": " & "(" & Format$(GetCurrentNow, FORMAT_DATETIME_LOG) & Right$(Format$(GetCurrentTimer, FORMAT_BASE_3), 4) & "): "
     sSuffix = IIf(LenB(sModule) <> 0, " [" & sModule & "." & sFunction & "]", vbNullString)
     m_lMemoryCount = m_lMemoryCount + 1
     m_lMemorySize = m_lMemorySize + Len(sPrefix & sText & sSuffix) + 2

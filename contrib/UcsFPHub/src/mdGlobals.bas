@@ -1289,6 +1289,10 @@ Property Get GetCurrentNow() As Date
     End If
 End Property
 
+Property Get GetCurrentTimer() As Double
+    GetCurrentTimer = TimerEx - m_dblCurrentStartTimer
+End Property
+
 Property Get GetCurrentDate() As Date
     GetCurrentDate = Fix(GetCurrentNow)
 End Property
