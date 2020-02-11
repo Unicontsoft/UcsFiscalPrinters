@@ -424,14 +424,16 @@ ReturnReceiptInfo:
             dReceiptDate = oFP.GetClock()
         End If
     End If
+    JsonItem(oRetVal, "ReceiptNo") = StripZeros(sReceiptNo)
+    JsonItem(oRetVal, "ReceiptDateTime") = dReceiptDate
+    JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
+    JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
     Select Case eReceiptType
     Case ucsFscRcpInvoice, ucsFscRcpCreditNote
         If LenB(sInvoiceNo) = 0 Then
             sInvoiceNo = oFP.GetLastInvoiceNo()
         End If
     End Select
-    JsonItem(oRetVal, "ReceiptNo") = StripZeros(sReceiptNo)
-    JsonItem(oRetVal, "ReceiptDateTime") = dReceiptDate
     JsonItem(oRetVal, "LastInvoiceNo") = Zn(StripZeros(sInvoiceNo), Empty)
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
