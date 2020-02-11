@@ -301,6 +301,7 @@ Public Function PpdAddDiscount( _
     Const FUNC_NAME     As String = "PpdAddDiscount"
     Dim uRow            As UcsPpdRowData
     Dim lIdx            As Long
+    Dim sText           As String
 
     On Error GoTo EH
     '--- sanity check
@@ -323,12 +324,17 @@ Public Function PpdAddDiscount( _
             End With
         Next
     Case ucsFscDscSubtotal, ucsFscDscSubtotalAbs
-        With uRow
-            .RowType = ucsRowDiscount
-            .DiscType = DiscType
-            .DiscValue = Round(Value, DEF_PRICE_SCALE)
-            .PrintRowType = uData.Row(0).InitReceiptType
-        End With
+        If DiscType = ucsFscDscSubtotalAbs And Not uData.Config.AbsoluteDiscount Then
+            sText = IIf(Value > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT))
+            PpdAddPLU uData, Trim$(Printf(sText, vbNullString)), Value, TaxGroup:=pvGetLastTaxGroup(uData), BeforeIndex:=BeforeIndex
+        Else
+            With uRow
+                .RowType = ucsRowDiscount
+                .DiscType = DiscType
+                .DiscValue = Round(Value, DEF_PRICE_SCALE)
+                .PrintRowType = uData.Row(0).InitReceiptType
+            End With
+        End If
         pvInsertRow uData, BeforeIndex, uRow
     Case Else
         pvSetLastError uData, Printf(Zn(uData.LocalizedText.ErrInvalidDiscType, ERR_INVALID_DISCTYPE), DiscType)
@@ -723,3 +729,21 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
 EH:
     RaiseError FUNC_NAME
 End Sub
+
+Private Function pvGetLastTaxGroup(uData As UcsProtocolPrintData) As Long
+    Const FUNC_NAME     As String = "pvGetLastTaxGroup"
+    Dim lIdx            As Long
+    
+    On Error GoTo EH
+    pvGetLastTaxGroup = DEF_TAX_GROUP
+    For lIdx = uData.RowCount - 1 To 0 Step -1
+        If uData.Row(lIdx).RowType = ucsRowPlu Then
+            pvGetLastTaxGroup = uData.Row(lIdx).PluTaxGroup
+            Exit Function
+        End If
+    Next
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
