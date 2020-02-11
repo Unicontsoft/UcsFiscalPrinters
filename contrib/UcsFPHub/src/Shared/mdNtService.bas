@@ -188,7 +188,7 @@ QH:
     End If
 End Function
 
-Public Function NtServiceInstall(sServiceName As String, sDisplayName As String, sExeFile As String, Optional Error As String) As Boolean
+Public Function NtServiceInstall(sServiceName As String, sDisplayName As String, sExeFile As String, Optional AccountName As String, Optional Error As String) As Boolean
     Dim sParams             As String
     Dim lExitCode           As Long
     
@@ -196,7 +196,8 @@ Public Function NtServiceInstall(sServiceName As String, sDisplayName As String,
     Case SERVICE_RUNNING, SERVICE_START_PENDING
         Call ShellWait("net", "stop " & ArgvQuote(sServiceName), StartHidden:=True)
     End Select
-    sParams = "create " & ArgvQuote(sServiceName) & " binPath= " & ArgvQuote(sExeFile) & " DisplayName= " & ArgvQuote(sDisplayName) & " start= auto"
+    sParams = "create " & ArgvQuote(sServiceName) & " binPath= " & ArgvQuote(sExeFile) & " DisplayName= " & ArgvQuote(sDisplayName) & _
+        IIf(LenB(AccountName) <> 0, " obj= " & ArgvQuote(AccountName), vbNullString) & " start= auto"
     If Not ShellWait("sc", sParams, StartHidden:=True, ExitCode:=lExitCode) Or lExitCode <> 0 Then
         Error = GetErrorDescription(lExitCode)
         GoTo QH
