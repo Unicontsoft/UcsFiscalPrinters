@@ -204,8 +204,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         If Not pvRegisterServiceAppID(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
             ConsoleError STR_WARN & sError & vbCrLf
         End If
-        If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, _
-                AccountName:="NT AUTHORITY\Network Service", Error:=sError) Then
+        If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, Error:=sError) Then
             ConsoleError STR_FAILURE
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
