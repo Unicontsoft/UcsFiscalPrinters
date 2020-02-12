@@ -146,6 +146,8 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     Dim sError          As String
     Dim vKey            As Variant
     Dim lIdx            As Long
+    Dim sLogFile        As String
+    Dim sLogDataDump    As String
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
@@ -265,10 +267,13 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     lIdx = JsonItem(m_oConfig, -1)
     If lIdx > 0 Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_ENVIRON_VARS_FOUND, lIdx)
+        sLogFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
+        sLogDataDump = GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")
         For Each vKey In JsonKeys(m_oConfig, "Environment")
             Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
-        If LenB(JsonItem(m_oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG")) <> 0 Then
+        If sLogFile <> GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG") _
+                Or sLogDataDump <> GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP") Then
             Set Logger = Nothing
             Logger.Log 0, MODULE_NAME, FUNC_NAME, App.ProductName & " v" & STR_VERSION
         End If
