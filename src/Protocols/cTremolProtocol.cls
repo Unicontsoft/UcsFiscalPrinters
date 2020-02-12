@@ -1131,7 +1131,7 @@ Public Function GetLastReceiptNo() As String
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
+    pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
         "Index", lIndex, 19
     vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
     '--- success
@@ -1878,6 +1878,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lStatus         As Long
     Dim lPassIndex      As Long
     Dim sFormatPrice    As String
     Dim sFormatQty      As String
@@ -2108,27 +2109,33 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             '--- do nothing
         Case ucsRowPayment
             pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
-                "Index", lIndex, 0
+                "Index", lIndex, 0, _
+                "Status", lStatus, 0
             vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
-            If .PmtType <> 0 Then
-                If pvToDevicePmtIndex(.PmtType) < 0 Then
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+            If C_Lng(At(vSplit, lIndex)) <> lStatus Then
+                If .PmtType <> 0 Then
+                    If pvToDevicePmtIndex(.PmtType) < 0 Then
+                        pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                        GoTo QH
+                    End If
+                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & DEF_SEP & "0" & DEF_SEP & "%1", _
+                        "FormatAmount", sFormatAmount, FORMAT_BASE_2, _
+                        "FormatZero", sFormatZero, "\"""
+                    sParam = Printf(sParam, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
+                Else
+                    uCtx.ReceiptNo = GetLastReceiptNo()
+                    uCtx.ReceiptDate = GetClock()
+                    pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
+                End If
+                SendCommand eCmd, sParam
+                If LenB(m_uPrintData.LastError) <> 0 Then
                     GoTo QH
                 End If
-                pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & DEF_SEP & "0" & DEF_SEP & "%1", _
-                    "FormatAmount", sFormatAmount, FORMAT_BASE_2, _
-                    "FormatZero", sFormatZero, "\"""
-                sParam = Printf(sParam, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
-            ElseIf C_Lng(At(vSplit, lIndex)) <> 0 Then
-                pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString
-                uCtx.ReceiptNo = GetLastReceiptNo()
-                uCtx.ReceiptDate = GetClock()
-            End If
-            SendCommand eCmd, sParam
-            If LenB(m_uPrintData.LastError) <> 0 Then
+            Else
+                pvSetLastError pvInternal(ucsErrCannotPrint)
                 GoTo QH
             End If
             If Not (m_uConfig.DelayPrint Or m_uConfig.BufferPrint) Then

@@ -2522,6 +2522,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH
                     End If
+                Else
+                    pvSetLastError pvInternal(ucsErrCannotPrint)
+                    GoTo QH
                 End If
                 pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsIslCmdInfoStatus, sParam, "W"
                 SendCommand eCmd, sParam
