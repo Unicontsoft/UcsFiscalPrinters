@@ -616,7 +616,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     On Error GoTo EH
     sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
     sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", sProbeText)
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(SYM_TERMINATOR)) ' TERMINATOR (&H3)
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(SYM_PREAMBLE)) ' PREAMBLE (&H1)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -685,7 +685,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                     If LenB(.Buffer) <> 0 Then
-                        If Right$(.Buffer, Len(sReplyText)) = sReplyText Or InStr(.Buffer, Chr$(SYM_SYN)) > 0 Then
+                        .Buffer = Replace(Replace(.Buffer, Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString)
+                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
                             DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo)
@@ -1852,7 +1853,7 @@ RetrySend:
         sBuffer = FromAscii(baText, m_uConfig.CodePage)
         DebugDataDump FUNC_NAME, "[RECV ] ", sBuffer
         '--- check for NAK (&H15)
-        If InStr(sBuffer, Chr$(&H15)) > 0 Then
+        If InStr(sBuffer, Chr$(SYM_NAK)) > 0 Then
             DebugLog FUNC_NAME, "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
             GoTo RetrySend
         End If
