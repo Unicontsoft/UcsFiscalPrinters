@@ -379,6 +379,7 @@ Private Const MODULE_NAME As String = "frmSettings"
 '=========================================================================
 
 '--- Windows Messages
+Private Const WM_SETREDRAW              As Long = &HB
 Private Const WM_GETTEXTLENGTH          As Long = &HE
 Private Const WM_GETMINMAXINFO          As Long = &H24
 Private Const EM_SETSEL                 As Long = &HB1
@@ -917,9 +918,13 @@ Private Function pvGetLogTextLength() As Long
 End Function
 
 Private Sub pvAppendLogText(sValue As String)
-    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal 0)
+    Call SendMessage(txtLog.hWnd, WM_SETREDRAW, 0, ByVal 0)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, 0, ByVal -1)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal -1)
     Call SendMessage(txtLog.hWnd, EM_REPLACESEL, 1, ByVal sValue)
-    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal 0)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, 0, ByVal -1)
+    Call SendMessage(txtLog.hWnd, EM_SETSEL, -1, ByVal -1)
+    Call SendMessage(txtLog.hWnd, WM_SETREDRAW, 1, ByVal 0)
     Call SendMessage(txtLog.hWnd, WM_VSCROLL, SB_BOTTOM, ByVal 0)
 End Sub
 
