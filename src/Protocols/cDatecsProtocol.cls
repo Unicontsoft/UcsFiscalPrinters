@@ -542,8 +542,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
                     End If
                     If LenB(.Buffer) <> 0 Then
-                        .Buffer = Replace(Replace(.Buffer, Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString)
-                        If Left$(.Buffer, Len(sReplyText)) = sReplyText Then
+                        If Left$(Replace(Replace(.Buffer, Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString), Len(sReplyText)) = sReplyText _
+                                Or InStr(.Buffer, Chr$(SYM_SYN)) > 0 Then
                             DebugLog FUNC_NAME, "Auto-detecteding " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
                             If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
                                 vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware)
