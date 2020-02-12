@@ -570,9 +570,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, App.ProductName & " v" & STR_VERSION)
         '--- load combos
         pvLoadItemData cobProtocol, Split(STR_PROTOCOLS, "|")
-        With New cFiscalPrinter
-            pvLoadItemData cobPort, .SerialPorts
-        End With
+        pvLoadItemData cobPort, EnumSerialPorts
         pvLoadItemData cobSpeed, Split(STR_SPEEDS, "|")
         txtSerialNo.Height = cobSpeed.Height
         txtDefPass.Height = cobSpeed.Height

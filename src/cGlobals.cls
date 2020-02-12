@@ -64,3 +64,25 @@ End Function
 Public Function JsonToDictionary(oJson As Object) As Object
     Set JsonToDictionary = mdJson.JsonToDictionary(oJson)
 End Function
+
+Public Property Get Logger() As Object
+    Set Logger = mdGlobals.Logger
+End Property
+
+Public Sub FlushDebugLog()
+    mdGlobals.FlushDebugLog
+End Sub
+
+Public Property Get ProtocolConfig() As Object
+    
+End Property
+
+Public Property Set ProtocolConfig(oValue As Object)
+    SetProtocolConfigRoot oValue
+End Property
+
+Public Function EnumSerialPorts() As Variant
+    AssignVariant EnumSerialPorts, mdGlobals.EnumSerialPorts
+End Function
+
+

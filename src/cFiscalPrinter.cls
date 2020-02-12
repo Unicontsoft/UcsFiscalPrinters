@@ -186,26 +186,6 @@ Public Property Get LastCommandLog() As String
     LastCommandLog = m_sCommandLog
 End Property
 
-Public Property Get ProtocolConfig() As Object
-    
-End Property
-
-Public Property Set ProtocolConfig(oValue As Object)
-    SetProtocolConfigRoot oValue
-End Property
-
-Public Property Get Logger() As Object
-    Set Logger = mdGlobals.Logger
-End Property
-
-Public Property Set Logger(oValue As Object)
-    Set mdGlobals.Logger = oValue
-End Property
-
-Public Property Get SerialPorts() As Variant
-    AssignVariant SerialPorts, EnumSerialPorts
-End Property
-
 Private Property Get LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum) As String
     If IsArray(m_uConfig.LocalizedText(eIdx)) Then
         LocalizedText = Join(m_uConfig.LocalizedText(eIdx), "|")
@@ -1146,5 +1126,5 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Logger.Flush
+    mdGlobals.FlushDebugLog
 End Sub

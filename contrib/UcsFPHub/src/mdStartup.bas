@@ -74,7 +74,6 @@ Private m_oConfig                   As Object
 Private m_cEndpoints                As Collection
 Private m_bIsService                As Boolean
 Private m_bIsHidden                 As Boolean
-Private m_oLogger                   As Object
 Private m_bStarted                  As Boolean
 
 '=========================================================================
@@ -99,31 +98,6 @@ End Property
 
 Property Get IsRunningHidden() As Boolean
     IsRunningHidden = m_bIsHidden
-End Property
-
-Property Get Logger() As Object
-    Const FUNC_NAME     As String = "Logger [get]"
-    
-    If m_oLogger Is Nothing Then
-        With New cFiscalPrinter
-            Set m_oLogger = .Logger
-        End With
-        m_oLogger.Log 0, MODULE_NAME, FUNC_NAME, App.ProductName & " v" & STR_VERSION
-    End If
-    Set Logger = m_oLogger
-End Property
-
-Property Set Logger(oValue As Object)
-    With New cFiscalPrinter
-        Set .Logger = oValue
-    End With
-    Set m_oLogger = oValue
-End Property
-
-Property Set ProtocolConfig(oValue As Object)
-    With New cFiscalPrinter
-        Set .ProtocolConfig = oValue
-    End With
 End Property
 
 Property Get MainForm() As frmIcon
@@ -154,6 +128,7 @@ Public Sub Main()
         End If
         ApplyTheme
         SetCurrentDateTimer VBA.Now, TimerEx
+        Logger.Log 0, MODULE_NAME, FUNC_NAME, App.ProductName & " v" & STR_VERSION
     End If
     lExitCode = Process(SplitArgs(Command$), m_bStarted)
     m_bStarted = True
@@ -510,10 +485,6 @@ End Property
 Public Property Get IsLogDataDumpEnabled() As Boolean
     IsLogDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeDataDump
 End Property
-
-Public Sub FlushDebugLog()
-    Set Logger = Nothing
-End Sub
 
 Public Sub TerminateEndpoints()
     Dim oElem           As IEndpoint

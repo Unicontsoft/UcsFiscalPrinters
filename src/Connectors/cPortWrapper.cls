@@ -151,7 +151,7 @@ Private Sub Class_Terminate()
         m_hComm = 0
         m_sPort = vbNullString
     End If
-    Logger.Flush
+    FlushDebugLog
 QH:
     On Error GoTo 0
     Err.Number = vErr(0)
