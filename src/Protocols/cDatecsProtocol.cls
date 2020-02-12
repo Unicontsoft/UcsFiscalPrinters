@@ -602,7 +602,7 @@ Public Function Init(sDeviceString As String) As Boolean
             pvSetLastError sError
         End If
     Else
-        m_vDeviceNumbers = sDeviceSerialNo
+        m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo"))
     End If
     '--- load config values
     With m_uPrintData.Config
@@ -1056,7 +1056,9 @@ Public Function GetDeviceSerialNo() As String
     Const FUNC_NAME     As String = "GetDeviceSerialNo"
     
     On Error GoTo EH
-    GetDeviceSerialNo = C_Str(m_vDeviceNumbers)
+    If Not IsArray(m_vDeviceNumbers) Then
+        GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
+    End If
     If LenB(GetDeviceSerialNo) = 0 Then
         pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
     End If
@@ -1069,7 +1071,42 @@ Public Function GetFiscalMemoryNo() As String
     Const FUNC_NAME     As String = "GetFiscalMemoryNo"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
+    If Not IsArray(m_vDeviceNumbers) Then
+        GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
+    End If
+    If LenB(GetFiscalMemoryNo) = 0 Then
+        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceProtocol() As String
+    Const FUNC_NAME     As String = "GetDeviceProtocol"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceFirmware() As String
+    Const FUNC_NAME     As String = "GetDeviceFirmware"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1205,36 +1242,6 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceProtocol() As String
-    Const FUNC_NAME     As String = "GetDeviceProtocol"
-    
-    On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function GetDeviceModel() As String
-    Const FUNC_NAME     As String = "GetDeviceModel"
-    
-    On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function GetDeviceFirmware() As String
-    Const FUNC_NAME     As String = "GetDeviceFirmware"
-    
-    On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
     Const CONF_NAME     As String = FUNC_NAME
@@ -1252,6 +1259,7 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
         pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
     End If
     CurrentStatus = m_uPrintData.LastError
+    pvSetLastError vbNullString
     '--- success
     GetDeviceStatus = True
     Exit Function

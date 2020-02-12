@@ -623,7 +623,7 @@ Public Function Init(sDeviceString As String) As Boolean
             GoTo QH
         End If
     Else
-        m_vDeviceNumbers = sDeviceSerialNo & "|" & JsonItem(oOptions, "FiscalMemoryNo") & "|" & JsonItem(oOptions, "Protocol") & "|" & JsonItem(oOptions, "Model") & "|" & JsonItem(oOptions, "Firmware")
+        m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo"))
     End If
     '--- load config values
     With m_uPrintData.Config
@@ -1194,7 +1194,9 @@ Public Function GetDeviceSerialNo() As String
     Const FUNC_NAME     As String = "GetDeviceSerialNo"
     
     On Error GoTo EH
-    GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
+    If Not IsArray(m_vDeviceNumbers) Then
+        GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
+    End If
     If LenB(GetDeviceSerialNo) = 0 Then
         pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
     End If
@@ -1207,10 +1209,42 @@ Public Function GetFiscalMemoryNo() As String
     Const FUNC_NAME     As String = "GetFiscalMemoryNo"
     
     On Error GoTo EH
-    GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
+    If Not IsArray(m_vDeviceNumbers) Then
+        GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
+    End If
     If LenB(GetFiscalMemoryNo) = 0 Then
         pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceProtocol() As String
+    Const FUNC_NAME     As String = "GetDeviceProtocol"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceModel() As String
+    Const FUNC_NAME     As String = "GetDeviceModel"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetDeviceFirmware() As String
+    Const FUNC_NAME     As String = "GetDeviceFirmware"
+    
+    On Error GoTo EH
+    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1374,51 +1408,13 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceProtocol() As String
-    Const FUNC_NAME     As String = "GetDeviceProtocol"
-    
-    On Error GoTo EH
-    GetDeviceProtocol = At(Split(C_Str(m_vDeviceNumbers), "|"), 2)
-    If LenB(GetDeviceProtocol) = 0 Then
-        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function GetDeviceModel() As String
-    Const FUNC_NAME     As String = "GetDeviceModel"
-    
-    On Error GoTo EH
-    GetDeviceModel = At(Split(C_Str(m_vDeviceNumbers), "|"), 3)
-    If LenB(GetDeviceModel) = 0 Then
-        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Public Function GetDeviceFirmware() As String
-    Const FUNC_NAME     As String = "GetDeviceFirmware"
-    
-    On Error GoTo EH
-    GetDeviceFirmware = At(Split(C_Str(m_vDeviceNumbers), "|"), 4)
-    If LenB(GetDeviceFirmware) = 0 Then
-        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
 Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
     WaitDevice -1, CheckFastStatus:=True
     CurrentStatus = m_uPrintData.LastError
+    pvSetLastError vbNullString
     '--- success
     GetDeviceStatus = True
     Exit Function
@@ -2166,6 +2162,7 @@ Private Function pvGetDeviceInfo( _
     Const FUNC_NAME     As String = "pvGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim vSplit          As Variant
+    Dim vSplit2         As Variant
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lSerialIndex    As Long
@@ -2173,24 +2170,26 @@ Private Function pvGetDeviceInfo( _
     Dim lFirmwareIndex  As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDeviceNumbers", eCmd, ucsZekCmdInfoDeviceNumbers, sParam, vbNullString, _
-        "SerialIndex", lSerialIndex, 0
     If Not IsArray(vResult) Then
+        pvGetCommandConfig CONF_NAME, "InfoDeviceNumbers", eCmd, ucsZekCmdInfoDeviceNumbers, sParam, vbNullString, _
+            "SerialIndex", lSerialIndex, 0
         vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         If UBound(vSplit) >= lSerialIndex Then
-            vResult = vSplit
+            pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
+                "ModelIndex", lModelIndex, 3, _
+                "FirmwareIndex", lFirmwareIndex, 4
+            vSplit2 = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
+            If UBound(vSplit2) >= lFirmwareIndex Then
+                vResult = Array(At(vSplit2, lModelIndex), At(vSplit2, lFirmwareIndex), At(vSplit, lSerialIndex), At(vSplit, lSerialIndex + 1))
+            End If
         End If
     End If
-    If LenB(At(vResult, lSerialIndex)) <> 0 Then
+    If IsArray(vResult) Then
         sProtocol = STR_PROTOCOL_TREMOL
-        pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
-            "ModelIndex", lModelIndex, 3, _
-            "FirmwareIndex", lFirmwareIndex, 4
-        vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam), DEF_SEP)
-        sModel = RTrim$(At(vSplit, lModelIndex))
-        sFirmware = RTrim$(At(vSplit, lFirmwareIndex))
-        sDeviceSerialNo = RTrim$(At(vResult, lSerialIndex))
-        sFiscalMemoryNo = RTrim$(At(vResult, lSerialIndex + 1))
+        sModel = RTrim$(At(vResult, 0))
+        sFirmware = RTrim$(At(vResult, 1))
+        sDeviceSerialNo = RTrim$(At(vResult, 2))
+        sFiscalMemoryNo = RTrim$(At(vResult, 3))
         '--- success
         pvGetDeviceInfo = True
     End If
