@@ -69,6 +69,10 @@ Public Property Get Logger() As Object
     Set Logger = mdGlobals.Logger
 End Property
 
+Public Property Set Logger(oValue As Object)
+    Set mdGlobals.Logger = oValue
+End Property
+
 Public Sub FlushDebugLog()
     mdGlobals.FlushDebugLog
 End Sub

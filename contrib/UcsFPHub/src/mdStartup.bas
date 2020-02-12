@@ -268,7 +268,10 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         For Each vKey In JsonKeys(m_oConfig, "Environment")
             Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
         Next
-        FlushDebugLog
+        If LenB(JsonItem(m_oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG")) <> 0 Then
+            Set Logger = Nothing
+            Logger.Log 0, MODULE_NAME, FUNC_NAME, App.ProductName & " v" & STR_VERSION
+        End If
         JsonExpandEnviron m_oConfig
     End If
     Set ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))

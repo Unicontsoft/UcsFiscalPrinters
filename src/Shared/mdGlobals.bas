@@ -475,6 +475,10 @@ EH:
     Resume QH
 End Property
 
+Property Set Logger(oValue As cFileLogger)
+    Set m_oLogger = oValue
+End Property
+
 Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Optional ByVal eType As LogEventTypeConstants = vbLogEventTypeInformation)
     Logger.Log eType, sModule, sFunction, sText
 End Sub
