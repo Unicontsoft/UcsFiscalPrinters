@@ -202,28 +202,35 @@ End Function
 
 Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
     Const FUNC_NAME     As String = "WriteData"
-    Dim uOver           As OVERLAPPED
+    Dim uWriteOver      As OVERLAPPED
     Dim lWritten        As Long
     Dim lResult         As Long
     Dim lLastErr        As Long
+    Dim bPendingWrite   As Boolean
     
     On Error GoTo EH
-    uOver.hEvent = CreateEvent(0, 1, 0, 0)
+    uWriteOver.hEvent = CreateEvent(0, 1, 0, 0)
     Call PurgeComm(m_hComm, PURGE_TXCLEAR Or PURGE_RXCLEAR)
-    lResult = WriteFile(m_hComm, Data(0), UBound(Data) + 1, lWritten, uOver)
+    lResult = WriteFile(m_hComm, Data(0), UBound(Data) + 1, lWritten, uWriteOver)
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
-            lResult = WaitForMultipleObjects(1, uOver.hEvent, 0, Timeout)
-            If lResult <> WAIT_OBJECT_0 And Timeout <> 0 Then
+            bPendingWrite = True
+            lResult = WaitForMultipleObjects(1, uWriteOver.hEvent, 0, Timeout)
+            lLastErr = Err.LastDllError
+            If lResult <> WAIT_OBJECT_0 Then
                 If lResult = WAIT_TIMEOUT Then
                     m_bClearPersistent = True
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+                Else
+                    m_sLastError = GetApiErr(lLastErr)
                 End If
-                pvCancelIoPending m_hComm, uOver
-                DebugLog FUNC_NAME, "CancelIo after WriteFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                pvCancelIoPending m_hComm, uWriteOver
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
+            bPendingWrite = False
+            Call GetOverlappedResult(m_hComm, uWriteOver, lWritten, 0)
         Else
             m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(lLastErr))
@@ -234,7 +241,10 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
     '--- success
     WriteData = True
 QH:
-    Call CloseHandle(uOver.hEvent)
+    If bPendingWrite Then
+        pvCancelIoPending m_hComm, uWriteOver
+    End If
+    Call CloseHandle(uWriteOver.hEvent)
     Exit Function
 EH:
     PrintError FUNC_NAME
