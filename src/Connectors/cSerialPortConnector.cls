@@ -251,9 +251,12 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     Dim lActual         As Long
     Dim lMask           As Long
     Dim lRetryCount     As Long
+    Dim bPendingRead    As Boolean
+    Dim bPendingWait    As Boolean
     
     On Error GoTo EH
     dblTimerEx = TimerEx
+    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     uReadOver.hEvent = CreateEvent(0, 1, 0, 0)
     uWaitOver.hEvent = CreateEvent(0, 1, 0, 0)
     ReDim Result(0 To 65535) As Byte
@@ -261,6 +264,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
+            bPendingRead = True
             lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
             lLastErr = Err.LastDllError
             If lResult <> WAIT_OBJECT_0 Then
@@ -270,10 +274,10 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                 Else
                     m_sLastError = GetApiErr(lLastErr)
                 End If
-                pvCancelIoPending m_hComm, uReadOver
-                DebugLog FUNC_NAME, "CancelIo after ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
+            bPendingRead = False
             Call GetOverlappedResult(m_hComm, uReadOver, lActual, 0)
         Else
             m_bClearPersistent = True
@@ -286,11 +290,11 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
         GoTo QH
     End If
 RepeatWait:
-    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     lResult = WaitCommEvent(m_hComm, lMask, uWaitOver)
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
+            bPendingWait = True
             lResult = WaitForMultipleObjects(1, uWaitOver.hEvent, 0, Timeout)
             lLastErr = Err.LastDllError
             If lResult <> WAIT_OBJECT_0 Then
@@ -300,10 +304,10 @@ RepeatWait:
                 Else
                     m_sLastError = GetApiErr(lLastErr)
                 End If
-                pvCancelIoPending m_hComm, uWaitOver
-                DebugLog FUNC_NAME, "CancelIo after WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
+            bPendingWait = False
         Else
             m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
             GoTo QH
@@ -315,6 +319,7 @@ RetryRead:
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
+            bPendingRead = True
             lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
             lLastErr = Err.LastDllError
             If lResult <> WAIT_OBJECT_0 Then
@@ -324,10 +329,10 @@ RetryRead:
                 Else
                     m_sLastError = GetApiErr(lLastErr)
                 End If
-                pvCancelIoPending m_hComm, uReadOver
-                DebugLog FUNC_NAME, "CancelIo after ReadFile#2, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#2, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
+            bPendingRead = False
             Call GetOverlappedResult(m_hComm, uReadOver, lActual, 0)
         ElseIf lLastErr = ERROR_HANDLE_EOF Then
             GoTo RepeatWait
@@ -344,7 +349,6 @@ RetryRead:
     If TimerEx > dblTimerEx + Timeout / 1000# Then
         m_bClearPersistent = True
         m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-        pvCancelIoPending m_hComm, uReadOver
         DebugLog FUNC_NAME, "CancelIo, lRetryCount=" & lRetryCount & ", m_sLastError=" & m_sLastError
         GoTo QH
     End If
@@ -359,6 +363,12 @@ QH:
         ReadData = True
     Else
         Result = vbNullString
+    End If
+    If bPendingRead Then
+        pvCancelIoPending m_hComm, uReadOver
+    End If
+    If bPendingWait Then
+        pvCancelIoPending m_hComm, uWaitOver
     End If
     Call CloseHandle(uReadOver.hEvent)
     Call CloseHandle(uWaitOver.hEvent)
@@ -451,7 +461,7 @@ EH:
 End Function
 
 Private Function pvCancelIoPending(ByVal hFile As Long, uOver As OVERLAPPED) As Long
-    On Error GoTo QH:
+    On Error GoTo QH
     pvCancelIoPending = CancelIoEx(hFile, uOver)
     Exit Function
 QH:
