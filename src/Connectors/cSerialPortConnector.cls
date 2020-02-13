@@ -223,7 +223,7 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
                     m_bClearPersistent = True
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 Else
-                    m_sLastError = GetApiErr(lLastErr)
+                    m_sLastError = GetErrorDescription(lLastErr)
                 End If
                 pvCancelIoPending m_hComm, uWriteOver
                 DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError
@@ -233,7 +233,7 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
             Call GetOverlappedResult(m_hComm, uWriteOver, lWritten, 0)
         Else
             m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetApiErr(lLastErr))
+            m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetErrorDescription(lLastErr))
             DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
             GoTo QH
         End If
@@ -282,7 +282,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                     m_bClearPersistent = True
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 Else
-                    m_sLastError = GetApiErr(lLastErr)
+                    m_sLastError = GetErrorDescription(lLastErr)
                 End If
                 DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
@@ -291,7 +291,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
             Call GetOverlappedResult(m_hComm, uReadOver, lActual, 0)
         Else
             m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(lLastErr))
+            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
             DebugLog FUNC_NAME, "ReadFile#1, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
             GoTo QH
         End If
@@ -312,14 +312,14 @@ RepeatWait:
                     m_bClearPersistent = True
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 Else
-                    m_sLastError = GetApiErr(lLastErr)
+                    m_sLastError = GetErrorDescription(lLastErr)
                 End If
                 DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
             bPendingWait = False
         Else
-            m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetApiErr(lLastErr))
+            m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetErrorDescription(lLastErr))
             GoTo QH
         End If
     End If
@@ -337,7 +337,7 @@ RetryRead:
                     m_bClearPersistent = True
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
                 Else
-                    m_sLastError = GetApiErr(lLastErr)
+                    m_sLastError = GetErrorDescription(lLastErr)
                 End If
                 DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#2, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
@@ -348,7 +348,7 @@ RetryRead:
             GoTo RepeatWait
         Else
             m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetApiErr(lLastErr))
+            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
             DebugLog FUNC_NAME, "ReadFile#2, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
             GoTo QH
         End If
@@ -412,7 +412,7 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
     hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
     If hComm = INVALID_HANDLE_VALUE Then
         lLastErr = Err.LastDllError
-        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetApiErr(lLastErr))
+        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetErrorDescription(lLastErr))
         If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
             dblTimer = TimerEx + lTimeout / 1000#
             Do While TimerEx < dblTimer
@@ -436,17 +436,17 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(hComm, uTimeout) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetApiErr(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, 9600) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetApiErr(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If
     If SetCommState(hComm, uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetApiErr(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If

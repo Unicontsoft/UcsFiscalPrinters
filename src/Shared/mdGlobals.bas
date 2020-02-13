@@ -359,17 +359,17 @@ Public Function Zndbl(ByVal dblValue As Double, Optional IfZeroDouble As Variant
     Zndbl = IIf(C_Dbl(CStr(dblValue)) = 0, IfZeroDouble, dblValue)
 End Function
 
-Public Function GetApiErr(ByVal lLastDllError As Long) As String
-    Dim lRet            As Long
+Public Function GetErrorDescription(ByVal ErrorCode As Long) As String
+    Dim lSize           As Long
    
-    GetApiErr = Space$(2000)
-    lRet = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, lLastDllError, 0&, GetApiErr, Len(GetApiErr), 0&)
-    If lRet > 2 Then
-        If Mid$(GetApiErr, lRet - 1, 2) = vbCrLf Then
-            lRet = lRet - 2
+    GetErrorDescription = Space$(2000)
+    lSize = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0, ErrorCode, 0, GetErrorDescription, Len(GetErrorDescription), 0)
+    If lSize > 2 Then
+        If Mid$(GetErrorDescription, lSize - 1, 2) = vbCrLf Then
+            lSize = lSize - 2
         End If
     End If
-    GetApiErr = Left$(GetApiErr, lRet)
+    GetErrorDescription = Left$(GetErrorDescription, lSize)
 End Function
 
 Public Property Get IsNT() As Boolean
