@@ -732,28 +732,30 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
     Dim sError          As String
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
-    Dim sStatus         As String
+    Dim lStatus         As Long
     Dim dblTimer        As Double
     Dim sCurrent        As String
+    Dim sOuter          As String
     Dim lIter           As Long
-    Dim sDelay          As String
+    Dim lDelay          As Long
     
     On Error GoTo EH
     pvSetLastError vbNullString
     If Timeout < 0 Then
         pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
-            "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
-        If pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError) <> sStatus Then
+            "Status", lStatus, ucsZekCmdFastIsOnline
+        sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+        If InStr(sCurrent, Chr$(lStatus)) = 0 Then
             pvSetLastError pvInternal(ucsErrDeviceNotOnline)
             GoTo QH
         End If
         If CheckFastStatus Then
             pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-                "ReadyStatus", sStatus, LNG_STATUS_READY
+                "ReadyStatus", lStatus, LNG_STATUS_READY
             sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
-            If LenB(sCurrent) <> 0 Then
+            Do While LenB(sCurrent) <> 0
                 Select Case Asc(sCurrent)
-                Case C_Lng(sStatus) '--- LNG_STATUS_READY
+                Case lStatus '--- LNG_STATUS_READY
                     '--- success
                     WaitDevice = True
                     If lIter > 2 Then
@@ -766,7 +768,8 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
                 Case LNG_STATUS_OVERHEATED
                     pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
                 End Select
-            End If
+                sCurrent = Mid$(sCurrent, 2)
+            Loop
         Else
             '--- success
             WaitDevice = True
@@ -777,39 +780,45 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
         Do While TimerEx < dblTimer
             lIter = lIter + 1
             pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
-                "Status", sStatus, Chr$(ucsZekCmdFastIsOnline)
+                "Status", lStatus, ucsZekCmdFastIsOnline
             sError = vbNullString
-            Select Case pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
-            Case sStatus
-                lIter = lIter + 1
-                pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-                    "ReadyStatus", sStatus, LNG_STATUS_READY, _
-                    "Delay", sDelay, 40
-                sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
-                If LenB(sCurrent) <> 0 Then
-                    Select Case Asc(sCurrent)
-                    Case C_Lng(sStatus) '--- LNG_STATUS_READY
-                        '--- success
-                        WaitDevice = True
-                        If lIter > 2 Then
-                            DebugLog FUNC_NAME, "Ready after " & lIter
-                        End If
-                        GoTo QH
-                    Case LNG_STATUS_IS_BUSY
-                        '--- wait
-                    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
-                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
-                        GoTo QH
-                    Case LNG_STATUS_OVERHEATED
-                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
-                        GoTo QH
-                    End Select
-                End If
-                Call Sleep(C_Lng(sDelay))
-            Case Chr$(LNG_STATUS_SWITCHED_OFF)
-                Exit Do
-            End Select
+            sOuter = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+            Do While LenB(sOuter) <> 0
+                Select Case Asc(sOuter)
+                Case lStatus
+                    lIter = lIter + 1
+                    pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
+                        "ReadyStatus", lStatus, LNG_STATUS_READY, _
+                        "Delay", lDelay, 40
+                    sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+                    Do While LenB(sCurrent) <> 0
+                        Select Case Asc(sCurrent)
+                        Case lStatus '--- LNG_STATUS_READY
+                            '--- success
+                            WaitDevice = True
+                            If lIter > 2 Then
+                                DebugLog FUNC_NAME, "Ready after " & lIter
+                            End If
+                            GoTo QH
+                        Case LNG_STATUS_IS_BUSY
+                            '--- wait
+                        Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+                            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
+                            GoTo QH
+                        Case LNG_STATUS_OVERHEATED
+                            pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
+                            GoTo QH
+                        End Select
+                        sCurrent = Mid$(sCurrent, 2)
+                    Loop
+                    Call Sleep(lDelay)
+                Case LNG_STATUS_SWITCHED_OFF
+                    GoTo NotReady
+                End Select
+                sOuter = Mid$(sOuter, 2)
+            Loop
         Loop
+NotReady:
         m_uPrintData.LastError = Zn(sError, pvInternal(ucsErrDeviceNotOnline))
     End If
 QH:
