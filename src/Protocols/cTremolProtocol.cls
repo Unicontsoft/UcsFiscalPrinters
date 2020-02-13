@@ -141,7 +141,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid message format or checksum (NACK)|Invalid response length: %1|Invalid response checksum: %1|Response missing preamble: %1|No receipt started|Error in line %1: %2|Invalid report type|Device not online|Device not ready| or cannot set operator password|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1"
 Private Const STR_STATUSES              As String = "Unknown error|Invalid command|Illegal command|Command denied because of uncommited report|Syntax error|Input register overflow|Input register is zero|Missing transaction for void|Insufficient subtotal|Tax groups conflict"
 Private Const STR_ERRORS                As String = "Unknown error|Out of paper|Daily registers overflow|Clock not adjusted|Fiscal receipt open|Receipt not fully paid|Non-fiscal receipt open|Receipt already paid out|Read-only fiscal memory|Bad password or command not allowed|Display missing|24 hours without daily report|Printer overheated|Power down|Electronic journal overflow|Not enough conditions met"
 Private Const STR_RECEIPT_TEXTS         As String = "Cash|Card|Bank|Surcharge%1|Discount%1|Subtotal|Sales %1|EIC;Citizen #;Foreigner #;Official #"
@@ -223,6 +223,7 @@ Private Enum UcsInternalErrors
     ucsErrBarcodeNotSupported
     ucsErrCannotPrint
     ucsErrWrongInvoiceNo
+    ucsErrUnsupportedDiscType
 End Enum
 
 Private Enum UcsDeviceErrorsAndStatuses
@@ -2022,7 +2023,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
-                If .DiscType = ucsFscDscSubtotal Then
+                Select Case .DiscType
+                Case ucsFscDscSubtotal
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
@@ -2038,16 +2040,26 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             End If
                         End If
                     Next
-                End If
+                Case Else
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    GoTo QH
+                End Select
             Case Else
-                If .DiscType = ucsFscDscSubtotal Then
+                Select Case .DiscType
+                Case ucsFscDscSubtotal
                     pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsZekCmdFiscalSubtotal, sParam, "1" & DEF_SEP & "0,%1", _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
-                    sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
-                    SendCommand eCmd, sParam
-                    If LenB(m_uPrintData.LastError) <> 0 Then
-                        GoTo QH
-                    End If
+                Case ucsFscDscSubtotalAbs
+                    pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsZekCmdFiscalSubtotal, sParam, "1" & DEF_SEP & "0:%1", _
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2
+                Case Else
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    GoTo QH
+                End Select
+                sParam = Printf(sParam, SafeFormat(.DiscValue, sFormatDisc))
+                SendCommand eCmd, sParam
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
                 End If
             End Select
             If .DiscType = ucsFscDscSubtotal Then

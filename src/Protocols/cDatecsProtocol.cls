@@ -163,7 +163,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -238,6 +238,7 @@ Private Enum UcsInternalErrors
     ucsErrUnsupportedPaymentType
     ucsErrCannotPrint
     ucsErrWrongInvoiceNo
+    ucsErrUnsupportedDiscType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -1828,7 +1829,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
-                If .DiscType = ucsFscDscSubtotal Then
+                Select Case .DiscType
+                Case ucsFscDscSubtotal
                     pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
@@ -1844,7 +1846,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             End If
                         End If
                     Next
-                End If
+                Case Else
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    GoTo QH
+                End Select
             Case Else
                 sDiscType = vbNullString
                 Select Case .DiscType
@@ -1852,6 +1857,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
                 Case ucsFscDscSubtotalAbs
                     sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
+                Case Else
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    GoTo QH
                 End Select
                 '--- %1={Print}<SEP>{Display}<SEP>%2={DiscountType}<SEP>%3={DiscountValue}<SEP>
                 sParam = "%1" & DEF_SEP & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP

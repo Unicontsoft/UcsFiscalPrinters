@@ -58,7 +58,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "No receipt started|Error in line %1: %2"
+Private Const STR_INTERNAL              As String = "No receipt started|Error in line %1: %2|Unsupported discount type %1"
     
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CHEQUE|COUPON|EXT.COUPON|PACKAGING|INT.USAGE|DAMAGE|CARD|BANK|CUSTOM 1|CUSTOM 2|EUR|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1|EIC: %1"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
@@ -87,6 +87,7 @@ Private m_uConfig                   As UcsConfigValues
 Private Enum UcsInternalErrors
     ucsErrNoReceiptStarted
     ucsErrErrorInLine
+    ucsErrInvalidDiscType
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -680,8 +681,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + lIdx), pvCommentChars)
                     End If
                 Next
-            Case ucsFscDscSubtotalAbs
-                '--- ToDo: impl absolute subtotal discount
+            Case Else
+                pvSetLastError Printf(pvInternal(ucsErrInvalidDiscType), .DiscType)
+                GoTo QH
             End Select
             Select Case .DiscType
             Case ucsFscDscSubtotal
