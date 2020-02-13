@@ -212,9 +212,9 @@ Public Function EnumPorts(sResponse As String) As Boolean
     JsonItem(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
     For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipLastError:=True), _
                             pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipLastError:=True))
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipLastError:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipLastError:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next

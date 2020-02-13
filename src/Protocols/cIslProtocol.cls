@@ -196,15 +196,12 @@ Private Const ERROR_IO_PENDING              As Long = 997
 Private Const EV_RXCHAR                     As Long = &H1
 Private Const EV_ERR                        As Long = &H80
 
-Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
-Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
 Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As Any) As Long
-Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
-Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
+Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
-Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As Any, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -338,10 +335,7 @@ End Enum
 
 Private Type UcsAutodetect
     Connector           As cSerialPortConnector
-    WriteOver           As OVERLAPPED
-    ReadOver            As OVERLAPPED
     WaitOver            As OVERLAPPED
-    Buffer              As String
     EventMask           As Long
 End Type
 
@@ -593,9 +587,8 @@ End Property
 
 Public Function AutodetectDevices(vPorts As Variant) As Variant
     Const FUNC_NAME     As String = "AutodetectDevices"
-    Const BUFFER_SIZE   As Long = 1000
     Dim lIdx            As Long
-    Dim sProbeText      As String
+    Dim baProbe()       As Byte
     Dim sReplyText      As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
@@ -605,17 +598,19 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim hEvents()       As Long
     Dim lEventsCount    As Long
     Dim lResult         As Long
-    Dim lActual         As Long
     Dim sProtocol       As String
     Dim sModel          As String
     Dim sFirmware       As String
     Dim sDeviceSerialNo As String
     Dim sFiscalMemoryNo As String
     Dim vSpeeds         As Variant
+    Dim sDefProbe       As String
+    Dim baBuffer()      As Byte
+    Dim sBuffer         As String
     
     On Error GoTo EH
-    sProbeText = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
-    sProbeText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", sProbeText)
+    sDefProbe = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
+    baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", sDefProbe), m_uConfig.CodePage)
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(SYM_PREAMBLE)) ' PREAMBLE (&H1)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
@@ -631,85 +626,44 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
-                    Set .Connector = New cSerialPortConnector
-                    If .Connector.Init(At(vPorts, lIdx) & "," & vSpeed, lTimeout) Then
-                        .WriteOver.hEvent = CreateEvent(0, 1, 0, 0)
-                        .ReadOver.hEvent = CreateEvent(0, 1, 0, 0)
+                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
+                    If Not .Connector Is Nothing Then
+                        .Connector.WriteData baProbe, 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
-                    Else
-                        Set .Connector = Nothing
-                    End If
-                End If
-            End With
-        Next
-        For lIdx = 0 To UBound(aPorts)
-            With aPorts(lIdx)
-                If Not .Connector Is Nothing Then
-                    Call WriteFile(.Connector.hComm, ByVal sProbeText, Len(sProbeText), lActual, .WriteOver)
-                    lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
-                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
-                        hEvents(lEventsCount) = .WaitOver.hEvent
-                        lEventsCount = lEventsCount + 1
-                    End If
-                End If
-            End With
-        Next
-        If lEventsCount > 0 Then
-            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
-            lEventsCount = 0
-        End If
-        For lIdx = 0 To UBound(aPorts)
-            With aPorts(lIdx)
-                If Not .Connector Is Nothing Then
-                    .Buffer = String$(BUFFER_SIZE, 0)
-                    lResult = ReadFile(.Connector.hComm, ByVal StrPtr(.Buffer), LenB(.Buffer), lActual, .ReadOver)
-                    If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Or lActual = 0 Then
-                        hEvents(lEventsCount) = .ReadOver.hEvent
-                        lEventsCount = lEventsCount + 1
-                    Else
-                        .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
-                    End If
-                End If
-            End With
-        Next
-        If lEventsCount > 0 Then
-            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
-            lEventsCount = 0
-        End If
-        For lIdx = 0 To UBound(aPorts)
-            With aPorts(lIdx)
-                If Not .Connector Is Nothing Then
-                    If Len(.Buffer) = BUFFER_SIZE Then
-                        Call GetOverlappedResult(.Connector.hComm, .ReadOver, lActual, 1)
-                        .Buffer = Left$(StrConv(.Buffer, vbUnicode), lActual)
-                    End If
-                    If LenB(.Buffer) <> 0 Then
-                        If Left$(Replace(Replace(.Buffer, Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString), Len(sReplyText)) = sReplyText _
-                                Or InStr(.Buffer, Chr$(SYM_SYN)) > 0 Then
-                            DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
-                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo)
-                                DebugLog FUNC_NAME, "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware & ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo
-                            End If
-                        Else
-                            DebugLog FUNC_NAME, "Discarding vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", " & .Connector.Device & " reply 0x" & ToHexDump(.Buffer)
+                        lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
+                        If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                            hEvents(lEventsCount) = .WaitOver.hEvent
+                            lEventsCount = lEventsCount + 1
                         End If
                     End If
                 End If
             End With
         Next
+        If lEventsCount > 0 Then
+            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
+            lEventsCount = 0
+        End If
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                Set .Connector = Nothing
-                If .WriteOver.hEvent <> 0 Then
-                    Call CloseHandle(.WriteOver.hEvent)
-                End If
-                If .ReadOver.hEvent <> 0 Then
-                    Call CloseHandle(.ReadOver.hEvent)
-                End If
-                If .WaitOver.hEvent <> 0 Then
-                    Call CloseHandle(.WaitOver.hEvent)
+                If Not .Connector Is Nothing Then
+                    If .Connector.ReadData(baBuffer, 1) And UBound(baBuffer) >= 0 Then
+                        sBuffer = StrConv(baBuffer, vbUnicode)
+                        If Left$(Replace(Replace(sBuffer, Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString), Len(sReplyText)) = sReplyText _
+                                Or InStr(sBuffer, Chr$(SYM_SYN)) > 0 Then
+                            DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(sBuffer)
+                            If pvGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo) Then
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo)
+                                DebugLog FUNC_NAME, "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware & ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo
+                            End If
+                        Else
+                            DebugLog FUNC_NAME, "Discarding vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", " & .Connector.Device & " reply 0x" & ToHexDump(sBuffer)
+                        End If
+                    End If
+                    Set .Connector = Nothing
+                    If .WaitOver.hEvent <> 0 Then
+                        Call CloseHandle(.WaitOver.hEvent)
+                    End If
                 End If
             End With
         Next
@@ -1191,12 +1145,23 @@ Public Function GetLastInvoiceNo() As String
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lStatus         As Long
     Dim lOffset         As Long
     
     On Error GoTo EH
+    lOffset = -1
+    If IsFP Then
+        '--- datecs FP idiosyncrasy: current invoice number is not incremented until fiscal transaction is closed
+        pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsIslCmdInfoTransaction, sParam, vbNullString, _
+            "Index", lIndex, 0, _
+            "Status", lStatus, 0
+        If C_Lng(At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)) <> lStatus Then
+            lOffset = 0
+        End If
+    End If
     pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
         "Index", lIndex, 10, _
-        "Offset", lOffset, -1
+        "Offset", lOffset, lOffset
     GetLastInvoiceNo = At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)
     If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
         GetLastInvoiceNo = Val(GetLastInvoiceNo) + lOffset

@@ -34,7 +34,25 @@ Implements IDeviceProtocol
 ' API
 '=========================================================================
 
-Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+'--- error codes
+Private Const ERROR_IO_PENDING              As Long = 997
+'--- for WaitCommEvent
+Private Const EV_RXCHAR                     As Long = &H1
+Private Const EV_ERR                        As Long = &H80
+
+Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
+Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As Any) As Long
+Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
+Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+
+Private Type OVERLAPPED
+    Internal                    As Long
+    InternalHigh                As Long
+    Offset                      As Long
+    OffsetHigh                  As Long
+    hEvent                      As Long
+End Type
 
 '=========================================================================
 ' Constants and member variables
@@ -112,6 +130,12 @@ Private Enum UcsReceiptTextsEnum
     ucsTxtHeaderTable
     ucsTxtHeaderEic
 End Enum
+
+Private Type UcsAutodetect
+    Connector           As cSerialPortConnector
+    WaitOver            As OVERLAPPED
+    EventMask           As Long
+End Type
 
 Private Type UcsConfigValues
     ConfigCommands      As Collection
@@ -213,55 +237,68 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Const FUNC_NAME     As String = "AutodetectDevices"
     Dim vRetVal         As Variant
     Dim vSpeed          As Variant
-    Dim aPorts          As Variant
-    Dim oConnector      As cSerialPortConnector
+    Dim aPorts()        As UcsAutodetect
     Dim lIdx            As Long
     Dim baBuffer()      As Byte
-    Dim dblTimer        As Double
-    Dim bHasMore        As Boolean
     Dim sModel          As String
     Dim sCmd            As String
+    Dim lJdx            As Long
+    Dim lResult         As Long
+    Dim hEvents()       As Long
+    Dim lEventsCount    As Long
+    Dim lTimeout        As Long
     
     On Error GoTo EH
+    lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     vRetVal = vPorts
     For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
-        ReDim aPorts(0 To UBound(vPorts)) As Variant
+        ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
+        ReDim hEvents(0 To UBound(vPorts)) As Long
         For lIdx = 0 To UBound(aPorts)
             If Not IsArray(vRetVal(lIdx)) Then
-                Set oConnector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, DEF_AUTODETECTTIMEOUT, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
-                If Not oConnector Is Nothing Then
-                    sCmd = STR_ESC & "@"            '--- Initialize printer
-                    '--- STR_GS & "I1"
-                    sCmd = STR_GS & "r" & Chr$(1)   '--- Transmits paper sensor status
-                    oConnector.ReadData baBuffer, 0
-                    oConnector.WriteData ToAscii(sCmd), 100
-                    Set aPorts(lIdx) = oConnector
-                End If
-            End If
-        Next
-        dblTimer = TimerEx + DEF_AUTODETECTTIMEOUT / 1000#
-        Do While TimerEx < dblTimer
-            bHasMore = False
-            For lIdx = 0 To UBound(aPorts)
-                If IsObject(aPorts(lIdx)) Then
-                    bHasMore = True
-                    Set oConnector = aPorts(lIdx)
-                    If oConnector.ReadData(baBuffer, 0) And UBound(baBuffer) >= 0 Then
-                        If (baBuffer(0) And &H90) = 0 And baBuffer(0) <> 0 Then
-                            DebugLog FUNC_NAME, "Auto-detecting " & oConnector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
-                            sModel = pvGetAutodetectInfo(oConnector, 67) & pvGetAutodetectInfo(oConnector, 66) & _
-                                     pvGetAutodetectInfo(oConnector, 68) & pvGetAutodetectInfo(oConnector, 65)
-                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
-                            aPorts(lIdx) = Empty
+                With aPorts(lIdx)
+                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
+                    If Not .Connector Is Nothing Then
+                        sCmd = STR_ESC & "@"            '--- Initialize printer
+                        '--- STR_GS & "I1"
+                        sCmd = STR_GS & "r" & Chr$(1)   '--- Transmits paper sensor status
+                        .Connector.WriteData ToAscii(sCmd), 1
+                        .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
+                        Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
+                        lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
+                        If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                            hEvents(lEventsCount) = .WaitOver.hEvent
+                            lEventsCount = lEventsCount + 1
                         End If
                     End If
-                End If
-            Next
-            If Not bHasMore Then
-                Exit For
+                End With
             End If
-            Call Sleep(1)
-        Loop
+        Next
+        If lEventsCount > 0 Then
+            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
+            lEventsCount = 0
+        End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If Not .Connector Is Nothing Then
+                    If .Connector.ReadData(baBuffer, 1) Then
+                        For lJdx = 0 To UBound(baBuffer)
+                            If (baBuffer(lJdx) And &H90) = 0 And baBuffer(lJdx) <> 0 Then
+                                DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
+                                sModel = pvGetAutodetectInfo(.Connector, 67) & pvGetAutodetectInfo(.Connector, 66) & _
+                                         pvGetAutodetectInfo(.Connector, 68) & pvGetAutodetectInfo(.Connector, 65)
+                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
+                                Exit For
+                            End If
+                        Next
+                    End If
+                    Set .Connector = Nothing
+                    If .WaitOver.hEvent <> 0 Then
+                        Call CloseHandle(.WaitOver.hEvent)
+                    End If
+                End If
+            End With
+        Next
     Next
     AutodetectDevices = vRetVal
     Exit Function
