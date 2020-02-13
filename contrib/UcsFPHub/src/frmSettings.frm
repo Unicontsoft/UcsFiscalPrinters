@@ -1176,6 +1176,7 @@ Private Sub Form_Unload(Cancel As Integer)
     Set m_pSubclass = Nothing
     Set m_pTimerLog = Nothing
     m_sConfFile = vbNullString
+    m_lLogMemoryCount = 0
     Exit Sub
 EH:
     PrintError FUNC_NAME
