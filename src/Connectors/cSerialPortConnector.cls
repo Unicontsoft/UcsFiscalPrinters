@@ -226,7 +226,7 @@ Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boo
                     m_sLastError = GetErrorDescription(lLastErr)
                 End If
                 pvCancelIoPending m_hComm, uWriteOver
-                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
             bPendingWrite = False
@@ -284,7 +284,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                 Else
                     m_sLastError = GetErrorDescription(lLastErr)
                 End If
-                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#1, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
             bPendingRead = False
@@ -314,7 +314,7 @@ RepeatWait:
                 Else
                     m_sLastError = GetErrorDescription(lLastErr)
                 End If
-                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
             bPendingWait = False
@@ -339,7 +339,7 @@ RetryRead:
                 Else
                     m_sLastError = GetErrorDescription(lLastErr)
                 End If
-                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#2, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#2, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
             bPendingRead = False
