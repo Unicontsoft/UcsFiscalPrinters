@@ -95,7 +95,7 @@ Private m_oPrinters                 As Object
 Private m_pTimer                    As IUnknown
 Private m_oConn                     As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
-Private m_oAsyncConn                As ADODB.Connection
+Private m_oRecvConn                 As ADODB.Connection
 Private m_oController               As cServiceController
 Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
@@ -206,7 +206,7 @@ End Function
 
 Private Function pvInitMssqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMssqlQueue) As cMssqlQueue
     Set RetVal = New cMssqlQueue
-    If RetVal.Init(m_oConn, m_oAsyncConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oRecvConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMssqlQueue = RetVal
     End If
@@ -214,7 +214,7 @@ End Function
 
 Private Function pvInitMysqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMysqlQueue) As cMysqlQueue
     Set RetVal = New cMysqlQueue
-    If RetVal.Init(m_oConn, m_oAsyncConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oRecvConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMysqlQueue = RetVal
     End If
@@ -227,7 +227,7 @@ Public Sub Terminate()
     End If
     Set m_pTimer = Nothing
     Set m_oConn = Nothing
-    Set m_oAsyncConn = Nothing
+    Set m_oRecvConn = Nothing
     Set m_oSshTunnel = Nothing
     Set m_oController = Nothing
     Set m_oConfig = Nothing
@@ -303,10 +303,10 @@ EH:
     GoTo QH
 End Function
 
-Friend Function frReopenConn(oConn As Object, Optional oAsyncConn As Object) As Boolean
+Friend Function frReopenConn(oConn As Object, Optional oRecvConn As Object) As Boolean
     If pvOpenConn(m_oConfig) Then
         Set oConn = m_oConn
-        Set oAsyncConn = m_oAsyncConn
+        Set oRecvConn = m_oRecvConn
         '--- success
         frReopenConn = True
     End If
@@ -484,17 +484,17 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             m_sSqlDatabase = .Fields.Item(1).Value
         End With
     End Select
-    Set m_oAsyncConn = New ADODB.Connection
-    m_oAsyncConn.CursorLocation = adUseClient
-    m_oAsyncConn.Open sLocalConnStr
-    m_oAsyncConn.CommandTimeout = m_oAsyncConn.ConnectionTimeout * 2
+    Set m_oRecvConn = New ADODB.Connection
+    m_oRecvConn.CursorLocation = adUseClient
+    m_oRecvConn.Open sLocalConnStr
+    m_oRecvConn.CommandTimeout = 0
     DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
     '--- success
     pvOpenConn = True
 QH:
     If Not pvOpenConn Then
         Set m_oConn = Nothing
-        Set m_oAsyncConn = Nothing
+        Set m_oRecvConn = Nothing
         Set m_oSshTunnel = Nothing
     End If
     Exit Function
