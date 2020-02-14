@@ -842,7 +842,7 @@ Public Function GetErrorDescription(ByVal ErrorCode As Long) As String
     
     On Error GoTo EH
     GetErrorDescription = Space$(2000)
-    lSize = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0&, ErrorCode, 0, GetErrorDescription, Len(GetErrorDescription) + 1, 0)
+    lSize = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0, ErrorCode, 0, GetErrorDescription, Len(GetErrorDescription) + 1, 0)
     If lSize > 2 Then
         If Mid$(GetErrorDescription, lSize - 1, 2) = vbCrLf Then
             lSize = lSize - 2
