@@ -354,7 +354,7 @@ C:> curl -X POST http://localhost:8192/printers/DT518315 ^
 
 #### `GET` `/printers/:printer_id/status`
 
-Get device status and current clock.
+Get device status.
 
 ```shell
 C:> curl -X GET http://localhost:8192/printers/DT518315/status -sS | jq
@@ -362,10 +362,19 @@ C:> curl -X GET http://localhost:8192/printers/DT518315/status -sS | jq
 ```json
 {
   "Ok": true,
-  "DeviceStatus": "",
-  "DeviceDateTime": "2019-11-12 14:03:55"
+  "DeviceStatusCode": "busy",
+  "DeviceStatus": "Устройството е заето"
 }
 ```
+
+Supported `DeviceStatusCode` values:
+
+Name            | Value | Description
+----            | ----- | -----------
+`Ready`         | 0     | The device is ready to accept commands
+`Busy`          | 1     | The device is busy printing
+`Failed`        | 2     | There is an error accessing/operating the the
+
 
 #### `POST` `/printers/:printer_id/receipt`
 
