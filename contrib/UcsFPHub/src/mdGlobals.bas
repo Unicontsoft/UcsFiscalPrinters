@@ -791,7 +791,7 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Set ParseQueryString = oRetVal
 End Function
 
-Public Function ParseConnectString(ByVal sDeviceString As String) As Object
+Public Function ParseConnectString(ByVal sConnStr As String, Optional Separator As String = ";") As Object
     Const KEY_PATTERN   As String = "^([^=]+)="
     Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
     Dim sKey            As String
@@ -799,11 +799,11 @@ Public Function ParseConnectString(ByVal sDeviceString As String) As Object
     Dim oRetVal         As Object
     
     Do
-        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
+        sKey = Trim$(pvParseTokenByRegExp(sConnStr, KEY_PATTERN))
         If LenB(sKey) = 0 Then
             Exit Do
         End If
-        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        sValue = Trim$(pvParseTokenByRegExp(sConnStr, Replace(VALUE_PATTERN, ";", Separator)))
         If Len(sValue) >= 2 Then
             If Left$(sValue, 1) = Right$(sValue, 1) Then
                 Select Case Asc(sValue)
@@ -815,6 +815,34 @@ Public Function ParseConnectString(ByVal sDeviceString As String) As Object
         JsonItem(oRetVal, sKey) = sValue
     Loop
     Set ParseConnectString = oRetVal
+End Function
+
+Public Function ToConnectString(oMap As Object, Optional Separator As String = ";") As String
+    Dim vKey            As Variant
+    Dim sValue          As String
+    Dim sRetVal         As String
+    
+    For Each vKey In JsonKeys(oMap)
+        '--- try to escape value
+        sValue = C_Str(JsonItem(oMap, vKey))
+        If InStr(sValue, Separator) > 0 Then
+            If InStr(sValue, """") = 0 Then
+                sValue = """" & sValue & """"
+            Else
+                sValue = "'" & sValue & "'"
+            End If
+        End If
+        sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & Separator, vbNullString) & vKey & "=" & sValue
+    Next
+    ToConnectString = sRetVal
+End Function
+
+Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
+    Set ParseDeviceString = ParseConnectString(sDeviceString)
+End Function
+
+Public Function ToDeviceString(oDevice As Object) As String
+    ToDeviceString = ToConnectString(oDevice)
 End Function
 
 Public Function Quote(sText As String) As String
@@ -1008,52 +1036,6 @@ Public Function GetSpecialFolder(ByVal eType As UcsOpenSaveDirectoryType) As Str
     GetSpecialFolder = String$(1000, 0)
     Call SHGetFolderPath(0, eType, 0, 0, GetSpecialFolder)
     GetSpecialFolder = Left$(GetSpecialFolder, InStr(GetSpecialFolder, vbNullChar) - 1)
-End Function
-
-Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
-    Const KEY_PATTERN   As String = "^([^=]+)="
-    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
-    Dim sKey            As String
-    Dim sValue          As String
-    Dim oRetVal         As Object
-    
-    Do
-        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
-        If LenB(sKey) = 0 Then
-            Exit Do
-        End If
-        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
-        If Len(sValue) >= 2 Then
-            If Left$(sValue, 1) = Right$(sValue, 1) Then
-                Select Case Asc(sValue)
-                Case 34, 39 '--- ' and "
-                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
-                End Select
-            End If
-        End If
-        JsonItem(oRetVal, sKey) = sValue
-    Loop
-    Set ParseDeviceString = oRetVal
-End Function
-
-Public Function ToDeviceString(oDevice As Object) As String
-    Dim vKey            As Variant
-    Dim sValue          As String
-    Dim sRetVal         As String
-    
-    For Each vKey In JsonKeys(oDevice)
-        '--- try to escape value
-        sValue = C_Str(JsonItem(oDevice, vKey))
-        If InStr(sValue, ";") > 0 Then
-            If InStr(sValue, """") = 0 Then
-                sValue = """" & sValue & """"
-            Else
-                sValue = "'" & sValue & "'"
-            End If
-        End If
-        sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & ";", vbNullString) & vKey & "=" & sValue
-    Next
-    ToDeviceString = sRetVal
 End Function
 
 Property Get SystemIconFont() As StdFont

@@ -486,6 +486,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         Set m_oAsyncConn = New ADODB.Connection
         m_oAsyncConn.CursorLocation = adUseClient
         m_oAsyncConn.Open sLocalConnStr
+        m_oAsyncConn.CommandTimeout = m_oAsyncConn.ConnectionTimeout * 2
     End Select
     DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
     '--- success
@@ -731,55 +732,16 @@ EH:
 End Function
 
 Private Function pvGetConnProp(ByVal sConnStr As String, sProp As String) As String
-    Const FUNC_NAME     As String = "pvGetConnProp"
-    Dim vElem           As Variant
-    
-    On Error GoTo EH
-    For Each vElem In Split(sConnStr, ";")
-        If LCase$(Left$(vElem, Len(sProp) + 1)) = LCase$(sProp & "=") Then
-            pvGetConnProp = Mid$(vElem, InStr(vElem, "=") + 1)
-            Exit Function
-        End If
-    Next
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
+    pvGetConnProp = C_Str(JsonItem(ParseConnectString(sConnStr), sProp))
 End Function
 
 Private Function pvSetConnProp(ByVal sConnStr As String, sProp As String, sValue As String) As String
-    Const FUNC_NAME     As String = "pvSetConnProp"
-    Dim vSplit          As Variant
-    Dim lIdx            As Long
+    Dim oMap            As Object
     
-    On Error GoTo EH
-    vSplit = Split(sConnStr, ";")
-    For lIdx = 0 To UBound(vSplit)
-        If LCase$(Left$(vSplit(lIdx), Len(sProp) + 1)) = LCase$(sProp & "=") Then
-            If LenB(sValue) <> 0 Then
-                vSplit(lIdx) = sProp & "=" & sValue
-            Else
-                vSplit(lIdx) = vbNullString
-            End If
-            Exit For
-        End If
-    Next
-    If lIdx > UBound(vSplit) Then
-        pvSetConnProp = sConnStr
-        If LenB(sValue) <> 0 Then
-            pvSetConnProp = pvSetConnProp & IIf(LenB(pvSetConnProp) <> 0 And Right$(pvSetConnProp, 1) <> ";", ";", vbNullString) & sProp & "=" & sValue
-        End If
-    Else
-        For lIdx = 0 To UBound(vSplit)
-            If LenB(vSplit(lIdx)) <> 0 Then
-                pvSetConnProp = pvSetConnProp & IIf(LenB(pvSetConnProp) <> 0, ";", vbNullString) & vSplit(lIdx)
-            End If
-        Next
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
+    Set oMap = ParseConnectString(sConnStr)
+    JsonItem(oMap, sProp) = Zn(sValue, Empty)
+    pvSetConnProp = ToConnectString(oMap)
 End Function
-
 '=========================================================================
 ' Base class events
 '=========================================================================
