@@ -207,7 +207,6 @@ SET         NOCOUNT ON
 DECLARE     @RetVal     INT
             , @SQL      NVARCHAR(MAX)
             , @MsgType  SYSNAME
-            , @Lifetime INT
             , @Attempt  INT
             , @IsAck    INT
 
@@ -215,7 +214,6 @@ SELECT      @QueueName = COALESCE(@QueueName, N'UcsFpInitiator' + N'Queue/' + CO
             , @SvcName = COALESCE(@SvcName, N'UcsFpInitiator' + N'Service/' + CONVERT(NVARCHAR(50), @@SPID))
             , @Timeout = COALESCE(@Timeout, 30000)
             , @Retry = COALESCE(@Retry, 3)
-            , @Lifetime = 5 + (@Retry * @Timeout + 999) / 1000 -- 30 sec -> 2 min
             , @Attempt = 0
             , @IsAck = 0
             , @RetVal = 0
@@ -235,7 +233,7 @@ BEGIN
                                     BEGIN DIALOG CONVERSATION @Handle
                                     FROM        SERVICE @SvcName
                                     TO          SERVICE @TargetSvc, N'CURRENT DATABASE'
-                                    WITH        ENCRYPTION = OFF, LIFETIME = @Lifetime
+                                    WITH        ENCRYPTION = OFF
                         END
 
                         IF          @Request IS NULL
@@ -295,7 +293,7 @@ BEGIN
             BEGIN CATCH
                         --PRINT { fn CURRENT_TIMESTAMP } + ': ERROR_MESSAGE=' + ERROR_MESSAGE()
 
-                        IF          ERROR_NUMBER() <> 8426  -- The conversation handle "%s" is not found.
+                        IF          @Handle IS NOT NULL AND ERROR_NUMBER() <> 8426  -- The conversation handle "%s" is not found.
                         BEGIN
                                     ; END       CONVERSATION @Handle
                         END
