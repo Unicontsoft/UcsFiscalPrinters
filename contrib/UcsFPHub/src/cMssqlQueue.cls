@@ -48,8 +48,10 @@ Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
 Private m_pTimeoutTimer             As IUnknown
 Attribute m_pTimeoutTimer.VB_VarHelpID = -1
-Private WithEvents m_oConn          As ADODB.Connection
+Private m_oConn                     As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
+Private WithEvents m_oAsyncConn     As ADODB.Connection
+Attribute m_oAsyncConn.VB_VarHelpID = -1
 Private m_vPrinters                 As Variant
 Private m_sQueueName                As String
 Private m_lQueueTimeout             As Long
@@ -87,11 +89,12 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
+Public Function Init(oConn As Object, oAsyncConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
     Set m_oConn = oConn
+    Set m_oAsyncConn = oAsyncConn
     m_vPrinters = vPrinters
     m_sQueueName = sQueueName
     m_lQueueTimeout = lQueueTimeout
@@ -115,6 +118,9 @@ Private Function pvQueueSetup() As Boolean
     Dim vElem           As Variant
     
     On Error GoTo EH
+    '-- setup initiator queue
+    m_oConn.usp_sys_ServiceBrokerSetupService
+    '-- setup target queue
     lPos = InStr(m_sQueueName, "/")
     m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_EXISTING"
     lIdx = lIdx + 1
@@ -136,7 +142,7 @@ Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, -1), , adAsyncExecute Or adAsyncFetch
+    m_oAsyncConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, -1), , adAsyncExecute Or adAsyncFetch
     '--- success
     pvQueueLoopAsync = True
     Exit Function
@@ -149,8 +155,8 @@ Private Function pvQueueTerminate() As Boolean
     Dim lPos            As Long
     
     On Error GoTo EH
-    If pvIsConnBusy(m_oConn) Then
-        m_oConn.Cancel
+    If pvIsConnBusy(m_oAsyncConn) Then
+        m_oAsyncConn.Cancel
     End If
     If pvIsConnAlive(m_oConn) Then
         lPos = InStr(m_sQueueName, "/")
@@ -207,6 +213,7 @@ End Function
 Public Function TimerProc() As Long
     Const FUNC_NAME     As String = "TimerProc"
     Dim oConn           As Object
+    Dim oAsyncConn      As Object
     
     On Error GoTo EH
     If pvIsQueueAlive(m_oConn) Then
@@ -215,12 +222,13 @@ Public Function TimerProc() As Long
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
     pvQueueTerminate
-    If m_oCallback.frReopenConn(oConn) Then
+    If m_oCallback.frReopenConn(oConn, oAsyncConn) Then
         Set m_oConn = oConn
+        Set m_oAsyncConn = oAsyncConn
         pvQueueLoopAsync
     End If
-    pvRestartTimer
 QH:
+    pvRestartTimer
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -243,8 +251,8 @@ End Sub
 ' Events
 '=========================================================================
 
-Private Sub m_oConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
-    Const FUNC_NAME     As String = "m_oConn_ExecuteComplete"
+Private Sub m_oAsyncConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
+    Const FUNC_NAME     As String = "m_oAsyncConn_ExecuteComplete"
     Static bHere        As Boolean
     Dim sHandle         As String
     Dim sResponse       As String

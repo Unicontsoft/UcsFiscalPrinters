@@ -206,7 +206,7 @@ End Function
 
 Private Function pvInitMssqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMssqlQueue) As cMssqlQueue
     Set RetVal = New cMssqlQueue
-    If RetVal.Init(m_oConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oAsyncConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMssqlQueue = RetVal
     End If
@@ -483,11 +483,11 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
             m_sSqlInstance = .Fields.Item(0).Value
             m_sSqlDatabase = .Fields.Item(1).Value
         End With
-        Set m_oAsyncConn = New ADODB.Connection
-        m_oAsyncConn.CursorLocation = adUseClient
-        m_oAsyncConn.Open sLocalConnStr
-        m_oAsyncConn.CommandTimeout = m_oAsyncConn.ConnectionTimeout * 2
     End Select
+    Set m_oAsyncConn = New ADODB.Connection
+    m_oAsyncConn.CursorLocation = adUseClient
+    m_oAsyncConn.Open sLocalConnStr
+    m_oAsyncConn.CommandTimeout = m_oAsyncConn.ConnectionTimeout * 2
     DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
     '--- success
     pvOpenConn = True
