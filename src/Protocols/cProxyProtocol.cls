@@ -244,7 +244,13 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
+Public Function PrintServiceDeposit( _
+            OperatorCode As String, _
+            OperatorPassword As String, _
+            ByVal Amount As Double, _
+            Optional ReceiptNo As String, _
+            Optional ReceiptDate As Date, _
+            Optional ReceiptAmount As Double) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
     Dim vRetVal(0 To 2) As Double
     Dim oRequest        As Object
@@ -274,6 +280,7 @@ Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As 
         m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
         ReceiptNo = m_sLastReceiptNo
         ReceiptDate = m_dLastReceiptDate
+        ReceiptAmount = m_dblLastReceiptAmount
     End If
     vRetVal(0) = C_Dbl(JsonItem(oResponse, "TotalAvailable"))
     vRetVal(1) = C_Dbl(JsonItem(oResponse, "TotalDeposits"))
@@ -714,7 +721,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
 End Function
 
 Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double) As Variant
-    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, Amount, ReceiptNo, ReceiptDate)
+    IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, Amount, ReceiptNo, ReceiptDate, ReceiptAmount)
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
