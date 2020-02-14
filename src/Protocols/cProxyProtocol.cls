@@ -53,6 +53,7 @@ Private m_uConfig                   As UcsConfigValues
 Private m_uRemote                   As UcsParsedUrl
 Private m_sLastReceiptNo            As String
 Private m_dLastReceiptDate          As Date
+Private m_dblLastReceiptAmount      As Double
 Private m_sLastInvoiceNo            As String
 Private m_sResumeToken              As String
 
@@ -270,6 +271,7 @@ Public Function PrintServiceDeposit(OperatorCode As String, OperatorPassword As 
     If Not IsEmpty(JsonItem(oResponse, "ReceiptNo")) Then
         m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
         m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+        m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
         ReceiptNo = m_sLastReceiptNo
         ReceiptDate = m_dLastReceiptDate
     End If
@@ -299,6 +301,7 @@ Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
     End If
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
     '--- success
     PrintDuplicate = True
 QH:
@@ -324,6 +327,7 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     End If
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
 QH:
     Exit Function
 EH:
@@ -349,6 +353,7 @@ Public Function PrintDailyReport(ByVal IsClear As Boolean, ByVal ReportType As U
     End If
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
 QH:
     Exit Function
 EH:
@@ -599,6 +604,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     End If
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
     m_sLastInvoiceNo = C_Str(JsonItem(oResponse, "LastInvoiceNo"))
     m_sResumeToken = C_Str(JsonItem(oResponse, "ResumeToken"))
     '--- success
@@ -707,7 +713,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double) As Variant
     IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, OperatorPassword, Amount, ReceiptNo, ReceiptDate)
 End Function
 
@@ -725,12 +731,13 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = True
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional InvoiceNo As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double, Optional InvoiceNo As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
         With m_uPrintData.ExecCtx
             ReceiptNo = m_sLastReceiptNo
             ReceiptDate = m_dLastReceiptDate
+            ReceiptAmount = m_dblLastReceiptAmount
             InvoiceNo = m_sLastInvoiceNo
         End With
     End If

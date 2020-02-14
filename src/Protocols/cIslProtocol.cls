@@ -1035,7 +1035,8 @@ Public Function PrintServiceDeposit( _
             OperatorCode As String, _
             ByVal Amount As Double, _
             Optional ReceiptNo As String, _
-            Optional ReceiptDate As Date) As Variant
+            Optional ReceiptDate As Date, _
+            Optional ReceiptAmount As Double) As Variant
     Const FUNC_NAME     As String = "PrintServiceDeposit"
     Const CONF_NAME     As String = FUNC_NAME
     Dim vSplit          As Variant
@@ -1073,6 +1074,7 @@ Public Function PrintServiceDeposit( _
     End If
     If bPrint Then
         ReceiptNo = GetLastReceiptNo()
+        ReceiptAmount = Amount
         If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
             GoTo QH
@@ -2485,6 +2487,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
                     End If
                     uCtx.ReceiptDate = GetClock()
+                    uCtx.ReceiptAmount = C_Dbl(At(vSplit, lAmountIndex))
+                    Select Case uRow(0).InitReceiptType
+                    Case ucsFscRcpReversal, ucsFscRcpCreditNote
+                        uCtx.ReceiptAmount = -uCtx.ReceiptAmount
+                    End Select
                     If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                         pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
                     Else
@@ -2997,7 +3004,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double) As Variant
     IDeviceProtocol_PrintServiceDeposit = PrintServiceDeposit(OperatorCode, Amount, ReceiptNo, ReceiptDate)
 End Function
 
@@ -3013,12 +3020,13 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional InvoiceNo As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double, Optional InvoiceNo As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
         With m_uPrintData.ExecCtx
             ReceiptNo = .ReceiptNo
             ReceiptDate = .ReceiptDate
+            ReceiptAmount = .ReceiptAmount
             InvoiceNo = .InvoiceNo
         End With
     End If

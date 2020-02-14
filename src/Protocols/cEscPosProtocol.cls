@@ -916,7 +916,7 @@ Private Function IDeviceProtocol_CancelReceipt() As Boolean
     IDeviceProtocol_CancelReceipt = CancelReceipt()
 End Function
 
-Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Variant
+Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, OperatorPassword As String, ByVal Amount As Double, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double) As Variant
     
 End Function
 
@@ -932,7 +932,7 @@ Private Function IDeviceProtocol_Disconnect() As Boolean
     IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
-Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional InvoiceNo As String) As Boolean
+Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double, Optional InvoiceNo As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         IDeviceProtocol_PrintReceipt = pvPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
     End If

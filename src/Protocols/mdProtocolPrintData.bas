@@ -122,6 +122,7 @@ Public Type UcsPpdExecuteContext
     Row                 As Long
     ReceiptNo           As String
     ReceiptDate         As Date
+    ReceiptAmount       As Double
     InvoiceNo           As String
 End Type
 

@@ -301,6 +301,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim eReceiptType    As UcsFiscalReceiptTypeEnum
     Dim sReceiptNo      As String
     Dim dReceiptDate    As Date
+    Dim dblReceiptAmount As Double
     Dim sInvoiceNo      As String
     
     On Error GoTo EH
@@ -381,7 +382,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                 End Select
             End With
         Next
-        If Not oFP.PrintReceipt(sResumeToken, sReceiptNo, dReceiptDate, sInvoiceNo) Then
+        If Not oFP.PrintReceipt(sResumeToken, sReceiptNo, dReceiptDate, dblReceiptAmount, sInvoiceNo) Then
             sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
             DebugLog FUNC_NAME, "Not oFP.EndReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
             GoTo QH
@@ -409,6 +410,9 @@ ReturnReceiptInfo:
     JsonItem(oRetVal, "ReceiptDateTime") = dReceiptDate
     JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
     JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
+    If Abs(dblReceiptAmount) > DBL_EPSILON Then
+        JsonItem(oRetVal, "ReceiptAmount") = dblReceiptAmount
+    End If
     Select Case eReceiptType
     Case ucsFscRcpInvoice, ucsFscRcpCreditNote
         If LenB(sInvoiceNo) = 0 Then
@@ -709,13 +713,14 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
     Dim vTotals         As Variant
     Dim sReceiptNo      As String
     Dim dReceiptDate    As Date
+    Dim dblReceiptAmount As Double
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
     vTotals = oFP.PrintServiceDeposit(C_Str(JsonItem(oJson, "Operator/Code")), C_Str(JsonItem(oJson, "Operator/Password")), _
-        C_Dbl(JsonItem(oJson, "Amount")), sReceiptNo, dReceiptDate)
+        C_Dbl(JsonItem(oJson, "Amount")), sReceiptNo, dReceiptDate, dblReceiptAmount)
     If Not IsArray(vTotals) Then
         sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
         DebugLog FUNC_NAME, "Not IsArray(vTotals), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
@@ -734,6 +739,9 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         JsonItem(oRetVal, "ReceiptDateTime") = dReceiptDate
         JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
         JsonItem(oRetVal, "FiscalMemoryNo") = Trim$(oFP.GetFiscalMemoryNo())
+        If Abs(dblReceiptAmount) > DBL_EPSILON Then
+            JsonItem(oRetVal, "ReceiptAmount") = dblReceiptAmount
+        End If
     End If
     JsonItem(oRetVal, "TotalAvailable") = vTotals(0)
     JsonItem(oRetVal, "TotalDeposits") = vTotals(1)

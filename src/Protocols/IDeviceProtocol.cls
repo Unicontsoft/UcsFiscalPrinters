@@ -336,6 +336,7 @@ End Function
 ' @param `ResumeToken`      [in, optional]  if previous invocation failed can be used to resume printing on the same line
 ' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
 ' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
+' @param `ReceiptAmount`    [out, optional] total amount of the receipt just printed
 ' @param `InvoiceNo`        [out, optional] invoice number of the extended receipt printed
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark All previously added payments must add up to enough total amount so to be able to pay out all the PLU rows
@@ -345,6 +346,7 @@ Public Function PrintReceipt( _
             Optional ResumeToken As String, _
             Optional ReceiptNo As String, _
             Optional ReceiptDate As Date, _
+            Optional ReceiptAmount As Double, _
             Optional InvoiceNo As String) As Boolean
 
 End Function
@@ -423,6 +425,7 @@ End Function
 ' @param `Amount`           [input] positive for debit, negative for credit, 0.00 for info only
 ' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
 ' @param `ReceiptDate`      [out, optional] date/time of the receipt just printed
+' @param `ReceiptAmount`    [out, optional] total amount of the receipt just printed
 ' @return Array of doubles with (TotalAvailable, TotalDebit, TotalCredit)
 '
 Public Function PrintServiceDeposit( _
@@ -430,7 +433,8 @@ Public Function PrintServiceDeposit( _
             OperatorPassword As String, _
             ByVal Amount As Double, _
             Optional ReceiptNo As String, _
-            Optional ReceiptDate As Date) As Variant
+            Optional ReceiptDate As Date, _
+            Optional ReceiptAmount As Double) As Variant
     
 End Function
 
