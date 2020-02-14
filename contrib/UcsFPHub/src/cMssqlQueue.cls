@@ -136,7 +136,7 @@ Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, m_lQueueTimeout), , adAsyncExecute Or adAsyncFetch
+    m_oConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, -1), , adAsyncExecute Or adAsyncFetch
     '--- success
     pvQueueLoopAsync = True
     Exit Function
@@ -164,7 +164,7 @@ EH:
     PrintError FUNC_NAME
 End Function
 
-Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
+Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
     With cn.Execute("SELECT @@SERVERNAME, DB_NAME()")
         m_sSqlInstance = .Fields.Item(0).Value
@@ -175,9 +175,32 @@ Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
 QH:
 End Function
 
-Public Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
+Private Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
     pvIsConnBusy = (cn.State And adStateExecuting) <> 0
+QH:
+End Function
+
+Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
+    Dim oCmd            As ADODB.Command
+    Dim lPos            As Long
+    
+    On Error GoTo QH
+    Set oCmd = New ADODB.Command
+    oCmd.CommandText = "usp_sys_ServiceBrokerSend"
+    oCmd.CommandType = adCmdStoredProc
+    oCmd.Parameters.Append oCmd.CreateParameter("RetVal", adInteger, adParamReturnValue)
+    oCmd.Parameters.Append oCmd.CreateParameter("Request", adVarWChar, adParamInput, 1000)
+    oCmd.Parameters.Append oCmd.CreateParameter("Response", adVarWChar, adParamOutput, 1000)
+    oCmd.Parameters.Append oCmd.CreateParameter("TargetSvc", adVarWChar, adParamInput, 120)
+    oCmd.Parameters("Request").Value = "__PING__"
+    lPos = InStr(m_sQueueName, "/")
+    oCmd.Parameters("TargetSvc").Value = STR_SVC_PREFIX & Mid$(m_sQueueName, lPos)
+    Set oCmd.ActiveConnection = cn
+    oCmd.Execute
+    If oCmd.Parameters("RetVal").Value = 0 Then
+        pvIsQueueAlive = (oCmd.Parameters("Response").Value = "__PONG__")
+    End If
 QH:
 End Function
 
@@ -186,14 +209,18 @@ Public Function TimerProc() As Long
     Dim oConn           As Object
     
     On Error GoTo EH
+    If pvIsQueueAlive(m_oConn) Then
+        GoTo QH
+    End If
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
     pvQueueTerminate
     If m_oCallback.frReopenConn(oConn) Then
         Set m_oConn = oConn
         pvQueueLoopAsync
     End If
     pvRestartTimer
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -205,7 +232,7 @@ Private Sub pvRestartTimer()
     
     On Error GoTo EH
     '--- start heart-beat timer
-    Set m_pTimeoutTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout + 3000)
+    Set m_pTimeoutTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerProc, Delay:=m_lQueueTimeout)
     Exit Sub
 EH:
     PrintError FUNC_NAME
