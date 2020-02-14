@@ -188,26 +188,62 @@ QH:
 End Function
 
 Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
-    Dim oCmd            As ADODB.Command
     Dim lPos            As Long
+    Dim sHandle         As String
     
     On Error GoTo QH
-    Set oCmd = New ADODB.Command
-    oCmd.CommandText = "usp_sys_ServiceBrokerSend"
-    oCmd.CommandType = adCmdStoredProc
-    oCmd.Parameters.Append oCmd.CreateParameter("RetVal", adInteger, adParamReturnValue)
-    oCmd.Parameters.Append oCmd.CreateParameter("Request", adVarWChar, adParamInput, 1000)
-    oCmd.Parameters.Append oCmd.CreateParameter("Response", adVarWChar, adParamOutput, 1000)
-    oCmd.Parameters.Append oCmd.CreateParameter("TargetSvc", adVarWChar, adParamInput, 120)
-    oCmd.Parameters("Request").Value = "__PING__"
     lPos = InStr(m_sQueueName, "/")
-    oCmd.Parameters("TargetSvc").Value = STR_SVC_PREFIX & Mid$(m_sQueueName, lPos)
-    Set oCmd.ActiveConnection = cn
-    oCmd.Execute
-    If oCmd.Parameters("RetVal").Value = 0 Then
-        pvIsQueueAlive = (oCmd.Parameters("Response").Value = "__PONG__")
-    End If
+    With pvPrepareServiceBrokerSendCommand(cn, Request:="__PING__", TargetSvc:=STR_SVC_PREFIX & Mid$(m_sQueueName, lPos))
+        .Execute
+        If .Parameters("RetVal").Value <> 0 Then
+            GoTo QH
+        End If
+        If .Parameters("Response").Value <> "__PONG__" Then
+            GoTo QH
+        End If
+        sHandle = .Parameters("Handle").Value
+    End With
+    '--- close conversation
+    With pvPrepareServiceBrokerSendCommand(cn, Handle:=sHandle)
+        .Execute
+    End With
+    '--- success
+    pvIsQueueAlive = True
 QH:
+End Function
+
+Private Function pvPrepareServiceBrokerSendCommand( _
+            cn As ADODB.Connection, _
+            Optional Request As String, _
+            Optional TargetSvc As String, _
+            Optional Handle As String) As ADODB.Command
+    Const FUNC_NAME     As String = "pvPrepareServiceBrokerSendCommand"
+    
+    On Error GoTo EH
+    Set pvPrepareServiceBrokerSendCommand = New ADODB.Command
+    With pvPrepareServiceBrokerSendCommand
+        .CommandText = "usp_sys_ServiceBrokerSend"
+        .CommandType = adCmdStoredProc
+        .Parameters.Append .CreateParameter("RetVal", adInteger, adParamReturnValue)
+        .Parameters.Append .CreateParameter("Request", adVarWChar, adParamInput, 1000)
+        .Parameters.Append .CreateParameter("Response", adVarWChar, adParamOutput, 1000)
+        .Parameters.Append .CreateParameter("TargetSvc", adVarWChar, adParamInput, 120)
+        .Parameters.Append .CreateParameter("Handle", adGUID, adParamInputOutput)
+        If LenB(Request) <> 0 Then
+            .Parameters("Request").Value = Request
+        End If
+        If LenB(TargetSvc) <> 0 Then
+            .Parameters("TargetSvc").Value = TargetSvc
+        End If
+        If LenB(Handle) <> 0 Then
+            .Parameters("Handle").Value = Handle
+        End If
+        Set .ActiveConnection = cn
+        .CommandTimeout = 3
+    End With
+    Exit Function
+EH:
+    PrintError FUNC_NAME
 End Function
 
 Public Function TimerProc() As Long
