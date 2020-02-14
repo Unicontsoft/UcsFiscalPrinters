@@ -373,7 +373,7 @@ Name            | Value | Description
 ----            | ----- | -----------
 `Ready`         | 0     | The device is ready to accept commands
 `Busy`          | 1     | The device is busy printing
-`Failed`        | 2     | There is an error accessing/operating the the
+`Failed`        | 2     | An error occurred while accessing/operating the device
 
 
 #### `POST` `/printers/:printer_id/receipt`
