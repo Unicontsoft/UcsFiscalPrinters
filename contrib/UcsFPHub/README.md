@@ -72,7 +72,7 @@ Here is a sample settings file:
 }
 ```
 
-`%VAR_NAME%` placeholders are expanded with values from current process environment. `Printers` object defines available fiscal devices while `Endpoints` array defines where the service will listen for connections from. `Environment` object can be used to setup values in current services environment.
+`%VAR_NAME%` placeholders are expanded with values from current process environment. The `Printers` collection lists available fiscal devices while the `Endpoints` array defines where the service will be accessible from for new client connections. The `Environment` collection can be conveniently used to setup values in the service's process environment.
 
 Currently the `UcsFPHub` service supports these endpoint bindings:
 
@@ -85,43 +85,44 @@ Binding                 | Description
 
 With this flexible configuration options it is possible to setup none, one or several `RestHttp` endpoints to listen and be accessible on different IP addresses/TCP ports. Similarly you can setup several `MssqlServiceBroker` queues in different SQL Server databases to simultaneously share all (or some) locally attached fiscal devices.
 
-Currently the `UcsFPHub` service also checks these environment variables:
+Currently the `UcsFPHub` service checks these environment variables:
 
-Variable                        | Description
-----                            | -----------
-`_UCS_FISCAL_PRINTER_LOG`       | Set to `c:\path\to\UcsFP.log` to log client connections/requests and communication with fiscal devices
-`_UCS_FISCAL_PRINTER_DATA_DUMP` | Set to `1` to include data transfer dump in `_UCS_FISCAL_PRINTER_LOG`
-`_UCS_SSH_PLINK`                | Set to full pathname to `plink.exe` to spawn when setting up SSH tunnels
-`_UCS_RC4_SALT`                 | Set to correct string to decrypt passwords in external .ini files
-`_UCS_FISCAL_PRINTER_USE_XMLHTTP` | Controls if PROXY protocol uses `MSXML2.XMLHTTP` or `MSXML2.ServerXMLHTTP` for http requests
+Variable                          | Description
+----                              | -----------
+`_UCS_FISCAL_PRINTER_LOG`         | Set to `c:\path\to\UcsFP.log` to log client connections/requests and communication with fiscal devices
+`_UCS_FISCAL_PRINTER_DATA_DUMP`   | Set to `1` to include data transfer dump in `_UCS_FISCAL_PRINTER_LOG`
+`_UCS_FISCAL_PRINTER_FLUSH_LOG`   | Set to `1` to force flush log file to disk after each append
+`_UCS_FISCAL_PRINTER_USE_XMLHTTP` | Set to `1` for PROXY protocol to use `MSXML2.XMLHTTP` instead of `MSXML2.ServerXMLHTTP` for http requests
+`_UCS_SSH_PLINK`                  | Set to full pathname to `plink.exe` to spawn when setting up SSH tunnels
+`_UCS_RC4_SALT`                   | Set to correct string to decrypt passwords in external .ini files
 
-### Device string
+### Device strings
 
-The device strings are used to configure the connection used for communication with the fiscal device through a list of `Key=Value` pairs separated by `;` delimiter very similar to database connection strings.
+The device strings are meant to configure the connection that is used for communication with the fiscal device. Each device string is a list of entries (`Key=Value` pairs) separated by a semi-colon which a very similar concept to a database connection string.
 
-Here is a (short) list of supported entries, all of which are optional unless marked required:
+Here is a short list of entries supported, all of which are optional unless marked required:
 
 Key              | Type   | Protocol | Description
-----             | ----   | ------- | -----------
-`Protocol`       | string |         | (Required) See [**Available protocols**](#available-protocols) below
-`Port`           | string |         | Serial port the device is attached to (e.g. `COM1`)
-`Speed`          | number |         | Baud rate of serial port used (e.g. `9600`)
-`Persistent`     | bool   |         | Keep serial port open after operation complete (default `No`)
-`IP`             | address |        | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
-`Port`           | number |         | TCP port to connect to (e.g. `4999`)
-`RowChars`       | number |         | Total number of characters printable on paper roll (default to auto-detected)
-`CommentChars`   | numbet |         | Maximum number of characters available for a comment row (default to auto-detected)
-`ItemChars`      | number |         | Maximum number of characters available for product name (default to auto-detected)
-`MinDiscount`    | number |         | Minimum percent discount (default `-100`)
-`MaxDiscount`    | number |         | Maximum percent discount (default `100`)
-`MaxReceiptRows` | number |         | Max number of rows on the receipt supported
-`CodePage`       | number | ESC/POS | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
-`MaxPaymentLen`  | number | Datecs  | Max number of symbols in a payment name (default `16`)
-`PingTimeout`    | number | Tremol  | Timeout for replay from fast online check (default `200` ms)
-`DetailedReceipt`| bool   | Tremol  | For each PLU print quantity, price and  total on separate lines like on invoices (default `Off`)
-`PrintVat`       | bool   | Tremol  | Include total VAT by tax groups in footer like on invoices (default `Off`)
-`DelayPrint`     | bool   | Tremol  | Spool receipt data to device before printing (default `On`)
-`BufferPrint`    | bool   | Tremol  | Buffer receipt data (default `Off`)
+----             | ----   | -------  | -----------
+`Protocol`       | string |          | (Required) See [**Available protocols**](#available-protocols) below
+`Port`           | string |          | Serial port the device is attached to (e.g. `COM1`)
+`Speed`          | number |          | Baud rate of serial port used (e.g. `9600`)
+`Persistent`     | bool   |          | Keep serial port open after operation complete (default `No`)
+`IP`             | address |         | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
+`Port`           | number |          | TCP port to connect to (e.g. `4999`)
+`RowChars`       | number |          | Total number of characters printable on paper roll (default to auto-detected)
+`CommentChars`   | number |          | Maximum number of characters available for a comment row (default to auto-detected)
+`ItemChars`      | number |          | Maximum number of characters available for product name (default to auto-detected)
+`MinDiscount`    | number |          | Minimum percent discount (default `-100`)
+`MaxDiscount`    | number |          | Maximum percent discount (default `100`)
+`MaxReceiptRows` | number |          | Max number of rows on the receipt supported
+`CodePage`       | number | ESC/POS  | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
+`MaxPaymentLen`  | number | Datecs   | Max number of symbols in a payment name (default `16`)
+`PingTimeout`    | number | Tremol   | Timeout for replay from fast online check (default `200` ms)
+`DetailedReceipt`| bool   | Tremol   | For each PLU print quantity, price and  total on separate lines like on invoices (default `Off`)
+`PrintVat`       | bool   | Tremol   | Include total VAT by tax groups in footer like on invoices (default `Off`)
+`DelayPrint`     | bool   | Tremol   | Spool receipt data to device before printing (default `On`)
+`BufferPrint`    | bool   | Tremol   | Buffer receipt data (default `Off`)
 
 ### Available protocols
 
@@ -140,6 +141,6 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 
 ### REST service protocol description
 
-All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Printers are addressed by `:printer_id` which can either be the serial number as reported by the fiscal device or an alias assigned in the service configuration.
+All URLs are case-insensitive i.e. `/printers`, `/Printers` and `/PRINTERS` are the same address. Printer IDs are case-insensitive too. Each fiscal device is identified by `:printer_id` which can be either its serial number as reported by the fiscal device or an alias assigned in the service configuration.
 
 See [`PROTOCOL.md`](PROTOCOL.md) in root on the repo for each REST service endpoint description and sample usage.
