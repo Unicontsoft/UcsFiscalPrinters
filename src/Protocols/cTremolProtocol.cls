@@ -397,7 +397,9 @@ Property Get IsEcr() As Boolean
         pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
             "Timeout", lTimeout, 100, _
             "TypeIndex", lTypeIndex, 0
-        vInfoVersion = Split(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam), DEF_SEP)
+        If WaitDevice() Then
+            vInfoVersion = Split(pvTransmitCommand(m_oConnector, lTimeout, eCmd, sParam), DEF_SEP)
+        End If
         m_uConfig.IsEcr = IIf(At(vInfoVersion, lTypeIndex) = "1", vbTrue, vbFalse)
     End If
     IsEcr = (m_uConfig.IsEcr = vbTrue)
@@ -1096,7 +1098,9 @@ Public Function GetLastReceiptNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsZekCmdInfoTransaction, sParam, vbNullString, _
         "Index", lIndex, 19
-    vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
+    If WaitDevice() Then
+        vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
+    End If
     '--- success
     GetLastReceiptNo = RTrim$(At(vSplit, lIndex))
 QH:
@@ -1116,7 +1120,9 @@ Public Function GetLastInvoiceNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoInvoiceNo", eCmd, ucsZekCmdInfoInvoiceNo, sParam, vbNullString, _
         "Index", lIndex, 0
-    vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
+    If WaitDevice() Then
+        vSplit = Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP)
+    End If
     If Not IsNumeric(At(vSplit, lIndex)) Then
         GoTo QH
     End If
