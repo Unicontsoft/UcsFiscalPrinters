@@ -1417,7 +1417,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsIslCommandsEnum
@@ -1433,10 +1433,9 @@ Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
     ElseIf Memory(ucsIslFmeMemoryError) Then
         pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
     End If
-    CurrentStatus = m_uPrintData.LastError
+    StatusText = m_uPrintData.LastError
     pvSetLastError vbNullString
-    '--- success
-    GetDeviceStatus = True
+    GetDeviceStatus = IIf(LenB(StatusText) <> 0, ucsFscStaFailed, ucsFscStaReady)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -3065,8 +3064,8 @@ Private Function IDeviceProtocol_GetDeviceProtocol() As String
     IDeviceProtocol_GetDeviceProtocol = GetDeviceProtocol()
 End Function
 
-Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean
-    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(CurrentStatus)
+Private Function IDeviceProtocol_GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(StatusText)
 End Function
 
 Private Function IDeviceProtocol_GetFiscalMemoryNo() As String

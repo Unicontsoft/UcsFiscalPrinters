@@ -1377,15 +1377,21 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
     WaitDevice -1, CheckFastStatus:=True
-    CurrentStatus = m_uPrintData.LastError
+    StatusText = m_uPrintData.LastError
     pvSetLastError vbNullString
-    '--- success
-    GetDeviceStatus = True
+    Select Case StatusText
+    Case vbNullString
+        GetDeviceStatus = ucsFscStaReady
+    Case pvInternal(ucsErrDeviceNotReady)
+        GetDeviceStatus = ucsFscStaBusy
+    Case Else
+        GetDeviceStatus = ucsFscStaFailed
+    End Select
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2440,8 +2446,8 @@ Private Function IDeviceProtocol_GetDeviceFirmware() As String
     IDeviceProtocol_GetDeviceFirmware = GetDeviceFirmware()
 End Function
 
-Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean
-    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(CurrentStatus)
+Private Function IDeviceProtocol_GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(StatusText)
 End Function
 
 Private Function IDeviceProtocol_GetFiscalMemoryNo() As String

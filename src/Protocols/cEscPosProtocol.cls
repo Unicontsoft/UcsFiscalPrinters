@@ -445,23 +445,25 @@ Public Function GetDeviceModel() As String
     GetDeviceModel = Trim$(Mid$(sModel, 2))
 End Function
 
-Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Dim sCmd            As String
     Dim baBuffer()      As Byte
     
     sCmd = STR_GS & "r" & Chr$(1)
     If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
-        m_uPrintData.LastError = m_oConnector.GetLastError()
+        StatusText = m_oConnector.GetLastError()
+        GetDeviceStatus = ucsFscStaFailed
         GoTo QH
     End If
     If Not m_oConnector.ReadData(baBuffer, m_lTimeout) Then
-        m_uPrintData.LastError = m_oConnector.GetLastError()
+        StatusText = m_oConnector.GetLastError()
+        GetDeviceStatus = ucsFscStaFailed
         GoTo QH
     End If
-    CurrentStatus = vbNullString
-    '--- success
-    GetDeviceStatus = True
+    StatusText = vbNullString
+    GetDeviceStatus = ucsFscStaReady
 QH:
+    pvSetLastError vbNullString
 End Function
 
 '= private ===============================================================
@@ -976,8 +978,8 @@ Private Function IDeviceProtocol_GetDeviceFirmware() As String
     
 End Function
 
-Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean
-    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(CurrentStatus)
+Private Function IDeviceProtocol_GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(StatusText)
 End Function
 
 Private Function IDeviceProtocol_GetFiscalMemoryNo() As String

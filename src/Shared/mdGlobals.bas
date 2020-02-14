@@ -192,6 +192,7 @@ Public Const FORMAT_BASE_3              As String = "0.000"
 Public Const STR_CONNECTOR_ERRORS       As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
 Public Const vbLogEventTypeDebug        As Long = vbLogEventTypeInformation + 1
 Public Const vbLogEventTypeDataDump     As Long = vbLogEventTypeInformation + 2
+Public Const STR_ENUM_STATUS_CODE       As String = "ready|busy|failed"
 
 Private m_sDecimalSeparator         As String
 Private m_oConfig                   As Object
@@ -461,7 +462,7 @@ Property Get Logger() As cFileLogger
         End If
         Set m_oLogger = New cFileLogger
         m_oLogger.LogFileName = sFileName
-        m_oLogger.LogLevel = IIf(CBool(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP"))), vbLogEventTypeDataDump, vbLogEventTypeDebug)
+        m_oLogger.LogLevel = IIf(Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")) <> 0, vbLogEventTypeDataDump, vbLogEventTypeDebug)
         On Error GoTo 0
 QH:
         Err.Number = vErr(0)

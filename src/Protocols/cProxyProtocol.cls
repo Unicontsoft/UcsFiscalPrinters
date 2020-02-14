@@ -421,21 +421,21 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     Dim oResponse       As Object
     
     On Error GoTo EH
     If LenB(m_uRemote.Host) = 0 Then
-        GetDeviceStatus = True
         GoTo QH
     End If
     If Not pvSendRequest("GET", "/status", Nothing, oResponse) Then
+        StatusText = LastError
+        GetDeviceStatus = ucsFscStaFailed
         GoTo QH
     End If
-    CurrentStatus = C_Str(JsonItem(oResponse, "DeviceStatus"))
-    '--- success
-    GetDeviceStatus = True
+    StatusText = C_Str(JsonItem(oResponse, "DeviceStatus"))
+    GetDeviceStatus = JsonEnumValue(JsonItem(oResponse, "DeviceStatusCode"), STR_ENUM_STATUS_CODE)
 QH:
     Exit Function
 EH:
@@ -776,8 +776,8 @@ Private Function IDeviceProtocol_GetDeviceProtocol() As String
     IDeviceProtocol_GetDeviceProtocol = STR_PROTOCOL_PROXY
 End Function
 
-Private Function IDeviceProtocol_GetDeviceStatus(CurrentStatus As String) As Boolean
-    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(CurrentStatus)
+Private Function IDeviceProtocol_GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    IDeviceProtocol_GetDeviceStatus = GetDeviceStatus(StatusText)
 End Function
 
 Private Function IDeviceProtocol_GetFiscalMemoryNo() As String

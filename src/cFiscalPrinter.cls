@@ -759,18 +759,16 @@ Public Function GetDeviceStatus(sRequest As String, sResponse As String) As Bool
     Dim oRetVal         As Object
     Dim sLastErr        As String
     Dim eLastNo         As UcsFiscalErrorsEnum
-    Dim sStatus         As String
+    Dim eStatusCode     As UcsFiscalStatusCodeEnum
+    Dim sStatusText     As String
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    If oFP.GetDeviceStatus(sStatus) Then
-        JsonItem(oRetVal, "DeviceStatus") = sStatus
-    Else
-        sLastErr = Zn(oFP.GetLastError(eLastNo), STR_NONE)
-        DebugLog FUNC_NAME, "Not oFP.GetDeviceStatus, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
-    End If
+    eStatusCode = oFP.GetDeviceStatus(sStatusText)
+    JsonItem(oRetVal, "DeviceStatusCode") = At(Split(STR_ENUM_STATUS_CODE, "|"), eStatusCode, "unknown " & eStatusCode)
+    JsonItem(oRetVal, "DeviceStatus") = Zn(sStatusText, Empty)
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
     GetDeviceStatus = pvCommonEpilog(oFP, sLastErr, eLastNo, oRetVal, sResponse)

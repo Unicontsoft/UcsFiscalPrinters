@@ -129,6 +129,12 @@ Public Enum UcsFiscalTaxNoTypeEnum
     ucsFscTxnOfficialNo
 End Enum
 
+Public Enum UcsFiscalStatusCodeEnum
+    ucsFscStaReady
+    ucsFscStaBusy
+    ucsFscStaFailed
+End Enum
+
 ''
 ' Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved
 '
@@ -743,7 +749,7 @@ End Function
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark Can be used to poll device while displaying "Out of paper" error message.
 '
-Public Function GetDeviceStatus(CurrentStatus As String) As Boolean
+Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
 Attribute GetDeviceStatus.VB_Description = "Used to retrieve current device status without performing any other operation"
 
 End Function
