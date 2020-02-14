@@ -161,7 +161,7 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_PING_TIMEOUT          As Long = 500
+Private Const DEF_PING_TIMEOUT          As Long = 250
 Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
@@ -698,9 +698,17 @@ Public Function WaitDevice(Optional ByVal Timeout As Long, Optional CheckFastSta
     On Error GoTo EH
     pvSetLastError vbNullString
     If Timeout < 0 Then
-        pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
-            "Status", lStatus, ucsZekCmdFastIsOnline
-        sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+        dblTimer = TimerEx - Timeout / 1000#
+        Do While TimerEx < dblTimer
+            lIter = lIter + 1
+            pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
+                "Status", lStatus, ucsZekCmdFastIsOnline
+            sError = vbNullString
+            sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
+            If LenB(sError) = 0 Then
+                Exit Do
+            End If
+        Loop
         If InStr(sCurrent, Chr$(lStatus)) = 0 Then
             pvSetLastError pvInternal(ucsErrDeviceNotOnline)
             GoTo QH
@@ -1080,7 +1088,7 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
     sParam = Printf(sParam, Format$(NewDate, sFormat))
     SendCommand eCmd, sParam
     '--- success (or failure)
-    SetClock = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
+    SetClock = True
 QH:
     Exit Function
 EH:
@@ -1314,7 +1322,7 @@ Public Function OpenDrawer() As Boolean
         "PrintTimeout", lPrintTimeout, 0
     SendCommand eCmd, sParam
     '--- success (or failure)
-    OpenDrawer = WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT))
+    OpenDrawer = True
 QH:
     Exit Function
 EH:
@@ -1366,9 +1374,6 @@ Public Function CancelReceipt() As Boolean
             SendCommand eCmd, sParam
         End If
     End If
-    If Not WaitDevice(Znl(lPrintTimeout, DEF_PRINT_TIMEOUT)) Then
-        GoTo QH
-    End If
     '--- success (or failure)
     CancelReceipt = C_Lng(At(Split(SendCommand(eTransCmd, sTransParam), DEF_SEP), lTransIndex)) = lTransStatus
 QH:
@@ -1381,7 +1386,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
-    WaitDevice -1, CheckFastStatus:=True
+    WaitDevice -m_lTimeout, CheckFastStatus:=True
     StatusText = m_uPrintData.LastError
     pvSetLastError vbNullString
     Select Case StatusText
