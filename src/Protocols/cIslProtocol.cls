@@ -1585,7 +1585,7 @@ Public Function GetTotalsByTaxGroups() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        vRetVal(lIdx) = Array(C_Dbl(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
+        vRetVal(lIdx) = Array(ParseSum(At(vTaxRates, lIdx)), ParseSum(At(vPmtSum, lIdx + lOffset)), ParseSum(At(vRevSum, lIdx + lRevOffset)))
     Next
     '--- success
     GetTotalsByTaxGroups = vRetVal
@@ -1775,7 +1775,7 @@ Public Function GetTaxRates() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
+        vRetVal(lIdx) = ParseSum(At(vTaxRates, lIdx))
     Next
     '--- success
     GetTaxRates = vRetVal
@@ -2492,7 +2492,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     GoTo QH
                 End If
                 If C_Lng(At(vSplit, lIndex)) <> lStatus Then
-                    If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
+                    If ParseSum(At(vSplit, lAmountIndex)) > ParseSum(At(vSplit, lPaidIndex)) _
                             Or LenB(At(vSplit, lAmountIndex)) = 0 _
                             Or Not uCtx.PmtPrinted Then
                         pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
@@ -2507,11 +2507,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         End If
                     End If
                     uCtx.ReceiptNo = GetLastReceiptNo()
-                    If LenB(uCtx.ReceiptNo) <> 0 Then
+                    If LenB(uCtx.ReceiptNo) <> 0 And Not IsEltrade Then
                         uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
                     End If
                     uCtx.ReceiptDate = GetClock()
-                    uCtx.ReceiptAmount = C_Dbl(At(vSplit, lAmountIndex))
+                    uCtx.ReceiptAmount = ParseSum(At(vSplit, lAmountIndex))
                     Select Case uRow(0).InitReceiptType
                     Case ucsFscRcpReversal, ucsFscRcpCreditNote
                         uCtx.ReceiptAmount = -uCtx.ReceiptAmount
