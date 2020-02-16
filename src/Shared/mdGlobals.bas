@@ -1337,6 +1337,10 @@ Public Function InitDeviceConnector( _
     Dim oSerialPortConn As cSerialPortConnector
     Dim oSocketConn     As cSocketConnector
     
+    If LenB(sDevice) = 0 Then
+        Error = At(Split(LocalizedConnectorErrors, "|"), ucsErrNoDeviceInfoSet, "No device info set")
+        GoTo QH
+    End If
     If LCase$(Left$(sDevice, 3)) = "com" Then
         Set oSerialPortConn = New cSerialPortConnector
         If LenB(LocalizedConnectorErrors) <> 0 Then
@@ -1411,6 +1415,27 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
         JsonItem(oRetVal, sKey) = sValue
     Loop
     Set ParseDeviceString = oRetVal
+End Function
+
+Public Function ToDeviceString(oMap As Object) As String
+    Const Separator     As String = ";"
+    Dim vKey            As Variant
+    Dim sValue          As String
+    Dim sRetVal         As String
+    
+    For Each vKey In JsonKeys(oMap)
+        '--- try to escape value
+        sValue = C_Str(JsonItem(oMap, vKey))
+        If InStr(sValue, Separator) > 0 Then
+            If InStr(sValue, """") = 0 Then
+                sValue = """" & sValue & """"
+            Else
+                sValue = "'" & sValue & "'"
+            End If
+        End If
+        sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & Separator, vbNullString) & vKey & "=" & sValue
+    Next
+    ToDeviceString = sRetVal
 End Function
 
 Public Function GetEnvironmentVar(sName As String) As String
@@ -1494,20 +1519,51 @@ End Function
 
 Public Function ToConnectorDevice( _
             oOptions As Object, _
-            Optional DefSerialPort As String, _
-            Optional ByVal DefSerialSpeed As Long, _
-            Optional ByVal DefSocketPort As Long) As String
+            ByVal DefSocketPort As Long, _
+            FisicalPrinter As Object) As String
+    Const DEF_SERIAL_PORT As String = "COM1"
+    Const DEF_SERIAL_SPEED As Long = 115200
+    Dim vPorts          As Variant
+    Dim vElem           As Variant
+    
     If LenB(JsonItem(oOptions, "IP")) <> 0 Then
         ToConnectorDevice = Trim$(JsonItem(oOptions, "IP")) & _
             ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DefSocketPort)
     Else
-        ToConnectorDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DefSerialPort) & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DefSerialSpeed) & _
+        If Not FisicalPrinter Is Nothing Then
+            If LenB(JsonItem(oOptions, "Port")) = 0 Then
+                vPorts = EnumSerialPorts
+            ElseIf LenB(JsonItem(oOptions, "Speed")) = 0 Then
+                vPorts = Array(JsonItem(oOptions, "Port"))
+            End If
+            If IsArray(vPorts) Then
+                vPorts = FisicalPrinter.AutodetectDevices(vPorts)
+                For Each vElem In vPorts
+                    If IsArray(vElem) Then
+                        If JsonItem(oOptions, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty) Then
+                            JsonItem(oOptions, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
+                            JsonItem(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
+                            JsonItem(oOptions, "Model") = Zn(Trim$(At(vElem, 3)), Empty)
+                            JsonItem(oOptions, "Firmware") = Zn(Trim$(At(vElem, 4)), Empty)
+                            JsonItem(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
+                            JsonItem(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
+                            Exit For
+                        End If
+                    End If
+                Next
+                If LenB(JsonItem(oOptions, "Speed")) = 0 Then
+                    GoTo QH
+                End If
+            End If
+        End If
+        ToConnectorDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DEF_SERIAL_PORT) & _
+            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
             "," & JsonBoolItem(oOptions, "Persistent") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
             "," & IIf(JsonBoolItem(oOptions, "Parity"), "Y", "N") & _
             "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
     End If
+QH:
 End Function
 
 Public Function InitRequest( _
