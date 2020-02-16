@@ -422,7 +422,7 @@ Private Const STR_CAPTION_PRINTERS      As String = "Устройства"
 Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
 Private Const STR_CAPTION_LOG           As String = "Журнал"
 Private Const STR_HEADER_PRINTERS       As String = "Сериен No.|Порт|Хост|Модел|Версия"
-Private Const STR_PROTOCOLS             As String = "DATECS/X|DATECS|DAISY|INCOTEX|ELTRADE|TREMOL|ESC/POS|PROXY"
+Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
 Private Const STR_CAPTION_APPLY         As String = "Прилагане"
 Private Const STR_CAPTION_DISCOVERY     As String = "Търсене"
@@ -957,14 +957,19 @@ RetryRestart:
         frRestart
         pvLoadPrinters
         sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
+        If LenB(sDeviceSerialNo) <> 0 Then
+            sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, sDeviceSerialNo & "/DeviceSerialNo"))
+        End If
     End If
     cmdApply.Caption = STR_CAPTION_APPLY
     cmdApply.Enabled = True
     cmdApply.SetFocus
-    If LenB(sDeviceSerialNo) <> 0 Then
-        MsgBox Printf(MSG_SUCCESS_FOUND, sDeviceSerialNo), vbExclamation
-    ElseIf MsgBox(MSG_PRINTER_NOT_FOUND, vbQuestion Or vbYesNo) = vbYes Then
-        GoTo RetryRestart
+    If LenB(JsonItem(oDevice, "Protocol")) <> 0 Then
+        If LenB(sDeviceSerialNo) <> 0 Then
+            MsgBox Printf(MSG_SUCCESS_FOUND, sDeviceSerialNo), vbExclamation
+        ElseIf MsgBox(MSG_PRINTER_NOT_FOUND, vbQuestion Or vbYesNo) = vbYes Then
+            GoTo RetryRestart
+        End If
     End If
     Exit Sub
 EH:
