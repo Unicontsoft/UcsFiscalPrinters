@@ -159,7 +159,7 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_PING_TIMEOUT          As Long = 250
+Private Const DEF_PING_TIMEOUT          As Long = 1000
 Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
@@ -563,6 +563,7 @@ Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
     Dim sDeviceSerialNo As String
+    Dim sFiscalMemoryNo As String
     Dim sError          As String
     
     On Error GoTo EH
@@ -581,20 +582,22 @@ Public Function Init(sDeviceString As String) As Boolean
     If Not Connect() Then
         GoTo QH
     End If
-    sDeviceString = ToDeviceString(oOptions)
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
-        If Not pvRawWaitDevice(Error:=sError) Then
+        If Not pvRawWaitDevice(m_oConnector, m_lConnectionTimeout, Error:=sError) Then
             pvSetLastError sError
             GoTo QH
         End If
-        If Not pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
+        If Not pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, sFiscalMemoryNo, Error:=sError) Then
             pvSetLastError sError
             GoTo QH
         End If
+        JsonItem(oOptions, "DeviceSerialNo") = sDeviceSerialNo
+        JsonItem(oOptions, "FiscalMemoryNo") = sFiscalMemoryNo
     Else
         m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo"))
     End If
+    sDeviceString = ToDeviceString(oOptions)
     '--- load config values
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
@@ -1344,7 +1347,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
-    pvRawWaitDevice Error:=StatusText
+    pvRawWaitDevice m_oConnector, m_lConnectionTimeout, Error:=StatusText
     Select Case StatusText
     Case vbNullString
         GetDeviceStatus = ucsFscStaReady
@@ -2119,7 +2122,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvRawWaitDevice(Optional ByVal Timeout As Long, Optional Error As String) As Boolean
+Private Function pvRawWaitDevice(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Boolean
     Const FUNC_NAME     As String = "pvRawWaitDevice"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
@@ -2130,14 +2133,13 @@ Private Function pvRawWaitDevice(Optional ByVal Timeout As Long, Optional Error 
     Dim lIter           As Long
     
     On Error GoTo EH
-    Timeout = Znl(Timeout, m_lConnectionTimeout)
-    dblTimer = TimerEx + Timeout / 1000#
+    dblTimer = TimerEx + lTimeout / 1000#
     Do While TimerEx < dblTimer
         lIter = lIter + 1
         pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
             "Status", lStatus, ucsZekCmdFastIsOnline
         Error = vbNullString
-        sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, Error)
+        sCurrent = pvTransmitCommand(oConnector, pvPingTimeout, eCmd, sParam, Error)
         If LenB(Error) = 0 Then
             If lIter > 2 Then
                 DebugLog FUNC_NAME, "Ready after " & lIter
@@ -2151,7 +2153,7 @@ Private Function pvRawWaitDevice(Optional ByVal Timeout As Long, Optional Error 
     End If
     pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
         "ReadyStatus", lStatus, LNG_STATUS_READY
-    sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, Error)
+    sCurrent = pvTransmitCommand(oConnector, pvPingTimeout, eCmd, sParam, Error)
     Do While LenB(sCurrent) <> 0
         Select Case Asc(sCurrent)
         Case lStatus '--- LNG_STATUS_READY
@@ -2196,7 +2198,7 @@ Private Function pvRawGetDeviceInfo( _
     If Not IsArray(vResult) Then
         pvGetCommandConfig CONF_NAME, "InfoDeviceNumbers", eCmd, ucsZekCmdInfoDeviceNumbers, sParam, vbNullString, _
             "SerialIndex", lSerialIndex, 0
-        If pvRawWaitDevice() Then
+        If pvRawWaitDevice(oConnector, m_lConnectionTimeout) Then
             vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         End If
         If UBound(vSplit) >= lSerialIndex Then
@@ -2234,7 +2236,7 @@ Private Function pvRawGetLastReceiptNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoLastReceipt, sParam, vbNullString, _
         "Index", lIndex, 0
-    If pvRawWaitDevice() Then
+    If pvRawWaitDevice(m_oConnector, m_lConnectionTimeout) Then
         pvRawGetLastReceiptNo = RTrim$(At(Split(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam), DEF_SEP), lIndex))
     End If
     Exit Function
@@ -2250,7 +2252,7 @@ Public Function pvRawGetClock() As Date
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsZekCmdInfoDateTime, sParam, vbNullString
-    If pvRawWaitDevice() Then
+    If pvRawWaitDevice(m_oConnector, m_lConnectionTimeout) Then
         pvRawGetClock = ParseExtendedDate(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam))
     End If
     Exit Function

@@ -548,6 +548,7 @@ Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
     Dim sDeviceSerialNo As String
+    Dim sFiscalMemoryNo As String
     Dim sError          As String
     Dim vSplit          As Variant
     Dim lIdx            As Long
@@ -568,15 +569,18 @@ Public Function Init(sDeviceString As String) As Boolean
     If Not Connect() Then
         GoTo QH
     End If
-    sDeviceString = ToDeviceString(oOptions)
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
-        If Not pvGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
+        If Not pvGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, sFiscalMemoryNo, Error:=sError) Then
             pvSetLastError sError
+            GoTo QH
         End If
+        JsonItem(oOptions, "DeviceSerialNo") = sDeviceSerialNo
+        JsonItem(oOptions, "FiscalMemoryNo") = sFiscalMemoryNo
     Else
         m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo"))
     End If
+    sDeviceString = ToDeviceString(oOptions)
     '--- load config values
     With m_uPrintData.Config
         .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
