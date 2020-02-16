@@ -62,7 +62,8 @@ Private Const STR_INTERNAL              As String = "No receipt started|Error in
     
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CHEQUE|COUPON|EXT.COUPON|PACKAGING|INT.USAGE|DAMAGE|CARD|BANK|CUSTOM 1|CUSTOM 2|EUR|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1|EIC: %1"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
-Private Const DEF_TIMEOUT               As Long = 3000
+Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
+Private Const DEF_TIMEOUT               As Long = 15000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600|4800|2400"
@@ -77,8 +78,9 @@ Private Const STR_ESC                   As String = "" ' Chr$(27)
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
+Private m_lConnectionTimeout        As Long
 Private m_lCodePage                 As Long
-Private m_lTimeout                  As Long
+Private m_lCommandTimeout           As Long
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
 
@@ -165,12 +167,20 @@ End Sub
 ' Properties
 '=========================================================================
 
-Property Get Timeout() As Long
-    Timeout = m_lTimeout
+Property Get ConnectionTimeout() As Long
+    ConnectionTimeout = m_lConnectionTimeout
 End Property
 
-Property Let Timeout(ByVal lValue As Long)
-    m_lTimeout = lValue
+Property Let ConnectionTimeout(ByVal lValue As Long)
+    m_lConnectionTimeout = lValue
+End Property
+
+Property Get CommandTimeout() As Long
+    CommandTimeout = m_lCommandTimeout
+End Property
+
+Property Let CommandTimeout(ByVal lValue As Long)
+    m_lCommandTimeout = lValue
 End Property
 
 Property Get LastErrNo() As UcsFiscalErrorsEnum
@@ -340,9 +350,13 @@ Public Function Init(sDeviceString As String) As Boolean
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
     Set oOptions = ParseDeviceString(sDeviceString)
-    m_lTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
-    If m_lTimeout <= 0 Then
-        m_lTimeout = DEF_TIMEOUT
+    m_lConnectionTimeout = C_Lng(JsonItem(oOptions, "ConnectionTimeout"))
+    If m_lConnectionTimeout <= 0 Then
+        m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
+    End If
+    m_lCommandTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    If m_lCommandTimeout <= 0 Then
+        m_lCommandTimeout = DEF_TIMEOUT
     End If
     m_sDevice = ToConnectorDevice(oOptions, DEF_SOCKET_PORT, Me)
     If Not Connect() Then
@@ -373,8 +387,8 @@ Public Function Connect() As Boolean
     Dim sCmd            As String
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout & ", m_lCodePage=" & m_lCodePage
-    Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
+    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout & ", m_lCodePage=" & m_lCodePage
+    Set m_oConnector = InitDeviceConnector(m_sDevice, m_lConnectionTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
     If m_oConnector Is Nothing Then
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
@@ -384,7 +398,7 @@ Public Function Connect() As Boolean
         sCmd = sCmd & STR_ESC & "t" & Chr$(17)  '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
     End If
     sCmd = sCmd & STR_ESC & "M" & vbNullChar       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
@@ -423,7 +437,7 @@ Public Function OpenDrawer() As Boolean
     
     '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
     sCmd = STR_ESC & "p" & vbNullChar & Chr$(25) & Chr$(250)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -453,12 +467,12 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Dim baBuffer()      As Byte
     
     sCmd = STR_GS & "r" & Chr$(1)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
         StatusText = m_oConnector.GetLastError()
         GetDeviceStatus = ucsFscStaFailed
         GoTo QH
     End If
-    If Not m_oConnector.ReadData(baBuffer, m_lTimeout) Then
+    If Not m_oConnector.ReadData(baBuffer, m_lCommandTimeout) Then
         StatusText = m_oConnector.GetLastError()
         GetDeviceStatus = ucsFscStaFailed
         GoTo QH
@@ -504,14 +518,14 @@ Private Function pvPrintLine(vText As Variant) As Boolean
     If IsArray(vText) Then
         DebugLog FUNC_NAME, "vText=" & Join(vText, vbCrLf)
         For Each vElem In vText
-            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, m_lCodePage), m_lTimeout) Then
+            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, m_lCodePage), m_lCommandTimeout) Then
                 m_uPrintData.LastError = m_oConnector.GetLastError()
                 GoTo QH
             End If
         Next
     Else
         DebugLog FUNC_NAME, "vText=" & vText
-        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, m_lCodePage), m_lTimeout) Then
+        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, m_lCodePage), m_lCommandTimeout) Then
             m_uPrintData.LastError = m_oConnector.GetLastError()
             GoTo QH
         End If
@@ -527,7 +541,7 @@ Private Function pvSendPaperFeed(Optional ByVal Lines As Long = 1) As Boolean
     
     DebugLog FUNC_NAME, "Lines=" & Lines
     sCmd = STR_ESC & "d" & Chr$(Lines)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -545,7 +559,7 @@ Private Function pvSendPaperCut(Optional ByVal Full As Boolean = True, Optional 
     If Lines > 0 Then
         sCmd = sCmd & STR_ESC & "d" & Chr$(Lines)
     End If
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -883,6 +897,8 @@ End Sub
 '=========================================================================
 
 Private Sub Class_Initialize()
+    m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
+    m_lCommandTimeout = DEF_TIMEOUT
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_ESCPOS, "Commands")
 End Sub

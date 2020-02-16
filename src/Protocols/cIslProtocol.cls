@@ -239,7 +239,8 @@ Private Const DEF_SEP                   As String = ","
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 51
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 100
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600"
-Private Const DEF_TIMEOUT               As Long = 3000
+Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
+Private Const DEF_TIMEOUT               As Long = 15000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0000"
 Private Const DEF_SOCKET_PORT           As Long = 4999
@@ -261,7 +262,8 @@ Private Const MAX_FOOTER_LINES          As Long = 2
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
-Private m_lTimeout                  As Long
+Private m_lConnectionTimeout        As Long
+Private m_lCommandTimeout           As Long
 Private m_lSequence                 As Long
 Private m_eStatus                   As UcsIslStatusBitsEnum
 Private m_eDip                      As UcsIslDipSwitchesEnum
@@ -381,12 +383,20 @@ End Sub
 ' Properties
 '=========================================================================
 
-Property Get Timeout() As Long
-    Timeout = m_lTimeout
+Property Get ConnectionTimeout() As Long
+    ConnectionTimeout = m_lConnectionTimeout
 End Property
 
-Property Let Timeout(ByVal lValue As Long)
-    m_lTimeout = lValue
+Property Let ConnectionTimeout(ByVal lValue As Long)
+    m_lConnectionTimeout = lValue
+End Property
+
+Property Get CommandTimeout() As Long
+    CommandTimeout = m_lCommandTimeout
+End Property
+
+Property Let CommandTimeout(ByVal lValue As Long)
+    m_lCommandTimeout = lValue
 End Property
 
 Property Get Status(ByVal eValue As UcsIslStatusBitsEnum) As Boolean
@@ -697,9 +707,13 @@ Public Function Init(sDeviceString As String) As Boolean
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
     pvSetLastError vbNullString
     Set oOptions = ParseDeviceString(sDeviceString)
-    m_lTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
-    If m_lTimeout <= 0 Then
-        m_lTimeout = DEF_TIMEOUT
+    m_lConnectionTimeout = C_Lng(JsonItem(oOptions, "ConnectionTimeout"))
+    If m_lConnectionTimeout <= 0 Then
+        m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
+    End If
+    m_lCommandTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    If m_lCommandTimeout <= 0 Then
+        m_lCommandTimeout = DEF_TIMEOUT
     End If
     m_sDevice = ToConnectorDevice(oOptions, DEF_SOCKET_PORT, Me)
     If Not Connect() Then
@@ -708,7 +722,7 @@ Public Function Init(sDeviceString As String) As Boolean
     sDeviceString = ToDeviceString(oOptions)
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
-        If Not pvGetDeviceInfo(m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
+        If Not pvGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
             pvSetLastError sError
             GoTo QH
         End If
@@ -770,8 +784,8 @@ Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lTimeout=" & m_lTimeout
-    Set m_oConnector = InitDeviceConnector(m_sDevice, m_lTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
+    DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout
+    Set m_oConnector = InitDeviceConnector(m_sDevice, m_lConnectionTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
     If m_oConnector Is Nothing Then
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
@@ -806,7 +820,7 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Optional Data As S
     If eCmd = ucsIslCmdNoop Then
         Exit Function
     End If
-    SendCommand = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, Data, sError)
+    SendCommand = pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, Data, sError)
     If LenB(sError) <> 0 Then
         pvSetLastError sError
         GoTo QH
@@ -836,6 +850,10 @@ Public Function PrintDuplicate( _
     Dim sPrevReceiptNo  As String
     
     On Error GoTo EH
+    If Not CancelReceipt() Then
+        pvSetLastError pvInternal(ucsErrCannotCancelReceipt)
+        GoTo QH
+    End If
     If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsIslCmdPrintDuplicate, sParam, "1"
     Else
@@ -1139,7 +1157,7 @@ Public Function GetLastReceiptNo() As String
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsIslCmdInfoLastReceipt, sParam, vbNullString
-    GetLastReceiptNo = pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam)
+    GetLastReceiptNo = pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam)
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1161,14 +1179,14 @@ Public Function GetLastInvoiceNo() As String
         pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsIslCmdInfoTransaction, sParam, vbNullString, _
             "Index", lIndex, 0, _
             "Status", lStatus, 0
-        If C_Lng(At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)) <> lStatus Then
+        If C_Lng(At(Split(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam), DEF_SEP), lIndex)) <> lStatus Then
             lOffset = 0
         End If
     End If
     pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
         "Index", lIndex, 10, _
         "Offset", lOffset, lOffset
-    GetLastInvoiceNo = At(Split(pvTransmitCommand(m_oConnector, m_lTimeout, eCmd, sParam), DEF_SEP), lIndex)
+    GetLastInvoiceNo = At(Split(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam), DEF_SEP), lIndex)
     If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
         GetLastInvoiceNo = Val(GetLastInvoiceNo) + lOffset
     End If
@@ -1215,7 +1233,7 @@ Public Function GetDeviceSerialNo() As String
         GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
     End If
     If LenB(GetDeviceSerialNo) = 0 Then
-        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
+        pvGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString
     End If
     Exit Function
 EH:
@@ -1230,7 +1248,7 @@ Public Function GetFiscalMemoryNo() As String
         GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
     End If
     If LenB(GetFiscalMemoryNo) = 0 Then
-        pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
+        pvGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo
     End If
     Exit Function
 EH:
@@ -1241,7 +1259,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1251,7 +1269,7 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1261,7 +1279,7 @@ Public Function GetDeviceFirmware() As String
     Const FUNC_NAME     As String = "GetDeviceFirmware"
     
     On Error GoTo EH
-    pvGetDeviceInfo m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
+    pvGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1430,7 +1448,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsIslCmdInfoStatus, sParam, "X"
-    pvTransmitCommand m_oConnector, m_lTimeout, eCmd, sParam, m_uPrintData.LastError
+    pvTransmitCommand m_oConnector, m_lCommandTimeout, eCmd, sParam, m_uPrintData.LastError
     If LenB(m_uPrintData.LastError) <> 0 Then
         '--- do nothing
     ElseIf Status(ucsIslStbPrintingError) Then
@@ -2949,7 +2967,8 @@ End Sub
 Private Sub Class_Initialize()
     Dim eIdx            As UcsIslConfigIndexEnum
     
-    m_lTimeout = DEF_TIMEOUT
+    m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
+    m_lCommandTimeout = DEF_TIMEOUT
     m_lSequence = DEF_SEQUENCE
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     LocalizedText(ucsFscLciDipSwitchesTexts) = STR_DIP_SWITCHES
