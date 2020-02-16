@@ -110,6 +110,8 @@ Key              | Type   | Protocol | Description
 `Persistent`     | bool   |          | Keep serial port open after operation complete (default `No`)
 `IP`             | address |         | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
 `Port`           | number |          | TCP port to connect to (e.g. `4999`)
+`Timeout`        | number |          | Protocol timeout for complete command execution (e.g. `15000` ms)
+`ConnectionTimeout` | number |       | Connector timeout for connection attempt (e.g. `3000` ms)
 `RowChars`       | number |          | Total number of characters printable on paper roll (default to auto-detected)
 `CommentChars`   | number |          | Maximum number of characters available for a comment row (default to auto-detected)
 `ItemChars`      | number |          | Maximum number of characters available for product name (default to auto-detected)
