@@ -1520,7 +1520,7 @@ End Function
 Public Function ToConnectorDevice( _
             oOptions As Object, _
             ByVal DefSocketPort As Long, _
-            FisicalPrinter As Object) As String
+            oProtocol As IDeviceProtocol) As String
     Const DEF_SERIAL_PORT As String = "COM1"
     Const DEF_SERIAL_SPEED As Long = 115200
     Dim vPorts          As Variant
@@ -1530,14 +1530,14 @@ Public Function ToConnectorDevice( _
         ToConnectorDevice = Trim$(JsonItem(oOptions, "IP")) & _
             ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DefSocketPort)
     Else
-        If Not FisicalPrinter Is Nothing Then
+        If Not oProtocol Is Nothing Then
             If LenB(JsonItem(oOptions, "Port")) = 0 Then
                 vPorts = EnumSerialPorts
             ElseIf LenB(JsonItem(oOptions, "Speed")) = 0 Then
                 vPorts = Array(JsonItem(oOptions, "Port"))
             End If
             If IsArray(vPorts) Then
-                vPorts = FisicalPrinter.AutodetectDevices(vPorts)
+                vPorts = oProtocol.AutodetectDevices(vPorts)
                 For Each vElem In vPorts
                     If IsArray(vElem) Then
                         If JsonItem(oOptions, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty) Then
