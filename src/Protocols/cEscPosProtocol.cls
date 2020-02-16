@@ -67,8 +67,6 @@ Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_DELIM                 As String = ","
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|38400|9600|19200|57600|4800|2400"
 Private Const DEF_SOCKET_PORT           As Long = 9100
-Private Const DEF_SERIAL_PORT           As String = "COM1"
-Private Const DEF_SERIAL_SPEED          As Long = 9600
 Private Const DEF_CODEPAGE              As Long = 866
 Private Const DEF_ROW_CHARS             As Long = 48
 Private Const DEF_MIN_DISCOUNT          As Double = -100
@@ -282,7 +280,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not .Connector Is Nothing Then
-                    If .Connector.ReadData(baBuffer, 1) Then
+                    If .Connector.ReadData(baBuffer, lTimeout) And UBound(baBuffer) >= 0 Then
                         For lJdx = 0 To UBound(baBuffer)
                             If (baBuffer(lJdx) And &H90) = 0 And baBuffer(lJdx) <> 0 Then
                                 DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
@@ -346,7 +344,11 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    m_sDevice = ToConnectorDevice(oOptions, DEF_SERIAL_PORT, DEF_SERIAL_SPEED, DEF_SOCKET_PORT)
+    m_sDevice = ToConnectorDevice(oOptions, DEF_SOCKET_PORT, Me)
+    If Not Connect() Then
+        GoTo QH
+    End If
+    sDeviceString = ToDeviceString(oOptions)
     m_lCodePage = Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE)
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonItem(oOptions, "RowChars"))
@@ -359,7 +361,8 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxReceiptRows = Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS)
     End With
     '--- success
-    Init = Connect()
+    Init = True
+QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME

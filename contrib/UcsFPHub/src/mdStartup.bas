@@ -359,6 +359,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                         JsonItem(oRequest, "DeviceString") = sDeviceString
                         JsonItem(oRequest, "IncludeTaxNo") = True
                         If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
+                            sDeviceString = Zn(JsonItem(oInfo, "DeviceString"), sDeviceString)
                             sKey = JsonItem(oInfo, "DeviceSerialNo")
                             If LenB(sKey) <> 0 Then
                                 JsonItem(oInfo, "Ok") = Empty
@@ -385,6 +386,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                 If Not JsonItem(oInfo, "Ok") Then
                     DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")), vbLogEventTypeWarning
                 Else
+                    sDeviceString = Zn(JsonItem(oInfo, "DeviceString"), sDeviceString)
                     sKey = Zn(JsonItem(oInfo, "DeviceSerialNo"), vKey)
                     If LenB(sKey) <> 0 Then
                         JsonItem(oInfo, "Ok") = Empty

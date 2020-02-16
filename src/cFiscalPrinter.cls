@@ -211,10 +211,10 @@ Public Function EnumPorts(sResponse As String) As Boolean
     On Error GoTo EH
     JsonItem(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
-    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipLastError:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipLastError:=True))
+    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipInit:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipInit:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipInit:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipInit:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -261,18 +261,19 @@ Public Function GetDeviceInfo(sRequest As String, sResponse As String) As Boolea
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
         GoTo QH
     End If
-    JsonItem(oRetVal, "DeviceSerialNo") = Trim$(oFP.GetDeviceSerialNo())
+    JsonItem(oRetVal, "DeviceSerialNo") = Zn(Trim$(oFP.GetDeviceSerialNo()), Empty)
     JsonItem(oRetVal, "FiscalMemoryNo") = Zn(Trim$(oFP.GetFiscalMemoryNo()), Empty)
-    JsonItem(oRetVal, "DeviceProtocol") = Trim$(oFP.GetDeviceProtocol())
-    JsonItem(oRetVal, "DeviceModel") = Trim$(oFP.GetDeviceModel())
+    JsonItem(oRetVal, "DeviceProtocol") = Zn(Trim$(oFP.GetDeviceProtocol()), Empty)
+    JsonItem(oRetVal, "DeviceModel") = Zn(Trim$(oFP.GetDeviceModel()), Empty)
     JsonItem(oRetVal, "FirmwareVersion") = Zn(Trim$(oFP.GetDeviceFirmware()), Empty)
-    JsonItem(oRetVal, "CharsPerLine") = oFP.GetCharsPerLine()
-    JsonItem(oRetVal, "CommentTextMaxLength") = oFP.GetCommentTextMaxLength()
-    JsonItem(oRetVal, "ItemNameMaxLength") = oFP.GetItemNameMaxLength()
+    JsonItem(oRetVal, "DeviceString") = Zn(JsonItem(oJson, "DeviceString"), Empty)
+    JsonItem(oRetVal, "CharsPerLine") = Znl(oFP.GetCharsPerLine(), Empty)
+    JsonItem(oRetVal, "CommentTextMaxLength") = Znl(oFP.GetCommentTextMaxLength(), Empty)
+    JsonItem(oRetVal, "ItemNameMaxLength") = Znl(oFP.GetItemNameMaxLength(), Empty)
     If LenB(C_Str(JsonItem(oJson, "Operator/Code"))) <> 0 Then
-        JsonItem(oRetVal, "Operator/Code") = JsonItem(oJson, "Operator/Code")
-        JsonItem(oRetVal, "Operator/Name") = Trim$(oFP.GetOperatorName(JsonItem(oJson, "Operator/Code")))
-        JsonItem(oRetVal, "Operator/DefaultPassword") = oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code"))
+        JsonItem(oRetVal, "Operator/Code") = Zn(Trim$(JsonItem(oJson, "Operator/Code")), Empty)
+        JsonItem(oRetVal, "Operator/Name") = Zn(Trim$(oFP.GetOperatorName(JsonItem(oJson, "Operator/Code"))), Empty)
+        JsonItem(oRetVal, "Operator/DefaultPassword") = Zn(oFP.GetDefaultPassword(JsonItem(oJson, "Operator/Code")), Empty)
     End If
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
 QH:
@@ -796,7 +797,7 @@ End Sub
 
 '= private ===============================================================
 
-Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As Boolean) As IDeviceProtocol
+Private Function pvInit(DeviceString As String, Optional ByVal SkipInit As Boolean) As IDeviceProtocol
     Dim oOptions        As Object
     Dim sProtocol       As String
     Dim lConfigIdx      As Long
@@ -858,14 +859,12 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipLastError As 
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
-    If UBound(JsonKeys(oOptions)) > 0 Then
+    If Not SkipInit Then
         If Not pvInit.Init(DeviceString) Then
             Err.Raise vbObjectError, , Zn(pvInit.GetLastError(), Printf(pvInternal(ucsErrInitProtocol), Zn(sProtocol, STR_NONE)))
         End If
-        If Not SkipLastError Then
-            If LenB(pvInit.GetLastError()) Then
-                Err.Raise vbObjectError, , pvInit.GetLastError()
-            End If
+        If LenB(pvInit.GetLastError()) Then
+            Err.Raise vbObjectError, , pvInit.GetLastError()
         End If
     End If
 End Function
@@ -982,13 +981,19 @@ EH:
 End Function
 
 Private Function pvCommonProlog(sRequest As String, oJson As Object, sLastErr As String, oFP As IDeviceProtocol, oRetVal As Object) As Boolean
+    Dim sDeviceString   As String
+    
     JsonItem(oRetVal, "Ok") = True
     JsonItem(oRetVal, "ErrorText") = vbNullString
     If Not JsonParse(sRequest, oJson, Error:=sLastErr) Or oJson Is Nothing Then
         sLastErr = Zn(sLastErr, pvInternal(ucsErrInvalidJsonRequest))
         GoTo QH
     End If
-    Set oFP = pvInit(JsonItem(oJson, "DeviceString"))
+    sDeviceString = JsonItem(oJson, "DeviceString")
+    Set oFP = pvInit(sDeviceString)
+    If sDeviceString <> JsonItem(oJson, "DeviceString") Then
+        JsonItem(oJson, "DeviceString") = sDeviceString
+    End If
     '--- success
     pvCommonProlog = True
 QH:

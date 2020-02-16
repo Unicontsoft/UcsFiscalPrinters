@@ -154,8 +154,6 @@ Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_ECR_PASSWORD          As String = "0"
 Private Const DEF_FP_PASSWORD           As String = "0000"
 Private Const DEF_SOCKET_PORT           As Long = 8000
-Private Const DEF_SERIAL_PORT           As String = "COM1"
-Private Const DEF_SERIAL_SPEED          As Long = 115200
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
@@ -526,8 +524,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         End If
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                If Not .Connector Is Nothing Then
-                    If .Connector.ReadData(baBuffer, 1) And UBound(baBuffer) >= 0 Then
+                If Not .Connector Is Nothing And .EventMask <> 0 Then
+                    If .Connector.ReadData(baBuffer, lTimeout) And UBound(baBuffer) >= 0 Then
                         sBuffer = StrConv(baBuffer, vbUnicode)
                         If InStr(sBuffer, sReplyText) > 0 Then
                             DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(sBuffer)
@@ -567,10 +565,11 @@ Public Function Init(sDeviceString As String) As Boolean
     If m_lTimeout <= 0 Then
         m_lTimeout = DEF_TIMEOUT
     End If
-    m_sDevice = ToConnectorDevice(oOptions, DEF_SERIAL_PORT, DEF_SERIAL_SPEED, DEF_SOCKET_PORT)
+    m_sDevice = ToConnectorDevice(oOptions, DEF_SOCKET_PORT, Me)
     If Not Connect() Then
         GoTo QH
     End If
+    sDeviceString = ToDeviceString(oOptions)
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
         If Not pvGetDeviceInfo(m_oConnector, m_lTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, vbNullString, Error:=sError) Then
