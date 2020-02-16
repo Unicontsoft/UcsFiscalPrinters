@@ -95,10 +95,11 @@ Variable                          | Description
 `_UCS_FISCAL_PRINTER_USE_XMLHTTP` | Set to `1` for PROXY protocol to use `MSXML2.XMLHTTP` instead of `MSXML2.ServerXMLHTTP` for http requests
 `_UCS_SSH_PLINK`                  | Set to full pathname to `plink.exe` to spawn when setting up SSH tunnels
 `_UCS_RC4_SALT`                   | Set to correct string to decrypt passwords in external .ini files
+`_UCS_FP_HUB_AUTO_UPDATE`         | Set to full path and filename of an external bootstrapping executable
 
 ### Device strings
 
-The device strings are meant to configure the connection that is used for communication with the fiscal device. Each device string is a list of entries (`Key=Value` pairs) separated by a semi-colon which a very similar concept to a database connection string.
+The device strings are meant to configure the connection that is used for communication with the fiscal device. Each device string is a list of entries (`Key=Value` pairs) separated by a semi-colon which is a very similar concept to a database connection string.
 
 Here is a short list of entries supported, all of which are optional unless marked required:
 
