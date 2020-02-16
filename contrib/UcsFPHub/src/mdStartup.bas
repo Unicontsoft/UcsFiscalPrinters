@@ -354,7 +354,10 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
                     If LenB(C_Str(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol"))) <> 0 Then
-                        sDeviceString = ToDeviceString(C_Obj(JsonItem(oJson, "SerialPorts/" & vKey)))
+                        Set oInfo = JsonParseObject(JsonDump(JsonItem(oJson, "SerialPorts/" & vKey), Minimize:=True))
+                        JsonItem(oInfo, "Model") = Empty
+                        JsonItem(oInfo, "Firmware") = Empty
+                        sDeviceString = ToDeviceString(oInfo)
                         Set oRequest = Nothing
                         JsonItem(oRequest, "DeviceString") = sDeviceString
                         JsonItem(oRequest, "IncludeTaxNo") = True
