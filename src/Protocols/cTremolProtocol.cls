@@ -159,7 +159,7 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_PING_TIMEOUT          As Long = 1000
+Private Const DEF_PING_TIMEOUT          As Long = 200
 Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
@@ -178,13 +178,6 @@ Private Const DEF_MAX_DEPARTMENTCODE    As Long = 2
 Private Const DEF_MAX_RECEIPTNO         As Long = 6
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H9F
-Private Const LNG_STATUS_READY          As Long = &H40
-Private Const LNG_STATUS_IS_BUSY        As Long = &H41
-Private Const LNG_STATUS_OUT_OF_PAPER   As Long = &H42
-Private Const LNG_STATUS_OUT_OF_PAPER_LEGACY As Long = &H7
-Private Const LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY As Long = &H43
-Private Const LNG_STATUS_OVERHEATED     As Long = &H44
-Private Const LNG_STATUS_SWITCHED_OFF   As Long = &HF7
 Private Const LNG_DELAY_PRINT_TIMEOUT   As Long = 5500
 Private Const ucsFscRcpNonfiscal        As Long = ucsFscRcpSale + 100
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -230,6 +223,7 @@ Private Enum UcsDeviceErrorsAndStatuses
     ucsErrOutOfPaper = 1
     ucsErrBadPassword = 9
     ucsErrPrinterOverheated = 13
+    ucsErrDisplayMissing = 11
     '--- device statuses
     ucsErrIllegalCommand = 2
 End Enum
@@ -254,6 +248,18 @@ Private Enum UcsProtocolMarkers
     ZFP_RETRY = &HE
     ZFP_NACK = &H15
     ZFP_BASEDATA = &H20
+End Enum
+
+Private Enum UcsProtocolStatuses
+    STA_READY = &H40
+    STA_BUSY = &H41
+    STA_OUT_OF_PAPER = &H42
+    STA_OUT_OF_PAPER_AND_BUSY = &H43
+    STA_PRINTER_OVERHEATED = &H44
+    STA_PRINTER_OVERHEATED_AND_BUSY = &H45
+    STA_DISPLAY_MISSING = &H48
+    STA_DISPLAY_MISSING_AND_BUSY = &H49
+    STA_SWITCHED_OFF = &HF7
 End Enum
 
 Private Type UcsAutodetect
@@ -584,7 +590,7 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
-        If Not pvRawWaitDevice(m_oConnector, m_lConnectionTimeout, Error:=sError) Then
+        If Not pvRawIsDeviceReady(m_oConnector, m_lConnectionTimeout, Error:=sError) Then
             pvSetLastError sError
             GoTo QH
         End If
@@ -727,31 +733,34 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
             Case lStatus
                 lIter = lIter + 1
                 pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-                    "ReadyStatus", lStatus, LNG_STATUS_READY, _
+                    "ReadyStatus", lStatus, STA_READY, _
                     "Delay", lDelay, 40
                 sCurrent = pvTransmitCommand(m_oConnector, pvPingTimeout, eCmd, sParam, sError)
                 Do While LenB(sCurrent) <> 0
                     Select Case Asc(sCurrent)
-                    Case lStatus '--- LNG_STATUS_READY
+                    Case lStatus '--- STA_READY
                         '--- success
                         WaitDevice = True
                         If lIter > 2 Then
                             DebugLog FUNC_NAME, "Ready after " & lIter
                         End If
                         GoTo QH
-                    Case LNG_STATUS_IS_BUSY
-                        '--- wait
-                    Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+                    Case STA_OUT_OF_PAPER, STA_OUT_OF_PAPER_AND_BUSY
                         pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
                         GoTo QH
-                    Case LNG_STATUS_OVERHEATED
+                    Case STA_PRINTER_OVERHEATED, STA_PRINTER_OVERHEATED_AND_BUSY
                         pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
                         GoTo QH
+                    Case STA_DISPLAY_MISSING, STA_DISPLAY_MISSING_AND_BUSY
+                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrDisplayMissing)
+                        GoTo QH
+                    Case Else ' STA_BUSY
+                        '--- wait
                     End Select
                     sCurrent = Mid$(sCurrent, 2)
                 Loop
                 Call Sleep(lDelay)
-            Case LNG_STATUS_SWITCHED_OFF
+            Case STA_SWITCHED_OFF
                 GoTo NotReady
             End Select
             sOuter = Mid$(sOuter, 2)
@@ -1353,7 +1362,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Const FUNC_NAME     As String = "GetDeviceStatus"
     
     On Error GoTo EH
-    pvRawWaitDevice m_oConnector, m_lConnectionTimeout, Error:=StatusText
+    pvRawIsDeviceReady m_oConnector, m_lConnectionTimeout, Error:=StatusText
     Select Case StatusText
     Case vbNullString
         GetDeviceStatus = ucsFscStaReady
@@ -2128,8 +2137,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvRawWaitDevice(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Boolean
-    Const FUNC_NAME     As String = "pvRawWaitDevice"
+Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Boolean
+    Const FUNC_NAME     As String = "pvRawIsDeviceReady"
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
@@ -2158,18 +2167,20 @@ Private Function pvRawWaitDevice(oConnector As IDeviceConnector, ByVal lTimeout 
         GoTo QH
     End If
     pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-        "ReadyStatus", lStatus, LNG_STATUS_READY
+        "ReadyStatus", lStatus, STA_READY
     sCurrent = pvTransmitCommand(oConnector, pvPingTimeout, eCmd, sParam, Error)
     Do While LenB(sCurrent) <> 0
         Select Case Asc(sCurrent)
-        Case lStatus '--- LNG_STATUS_READY
+        Case lStatus '--- STA_READY
             '--- success
-            pvRawWaitDevice = True
-        Case LNG_STATUS_IS_BUSY
+            pvRawIsDeviceReady = True
+        Case STA_BUSY, STA_OUT_OF_PAPER_AND_BUSY, STA_PRINTER_OVERHEATED_AND_BUSY
             Error = pvInternal(ucsErrDeviceNotReady)
-        Case LNG_STATUS_OUT_OF_PAPER, LNG_STATUS_OUT_OF_PAPER_LEGACY, LNG_STATUS_OUT_OF_PAPER_AND_IS_BUSY
+        Case STA_OUT_OF_PAPER
             Error = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
-        Case LNG_STATUS_OVERHEATED
+        Case STA_PRINTER_OVERHEATED
+            Error = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
+        Case STA_DISPLAY_MISSING
             Error = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
         End Select
         sCurrent = Mid$(sCurrent, 2)
@@ -2204,7 +2215,7 @@ Private Function pvRawGetDeviceInfo( _
     If Not IsArray(vResult) Then
         pvGetCommandConfig CONF_NAME, "InfoDeviceNumbers", eCmd, ucsZekCmdInfoDeviceNumbers, sParam, vbNullString, _
             "SerialIndex", lSerialIndex, 0
-        If pvRawWaitDevice(oConnector, m_lConnectionTimeout) Then
+        If pvRawIsDeviceReady(oConnector, m_lConnectionTimeout) Then
             vSplit = Split(pvTransmitCommand(oConnector, lTimeout, eCmd, sParam, Error), DEF_SEP)
         End If
         If UBound(vSplit) >= lSerialIndex Then
@@ -2242,7 +2253,7 @@ Private Function pvRawGetLastReceiptNo() As String
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastReceipt", eCmd, ucsZekCmdInfoLastReceipt, sParam, vbNullString, _
         "Index", lIndex, 0
-    If pvRawWaitDevice(m_oConnector, m_lConnectionTimeout) Then
+    If pvRawIsDeviceReady(m_oConnector, m_lConnectionTimeout) Then
         pvRawGetLastReceiptNo = RTrim$(At(Split(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam), DEF_SEP), lIndex))
     End If
     Exit Function
@@ -2258,7 +2269,7 @@ Public Function pvRawGetClock() As Date
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDateTime", eCmd, ucsZekCmdInfoDateTime, sParam, vbNullString
-    If pvRawWaitDevice(m_oConnector, m_lConnectionTimeout) Then
+    If pvRawIsDeviceReady(m_oConnector, m_lConnectionTimeout) Then
         pvRawGetClock = ParseExtendedDate(pvTransmitCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam))
     End If
     Exit Function
