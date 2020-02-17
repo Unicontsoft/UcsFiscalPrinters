@@ -431,6 +431,7 @@ Public Function PpdEndReceipt( _
         .Row = C_Lng(JsonItem(oToken, "Row"))
         .ReceiptNo = C_Str(JsonItem(oToken, "ReceiptNo"))
         .ReceiptDate = C_Date(JsonItem(oToken, "ReceiptDate"))
+        .ReceiptAmount = C_Dbl(JsonItem(oToken, "ReceiptAmount"))
         .InvoiceNo = C_Str(JsonItem(oToken, "InvoiceNo"))
     End With
     '--- fix fiscal receipts with for more than uData.MaxReceiptRows PLUs
@@ -473,6 +474,7 @@ Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
             JsonItem(oToken, "Row") = .Row
             JsonItem(oToken, "ReceiptNo") = Zn(.ReceiptNo, Empty)
             JsonItem(oToken, "ReceiptDate") = IIf(.ReceiptDate <> 0, .ReceiptDate, Empty)
+            JsonItem(oToken, "ReceiptAmount") = IIf(Abs(.ReceiptAmount) > DBL_EPSILON, .ReceiptAmount, Empty)
             JsonItem(oToken, "InvoiceNo") = Zn(.InvoiceNo, Empty)
             PpdGetResumeToken = JsonDump(oToken, Minimize:=True)
         End If
