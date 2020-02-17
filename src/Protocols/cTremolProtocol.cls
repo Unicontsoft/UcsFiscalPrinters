@@ -989,7 +989,7 @@ Public Function PrintServiceDeposit( _
         If Amount > 0 Then
             vRetVal(1) = vRetVal(1) + Amount
         Else
-            vRetVal(2) = vRetVal(2) + Amount
+            vRetVal(2) = vRetVal(2) - Amount
         End If
     End If
     '--- success
