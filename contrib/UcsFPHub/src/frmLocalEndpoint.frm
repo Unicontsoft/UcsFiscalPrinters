@@ -254,7 +254,7 @@ EH:
     Resume QH
 End Sub
 
-Public Function Autodetect(Optional ByVal Async As Boolean) As Boolean
+Public Function Autodetect(Optional ByVal Async As Boolean, Optional ByVal Delay As Long) As Boolean
     Const FUNC_NAME     As String = "Autodetect"
     Dim vElem           As Variant
     
@@ -268,7 +268,7 @@ Public Function Autodetect(Optional ByVal Async As Boolean) As Boolean
     Next
     If Autodetect Then
         If Async Then
-            Set m_pTimerAutodetect = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerAutodetect)
+            Set m_pTimerAutodetect = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.TimerAutodetect, Delay:=Delay)
         Else
             Restart
         End If

@@ -55,6 +55,31 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "frmIcon"
 
 '=========================================================================
+' API
+'=========================================================================
+
+'--- Windows Messages
+Private Const WM_DEVICECHANGE               As Long = &H219
+'--- for RegisterDeviceNotification
+Private Const DEVICE_NOTIFY_WINDOW_HANDLE   As Long = &H0
+Private Const DBT_DEVTYP_DEVICEINTERFACE    As Long = &H5
+Private Const DBT_DEVICEARRIVAL             As Long = &H8000&
+Private Const DBT_DEVICEREMOVECOMPLETE      As Long = &H8004&
+Private Const GUID_DEVINTERFACE_USB_DEVICE  As String = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
+
+Private Declare Function RegisterDeviceNotification Lib "user32" Alias "RegisterDeviceNotificationA" (ByVal hRecipient As Long, ByRef NotificationFilter As Any, ByVal Flags As Long) As Long
+Private Declare Function UnregisterDeviceNotification Lib "user32" (ByVal Handle As Long) As Long
+Private Declare Function CLSIDFromString Lib "ole32" (ByVal lpsz As Long, pclsid As Any) As Long
+
+Private Type DEV_BROADCAST_DEVICEINTERFACE
+    dbcc_size           As Long
+    dbcc_devicetype     As Long
+    dbcc_reserved       As Long
+    dbcc_classguid(0 To 3) As Long
+    dbcc_name           As Long
+End Type
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -62,10 +87,12 @@ Private Const LNG_AUTO_UPDATE_DELAY     As Long = 24& * 60 * 60  '--- 24h
 
 Private m_oPrinters                 As Object
 Private m_sConfFile                 As String
-Private WithEvents m_oSysTray       As cSysTray
-Attribute m_oSysTray.VB_VarHelpID = -1
 Private m_sExeAutoUpdate            As String
 Private m_pUpdateTimer              As IUnknown
+Private WithEvents m_oSysTray       As cSysTray
+Attribute m_oSysTray.VB_VarHelpID = -1
+Private m_hDevNotify                As Long
+Private m_pSubclass                 As IUnknown
 
 Private Enum UcsMenuItems
     ucsMnuPopupConfig = 0
@@ -107,12 +134,17 @@ Private Property Get pvAddressOfTimerProc() As frmIcon
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
+Private Property Get pvAddressOfSubclassProc() As frmIcon
+    Set pvAddressOfSubclassProc = InitAddressOfMethod(Me, 5)
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
 
 Public Function Init(oPrinters As Object, sConfFile As String, sProductName As String, sExeAutoUpdate As String) As Boolean
     Const FUNC_NAME     As String = "Init"
+    Dim uFilter         As DEV_BROADCAST_DEVICEINTERFACE
     
     On Error GoTo EH
     Set m_oPrinters = oPrinters
@@ -125,6 +157,12 @@ Public Function Init(oPrinters As Object, sConfFile As String, sProductName As S
     '--- setup systray
     Set m_oSysTray = New cSysTray
     m_oSysTray.Init Me, sProductName
+    '--- on device insert/eject notify w/ WM_DEVICECHANGE
+    uFilter.dbcc_size = Len(uFilter)
+    uFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE
+    Call CLSIDFromString(StrPtr(GUID_DEVINTERFACE_USB_DEVICE), uFilter.dbcc_classguid(0))
+    m_hDevNotify = RegisterDeviceNotification(hWnd, uFilter, DEVICE_NOTIFY_WINDOW_HANDLE)
+    Set m_pSubclass = InitSubclassingThunk(hWnd, Me, pvAddressOfSubclassProc.SubclassProc(0, 0, 0, 0, 0))
     '--- success
     Init = True
     Exit Function
@@ -216,7 +254,27 @@ Attribute AutoUpdateTimerProc.VB_MemberFlags = "40"
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume Next
+End Function
+
+Public Function SubclassProc(ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long, Handled As Boolean) As Long
+Attribute SubclassProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "SubclassProc"
+    
+    #If hWnd And wParam And lParam Then '--- touch args
+    #End If
+    On Error GoTo EH
+    Select Case wMsg
+    Case WM_DEVICECHANGE
+        Select Case wParam
+        Case DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE
+            LocalEndpointForm.Autodetect Async:=True, Delay:=1000
+        End Select
+        Exit Function
+        Handled = True
+    End Select
+    Exit Function
+EH:
+    PrintError FUNC_NAME
 End Function
 
 '=========================================================================
@@ -264,6 +322,10 @@ Private Sub Form_Unload(Cancel As Integer)
     Const FUNC_NAME     As String = "Form_Unload"
     
     On Error GoTo EH
+    If m_hDevNotify <> 0 Then
+        Call UnregisterDeviceNotification(m_hDevNotify)
+        m_hDevNotify = 0
+    End If
     If Not m_oSysTray Is Nothing Then
         m_oSysTray.Terminate
         Set m_oSysTray = Nothing

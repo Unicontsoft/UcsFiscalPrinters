@@ -111,6 +111,17 @@ Property Get MainForm() As frmIcon
     Next
 End Property
 
+Property Get LocalEndpointForm() As frmLocalEndpoint
+    Dim oForm       As Object
+    
+    For Each oForm In m_cEndpoints
+        If TypeOf oForm Is frmLocalEndpoint Then
+            Set LocalEndpointForm = oForm
+            Exit Property
+        End If
+    Next
+End Property
+
 '=========================================================================
 ' Functions
 '=========================================================================
@@ -429,7 +440,9 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
     Dim oLocalEndpoint  As frmLocalEndpoint
     
     On Error GoTo EH
-    Set cRetVal = New Collection
+    If cRetVal Is Nothing Then
+        Set cRetVal = New Collection
+    End If
     '--- first local endpoint (faster registration)
     For Each vKey In JsonKeys(m_oConfig, "Endpoints")
         If InStr(sBindings, LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))) > 0 Then
