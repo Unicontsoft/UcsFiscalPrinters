@@ -201,6 +201,7 @@ Private m_oPortWrapper              As cPortWrapper
 Private m_oLogger                   As cFileLogger
 Private m_dCurrentStartDate         As Date
 Private m_dblCurrentStartTimer      As Double
+Private m_cRegExpCache              As Collection
 
 '=========================================================================
 ' Error handling
@@ -1028,7 +1029,7 @@ End Sub
 Public Function preg_match(find_re As String, sText As String, Optional Matches As Variant, Optional Indexes As Variant) As Long
     Dim lIdx            As Long
     
-    With pvInitRegExp(find_re).Execute(sText)
+    With InitRegExp(find_re).Execute(sText)
         preg_match = .Count
         If Not IsMissing(Matches) Then
             If .Count = 0 Then
@@ -1059,25 +1060,40 @@ Public Function preg_match(find_re As String, sText As String, Optional Matches 
 End Function
 
 Public Function preg_replace(find_re As String, sText As String, Optional sReplace As String) As String
-    preg_replace = pvInitRegExp(find_re).Replace(sText, sReplace)
+    preg_replace = InitRegExp(find_re).Replace(sText, sReplace)
 End Function
 
-Private Function pvInitRegExp(sPattern As String) As Object
+Public Function InitRegExp(sPattern As String) As Object
+    Const FUNC_NAME     As String = "InitRegExp"
     Dim lPos            As Long
-
-    Set pvInitRegExp = CreateObject("VBScript.RegExp")
-    With pvInitRegExp
-        If Left$(sPattern, 1) = "/" Then
+    
+    On Error GoTo EH
+    If Not SearchCollection(m_cRegExpCache, sPattern, RetVal:=InitRegExp) Then
+        Set InitRegExp = CreateObject("VBScript.RegExp")
+        With InitRegExp
             lPos = InStrRev(sPattern, "/")
-            .Pattern = Mid$(sPattern, 2, lPos - 2)
-            .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
-            .MultiLine = (InStr(lPos, sPattern, "m") > 0)
-            .Global = (InStr(lPos, sPattern, "l") = 0)
-        Else
-            .Global = True
-            .Pattern = sPattern
+            If Left$(sPattern, 1) = "/" And lPos > 1 Then
+                .Pattern = Mid$(sPattern, 2, lPos - 2)
+                .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
+                .MultiLine = (InStr(lPos, sPattern, "m") > 0)
+                .Global = (InStr(lPos, sPattern, "l") = 0)
+            Else
+                .Global = True
+                .Pattern = sPattern
+            End If
+        End With
+        If m_cRegExpCache Is Nothing Then
+            Set m_cRegExpCache = New Collection
         End If
-    End With
+        m_cRegExpCache.Add InitRegExp, sPattern
+        If m_cRegExpCache.Count > 1000 Then
+            m_cRegExpCache.Remove 1
+        End If
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Public Function GetConfigForCommand(oConfigCmd As Collection, oLocalizedCmd As Collection, sFunction As String, sKey As String, Optional Default As Variant) As Variant
@@ -1384,31 +1400,35 @@ End Function
 Private Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
     Dim oCol            As Object
     
-    Set oCol = pvInitRegExp(sPattern).Execute(sText)
+    Set oCol = InitRegExp(sPattern).Execute(sText)
     If oCol.Count > 0 Then
         pvParseTokenByRegExp = oCol.Item(0).SubMatches(0)
         sText = Mid$(sText, oCol.Item(0).FirstIndex + oCol.Item(0).Length + 1)
     End If
 End Function
 
-Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
+Public Function ParseDeviceString(ByVal sDeviceString As String, Optional Separator As String = ";") As Object
     Const KEY_PATTERN   As String = "^([^=]+)="
-    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
+    Const VALUE_PATTERN As String = "^\s*('(?:''|[^'])*'|""(?:""""|[^""])*""|[^;]*)\s*;?"
+    Const ASC_QUOTE     As Long = 39
+    Const ASC_DBL_QUOTE As Long = 34
     Dim sKey            As String
     Dim sValue          As String
     Dim oRetVal         As Object
+    Dim lChar           As Long
     
     Do
         sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
         If LenB(sKey) = 0 Then
             Exit Do
         End If
-        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
+        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, Replace(VALUE_PATTERN, ";", Separator)))
         If Len(sValue) >= 2 Then
             If Left$(sValue, 1) = Right$(sValue, 1) Then
-                Select Case Asc(sValue)
-                Case 34, 39 '--- ' and "
-                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
+                lChar = Asc(sValue)
+                Select Case lChar
+                Case ASC_QUOTE, ASC_DBL_QUOTE
+                    sValue = Replace(Mid$(sValue, 2, Len(sValue) - 2), Chr$(lChar) & Chr$(lChar), Chr$(lChar))
                 End Select
             End If
         End If
@@ -1417,8 +1437,7 @@ Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
     Set ParseDeviceString = oRetVal
 End Function
 
-Public Function ToDeviceString(oMap As Object) As String
-    Const Separator     As String = ";"
+Public Function ToDeviceString(oMap As Object, Optional Separator As String = ";") As String
     Dim vKey            As Variant
     Dim sValue          As String
     Dim sRetVal         As String
@@ -1426,13 +1445,10 @@ Public Function ToDeviceString(oMap As Object) As String
     For Each vKey In JsonKeys(oMap)
         '--- try to escape value
         sValue = C_Str(JsonItem(oMap, vKey))
-        If InStr(sValue, Separator) > 0 Then
-            If InStr(sValue, """") = 0 Then
-                sValue = """" & sValue & """"
-            Else
-                sValue = "'" & sValue & "'"
-            End If
-        End If
+        Select Case True
+        Case InStr(sValue, Separator) > 0, InStr(sValue, """") > 0, InStr(sValue, "'") > 0
+            sValue = """" & Replace(sValue, """", """""") & """"
+        End Select
         sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & Separator, vbNullString) & vKey & "=" & sValue
     Next
     ToDeviceString = sRetVal

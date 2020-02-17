@@ -89,4 +89,18 @@ Public Function EnumSerialPorts() As Variant
     AssignVariant EnumSerialPorts, mdGlobals.EnumSerialPorts
 End Function
 
+Public Function ParseDeviceString(ByVal sDeviceString As String, Optional Separator As String = ";") As Object
+    Set ParseDeviceString = mdGlobals.ParseDeviceString(sDeviceString, Separator)
+End Function
 
+Public Function ToDeviceString(oMap As Object, Optional Separator As String = ";") As String
+    ToDeviceString = mdGlobals.ToDeviceString(oMap, Separator)
+End Function
+
+Public Function InitRegExp(sPattern As String) As Object
+    Set InitRegExp = mdGlobals.InitRegExp(sPattern)
+End Function
+
+Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
+    SearchCollection = mdGlobals.SearchCollection(pCol, Index, RetVal)
+End Function

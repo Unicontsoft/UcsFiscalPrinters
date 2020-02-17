@@ -167,7 +167,6 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private m_cRegExpCache              As Collection
 Private m_sErrComputerName          As String
 Private m_sngScreenTwipsPerPixelX   As Single
 Private m_sngScreenTwipsPerPixelY   As Single
@@ -438,38 +437,6 @@ Public Function PeekInt(ByVal lPtr As Long) As Integer
     Call CopyMemory(PeekInt, ByVal lPtr, 2)
 End Function
 
-Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
-    Const VT_BYREF      As Long = &H4000
-    Const S_OK          As Long = 0
-    Dim pVbCol          As IVbCollection
-    Dim vItem           As Variant
-
-    If pCol Is Nothing Then
-        '--- do nothing
-    ElseIf (PeekInt(VarPtr(RetVal)) And VT_BYREF) = 0 Then
-        If TypeOf pCol Is IVbCollection Then
-            Set pVbCol = pCol
-            SearchCollection = (pVbCol.Item(Index, RetVal) = S_OK)
-        Else
-            Err.Raise vbObjectError, , "Not implemented"
-        End If
-    Else
-        If TypeOf pCol Is IVbCollection Then
-            Set pVbCol = pCol
-            SearchCollection = (pVbCol.Item(Index, vItem) = S_OK)
-        Else
-            Err.Raise vbObjectError, , "Not implemented"
-        End If
-        If SearchCollection Then
-            If IsObject(vItem) Then
-                Set RetVal = vItem
-            Else
-                RetVal = vItem
-            End If
-        End If
-    End If
-End Function
-
 Public Function C_Lng(Value As Variant) As Long
     Dim vDest           As Variant
     
@@ -572,39 +539,6 @@ Public Function preg_match(find_re As String, sText As String, Optional Matches 
             End If
         End If
     End With
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Public Function InitRegExp(sPattern As String) As Object
-    Const FUNC_NAME     As String = "InitRegExp"
-    Dim lPos            As Long
-    
-    On Error GoTo EH
-    If Not SearchCollection(m_cRegExpCache, sPattern, RetVal:=InitRegExp) Then
-        Set InitRegExp = CreateObject("VBScript.RegExp")
-        With InitRegExp
-            lPos = InStrRev(sPattern, "/")
-            If Left$(sPattern, 1) = "/" And lPos > 1 Then
-                .Pattern = Mid$(sPattern, 2, lPos - 2)
-                .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
-                .MultiLine = (InStr(lPos, sPattern, "m") > 0)
-                .Global = (InStr(lPos, sPattern, "l") = 0)
-            Else
-                .Global = True
-                .Pattern = sPattern
-            End If
-        End With
-        If m_cRegExpCache Is Nothing Then
-            Set m_cRegExpCache = New Collection
-        End If
-        m_cRegExpCache.Add InitRegExp, sPattern
-        If m_cRegExpCache.Count > 1000 Then
-            m_cRegExpCache.Remove 1
-        End If
-    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -792,57 +726,11 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
 End Function
 
 Public Function ParseConnectString(ByVal sConnStr As String, Optional Separator As String = ";") As Object
-    Const KEY_PATTERN   As String = "^([^=]+)="
-    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
-    Dim sKey            As String
-    Dim sValue          As String
-    Dim oRetVal         As Object
-    
-    Do
-        sKey = Trim$(pvParseTokenByRegExp(sConnStr, KEY_PATTERN))
-        If LenB(sKey) = 0 Then
-            Exit Do
-        End If
-        sValue = Trim$(pvParseTokenByRegExp(sConnStr, Replace(VALUE_PATTERN, ";", Separator)))
-        If Len(sValue) >= 2 Then
-            If Left$(sValue, 1) = Right$(sValue, 1) Then
-                Select Case Asc(sValue)
-                Case 34, 39 '--- ' and "
-                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
-                End Select
-            End If
-        End If
-        JsonItem(oRetVal, sKey) = sValue
-    Loop
-    Set ParseConnectString = oRetVal
+    Set ParseConnectString = ParseDeviceString(sConnStr, Separator)
 End Function
 
 Public Function ToConnectString(oMap As Object, Optional Separator As String = ";") As String
-    Dim vKey            As Variant
-    Dim sValue          As String
-    Dim sRetVal         As String
-    
-    For Each vKey In JsonKeys(oMap)
-        '--- try to escape value
-        sValue = C_Str(JsonItem(oMap, vKey))
-        If InStr(sValue, Separator) > 0 Then
-            If InStr(sValue, """") = 0 Then
-                sValue = """" & sValue & """"
-            Else
-                sValue = "'" & sValue & "'"
-            End If
-        End If
-        sRetVal = IIf(LenB(sRetVal) <> 0, sRetVal & Separator, vbNullString) & vKey & "=" & sValue
-    Next
-    ToConnectString = sRetVal
-End Function
-
-Public Function ParseDeviceString(ByVal sDeviceString As String) As Object
-    Set ParseDeviceString = ParseConnectString(sDeviceString)
-End Function
-
-Public Function ToDeviceString(oDevice As Object) As String
-    ToDeviceString = ToConnectString(oDevice)
+    ToConnectString = ToDeviceString(oMap, Separator)
 End Function
 
 Public Function Quote(sText As String) As String
