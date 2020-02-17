@@ -20,8 +20,8 @@ Here is a complete list of implemented protocols with corresponding tested and s
 Protocol         | Manufacturer | Tested models  | Other supported models
 ----             | ------------ | -------------  | ----------------------
 `TREMOL`         | Tremol Ltd.  | M20            | All
-`DATECS/X`       | Datecs Ltd.  | DP-25X         | X models
 `DATECS`         | Datecs Ltd.  | DP-25, FP-650  | A models, B models
+`DATECS/X`       | Datecs Ltd.  | DP-25X         | X models
 `DAISY`          | Daisy Ltd.   | CompactM       | All
 `INCOTEX`        | Incotex Ltd. | 181, 777       | All
 `ELTRADE`        | Eltrade Ltd. | A3             | All
