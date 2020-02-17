@@ -268,7 +268,7 @@ End Function
 Public Function PpdAddLine( _
             uData As UcsProtocolPrintData, _
             Line As String, _
-            Optional ByVal WordWrap As Boolean, _
+            Optional ByVal WordWrap As Boolean = True, _
             Optional ByVal BeforeIndex As Long) As Boolean
     Const FUNC_NAME     As String = "PpdAddLine"
     Dim uRow            As UcsPpdRowData
@@ -380,8 +380,8 @@ End Function
 Public Function PpdAddPayment( _
             uData As UcsProtocolPrintData, _
             ByVal PmtType As UcsFiscalPaymentTypeEnum, _
-            Name As String, _
-            ByVal Amount As Double) As Boolean
+            Optional PmtName As String, _
+            Optional ByVal Amount As Double) As Boolean
     Const FUNC_NAME     As String = "PpdAddPayment"
 
     On Error GoTo EH
@@ -393,7 +393,7 @@ Public Function PpdAddPayment( _
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowPayment
         .PmtType = LimitLong(PmtType, MIN_PMT_TYPE, MAX_PMT_TYPE)
-        .PmtName = SafeText(Name)
+        .PmtName = SafeText(PmtName)
         .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType
     End With

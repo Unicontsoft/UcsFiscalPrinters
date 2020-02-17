@@ -247,9 +247,9 @@ End Function
 ' @param `Name`             [input] full product name or description
 ' @param `Price`            [input] final sale price (incl. VAT) rounded to 0.00. Can be negative for voids
 ' @param `Quantity`         [input] quantity rounded to 0.000
-' @param `TaxGroup`         [input] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
-' @param `UnitOfMeasure`    [input] unit of measure for `Quantity` value
-' @param `DepartmentNo`     [input] department number
+' @param `TaxGroup`         [in, optional] VAT group the row total is accumulated to. VAT total will be printed at the end of receipt
+' @param `UnitOfMeasure`    [in, optional] unit of measure for `Quantity` value
+' @param `DepartmentNo`     [in, optional] department number
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark When printing negative rows currently reached receipt subtotal cannot become negative or the protocol handler
 ' will reorder receipt rows to prevent fiscal device from rejecting the whole receipt.
@@ -257,10 +257,10 @@ End Function
 Public Function AddPLU( _
             Name As String, _
             ByVal Price As Double, _
-            ByVal Quantity As Double, _
-            ByVal TaxGroup As Long, _
-            UnitOfMeasure As String, _
-            ByVal DepartmentNo As Long) As Boolean
+            Optional ByVal Quantity As Double = 1, _
+            Optional ByVal TaxGroup As Long = 2, _
+            Optional UnitOfMeasure As String, _
+            Optional ByVal DepartmentNo As Long) As Boolean
 Attribute AddPLU.VB_Description = "Used to print a row on the final receipt with product description, price and quantity"
             
 End Function
@@ -299,16 +299,16 @@ End Function
 ' Used to finalize PLU rows and print payment information
 '
 ' @param `PmtType`          [input] payment type. See `UcsFiscalPaymentTypeEnum`
-' @param `Name`             [input] payment name if `PmtType` is one of custom payment types
-' @param `Amount`           [input] payment amount rounded to 0.00. Cannot be negative
+' @param `PmtName`          [in, optional] payment name if `PmtType` is one of custom payment types
+' @param `Amount`           [in, optional] positive payment amount. If skipped (or 0.00) pays the remaining receipt
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 ' @remark After adding a payment no more PLUs can be printed. Several payments can be accumulated on a single receipt
 ' e.g. 10.00 by card and 50.00 in cash, etc. are able to pay out a 35.00 total receipt
 '
 Public Function AddPayment( _
             ByVal PmtType As UcsFiscalPaymentTypeEnum, _
-            Name As String, _
-            ByVal Amount As Double, _
+            Optional PmtName As String, _
+            Optional ByVal Amount As Double, _
             Optional ByVal Rate As Double) As Boolean
 Attribute AddPayment.VB_Description = "Used to finalize PLU rows and print payment information"
             
