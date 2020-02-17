@@ -519,7 +519,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
                 If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
-                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, DEF_CONNECTIONTIMEOUT, LocalizedText(ucsFscLciConnectorErrors))
+                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
                         .Connector.WriteData baProbe, 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
