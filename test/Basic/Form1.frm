@@ -73,8 +73,8 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
-Private Const STR_PROTOCOL_DATECS_FP As String = "DATECS FP/ECR"
-Private Const STR_PROTOCOL_TREMOL_FP As String = "TREMOL ECR"
+Private Const STR_PROTOCOL_DATECS_FP As String = "DATECS"
+Private Const STR_PROTOCOL_TREMOL_FP As String = "TREMOL"
 Private Const STR_DEVICE_STRING     As String = "Protocol=" & STR_PROTOCOL_DATECS_FP & ";Port=COM2;Speed=115200"
 
 Private WithEvents m_oFP As cIslProtocol
@@ -182,11 +182,10 @@ EH:
 End Sub
 
 Private Sub Command1_Click()
-    Dim pProt As IDeviceProtocol
     On Error GoTo EH
     m_oDP.CancelReceipt
     m_oDP.StartReceipt ucsFscRcpSale, "1", "Оператор 1", "1", "ZK140945-0001-0000123"
-    m_oDP.AddPLU "Продукт 1", 5.12, 1, 2, vbNullString, 0
+    m_oDP.AddPLU "Продукт 1", 5.12
     m_oDP.PrintReceipt
     Exit Sub
 EH:
@@ -198,7 +197,7 @@ Private Sub Command2_Click()
     m_oDP.CancelReceipt
     m_oDP.StartReceipt ucsFscRcpReversal, "1", "Оператор 1", "1", "ZK140945-0001-0000123", _
         RevType:=ucsFscRevRefund, RevReceiptNo:="51", RevReceiptDate:=Now, RevFiscalMemoryNo:="50178759"
-    m_oDP.AddPLU "Продукт 1", 5, -1, 2, vbNullString, 0
+    m_oDP.AddPLU "Продукт 1", 5, -1
     m_oDP.PrintReceipt
     Exit Sub
 EH:
@@ -212,7 +211,7 @@ Private Sub Command3_Click()
     m_oDP.StartReceipt ucsFscRcpCreditNote, "1", "Оператор 1", "1", "ZK140945-0001-0000124", _
         InvDocNo:="137", InvCgTaxNo:="130395814", InvCgVatNo:="BG130395814", InvCgName:="Униконт Софт ООД", InvCgCity:="София", InvCgAddress:="бул. Тотлебен 85-87", InvCgPrsReceive:="В. Висулчев", _
         RevInvoiceNo:="345", RevReceiptNo:="51", RevReceiptDate:=Now, RevFiscalMemoryNo:="50178759", RevReason:="Корекция на количества"
-    m_oDP.AddPLU "Продукт 1", 5, -1, 2, vbNullString, 0
+    m_oDP.AddPLU "Продукт 1", 5, -1
     m_oDP.PrintReceipt
     Exit Sub
 EH:
