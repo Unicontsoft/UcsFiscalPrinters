@@ -931,8 +931,20 @@ Public Function PrintServiceDeposit( _
     If Not CancelReceipt() Then
         GoTo QH
     End If
+    pvGetCommandConfig CONF_NAME, "InfoRegisters0", eCmd, ucsZekCmdInfoRegisters, sParam, "0"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    If LenB(m_uPrintData.LastError) <> 0 Then
+        GoTo QH
+    End If
     '--- new firmware versions support SCash only
     lPmtIndex = 0
+    vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vRetVal(1) = C_Dbl(At(vSplit, lPmtIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
+    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+    vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
     If Abs(Amount) > DBL_EPSILON Then
         pvGetCommandConfig CONF_NAME, "InfoParameters", eCmd, ucsZekCmdInfoParameters, sParam, vbNullString, _
             "Index", lIndex, 9
@@ -964,19 +976,13 @@ Public Function PrintServiceDeposit( _
             pvSetLastError pvInternal(ucsErrCannotPrint)
             GoTo QH
         End If
+        vRetVal(0) = vRetVal(0) + Amount
+        If Amount > 0 Then
+            vRetVal(1) = vRetVal(1) + Amount
+        Else
+            vRetVal(2) = vRetVal(2) + Amount
+        End If
     End If
-    pvGetCommandConfig CONF_NAME, "InfoRegisters0", eCmd, ucsZekCmdInfoRegisters, sParam, "0"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
-    End If
-    vRetVal(0) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    pvGetCommandConfig CONF_NAME, "InfoRegisters2", eCmd, ucsZekCmdInfoRegisters, sParam, "2"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    vRetVal(1) = C_Dbl(At(vSplit, lPmtIndex + 1))
-    pvGetCommandConfig CONF_NAME, "InfoRegisters3", eCmd, ucsZekCmdInfoRegisters, sParam, "3"
-    vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
-    vRetVal(2) = C_Dbl(At(vSplit, lPmtIndex + 1))
     '--- success
     PrintServiceDeposit = vRetVal
 QH:
