@@ -214,8 +214,8 @@ Public Function PpdStartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
-        .InitRevData = Array(IIf(.InitReceiptType = ucsFscRcpCreditNote, ucsFscRevTaxBaseReduction, RevType), _
-            SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), SafeText(RevInvoiceNo), SafeText(RevReason))
+        .InitRevData = Array(RevType, SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), _
+            SafeText(RevInvoiceNo), SafeText(RevReason))
         .InitOwnData = Split(OwnData, STR_SEP)
         .PrintRowType = uData.Row(0).InitReceiptType
     End With
