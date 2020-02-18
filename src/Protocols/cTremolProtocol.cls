@@ -487,7 +487,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sReplyText      As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
-    Dim vRetVal()       As Variant
+    Dim vRetVal         As Variant
     Dim vSpeed          As Variant
     Dim aPorts()        As UcsAutodetect
     Dim hEvents()       As Long
@@ -503,6 +503,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sBuffer         As String
     
     On Error GoTo EH
+    vRetVal = vPorts
+    If Not IsArray(vPorts) Then
+        GoTo QH
+    End If
+    If UBound(vPorts) < 0 Then
+        GoTo QH
+    End If
     baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_TREMOL, "ProbeText", Chr$(ucsZekCmdFastIsReady)), m_uConfig.CodePage)
     sReplyText = GetConfigValue(STR_PROTOCOL_TREMOL, "ReplyText", Chr$(ucsZekCmdFastIsReady))
     lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
@@ -511,7 +518,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If IsObject(vSpeeds) Then
         vSpeeds = vSpeeds.Items()
     End If
-    vRetVal = vPorts
     For Each vSpeed In vSpeeds
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
@@ -560,6 +566,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             End With
         Next
     Next
+QH:
     AutodetectDevices = vRetVal
     Exit Function
 EH:

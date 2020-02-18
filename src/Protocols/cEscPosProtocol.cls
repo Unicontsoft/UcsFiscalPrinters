@@ -258,8 +258,14 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim lTimeout        As Long
     
     On Error GoTo EH
-    lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     vRetVal = vPorts
+    If Not IsArray(vPorts) Then
+        GoTo QH
+    End If
+    If UBound(vPorts) < 0 Then
+        GoTo QH
+    End If
+    lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
@@ -309,6 +315,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             End With
         Next
     Next
+QH:
     AutodetectDevices = vRetVal
     Exit Function
 EH:

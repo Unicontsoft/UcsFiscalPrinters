@@ -458,7 +458,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sReplyText      As String
     Dim lTimeout        As Long
     Dim lDeviceInfoTimeout As Long
-    Dim vRetVal()       As Variant
+    Dim vRetVal         As Variant
     Dim vSpeed          As Variant
     Dim aPorts()        As UcsAutodetect
     Dim hEvents()       As Long
@@ -475,6 +475,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim sBuffer         As String
     
     On Error GoTo EH
+    vRetVal = vPorts
+    If Not IsArray(vPorts) Then
+        GoTo QH
+    End If
+    If UBound(vPorts) < 0 Then
+        GoTo QH
+    End If
     sDefProbe = Chr$(SYM_PREAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H32) & Chr$(&H3A) & Chr$(&H21) & Chr$(&H30) & Chr$(&H30) & Chr$(&H34) & Chr$(&H3A) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H31) & Chr$(&H3C) & Chr$(&H30) & Chr$(SYM_TERMINATOR)
     baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sDefProbe), m_uConfig.CodePage)
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", Chr$(SYM_PREAMBLE)) ' PREAMBLE (&H1)
@@ -484,7 +491,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If IsObject(vSpeeds) Then
         vSpeeds = vSpeeds.Items()
     End If
-    vRetVal = vPorts
     For Each vSpeed In vSpeeds
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
@@ -538,6 +544,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             End With
         Next
     Next
+QH:
     AutodetectDevices = vRetVal
     Exit Function
 EH:
