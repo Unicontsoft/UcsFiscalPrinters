@@ -33,6 +33,7 @@ Implements IEndpoint
 Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
 Private Const STR_CONN_ESTABLISHED      As String = "%1 установена (%2 отворени)"
 Private Const STR_CONN_ERROR            As String = "Грешка в %1: %2"
+Private Const MAX_CONN_QUEUE            As Long = 120
 
 Private m_sLastError                As String
 Private m_oConfig                   As Object
@@ -103,7 +104,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    If Not m_oSocket.Listen() Then
+    If Not m_oSocket.Listen(MAX_CONN_QUEUE) Then
         m_sLastError = m_oSocket.GetErrorDescription(m_oSocket.LastError)
         Set m_oSocket = Nothing
         Set m_oController = Nothing
