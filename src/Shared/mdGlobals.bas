@@ -435,7 +435,7 @@ Public Function EnumSerialPorts() As Variant
         Next
     End If
     If lCount = 0 Then
-        EnumSerialPorts = Split(vbNullString)
+        EnumSerialPorts = Array()
     Else
         ReDim Preserve vRet(0 To lCount - 1) As Variant
         EnumSerialPorts = vRet
