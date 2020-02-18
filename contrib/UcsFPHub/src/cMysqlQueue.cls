@@ -271,6 +271,7 @@ End Function
 '=========================================================================
 
 Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pError As ADODB.Error, adStatus As ADODB.EventStatusEnum, ByVal pCommand As ADODB.Command, ByVal pRecordset As ADODB.Recordset, ByVal pConnection As ADODB.Connection)
+    Const FUNC_NAME     As String = "m_oRecvConn_ExecuteComplete"
     Static bHere        As Boolean
     Dim sHandle         As String
     Dim lErrorCode      As Long
@@ -283,6 +284,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     bHere = True
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
+        DebugLog MODULE_NAME, FUNC_NAME, C_Str(vErr(2)), vbLogEventTypeError
         GoTo NextLine
     ElseIf Not pRecordset Is Nothing Then
         If (pRecordset.State And adStateOpen) <> 0 Then
@@ -298,6 +300,7 @@ QH:
     Exit Sub
 EH:
     vErr = Array(Err.Number, Err.Source, Err.Description)
+    PrintError FUNC_NAME
     Resume NextLine
 NextLine:
     On Error Resume Next
@@ -312,7 +315,9 @@ NextLine:
         End If
         pvQueueLoopAsync
     End If
-    pvRestartTimer
+    If m_pTimeoutTimer Is Nothing Then
+        pvRestartTimer
+    End If
     GoTo QH
 End Sub
 

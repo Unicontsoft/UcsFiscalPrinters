@@ -304,7 +304,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
         If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
-            DebugLog MODULE_NAME, FUNC_NAME, pError.Description, vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, C_Str(vErr(2)), vbLogEventTypeError
         End If
         GoTo NextLine
     ElseIf Not pRecordset Is Nothing Then
@@ -354,7 +354,9 @@ NextLine:
         End If
         pvQueueLoopAsync
     End If
-    pvRestartTimer
+    If m_pTimeoutTimer Is Nothing Then
+        pvRestartTimer
+    End If
     GoTo QH
 End Sub
 
