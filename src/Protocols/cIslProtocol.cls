@@ -517,9 +517,11 @@ Private Property Get pvRowChars() As Long
     Const CONF_NAME     As String = "RowChars"
     Dim sDaisyPrefix    As String
     Dim sIncotexPrefix  As String
+    Dim sEltradePrefix  As String
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lOffset         As Long
     Dim sResult         As String
     Dim vSplit          As Variant
     
@@ -528,7 +530,8 @@ Private Property Get pvRowChars() As Long
         pvGetCommandConfig CONF_NAME, "ExtendedInfoConsts", eCmd, ucsIslCmdExtendedInfoConsts, sParam, vbNullString, _
             "Index", lIndex, 8, _
             "DaisyPrefix", sDaisyPrefix, "DY", _
-            "IncotexPrefix", sIncotexPrefix, "IN"
+            "IncotexPrefix", sIncotexPrefix, "IN", _
+            "EltradePrefix", sEltradePrefix, "ED"
         If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Or _
                 Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
@@ -541,6 +544,14 @@ Private Property Get pvRowChars() As Long
             End If
             If m_uPrintData.Config.MaxReceiptRows = DEF_MAX_RECEIPT_ROWS And C_Lng(At(vSplit, lIndex + 15)) > 0 Then
                 m_uPrintData.Config.MaxReceiptRows = C_Lng(At(vSplit, lIndex + 15))
+            End If
+        ElseIf Left$(GetDeviceSerialNo(), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
+            pvGetCommandConfig CONF_NAME, "InitItem", eCmd, ucsIslCmdInitItem, sParam, "I", _
+                "Index", lIndex, 3, _
+                "Offset", lOffset, 12
+            vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+            If C_Lng(At(vSplit, lIndex)) <> 0 Then
+                m_uPrintData.Config.RowChars = C_Lng(At(vSplit, lIndex)) + lOffset
             End If
         Else
             pvGetCommandConfig CONF_NAME, "InitLogo", eCmd, ucsIslCmdInitLogo, sParam, "R0"
