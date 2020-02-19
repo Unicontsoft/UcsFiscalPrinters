@@ -302,7 +302,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                                 DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
                                 sModel = pvGetAutodetectInfo(.Connector, 67) & pvGetAutodetectInfo(.Connector, 66) & _
                                          pvGetAutodetectInfo(.Connector, 68) & pvGetAutodetectInfo(.Connector, 65)
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
+                                If Len(sModel) > 1 Then
+                                    vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_ESCPOS, Trim$(Mid$(sModel, 2)))
+                                End If
                                 Exit For
                             End If
                         Next
