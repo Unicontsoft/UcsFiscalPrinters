@@ -193,7 +193,7 @@ End Function
 
 Public Sub ShowConfig(Optional OwnerForm As Object)
     Const FUNC_NAME     As String = "ShowConfig"
-    Dim oForm           As frmIcon
+    Dim oForm           As frmMain
     
     On Error GoTo EH
     Set oForm = MainForm
@@ -209,7 +209,7 @@ End Sub
 
 Public Sub ShutDown()
     Const FUNC_NAME     As String = "Shutdown"
-    Dim oForm           As frmIcon
+    Dim oForm           As frmMain
     
     On Error GoTo EH
     If IsRunningAsService Then
@@ -230,7 +230,7 @@ End Sub
 Public Sub Restart()
     Const FUNC_NAME     As String = "Restart"
     Dim oSettings       As frmSettings
-    Dim oForm           As frmIcon
+    Dim oForm           As frmMain
     
     On Error GoTo EH
     If IsRunningAsService Then

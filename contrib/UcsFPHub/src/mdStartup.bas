@@ -100,11 +100,11 @@ Property Get IsRunningHidden() As Boolean
     IsRunningHidden = m_bIsHidden
 End Property
 
-Property Get MainForm() As frmIcon
+Property Get MainForm() As frmMain
     Dim oForm       As Object
     
     For Each oForm In Forms
-        If TypeOf oForm Is frmIcon Then
+        If TypeOf oForm Is frmMain Then
             Set MainForm = oForm
             Exit Property
         End If
@@ -250,7 +250,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     '--- respawn hidden in systray
     If Not C_Bool(m_oOpt.Item("--console")) Then
         If Not C_Bool(m_oOpt.Item("--hidden")) And Not InIde Then
-            frmIcon.Restart AddParam:="--hidden"
+            frmMain.Restart AddParam:="--hidden"
             GoTo QH
         End If
         Process = -1
@@ -325,7 +325,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             FlushDebugLog
         Loop
     Else
-        If Not frmIcon.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION, GetEnvironmentVar("_UCS_FP_HUB_AUTO_UPDATE")) Then
+        If Not frmMain.Init(m_oPrinters, sConfFile, App.ProductName & " v" & STR_VERSION, GetEnvironmentVar("_UCS_FP_HUB_AUTO_UPDATE")) Then
             Process = 1
             GoTo QH
         End If

@@ -1,11 +1,11 @@
 VERSION 5.00
-Begin VB.Form frmIcon 
+Begin VB.Form frmMain 
    Caption         =   "Настройки"
    ClientHeight    =   1776
    ClientLeft      =   192
    ClientTop       =   240
    ClientWidth     =   4944
-   Icon            =   "frmIcon.frx":0000
+   Icon            =   "frmMain.frx":0000
    LinkTopic       =   "Form1"
    ScaleHeight     =   1776
    ScaleWidth      =   4944
@@ -35,7 +35,7 @@ Begin VB.Form frmIcon
       End
    End
 End
-Attribute VB_Name = "frmIcon"
+Attribute VB_Name = "frmMain"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -52,7 +52,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "frmIcon"
+Private Const MODULE_NAME As String = "frmMain"
 
 '=========================================================================
 ' API
@@ -130,11 +130,11 @@ Property Get ExeAutoUpdate() As String
     ExeAutoUpdate = m_sExeAutoUpdate
 End Property
 
-Private Property Get pvAddressOfTimerProc() As frmIcon
+Private Property Get pvAddressOfTimerProc() As frmMain
     Set pvAddressOfTimerProc = InitAddressOfMethod(Me, 0)
 End Property
 
-Private Property Get pvAddressOfSubclassProc() As frmIcon
+Private Property Get pvAddressOfSubclassProc() As frmMain
     Set pvAddressOfSubclassProc = InitAddressOfMethod(Me, 5)
 End Property
 
@@ -191,7 +191,7 @@ Public Sub ShutDown()
         Unload oFrm
     Next
     Set frmSettings = Nothing
-    Set frmIcon = Nothing
+    Set frmMain = Nothing
     Exit Sub
 EH:
     PrintError FUNC_NAME

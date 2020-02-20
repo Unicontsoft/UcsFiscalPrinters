@@ -650,7 +650,7 @@ Private Function pvLoadPrinters() As Boolean
     Dim oConfig         As Object
     Dim vKey            As Variant
     Dim oDevice         As Object
-    Dim oForm           As frmIcon
+    Dim oForm           As frmMain
     Dim vSplit          As Variant
     
     On Error GoTo EH
@@ -887,7 +887,7 @@ Friend Sub frRestart()
             Unload oFrm
         End If
     Next
-    Set frmIcon = Nothing
+    Set frmMain = Nothing
     Process SplitArgs(Command$ & " --systray"), True
     '--- delay-load UI
     m_sPrinterID = vbNullString
