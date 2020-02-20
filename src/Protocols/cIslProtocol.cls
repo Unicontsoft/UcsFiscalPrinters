@@ -2107,7 +2107,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         pvGetCommandConfig CONF_NAME, "InitOperatorName", eCmd, ucsIslCmdInitOperatorName, sParam, sParam, _
                             "MinName", lMinName, 10
                         sOperParamMax = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, m_uConfig.MaxOperatorName))
-                        sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, LimitLong(Len(sData), lMinName)))
+                        sOperParamMin = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, Left$(.InitOperatorName, Clamp(Len(sData), lMinName)))
                         SendCommand eCmd, sOperParamMax
                         If LenB(m_uPrintData.LastError) <> 0 And sOperParamMin <> sOperParamMax Then
                             SendCommand eCmd, sOperParamMin
@@ -2340,7 +2340,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 sUnit = IIf(Not IsFP And Not IsIncotex, .PluUnitOfMeasure, vbNullString)
                 vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
-                    LimitLong(pvCommentChars, , pvItemChars))
+                    Clamp(pvCommentChars, , pvItemChars))
                 For lIdx = 0 To UBound(vSplit) - 2
                     If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                         GoTo QH
@@ -2440,7 +2440,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowBarcode
             If .BarcodeHeight > 0 And Not IsDaisy Then
                 pvGetCommandConfig CONF_NAME, "InitHeaderFooter", eCmd, ucsIslCmdInitHeaderFooter, sParam, "B" & DEF_SEP & "%1"
-                sParam = Printf(sParam, LimitLong(.BarcodeHeight * 6, 24, 240))
+                sParam = Printf(sParam, Clamp(.BarcodeHeight * 6, 24, 240))
                 SendCommand eCmd, sParam
                 '--- skip last error check
             End If

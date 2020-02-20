@@ -1738,7 +1738,7 @@ RetryParse:
                     pvTransmitCommand = Right$(sText, 1)
                 Else
                     lIdx = InStr(sText, Chr$(ZFP_STX))
-                    lIdx = LimitLong(InStr(sText, Chr$(ZFP_ACK)), , Znl(lIdx, 2147483647))
+                    lIdx = Clamp(InStr(sText, Chr$(ZFP_ACK)), , Znl(lIdx, 2147483647))
                     If lIdx > 1 Then
                         DebugLog FUNC_NAME, "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
                         sText = Mid$(sText, lIdx)
@@ -1986,7 +1986,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     "FormatDisc", sFormatDisc, FORMAT_BASE_2
             End If
             vSplit = WrapText(.PluItemName & IIf(LenB(.PluUnitOfMeasure) <> 0, " (" & .PluUnitOfMeasure & ")", vbNullString), _
-                LimitLong(pvCommentChars, , pvItemChars))
+                Clamp(pvCommentChars, , pvItemChars))
             For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH

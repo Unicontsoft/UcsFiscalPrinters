@@ -119,7 +119,7 @@ Public Sub Log(ByVal eType As LogEventTypeConstants, sModule As String, sFunctio
         GoTo QH
     End If
     If m_bIsService Then
-        App.LogEvent sText, LimitLong(eType, 0, vbLogEventTypeInformation)
+        App.LogEvent sText, Clamp(eType, 0, vbLogEventTypeInformation)
     End If
 QH:
     Err.Number = vErr(0)

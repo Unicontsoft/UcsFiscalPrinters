@@ -485,7 +485,7 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
     
     Logger.Log eType, sModule, sFunction, sText
     If Logger.LogFile = -1 And m_bIsService Then
-        App.LogEvent sText, LimitLong(eType, 0, vbLogEventTypeInformation)
+        App.LogEvent sText, Clamp(eType, 0, vbLogEventTypeInformation)
     ElseIf Not m_bIsHidden Then
         sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(GetCurrentTimer, FORMAT_BASE_3), 4) & ": "
         Select Case eType

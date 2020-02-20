@@ -1827,7 +1827,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 dblDisc = 0
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
-            vSplit = WrapText(.PluItemName, LimitLong(pvCommentChars, , pvItemChars))
+            vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
             For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH
@@ -1926,7 +1926,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowBarcode
             If .BarcodeHeight > 0 Then
                 pvGetCommandConfig CONF_NAME, "InfoSettingsBarCodeHeight", 0, 0, sParam, "BarCodeHeight"
-                pvSettings(sParam) = LimitLong(.BarcodeHeight \ 7, 1, 10)
+                pvSettings(sParam) = Clamp(.BarcodeHeight \ 7, 1, 10)
                 pvGetCommandConfig CONF_NAME, "InfoSettingsBarcodeName", 0, 0, sParam, "BarcodeName"
                 pvSettings(sParam) = 0
             End If

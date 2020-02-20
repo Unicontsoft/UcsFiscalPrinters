@@ -603,17 +603,18 @@ Public Function Printf(ByVal sText As String, ParamArray A() As Variant) As Stri
     Printf = Replace(sText, ChrW$(LNG_PRIVATE), "%")
 End Function
 
-Public Function LimitLong( _
+Public Function Clamp( _
             ByVal lValue As Long, _
             Optional ByVal lMin As Long = -2147483647, _
             Optional ByVal lMax As Long = 2147483647) As Long
-    If lValue < lMin Then
-        LimitLong = lMin
-    ElseIf lValue > lMax Then
-        LimitLong = lMax
-    Else
-        LimitLong = lValue
-    End If
+    Select Case lValue
+    Case lMin To lMax
+        Clamp = lValue
+    Case Is < lMin
+        Clamp = lMin
+    Case Is > lMax
+        Clamp = lMax
+    End Select
 End Function
 
 Public Function Limit( _
@@ -680,7 +681,7 @@ End Function
 
 Public Function CenterText(ByVal sText As String, ByVal lWidth As Long) As String
     sText = Left$(sText, lWidth)
-    CenterText = Space$(LimitLong((lWidth - Len(sText)) \ 2, 0)) & sText
+    CenterText = Space$(Clamp((lWidth - Len(sText)) \ 2, 0)) & sText
 End Function
 
 Public Function SumArray(vArray As Variant) As Double
@@ -1335,7 +1336,7 @@ Public Function SplitOrReindex(Expression As String, Delimiter As String) As Var
     '--- check if reindex needed
     If IsNumeric(At(SplitOrReindex, 0)) Then
         For lIdx = 0 To UBound(SplitOrReindex) Step 2
-            lSize = LimitLong(lSize, C_Lng(At(SplitOrReindex, lIdx)))
+            lSize = Clamp(lSize, C_Lng(At(SplitOrReindex, lIdx)))
         Next
         ReDim vResult(0 To lSize) As Variant
         For lIdx = 0 To UBound(SplitOrReindex) Step 2

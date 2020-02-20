@@ -204,7 +204,7 @@ Public Function PpdStartReceipt( _
     uData.RowCount = 0
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowInit
-        .InitReceiptType = LimitLong(ReceiptType, 1, [_ucsFscRcpMax] - 1)
+        .InitReceiptType = Clamp(ReceiptType, 1, [_ucsFscRcpMax] - 1)
         .InitOperatorCode = SafeText(OperatorCode)
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
@@ -251,7 +251,7 @@ Public Function PpdAddPLU( _
         bNegative = (Round(Price, DEF_PRICE_SCALE) * Round(Quantity, DEF_QUANTITY_SCALE) < -DBL_EPSILON)
         .PluPrice = IIf(bNegative, -1, 1) * Round(Abs(Price), DEF_PRICE_SCALE)
         .PluQuantity = Round(Abs(Quantity), DEF_QUANTITY_SCALE)
-        .PluTaxGroup = LimitLong(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
+        .PluTaxGroup = Clamp(TaxGroup, MIN_TAX_GROUP, MAX_TAX_GROUP)
         .PluUnitOfMeasure = UnitOfMeasure
         .PluDepartmentNo = DepartmentNo
         .PrintRowType = uData.Row(0).InitReceiptType
@@ -364,7 +364,7 @@ Public Function PpdAddBarcode( _
     End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowBarcode
-        .BarcodeType = LimitLong(BarcodeType, 1, [_ucsFscBrcMax] - 1)
+        .BarcodeType = Clamp(BarcodeType, 1, [_ucsFscBrcMax] - 1)
         .BarcodeText = Text
         .BarcodeHeight = Height
         .PrintRowType = uData.Row(0).InitReceiptType
@@ -392,7 +392,7 @@ Public Function PpdAddPayment( _
     End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowPayment
-        .PmtType = LimitLong(PmtType, MIN_PMT_TYPE, MAX_PMT_TYPE)
+        .PmtType = Clamp(PmtType, MIN_PMT_TYPE, MAX_PMT_TYPE)
         .PmtName = SafeText(PmtName)
         .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType
@@ -553,7 +553,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             dblDiscTotal = Round(dblTotal * uData.Row(lRow).DiscValue / 100#, DEF_PRICE_SCALE)
             If Not uData.Config.NegativePrices And dblPrice < DBL_EPSILON Then '--- less than or *equal to* 0 (dblPrice <= 0)
                 vSplit = WrapText(uData.Row(lRow).PluItemName, uData.Config.ItemChars)
-                lIdx = LimitLong(UBound(vSplit), , 1)
+                lIdx = Clamp(UBound(vSplit), , 1)
                 vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), uData.Config.CommentChars)
                 uData.Row(lRow).RowType = ucsRowLine
                 uData.Row(lRow).LineText = vSplit(0)

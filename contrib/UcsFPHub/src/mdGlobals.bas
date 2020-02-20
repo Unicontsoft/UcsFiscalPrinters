@@ -1191,16 +1191,17 @@ Public Function ShellExec(sExeFile As String, sParams As String) As Boolean
     Call ShellExecuteEx(uShell)
 End Function
 
-Public Function LimitLong( _
+Public Function Clamp( _
             ByVal lValue As Long, _
             Optional ByVal lMin As Long = -2147483647, _
             Optional ByVal lMax As Long = 2147483647) As Long
-    If lValue < lMin Then
-        LimitLong = lMin
-    ElseIf lValue > lMax Then
-        LimitLong = lMax
-    Else
-        LimitLong = lValue
-    End If
+    Select Case lValue
+    Case lMin To lMax
+        Clamp = lValue
+    Case Is < lMin
+        Clamp = lMin
+    Case Is > lMax
+        Clamp = lMax
+    End Select
 End Function
 
