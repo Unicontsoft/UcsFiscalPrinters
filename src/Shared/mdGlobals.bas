@@ -1463,17 +1463,6 @@ Public Function GetEnvironmentVar(sName As String) As String
     GetEnvironmentVar = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
 End Function
 
-Public Function Split2(sText As String, sDelim As String) As Variant
-    Dim lPos            As Long
-    
-    lPos = InStr(sText, sDelim)
-    If lPos > 0 Then
-        Split2 = Array(Left$(sText, lPos - 1), Mid$(sText, lPos + Len(sDelim)))
-    Else
-        Split2 = Array(sText)
-    End If
-End Function
-
 Public Function StripZeros(ByVal sText As String) As String
     Dim lIdx            As Long
     

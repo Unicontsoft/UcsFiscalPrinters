@@ -280,7 +280,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     If LenB(sPrinterID) <> 0 And LCase$("/printers/" & sPrinterID) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterID))) Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
     End If
-    vSplit = Split2(sRawUrl, "?")
+    vSplit = Split(sRawUrl, "?", Limit:=2)
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
         lErrorCode = m_oController.LastCode
         sResponse = m_oController.LastError

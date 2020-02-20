@@ -298,7 +298,7 @@ Private Sub m_oSocket_OnReceive()
                 m_sBody = Left$(m_sBody, lSize)
             End If
         End If
-        vElem = Split2(m_sRawUrl, "?")
+        vElem = Split(m_sRawUrl, "?", Limit:=2)
         pvHandleRequest At(vElem, 0), At(vElem, 1)
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3))
         pvClearState

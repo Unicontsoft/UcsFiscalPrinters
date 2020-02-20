@@ -2683,7 +2683,7 @@ Private Function pvGetDeviceInfo( _
         ElseIf LenB(At(vResult, lSerialIndex)) <> 0 Then
             sProtocol = STR_PROTOCOL_DATECS_FP
         End If
-        vSplit = Split2(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), " ")
+        vSplit = Split(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), Limit:=2)
         sModel = RTrim$(At(vSplit, 0))
         sFirmware = RTrim$(At(vSplit, 1))
         sDeviceSerialNo = RTrim$(At(vResult, lSerialIndex))
