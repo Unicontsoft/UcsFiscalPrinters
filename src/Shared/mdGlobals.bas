@@ -1739,3 +1739,10 @@ Public Function ParseExtendedDate(sText As String) As Date
 QH:
 End Function
 
+Public Property Get IsLogDebugEnabled() As Boolean
+    IsLogDebugEnabled = Logger.LogLevel >= vbLogEventTypeDebug
+End Property
+
+Public Property Get IsLogDataDumpEnabled() As Boolean
+    IsLogDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeDataDump
+End Property

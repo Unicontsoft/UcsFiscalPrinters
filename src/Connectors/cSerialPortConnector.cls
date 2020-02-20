@@ -50,6 +50,7 @@ Private Const ERROR_HANDLE_EOF              As Long = 38
 Private Const PURGE_TXCLEAR                 As Long = &H4
 Private Const PURGE_RXCLEAR                 As Long = &H8
 
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
@@ -126,6 +127,10 @@ Private m_sLastError            As String
 Private m_vLocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 Private m_lCommEventTimeout     As Long
 Private m_bClearPersistent      As Boolean
+'--- overlapped I/O buffers
+Private m_lActual               As Long
+Private m_lMask                 As Long
+Private m_baBuffer()            As Byte
 
 '=========================================================================
 ' Error handling
@@ -192,6 +197,7 @@ Public Function Init(Device As String, Optional ByVal Timeout As Long) As Boolea
     If LenB(m_sLastError) <> 0 Then
         GoTo QH
     End If
+    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     '--- success
     Init = True
 QH:
@@ -258,19 +264,19 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     Dim uWaitOver       As OVERLAPPED
     Dim lResult         As Long
     Dim lLastErr        As Long
-    Dim lActual         As Long
-    Dim lMask           As Long
     Dim lRetryCount     As Long
     Dim bPendingRead    As Boolean
     Dim bPendingWait    As Boolean
     
     On Error GoTo EH
     dblTimerEx = TimerEx
-    Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     uReadOver.hEvent = CreateEvent(0, 1, 0, 0)
     uWaitOver.hEvent = CreateEvent(0, 1, 0, 0)
-    ReDim Result(0 To 65535) As Byte
-    lResult = ReadFile(m_hComm, Result(0), UBound(Result) + 1, lActual, uReadOver)
+    If UBound(m_baBuffer) < 0 Then
+        ReDim m_baBuffer(0 To 65535) As Byte
+    End If
+    m_lActual = 0
+    lResult = ReadFile(m_hComm, m_baBuffer(0), UBound(m_baBuffer) + 1, m_lActual, uReadOver)
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
@@ -291,8 +297,8 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                 GoTo QH
             End If
             bPendingRead = False
-            lActual = 0
-            Call GetOverlappedResult(m_hComm, uReadOver, lActual, 0)
+            m_lActual = 0
+            Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 0)
         Else
             m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
@@ -300,13 +306,13 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
             GoTo QH
         End If
     End If
-    If lActual > 0 Or Timeout = 0 Then
+    If m_lActual > 0 Or Timeout = 0 Then
         GoTo QH
     End If
 RetryWait:
     lRetryCount = lRetryCount + 1
-    lMask = 0
-    lResult = WaitCommEvent(m_hComm, lMask, uWaitOver)
+    m_lMask = 0
+    lResult = WaitCommEvent(m_hComm, m_lMask, uWaitOver)
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
@@ -334,8 +340,8 @@ RetryWait:
             GoTo QH
         End If
     End If
-    lActual = 0
-    lResult = ReadFile(m_hComm, Result(0), UBound(Result) + 1, lActual, uReadOver)
+    m_lActual = 0
+    lResult = ReadFile(m_hComm, m_baBuffer(0), UBound(m_baBuffer) + 1, m_lActual, uReadOver)
     lLastErr = Err.LastDllError
     If lResult = 0 Then
         If lLastErr = ERROR_IO_PENDING Then
@@ -356,8 +362,8 @@ RetryWait:
                 GoTo QH
             End If
             bPendingRead = False
-            lActual = 0
-            Call GetOverlappedResult(m_hComm, uReadOver, lActual, 0)
+            m_lActual = 0
+            Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 0)
         ElseIf lLastErr = ERROR_HANDLE_EOF Then
             GoTo RetryWait
         Else
@@ -368,7 +374,7 @@ RetryWait:
             GoTo QH
         End If
     End If
-    If lActual > 0 Then
+    If m_lActual > 0 Then
         GoTo QH
     End If
     If TimerEx > dblTimerEx + Timeout / 1000# Then
@@ -381,9 +387,12 @@ RetryWait:
     Call Sleep(1)
     GoTo RetryWait
 QH:
-    If lActual > 0 Then
-        ReDim Preserve Result(0 To lActual - 1) As Byte
-'        Debug.Print "lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+    If m_lActual > 0 Then
+        ReDim Result(0 To m_lActual - 1) As Byte
+        Call CopyMemory(Result(0), m_baBuffer(0), m_lActual)
+        If IsLogDataDumpEnabled Then
+            DebugLog FUNC_NAME, "lActual=" & m_lActual & ", lRetryCount=" & lRetryCount & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+        End If
         '--- success
         ReadData = True
     Else
@@ -501,6 +510,7 @@ Private Sub Class_Initialize()
     m_hComm = INVALID_HANDLE_VALUE
     m_lCommEventTimeout = DEF_COMM_EVENT_TIMEOUT
     m_lTimeout = DEF_TIMEOUT
+    m_baBuffer = vbNullString
 End Sub
 
 Private Sub Class_Terminate()
