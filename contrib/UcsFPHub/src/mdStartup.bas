@@ -54,6 +54,8 @@ Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 Private Const STR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да отворите предишната инстанция?"
+Private Const STR_PREFIX_ERROR          As String = "[Грешка] "
+Private Const STR_PREFIX_WARNING        As String = "[Внимание] "
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Невалиден %1: %2"
@@ -490,9 +492,9 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
         sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(GetCurrentTimer, FORMAT_BASE_3), 4) & ": "
         Select Case eType
         Case vbLogEventTypeError
-            sPrefix = sPrefix & "[Грешка] "
+            sPrefix = sPrefix & STR_PREFIX_ERROR
         Case vbLogEventTypeWarning
-            sPrefix = sPrefix & "[Внимание] "
+            sPrefix = sPrefix & STR_PREFIX_WARNING
         End Select
         sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
         If eType = vbLogEventTypeError Then
