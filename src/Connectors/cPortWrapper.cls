@@ -27,7 +27,7 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cPersistentPort"
+Private Const MODULE_NAME As String = "cPortWrapper"
 
 '=========================================================================
 ' API
