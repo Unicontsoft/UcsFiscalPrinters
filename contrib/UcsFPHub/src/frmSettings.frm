@@ -53,9 +53,9 @@ Begin VB.Form frmSettings
          Begin VB.TextBox txtSerialNo 
             Height          =   288
             Left            =   2772
-            TabIndex        =   4
+            TabIndex        =   5
             Tag             =   "FONT"
-            Top             =   2520
+            Top             =   3024
             Width           =   1440
          End
          Begin VB.CheckBox chkAutoDetect 
@@ -79,9 +79,9 @@ Begin VB.Form frmSettings
          Begin VB.TextBox txtDefPass 
             Height          =   288
             Left            =   2772
-            TabIndex        =   5
+            TabIndex        =   4
             Tag             =   "FONT"
-            Top             =   3024
+            Top             =   2520
             Width           =   1440
          End
          Begin VB.ComboBox cobProtocol 
@@ -115,7 +115,7 @@ Begin VB.Form frmSettings
             Left            =   252
             TabIndex        =   19
             Tag             =   "FONT"
-            Top             =   2520
+            Top             =   3024
             UseMnemonic     =   0   'False
             Width           =   2640
             WordWrap        =   -1  'True
@@ -127,7 +127,7 @@ Begin VB.Form frmSettings
             Left            =   252
             TabIndex        =   17
             Tag             =   "FONT"
-            Top             =   3024
+            Top             =   2520
             UseMnemonic     =   0   'False
             Width           =   2640
             WordWrap        =   -1  'True
