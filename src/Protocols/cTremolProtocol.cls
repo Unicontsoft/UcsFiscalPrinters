@@ -1607,7 +1607,10 @@ Public Function GetTaxRates() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx))
+        vRetVal(lIdx) = C_Dbl(At(vTaxRates, lIdx, -1))
+        If vRetVal(lIdx) >= 100 Then
+            vRetVal(lIdx) = -1
+        End If
     Next
     '--- success
     GetTaxRates = vRetVal
