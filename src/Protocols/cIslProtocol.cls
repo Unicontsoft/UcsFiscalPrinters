@@ -1434,18 +1434,16 @@ Public Function CancelReceipt() As Boolean
         If IsDaisy Or IsIncotex Then
             pvGetCommandConfig CONF_NAME, "ExtendedFiscalCancel", eCmd, ucsIslCmdExtendedFiscalCancel, sParam, vbNullString
         Else
-            '--- note: FP-3530 can cancel always, FP-550 sometimes can not
             pvGetCommandConfig CONF_NAME, "FiscalCancel", eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
         End If
         SendCommand eCmd, sParam
         If Status(ucsIslStbFiscalPrinting) Then
-            '--- note: this helps if sum payed is less than total receipt sum
+            '--- note: this helps if total sum paid is less than total receipt amount
             pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
             SendCommand eCmd, sParam
-            '--- note: when printing invoice, if no contragent info set then cancel fails!
+            '--- note: when printing an extended receipt, cancel fails if no contragent info set
             pvGetCommandConfig CONF_NAME, "FiscalCgInfo", eCmd, ucsIslCmdFiscalCgInfo, sParam, "0000000000" & IIf(IsEcr, vbTab & "0", vbNullString)
             SendCommand eCmd, sParam
-            '--- for FP-550
             pvGetCommandConfig CONF_NAME, "FiscalClose", eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
             SendCommand eCmd, sParam
         End If
