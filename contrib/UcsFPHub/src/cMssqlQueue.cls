@@ -295,6 +295,8 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     Dim lErrorCode      As Long
     Dim sPrinterID      As String
     Dim vErr            As Variant
+    Dim oConn           As ADODB.Connection
+    Dim oRecvConn       As ADODB.Connection
     
     On Error GoTo EH
     If bHere Then
@@ -304,7 +306,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
         If vErr(0) <> ERR_DB_E_NOTABLE And vErr(0) <> adErrOperationCancelled Then
-            DebugLog MODULE_NAME, FUNC_NAME, C_Str(vErr(2)), vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")", C_Str(vErr(2)) & " &H" & Hex$(vErr(0)), vbLogEventTypeError
         End If
         GoTo NextLine
     ElseIf Not pRecordset Is Nothing Then
@@ -353,6 +355,21 @@ NextLine:
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
+    Else
+        Set m_oConn = Nothing
+        Set m_oRecvConn = Nothing
+        If Not m_oCallback.frReopenConn(oConn, oRecvConn) Then
+            '--- do nothing
+        Else
+            Set m_oConn = oConn
+            Set m_oRecvConn = oRecvConn
+            If LenB(sHandle) <> 0 Then
+                lErrorCode = Znl(lErrorCode, 500)
+                m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
+                    Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
+            End If
+            pvQueueLoopAsync
+        End If
     End If
     If m_pTimeoutTimer Is Nothing Then
         pvRestartTimer

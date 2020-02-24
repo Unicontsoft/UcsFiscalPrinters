@@ -284,7 +284,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     bHere = True
     If Not pError Is Nothing Then
         vErr = Array(pError.Number, pError.Source, pError.Description)
-        DebugLog MODULE_NAME, FUNC_NAME, C_Str(vErr(2)), vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME & "(" & m_sSqlInstance & "/" & m_sSqlDatabase & ")", C_Str(vErr(2)) & " &H" & Hex$(vErr(0)), vbLogEventTypeError
         GoTo NextLine
     ElseIf Not pRecordset Is Nothing Then
         If (pRecordset.State And adStateOpen) <> 0 Then
@@ -314,6 +314,9 @@ NextLine:
                 Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
         End If
         pvQueueLoopAsync
+    Else
+        Set m_oConn = Nothing
+        Set m_oRecvConn = Nothing
     End If
     If m_pTimeoutTimer Is Nothing Then
         pvRestartTimer
