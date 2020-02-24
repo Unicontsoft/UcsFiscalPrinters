@@ -276,6 +276,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     Dim lResult         As Long
     Dim lLastErr        As Long
     Dim lRetryCount     As Long
+    Dim lActual         As Long
     Dim bPendingRead    As Boolean
     Dim bPendingWait    As Boolean
     
@@ -311,11 +312,12 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
         Else
             m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "ReadFile#1, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
+            DebugLog FUNC_NAME, "ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
             GoTo QH
         End If
     End If
     If m_lActual > 0 Or Timeout = 0 Then
+        lActual = m_lActual
         GoTo QH
     End If
 RetryWait:
@@ -343,7 +345,7 @@ RetryWait:
         Else
             m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
+            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
             GoTo QH
         End If
     End If
@@ -375,11 +377,12 @@ RetryWait:
             m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
             DebugLog FUNC_NAME, "ReadFile#2, lResult=" & lResult & _
-                ", Err.LastDllError=" & lLastErr & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
             GoTo QH
         End If
     End If
     If m_lActual > 0 Then
+        lActual = m_lActual
         GoTo QH
     End If
     If TimerEx > dblTimerEx + Timeout / 1000# Then
@@ -392,12 +395,12 @@ RetryWait:
     Call Sleep(1)
     GoTo RetryWait
 QH:
-    If m_lActual > 0 Then
-        ReDim Result(0 To m_lActual - 1) As Byte
-        Call CopyMemory(Result(0), m_baBuffer(0), m_lActual)
-        If IsLogDataDumpEnabled Then
-            DebugLog FUNC_NAME, "lActual=" & m_lActual & ", lRetryCount=" & lRetryCount & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-        End If
+    If IsLogDataDumpEnabled Then
+        DebugLog FUNC_NAME, "lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", bPendingWait=" & bPendingWait & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+    End If
+    If lActual > 0 Then
+        ReDim Result(0 To lActual - 1) As Byte
+        Call CopyMemory(Result(0), m_baBuffer(0), lActual)
         '--- success
         ReadData = True
     Else
