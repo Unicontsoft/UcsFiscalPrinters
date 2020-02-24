@@ -149,7 +149,7 @@ Public Function Run( _
             sFile As String, _
             sParams As String, _
             Optional ByVal StartHidden As Boolean, _
-            Optional ByVal StartMimized As Boolean, _
+            Optional ByVal StartMinimized As Boolean, _
             Optional ByVal LimitFlags As Long) As Boolean
     Const FUNC_NAME     As String = "Run"
     Dim uProcInfo       As PROCESS_INFORMATION
@@ -208,7 +208,7 @@ Public Function Run( _
         uStart.dwFlags = uStart.dwFlags Or STARTF_USESHOWWINDOW
         uStart.wShowWindow = SW_HIDE
     End If
-    If StartMimized Then
+    If StartMinimized Then
         uStart.dwFlags = uStart.dwFlags Or STARTF_USESHOWWINDOW
         uStart.wShowWindow = SW_MINIMIZE
     End If
