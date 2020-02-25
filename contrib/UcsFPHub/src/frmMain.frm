@@ -269,7 +269,6 @@ Attribute SubclassProc.VB_MemberFlags = "40"
         Case DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE
             LocalEndpointForm.Autodetect Async:=True, Delay:=1000
         End Select
-        Exit Function
         Handled = True
     End Select
     Exit Function
