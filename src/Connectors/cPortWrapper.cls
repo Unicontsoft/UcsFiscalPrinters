@@ -29,6 +29,12 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "cPortWrapper"
 
+#Const ImplUseShared = (USE_SHARED <> 0)
+
+#If Not ImplUseShared Then
+    Private Logger                  As Object
+#End If
+
 '=========================================================================
 ' API
 '=========================================================================
@@ -57,7 +63,9 @@ Private m_bReleased         As Boolean
 
 Private Sub PrintError(sFunction As String)
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    If Not Logger Is Nothing Then
+        Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    End If
 End Sub
 
 '=========================================================================
@@ -133,6 +141,14 @@ EH:
     PrintError FUNC_NAME
     Resume QH
 End Function
+
+#If Not ImplUseShared Then
+
+Private Sub FlushDebugLog()
+
+End Sub
+
+#End If
 
 '=========================================================================
 ' Base class events

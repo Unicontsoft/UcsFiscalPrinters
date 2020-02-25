@@ -30,6 +30,23 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "cSerialPortConnector"
 Implements IDeviceConnector
 
+#Const ImplUseShared = (USE_SHARED <> 0)
+
+#If Not ImplUseShared Then
+
+    Public Enum UcsFiscalLocalizedIndexesEnum
+        ucsFscLciInternalErrors
+        [_ucsFscLciMax]
+    End Enum
+    
+    Private Const STR_CONNECTOR_ERRORS      As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
+    Private Const vbLogEventTypeDebug       As Long = vbLogEventTypeInformation + 1
+    
+    Private Logger                  As Object
+    Private PortWrapper             As New cPortWrapper
+
+#End If
+    
 '=========================================================================
 ' API
 '=========================================================================
@@ -49,6 +66,11 @@ Private Const ERROR_HANDLE_EOF              As Long = 38
 '--- for PurgeComm
 Private Const PURGE_TXCLEAR                 As Long = &H4
 Private Const PURGE_RXCLEAR                 As Long = &H8
+'--- for VariantChangeType
+Private Const VARIANT_ALPHABOOL             As Long = 2
+'--- for FormatMessage
+Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
+Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
@@ -66,6 +88,12 @@ Private Declare Function CancelIoEx Lib "kernel32" (ByVal hFile As Long, lpOverl
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
 Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
+#If Not ImplUseShared Then
+    Private Declare Function VariantChangeType Lib "oleaut32" (vDest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
+    Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
+    Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
+    Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
+#End If
 
 Private Type COMMTIMEOUTS
     ReadIntervalTimeout         As Long
@@ -119,7 +147,7 @@ End Type
 
 Private Const DEF_TIMEOUT               As Long = 3000
 Private Const DEF_COMM_EVENT_TIMEOUT    As Long = 500
-Private Const DEF_SPEED                 As Long = 9600
+Private Const DEF_SPEED                 As Long = 115200
 
 Private m_hComm                 As Long
 Private m_lTimeout              As Long
@@ -141,18 +169,24 @@ Private m_baBuffer()            As Byte
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    If Not Logger Is Nothing Then
+        Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    End If
 End Sub
 
 Private Sub RaiseError(sFunction As String)
     m_sLastError = Err.Description
     Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    If Not Logger Is Nothing Then
+        Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    End If
     Err.Raise Err.Number, MODULE_NAME & "." & sFunction & "(" & Erl & ")" & vbCrLf & Err.Source, Err.Description
 End Sub
 
 Private Sub DebugLog(sFunction As String, sText As String)
-    Logger.Log vbLogEventTypeDebug, MODULE_NAME, sFunction, sText
+    If Not Logger Is Nothing Then
+        Logger.Log vbLogEventTypeDebug, MODULE_NAME, sFunction, sText
+    End If
 End Sub
 
 '=========================================================================
@@ -193,7 +227,7 @@ Public Function Init(Device As String, Optional ByVal Timeout As Long) As Boolea
     m_hComm = INVALID_HANDLE_VALUE
     m_lTimeout = IIf(Timeout <= 0, DEF_TIMEOUT, Timeout)
     vSplit = Split(Device, ",")
-    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, "9600")) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
+    m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, DEF_SPEED)) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
         IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
     m_hComm = pvOpenPort(m_sDevice, m_lTimeout, m_sLastError)
     If LenB(m_sLastError) <> 0 Then
@@ -509,6 +543,95 @@ Private Function pvCancelIoPending(ByVal hFile As Long, uOver As OVERLAPPED) As 
 QH:
     pvCancelIoPending = CancelIo(hFile)
 End Function
+
+#If Not ImplUseShared Then
+
+Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
+    SplitOrReindex = Split(Expression, Delimiter)
+End Function
+
+Private Property Get At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
+    On Error GoTo QH
+    At = sDefault
+    If IsArray(vData) Then
+        If lIdx < LBound(vData) Then
+            '--- lIdx = -1 for last element
+            lIdx = UBound(vData) + 1 + lIdx
+        End If
+        If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
+            At = C_Str(vData(lIdx))
+        End If
+    End If
+QH:
+End Property
+
+Private Function C_Lng(Value As Variant) As Long
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbLong Then
+        C_Lng = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbLong) = 0 Then
+        C_Lng = vDest
+    End If
+End Function
+
+Private Function C_Str(Value As Variant) As String
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbString Then
+        C_Str = Value
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbString) = 0 Then
+        C_Str = vDest
+    End If
+End Function
+
+Private Function C_Bool(Value As Variant) As Boolean
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbBoolean Then
+        C_Bool = Value
+    ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbBoolean) = 0 Then
+        C_Bool = vDest
+    End If
+End Function
+
+Private Property Get TimerEx() As Double
+    Dim cFreq           As Currency
+    Dim cValue          As Currency
+    
+    Call QueryPerformanceFrequency(cFreq)
+    Call QueryPerformanceCounter(cValue)
+    TimerEx = cValue / cFreq
+End Property
+
+Private Function GetErrorDescription(ByVal ErrorCode As Long) As String
+    Dim lSize           As Long
+   
+    GetErrorDescription = Space$(2000)
+    lSize = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, 0, ErrorCode, 0, GetErrorDescription, Len(GetErrorDescription), 0)
+    If lSize > 2 Then
+        If Mid$(GetErrorDescription, lSize - 1, 2) = vbCrLf Then
+            lSize = lSize - 2
+        End If
+    End If
+    GetErrorDescription = Left$(GetErrorDescription, lSize)
+End Function
+
+Private Function Printf(ByVal sText As String, ParamArray A() As Variant) As String
+    Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    Dim lIdx            As Long
+    
+    For lIdx = UBound(A) To LBound(A) Step -1
+        sText = Replace(sText, "%" & (lIdx - LBound(A) + 1), Replace(A(lIdx), "%", ChrW$(LNG_PRIVATE)))
+    Next
+    Printf = Replace(sText, ChrW$(LNG_PRIVATE), "%")
+End Function
+
+Private Property Get IsLogDataDumpEnabled() As Boolean
+
+End Property
+
+#End If
 
 '=========================================================================
 ' Base class events
