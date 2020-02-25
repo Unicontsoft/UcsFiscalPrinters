@@ -895,7 +895,9 @@ Public Function PrintDuplicate( _
     SendCommand eCmd, sParam
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        pvSetLastError pvInternal(ucsErrCannotPrint)
+        If LenB(LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
         GoTo QH
     End If
     '--- success
@@ -952,7 +954,9 @@ Public Function PrintDailyXReport( _
     SendCommand eCmd, sParam
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        pvSetLastError pvInternal(ucsErrCannotPrint)
+        If LenB(LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
         GoTo QH
     End If
     '--- success
@@ -1009,7 +1013,9 @@ Public Function PrintDailyZReport( _
     SendCommand eCmd, sParam
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        pvSetLastError pvInternal(ucsErrCannotPrint)
+        If LenB(LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
         GoTo QH
     End If
     If (IsDaisy Or IsIncotex) And (ReportType = ucsFscRstDailyByOperators Or ReportType = ucsFscRstDaily) Then
@@ -1062,7 +1068,9 @@ Public Function PrintMonthlyReport( _
     SendCommand eCmd, sParam
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        pvSetLastError pvInternal(ucsErrCannotPrint)
+        If LenB(LastError) = 0 Then
+            pvSetLastError pvInternal(ucsErrCannotPrint)
+        End If
         GoTo QH
     End If
     '--- success
@@ -1118,7 +1126,9 @@ Public Function PrintServiceDeposit( _
         ReceiptNo = GetLastReceiptNo()
         ReceiptAmount = Amount
         If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-            pvSetLastError pvInternal(ucsErrCannotPrint)
+            If LenB(LastError) = 0 Then
+                pvSetLastError pvInternal(ucsErrCannotPrint)
+            End If
             GoTo QH
         End If
     End If
