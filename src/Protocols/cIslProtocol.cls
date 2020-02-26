@@ -2132,6 +2132,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             '--- for operator errors: if linked receipt in current Z-report -> print service deposit for non-cash payments
             '---                      else -> print service deposit for total receipt amount
+            '--- for eltrade: if linked receipt in current Z-report -> print service withdraw for cash payment
             If LenB(.InitRevData(ucsRevReceiptNo)) <> 0 And .InitRevData(ucsRevType) = ucsFscRevOperatorError Then
                 If .InitRevData(ucsRevFiscalMemoryNo) = GetFiscalMemoryNo() Then
                     pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
@@ -2145,12 +2146,25 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Else
                     dLastDate = .InitRevData(ucsRevReceiptDate)
                 End If
-                vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
-                dblTotal = C_Dbl(At(vSplit, 0)) - IIf(.InitRevData(ucsRevReceiptDate) > dLastDate, C_Dbl(At(vSplit, ucsFscPmtCash)), 0)
-                If Abs(dblTotal) > DBL_EPSILON Then
-                    PrintServiceDeposit .InitOperatorCode, dblTotal
-                    If LenB(m_uPrintData.LastError) <> 0 Then
-                        GoTo QH
+                If IsEltrade Then
+                    If .InitRevData(ucsRevReceiptDate) > dLastDate Then
+                        vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
+                        dblTotal = C_Dbl(At(vSplit, ucsFscPmtCash))
+                    End If
+                    If Abs(dblTotal) > DBL_EPSILON Then
+                        PrintServiceDeposit .InitOperatorCode, -dblTotal
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            GoTo QH
+                        End If
+                    End If
+                Else
+                    vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
+                    dblTotal = C_Dbl(At(vSplit, 0)) - IIf(.InitRevData(ucsRevReceiptDate) > dLastDate, C_Dbl(At(vSplit, ucsFscPmtCash)), 0)
+                    If Abs(dblTotal) > DBL_EPSILON Then
+                        PrintServiceDeposit .InitOperatorCode, dblTotal
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            GoTo QH
+                        End If
                     End If
                 End If
             End If
