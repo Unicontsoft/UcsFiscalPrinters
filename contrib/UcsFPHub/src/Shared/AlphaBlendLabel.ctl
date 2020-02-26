@@ -931,11 +931,11 @@ EH:
     Resume QH
 End Sub
 
-Private Sub UserControl_AmbientChanged(PropertyName As String)
-    If PropertyName = "ScaleUnits" Then
-        m_eContainerScaleMode = ToScaleMode(Ambient.ScaleUnits)
-    End If
-End Sub
+'Private Sub UserControl_AmbientChanged(PropertyName As String)
+'    If PropertyName = "ScaleUnits" Then
+'        m_eContainerScaleMode = ToScaleMode(Ambient.ScaleUnits)
+'    End If
+'End Sub
 
 '=========================================================================
 ' Base class events
