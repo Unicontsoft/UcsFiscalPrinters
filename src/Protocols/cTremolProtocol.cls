@@ -1465,7 +1465,7 @@ Public Function GetTotalsStats() As Variant
         "Index", lIndex, 1
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     lReceipts = C_Lng(At(vSplit, lIndex))
-    pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
+    pvGetCommandConfig CONF_NAME, "InfoRegisters5", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
         "Index", lIndex, 4
     vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
     dLastDate = ParseExtendedDate(At(vSplit, lIndex))
@@ -1855,6 +1855,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim lTypeIndex      As Long
     Dim lPrintType      As Long
     Dim vElem           As Variant
+    Dim dLastDate       As Date
     
     On Error GoTo EH
     '--- ring sale
@@ -1915,6 +1916,22 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                 End Select
+            End If
+            '--- for reversal type = operator error: if linked receipt in current Z-report -> print service withdraw for cash payment
+            If .InitRevData(ucsRevType) = ucsFscRevOperatorError And LenB(.InitRevData(ucsRevReceiptNo)) <> 0 Then
+                pvGetCommandConfig CONF_NAME, "InfoRegisters5", eCmd, ucsZekCmdInfoRegisters, sParam, "5", _
+                    "Index", lIndex, 4
+                vSplit = Split(SendCommand(eCmd, sParam), DEF_SEP)
+                dLastDate = ParseExtendedDate(At(vSplit, lIndex))
+                If .InitRevData(ucsRevFiscalMemoryNo) = GetFiscalMemoryNo() And .InitRevData(ucsRevReceiptDate) > dLastDate Then
+                    vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
+                    If Abs(C_Dbl(At(vSplit, 0))) > DBL_EPSILON Then
+                        PrintServiceDeposit .InitOperatorCode, .InitOperatorPassword, -vSplit(0)
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            GoTo QH
+                        End If
+                    End If
+                End If
             End If
             '--- setup fiscal receipt
             Select Case .InitReceiptType

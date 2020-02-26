@@ -485,6 +485,33 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
+Public Function PpdGetTotalsByPaymentTypes(uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Double()
+    Const FUNC_NAME     As String = "PpdGetTotalsByPaymentTypes"
+    Dim vRetVal(0 To MAX_PMT_TYPE) As Double
+    Dim lIdx            As Long
+    Dim uSum            As UcsPpdExecuteContext
+    
+    On Error GoTo EH
+    '--- calc payments
+    For lIdx = 0 To lRowCount - 1
+        With uRow(lIdx)
+            If .RowType = ucsRowPayment Then
+                vRetVal(.PmtType) = vRetVal(.PmtType) + .PmtAmount
+            End If
+        End With
+    Next
+    '--- calc receipt total
+    pvGetSubtotals uRow, lRowCount, uSum
+    vRetVal(0) = SumArray(uSum.GrpTotal)
+    '--- success
+    PpdGetTotalsByPaymentTypes = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+'= private ===============================================================
+
 Private Function pvAddRow(uData As UcsProtocolPrintData) As Long
     Const FUNC_NAME     As String = "pvAddRow"
 
@@ -595,10 +622,10 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             End If
         ElseIf uData.Row(lRow).RowType = ucsRowDiscount Then
             If (uData.Row(lRow).DiscValue < uData.Config.MinDiscount Or uData.Row(lRow).DiscValue > uData.Config.MaxDiscount) And uData.Row(lRow).DiscType = ucsFscDscSubtotal Then
-                pvGetSubtotals uData, lRow, uSum
+                pvGetSubtotals uData.Row, lRow, uSum
                 dblDiscount = Limit(uData.Row(lRow).DiscValue, uData.Config.MinDiscount, uData.Config.MaxDiscount)
                 lCount = 0
-                For lIdx = 1 To UBound(uSum.GrpTotal)
+                For lIdx = LBound(uSum.GrpTotal) To UBound(uSum.GrpTotal)
                     If Round(uSum.GrpTotal(lIdx) * uData.Row(lRow).DiscValue / 100#, DEF_PRICE_SCALE) <> Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, DEF_PRICE_SCALE) Then
                         lCount = lCount + 1
                     End If
@@ -608,7 +635,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 Else
                     dblDiscount = uData.Row(lRow).DiscValue
                     uData.Row(lRow).DiscValue = 0
-                    For lIdx = UBound(uSum.GrpTotal) To 1 Step -1
+                    For lIdx = UBound(uSum.GrpTotal) To LBound(uSum.GrpTotal) Step -1
                         If Abs(uSum.GrpTotal(lIdx)) > DBL_EPSILON Then
                             PpdAddPLU uData, Printf(IIf(uSum.GrpTotal(lIdx) * dblDiscount > DBL_EPSILON, Zn(uData.LocalizedText.TxtSurcharge, TXT_SURCHARGE), Zn(uData.LocalizedText.TxtDiscount, TXT_DISCOUNT)), SafeFormat(Abs(dblDiscount), FORMAT_BASE_2) & " %"), _
                                 Round(uSum.GrpTotal(lIdx) * dblDiscount / 100#, DEF_PRICE_SCALE), TaxGroup:=lIdx, BeforeIndex:=lRow + 1
@@ -632,7 +659,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
     Next
     If lCount > uData.Config.MaxReceiptRows Then
         '--- count different VAT groups in PLUs
-        For lRow = 1 To UBound(uCtx.GrpTotal)
+        For lRow = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
             If Abs(uCtx.GrpTotal(lRow)) > DBL_EPSILON Then
                 lTotal = lTotal + 1
                 uCtx.GrpTotal(lRow) = 0
@@ -659,8 +686,8 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDscSubtotal Then
                     If lCount > uData.Config.MaxReceiptRows - lTotal Then
                         .PrintRowType = ucsFscRcpNonfiscal
-                        pvGetSubtotals uData, lRow, uSum
-                        For lIdx = 1 To UBound(uCtx.GrpTotal)
+                        pvGetSubtotals uData.Row, lRow, uSum
+                        For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
                             uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
                         Next
                     End If
@@ -674,7 +701,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             End If
         Next
         '--- append fiscal rows for GrpTotal by VAT groups
-        For lIdx = 1 To UBound(uCtx.GrpTotal)
+        For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
             If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                 PpdAddPLU uData, Printf(Zn(uData.LocalizedText.TxtPluSales, TXT_PLUSALES), Chr$(191 + lIdx)), _
                     uCtx.GrpTotal(lIdx), TaxGroup:=lIdx, BeforeIndex:=lRow
@@ -687,7 +714,7 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uCtx As UcsPpdExecuteContext)
+Private Sub pvGetSubtotals(uRow() As UcsPpdRowData, ByVal lRowCount As Long, uSum As UcsPpdExecuteContext)
     Const FUNC_NAME     As String = "pvGetSubtotals"
     Dim lIdx            As Long
     Dim lJdx            As Long
@@ -695,9 +722,9 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
     Dim uEmpty          As UcsPpdExecuteContext
 
     On Error GoTo EH
-    uCtx = uEmpty
-    For lIdx = 0 To lRow - 1
-        With uData.Row(lIdx)
+    uSum = uEmpty
+    For lIdx = 0 To lRowCount - 1
+        With uRow(lIdx)
         If .RowType = ucsRowPlu Then
             dblTotal = Round(.PluQuantity * .PluPrice, DEF_PRICE_SCALE)
             Select Case .DiscType
@@ -707,20 +734,20 @@ Private Sub pvGetSubtotals(uData As UcsProtocolPrintData, ByVal lRow As Long, uC
                 dblTotal = Round(dblTotal + .DiscValue, DEF_PRICE_SCALE)
             End Select
             If .PluTaxGroup > 0 Then
-                uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, DEF_PRICE_SCALE)
+                uSum.GrpTotal(.PluTaxGroup) = Round(uSum.GrpTotal(.PluTaxGroup) + dblTotal, DEF_PRICE_SCALE)
             End If
         ElseIf .RowType = ucsRowDiscount Then
             Select Case .DiscType
             Case ucsFscDscSubtotal
-                For lJdx = 1 To UBound(uCtx.GrpTotal)
-                    dblTotal = Round(uCtx.GrpTotal(lJdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                    uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) + dblTotal, DEF_PRICE_SCALE)
+                For lJdx = LBound(uSum.GrpTotal) To UBound(uSum.GrpTotal)
+                    dblTotal = Round(uSum.GrpTotal(lJdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
+                    uSum.GrpTotal(lJdx) = Round(uSum.GrpTotal(lJdx) + dblTotal, DEF_PRICE_SCALE)
                 Next
             Case ucsFscDscSubtotalAbs
                 '--- ToDo: fix for multiple tax groups
-                For lJdx = 1 To UBound(uCtx.GrpTotal)
-                    If Abs(uCtx.GrpTotal(lJdx)) > DBL_EPSILON Then
-                        uCtx.GrpTotal(lJdx) = Round(uCtx.GrpTotal(lJdx) - .DiscValue, DEF_PRICE_SCALE)
+                For lJdx = LBound(uSum.GrpTotal) To UBound(uSum.GrpTotal)
+                    If Abs(uSum.GrpTotal(lJdx)) > DBL_EPSILON Then
+                        uSum.GrpTotal(lJdx) = Round(uSum.GrpTotal(lJdx) - .DiscValue, DEF_PRICE_SCALE)
                         Exit For
                     End If
                 Next
