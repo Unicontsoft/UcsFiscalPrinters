@@ -28,7 +28,15 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Public Enum UcsConnectorErrorsEnum
-    ucsFscCerNone
+    ucsErrNoDeviceInfoSet
+    ucsErrCreateFileFailed
+    ucsErrSetCommTimeoutsFailed
+    ucsErrBuildCommDCBFailed
+    ucsErrSetCommStateFailed
+    ucsErrWriteFileFailure
+    ucsErrTimeoutWaitingForResponse
+    ucsErrReadFileFailed
+    ucsErrWaitCommEventFailed
 End Enum
 
 Public Function GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String

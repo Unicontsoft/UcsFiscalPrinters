@@ -1,0 +1,3 @@
+VBGROUP 5.0
+Project=..\..\src\UcsFP20.vbp
+StartupProject=Project1.vbp

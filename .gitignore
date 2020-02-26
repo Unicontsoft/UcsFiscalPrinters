@@ -5,7 +5,8 @@
 *.bak
 *.log
 *.scc
-_del/*
+**/_del/*
 bin/*
 scripts/*
 contrib/UcsFPHub/scripts/*
+*.conf

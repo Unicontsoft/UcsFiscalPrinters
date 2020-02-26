@@ -26,24 +26,24 @@ SELECT      @Result AS Result, CONVERT(XML, @Response) AS Response
 --  <DT240349>
 --    <DeviceSerialNo>DT240349</DeviceSerialNo>
 --    <FiscalMemoryNo>02240349</FiscalMemoryNo>
---    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceProtocol>DATECS</DeviceProtocol>
 --    <DeviceModel>FP-3530?</DeviceModel>
 --    <FirmwareVersion>4.10BG 10MAR08 1130</FirmwareVersion>
 --    <CharsPerLine>30</CharsPerLine>
 --    <TaxNo>0000000000</TaxNo>
 --    <TaxCaption>БУЛСТАТ</TaxCaption>
---    <DeviceString>Protocol=DATECS FP/ECR;Port=COM1;Speed=9600</DeviceString>
+--    <DeviceString>Protocol=DATECS;Port=COM1;Speed=9600</DeviceString>
 --  </DT240349>
 --  <DT518315>
 --    <DeviceSerialNo>DT518315</DeviceSerialNo>
 --    <FiscalMemoryNo>02518315</FiscalMemoryNo>
---    <DeviceProtocol>DATECS FP/ECR</DeviceProtocol>
+--    <DeviceProtocol>DATECS</DeviceProtocol>
 --    <DeviceModel>DP-25</DeviceModel>
 --    <FirmwareVersion>263453 08Nov18 1312</FirmwareVersion>
 --    <CharsPerLine>30</CharsPerLine>
 --    <TaxNo>НЕЗАДАДЕН</TaxNo>
 --    <TaxCaption>ЕИК</TaxCaption>
---    <DeviceString>Protocol=DATECS FP/ECR;Port=COM2;Speed=115200</DeviceString>
+--    <DeviceString>Protocol=DATECS;Port=COM2;Speed=115200</DeviceString>
 --  </DT518315>
 --  <Aliases>
 --    <Count>1</Count>
@@ -94,7 +94,6 @@ SET         NOCOUNT ON
 DECLARE     @RetVal     INT
             , @SQL      NVARCHAR(MAX)
             , @MsgType  SYSNAME
-            , @Lifetime INT
             , @Attempt  INT
             , @IsAck    INT
 
@@ -102,7 +101,6 @@ SELECT      @QueueName = COALESCE(@QueueName, N'UcsFpInitiator' + N'Queue/' + CO
             , @SvcName = COALESCE(@SvcName, N'UcsFpInitiator' + N'Service/' + CONVERT(NVARCHAR(50), @@SPID))
             , @Timeout = COALESCE(@Timeout, 30000)
             , @Retry = COALESCE(@Retry, 3)
-            , @Lifetime = 5 + (@Retry * @Timeout + 999) / 1000 -- 30 sec -> 2 min
             , @Attempt = 0
             , @IsAck = 0
             , @RetVal = 0
@@ -122,7 +120,7 @@ BEGIN
                                     BEGIN DIALOG CONVERSATION @Handle
                                     FROM        SERVICE @SvcName
                                     TO          SERVICE @TargetSvc, N'CURRENT DATABASE'
-                                    WITH        ENCRYPTION = OFF, LIFETIME = @Lifetime
+                                    WITH        ENCRYPTION = OFF
                         END
 
                         IF          @Request IS NULL
@@ -137,7 +135,7 @@ BEGIN
                         SET         @SQL = N'
                         WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                 , @MsgType = message_type_name
-                                    FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
+                                    FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT 100'
 
                         EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
                                         @Response OUTPUT, @MsgType OUTPUT
@@ -150,7 +148,7 @@ BEGIN
                                     SET         @SQL = N'
                                     WAITFOR (   RECEIVE     TOP (1) @Response = CONVERT(NVARCHAR(MAX), message_body) 
                                                             , @MsgType = message_type_name
-                                                FROM        ' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
+                                                FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
                         RepeatWait:
                                     SELECT      @Response = NULL, @MsgType = NULL
                                     EXEC        dbo.sp_executesql @SQL, N'@Response NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT',
@@ -182,7 +180,7 @@ BEGIN
             BEGIN CATCH
                         --PRINT { fn CURRENT_TIMESTAMP } + ': ERROR_MESSAGE=' + ERROR_MESSAGE()
 
-                        IF          ERROR_NUMBER() <> 8426  -- The conversation handle "%s" is not found.
+                        IF          @Handle IS NOT NULL AND ERROR_NUMBER() <> 8426  -- The conversation handle "%s" is not found.
                         BEGIN
                                     ; END       CONVERSATION @Handle
                         END

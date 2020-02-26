@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -17,8 +17,9 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "mdJson"
 
-#Const ImplScripting = JSON_USE_SCRIPTING <> 0
-#Const ImplUseShared = DebugMode <> 0
+#Const ImplScripting = (JSON_USE_SCRIPTING <> 0)
+#Const ImplUseShared = (DebugMode <> 0)
+#Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
 
 #Const HasPtrSafe = (VBA7 <> 0)
 #Const LargeAddressAware = (Win64 = 0 And VBA7 = 0 And VBA6 = 0 And VBA5 = 0)
@@ -159,9 +160,10 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
         If PrintError <> vbRetry Then
             PopPrintError sFunction, MODULE_NAME, vErr
         End If
+    #ElseIf ImplUseDebugLog Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-        DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
     #End If
 End Function
 
@@ -173,7 +175,8 @@ Public Function JsonParse( _
             sText As String, _
             Optional RetVal As Variant, _
             Optional Error As String, _
-            Optional ByVal StrictMode As Boolean) As Boolean
+            Optional ByVal StrictMode As Boolean, _
+            Optional LastPos As Long) As Boolean
     Const FUNC_NAME     As String = "JsonParse"
     Dim uCtx            As JsonContext
 
@@ -194,8 +197,9 @@ Public Function JsonParse( _
         End With
         Call CopyMemory(ByVal ArrPtr(.Text), VarPtr(.TextArray), PTR_SIZE)
         AssignVariant RetVal, pvJsonParse(uCtx)
-        If LenB(.Error) Then
-            Error = .Error
+        Error = .Error
+        LastPos = .Pos
+        If LenB(Error) <> 0 Then
             GoTo QH
         End If
         If pvJsonGetChar(uCtx) <> 0 Then
@@ -208,6 +212,30 @@ QH:
         .TextArray.pvData = 0
         .TextArray.cElements = 0
     End With
+    Exit Function
+EH:
+    If PrintError(FUNC_NAME) = vbRetry Then
+        Resume
+    End If
+    Resume Next
+    #If False Then '--- silence MZ-Tools
+        Test
+    #End If
+End Function
+
+Public Function JsonParseObject( _
+            sText As String, _
+            Optional Error As String, _
+            Optional ByVal StrictMode As Boolean) As Object
+    Const FUNC_NAME     As String = "JsonParseObject"
+    Dim vJson           As Variant
+    
+    On Error GoTo EH
+    If JsonParse(sText, RetVal:=vJson, Error:=Error, StrictMode:=StrictMode) Then
+        If IsObject(vJson) Then
+            Set JsonParseObject = vJson
+        End If
+    End If
     Exit Function
 EH:
     If PrintError(FUNC_NAME) = vbRetry Then
@@ -375,7 +403,7 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
                 Mid$(sText, 1, 2) = "&H"
             End If
             On Error GoTo ErrorConvert
-            pvJsonParse = CDbl(sText)
+            pvJsonParse = Val(sText)
             On Error GoTo 0
             .Pos = .Pos + lIdx
         Case 0
@@ -527,7 +555,7 @@ EH:
     End If
 End Function
 
-Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean) As String
+Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean, Optional CompoundChars As String) As String
     Const STR_CODES     As String = "\u0000|\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007|\b|\t|\n|\u000B|\f|\r|\u000E|\u000F|\u0010|\u0011|" & _
                                     "\u0012|\u0013|\u0014|\u0015|\u0016|\u0017|\u0018|\u0019|\u001A|\u001B|\u001C|\u001D|\u001E|\u001F"
     Const LNG_INDENT    As Long = 4
@@ -536,7 +564,6 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Dim vItems          As Variant
     Dim lIdx            As Long
     Dim lSize           As Long
-    Dim sCompound       As String
     Dim sSpace          As String
     Dim lAsc            As Long
     Dim lCompareMode    As VbCompareMethod
@@ -556,10 +583,12 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             Exit Function
         End If
         lCompareMode = pvJsonCompareMode(oJson)
-        sCompound = IIf(lCompareMode = vbBinaryCompare, "{}", "[]")
+        If LenB(CompoundChars) = 0 Then
+            CompoundChars = IIf(lCompareMode = vbBinaryCompare, "{}", "[]")
+        End If
         lCount = oJson.Count
         If lCount <= 0 Then
-            JsonDump = sCompound
+            JsonDump = CompoundChars
         Else
             sSpace = IIf(Minimize, vbNullString, " ")
             ReDim vItems(0 To lCount - 1) As String
@@ -579,17 +608,17 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
                 lSize = lSize + Len(vItems(lIdx))
             Next
             If lSize > 100 And Not Minimize Then
-                JsonDump = Left$(sCompound, 1) & vbCrLf & _
-                    Space$((Level + 1) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$((Level + 1) * LNG_INDENT)) & vbCrLf & _
-                    Space$(Level * LNG_INDENT) & Right$(sCompound, 1)
+                JsonDump = Left$(CompoundChars, 1) & vbCrLf & _
+                    Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT)) & vbCrLf & _
+                    Space$(IIf(Level > 0, Level, 0) * LNG_INDENT) & Right$(CompoundChars, 1)
             Else
-                JsonDump = Left$(sCompound, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(sCompound, 1)
+                JsonDump = Left$(CompoundChars, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(CompoundChars, 1)
             End If
         End If
     Case vbNull
-        JsonDump = "Null"
+        JsonDump = "null"
     Case vbEmpty
-        JsonDump = "Empty"
+        JsonDump = "empty"
     Case vbDate
         JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
         If Left$(JsonDump, 12) = """1899-12-30 " Then
@@ -619,7 +648,12 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
         JsonDump = """" & JsonDump & """"
     Case Else
         If IsArray(vJson) Then
-            JsonDump = Join(vJson)
+            For Each vKeys In vJson
+                JsonItem(oJson, -1) = vKeys
+            Next
+            JsonDump = JsonDump(oJson)
+        ElseIf IsNumeric(vJson) Then
+            JsonDump = Trim$(Str$(vJson))
         Else
             JsonDump = vJson & vbNullString
         End If
@@ -686,8 +720,10 @@ Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
                 End If
                 lJdx = 0
                 For Each vSplit In JsonKeys(oParam)
-                    AssignVariant vItem(lJdx), JsonItem(oParam, vSplit & vKey)
-                    lJdx = lJdx + 1
+                    If IsObject(JsonItem(oParam, vSplit)) Or LenB(vKey) = 0 Then
+                        AssignVariant vItem(lJdx), JsonItem(oParam, vSplit & vKey)
+                        lJdx = lJdx + 1
+                    End If
                 Next
                 If lJdx = 0 Then
                     JsonItem = Array()
@@ -1415,12 +1451,18 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
             Call CopyMemory(lEofPtr, ByVal ObjPtr(oCol) + o_pEndTreePtr, PTR_SIZE)
         #End If
     End If
+    If StrPtr(sKey) = 0 Then
+        sKey = ""
+    End If
     Do While lItemPtr <> lEofPtr
         #If LargeAddressAware Then
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal (lItemPtr Xor SIGN_BIT) + o_KeyPtr Xor SIGN_BIT, PTR_SIZE)
         #Else
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal lItemPtr + o_KeyPtr, PTR_SIZE)
         #End If
+        If StrPtr(sTemp) = 0 Then
+            sTemp = ""
+        End If
         Select Case CompareStringW(LOCALE_USER_DEFAULT, -IgnoreCase * NORM_IGNORECASE, ByVal StrPtr(sKey), Len(sKey), ByVal StrPtr(sTemp), Len(sTemp))
         Case CSTR_LESS_THAN
             #If LargeAddressAware Then
@@ -1447,7 +1489,7 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
             GoTo QH
         Case Else
             Call CopyMemory(ByVal VarPtr(sTemp), NULL_PTR, PTR_SIZE)
-            Err.Raise vbObjectError, , "Unexpected result from CompareStringW"
+            Err.Raise vbObjectError, , "Error " & Err.LastDllError & " from CompareStringW"
         End Select
     Loop
 QH:
@@ -1455,4 +1497,11 @@ QH:
 End Function
 #End If
 
+#If False Then
+Private Sub Test()
+    Dim vJson As Variant
 
+    JsonParse "{""d"": 1}", vJson
+    Debug.Print JsonDump(vJson)
+End Sub
+#End If

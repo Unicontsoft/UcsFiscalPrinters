@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -42,13 +42,14 @@ Private Declare Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As L
 
 Private Const HDR_CONTENT_TYPE          As String = "Content-Type"
 Private Const HDR_CONTENT_LENGTH        As String = "Content-Length"
+Private Const HDR_EXPECT                As String = "Expect"
 Private Const STR_STATUS_CODE_BAD_REQUEST As String = "400 Bad request"
 Private Const STR_STATUS_CODE_INTERNAL_SERVER_ERROR As String = "500 Internal Server Error"
 Private Const STR_STATUS_CODE_NOT_FOUND As String = "404 Not Found"
 Private Const STR_STATUS_CODE_OK        As String = "200 OK"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_XML As String = "text/xml; charset=utf-8"
-Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json; charset=utf-8"
+Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json"
 Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
 
 Private m_sLastError                As String
@@ -73,8 +74,11 @@ Private m_dblStartTimerEx           As Double
 
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print "Critical error: Connection " & m_sID & ": " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & m_sID & ")(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Sub
 
 '=========================================================================
@@ -128,22 +132,18 @@ Public Function Init(sKey As String, oSocket As cAsyncSocket, oParent As cRestEn
     On Error GoTo EH
     m_sID = sKey
     m_lParentPtr = ObjPtr(oParent)
+    Set m_oController = oParent.ServiceController
     pvClearState
     '--- init socket
     Set m_oSocket = New cAsyncSocket
     If Not oSocket.Accept(m_oSocket) Then
         m_sLastError = oSocket.GetErrorDescription(oSocket.LastError)
         Set m_oSocket = Nothing
+        Set m_oController = Nothing
         GoTo QH
     End If
     '--- deep-copy fiscal printers config
     If Not JsonParse(JsonDump(oParent.Printers, Minimize:=True), oPrinters, Error:=m_sLastError) Then
-        GoTo QH
-    End If
-    '--- init service controller
-    Set m_oController = New cServiceController
-    If Not m_oController.Init(oPrinters, oParent.RequestsCache) Then
-        m_sLastError = m_oController.LastError
         Set m_oSocket = Nothing
         Set m_oController = Nothing
         GoTo QH
@@ -175,8 +175,9 @@ Private Function pvHandleRequest(sPath As String, sQueryString As String) As Boo
     Dim baBody()        As Byte
     
     On Error GoTo EH
-    #If sQueryString Then '--- touch args
-    #End If
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "m_sHttpMethod=" & m_sHttpMethod & ", sPath=" & sPath & ", sQueryString=" & sQueryString & ", m_sBody=" & Replace(m_sBody, vbCrLf, "^p"), vbLogEventTypeDebug
+    End If
     If m_sHttpMethod <> "GET" And m_sHttpMethod <> "POST" Then
         sStatusCode = STR_STATUS_CODE_BAD_REQUEST
         sContentType = STR_CONTENT_TYPE_TEXT_PLAIN
@@ -221,6 +222,9 @@ QH:
             HDR_CONTENT_LENGTH & ": " & UBound(baBody) + 1 & vbCrLf & vbCrLf
         m_oSocket.SendArray baBody
     End If
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & Replace(sResponse, vbCrLf, "^p") & ", sStatusCode=" & sStatusCode, vbLogEventTypeDebug
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -252,9 +256,11 @@ Private Sub m_oSocket_OnReceive()
     lIdx = UBound(m_baBuffer) + 1
     If lIdx = 0 Then
         m_dblStartTimerEx = TimerEx
+        m_baBuffer = baBuffer
+    Else
+        ReDim Preserve m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
+        Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     End If
-    ReDim m_baBuffer(0 To lIdx + UBound(baBuffer)) As Byte
-    Call CopyMemory(m_baBuffer(lIdx), baBuffer(0), UBound(baBuffer) + 1)
     If m_oHeaders Is Nothing Then
         m_lHdrSize = InStrB(1, m_baBuffer, StrConv(vbCrLf & vbCrLf, vbFromUnicode))
         If m_lHdrSize > 0 Then
@@ -273,25 +279,28 @@ Private Sub m_oSocket_OnReceive()
                 lIdx = lIdx + 1
             Next
             m_lHdrSize = m_lHdrSize + 3
+            If LCase$(JsonItem(m_oHeaders, HDR_EXPECT)) = "100-continue" Then
+                m_oSocket.SendText "HTTP/1.1 100 Continue" & vbCrLf & vbCrLf
+            End If
         End If
     End If
     If Not m_oHeaders Is Nothing Then
         lSize = UBound(m_baBuffer) + 1 - m_lHdrSize
-        If lSize > 0 Then
-            If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-                If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-                    GoTo QH
-                End If
+        If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+            If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+                GoTo QH
             End If
+        End If
+        If lSize > 0 Then
             m_sBody = String$(2 * lSize, 0)
             lSize = MultiByteToWideChar(CP_UTF8, 0, m_baBuffer(m_lHdrSize), lSize, StrPtr(m_sBody), Len(m_sBody) + 1)
             If lSize <> Len(m_sBody) Then
                 m_sBody = Left$(m_sBody, lSize)
             End If
         End If
-        vElem = Split2(m_sRawUrl, "?")
+        vElem = Split(m_sRawUrl, "?", Limit:=2)
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog Printf(STR_CONN_ELAPSED & " [" & MODULE_NAME & "." & FUNC_NAME & "]", m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, "0.000"))
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3))
         pvClearState
     End If
 QH:

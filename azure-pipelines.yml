@@ -1,0 +1,68 @@
+trigger:
+  - master
+
+pr:
+  - master
+  
+pool: Default
+
+steps:
+  - script: 'call $(Build.SourcesDirectory)\scripts\build.bat'
+    displayName: 'Build UcsFP20.dll'
+    workingDirectory:  '$(Build.SourcesDirectory)\scripts'
+    failOnStderr: true
+  
+  - script: 'call $(Build.SourcesDirectory)\contrib\UcsFPHub\scripts\build.bat'
+    displayName: 'Build UcsFPHub.exe'
+    workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
+    failOnStderr: true
+  
+  - task: CopyFiles@2
+    displayName: 'Copy files to $(Build.BinariesDirectory)'
+    inputs:
+      sourceFolder: '$(Build.SourcesDirectory)\bin'
+      contents: |
+        UcsFP20.dll
+        UcsFP20.pdb
+        UcsFPHub.exe
+        UcsFPHub.pdb
+      targetFolder: '$(Build.BinariesDirectory)'
+      cleanTargetFolder: true
+  
+  - task: ArchiveFiles@2
+    displayName: 'Archive $(Build.BinariesDirectory)'
+    inputs:
+      rootFolderOrFile: '$(Build.BinariesDirectory)'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/UcsFPHub-latest.zip' 
+      includeRootFolder: false
+  
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish artifact UcsFPHub'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: UcsFPHub
+
+  - task: GithubRelease@0
+    displayName: 'Remove release `UcsFPHub-latest` on github.com'
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
+    continueOnError: true
+    inputs:
+      githubConnection: wqweto
+      repositoryName: wqweto/UcsFiscalPrinters
+      action: delete
+      tag: UcsFPHub-latest
+  
+  - task: GithubRelease@0
+    displayName: 'Create release `UcsFPHub-latest` on github.com'
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
+    inputs:
+      githubConnection: wqweto
+      repositoryName: wqweto/UcsFiscalPrinters
+      action: create
+      tagSource: manual
+      tag: UcsFPHub-latest
+      title: 'UcsFPHub latest build'
+      assets: $(Build.ArtifactStagingDirectory)/*
+      addChangeLog: true
+      compareWith: lastRelease
+      isPreRelease: true

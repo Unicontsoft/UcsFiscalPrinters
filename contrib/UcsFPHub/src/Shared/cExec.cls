@@ -134,8 +134,11 @@ Private m_hWriteInput       As Long
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
-    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Sub
 
 '=========================================================================
@@ -146,7 +149,7 @@ Public Function Run( _
             sFile As String, _
             sParams As String, _
             Optional ByVal StartHidden As Boolean, _
-            Optional ByVal StartMimized As Boolean, _
+            Optional ByVal StartMinimized As Boolean, _
             Optional ByVal LimitFlags As Long) As Boolean
     Const FUNC_NAME     As String = "Run"
     Dim uProcInfo       As PROCESS_INFORMATION
@@ -205,7 +208,7 @@ Public Function Run( _
         uStart.dwFlags = uStart.dwFlags Or STARTF_USESHOWWINDOW
         uStart.wShowWindow = SW_HIDE
     End If
-    If StartMimized Then
+    If StartMinimized Then
         uStart.dwFlags = uStart.dwFlags Or STARTF_USESHOWWINDOW
         uStart.wShowWindow = SW_MINIMIZE
     End If

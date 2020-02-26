@@ -27,7 +27,13 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
-Private Const MODULE_NAME As String = "cPersistentPort"
+Private Const MODULE_NAME As String = "cPortWrapper"
+
+#Const ImplUseShared = (USE_SHARED <> 0)
+
+#If Not ImplUseShared Then
+    Private Logger                  As Object
+#End If
 
 '=========================================================================
 ' API
@@ -55,9 +61,11 @@ Private m_bReleased         As Boolean
 ' Error handling
 '=========================================================================
 
-Private Sub PrintError(sFunc As String)
-    Debug.Print MODULE_NAME & "." & sFunc & ": " & Err.Description
-    OutputDebugLog MODULE_NAME, sFunc & "(" & Erl & ")", "Run-time error: " & Err.Description
+Private Sub PrintError(sFunction As String)
+    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    If Not Logger Is Nothing Then
+        Logger.Log vbLogEventTypeError, MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description
+    End If
 End Sub
 
 '=========================================================================
@@ -123,6 +131,7 @@ Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent
             m_sPort = vbNullString
         End If
     End If
+QH:
     On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
@@ -130,8 +139,16 @@ Public Function CloseComPort(ByVal hComm As Long, Optional ByVal ClearPersistent
     Exit Function
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
 End Function
+
+#If Not ImplUseShared Then
+
+Private Sub FlushDebugLog()
+
+End Sub
+
+#End If
 
 '=========================================================================
 ' Base class events
@@ -151,6 +168,7 @@ Private Sub Class_Terminate()
         m_sPort = vbNullString
     End If
     FlushDebugLog
+QH:
     On Error GoTo 0
     Err.Number = vErr(0)
     Err.Description = vErr(1)
@@ -158,5 +176,5 @@ Private Sub Class_Terminate()
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume Next
+    Resume QH
 End Sub

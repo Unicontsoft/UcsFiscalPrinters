@@ -1,0 +1,65 @@
+Получаване на данни за устройството:
+
+Тип на устройството:
+http://localhost:8080/datasnap/rest/TSM/get_device_Type
+
+ 0: Unknown;
+ 1: ECR; 
+ 2: FiscalPrinter
+
+Сериен номер:
+http://localhost:8080/datasnap/rest/TSM/get_device_Number_Serial
+
+Номер на фискална памет:
+http://localhost:8080/datasnap/rest/TSM/get_device_Number_FMemory
+
+Фирмуер - ревизия:
+http://localhost:8080/datasnap/rest/TSM/get_device_Firmware_Revision
+
+Фирмуер - дата:
+http://localhost:8080/datasnap/rest/TSM/get_device_Firmware_Date
+
+Фирмуер - чексума:
+http://localhost:8080/datasnap/rest/TSM/get_device_Firmware_CheckSum
+
+Модел - индекс:
+http://localhost:8080/datasnap/rest/TSM/get_device_Model
+
+ Unknown		= 00;
+ DP_05			= 01;
+ DP_15			= 02;
+ DP_25			= 03;
+ DP_35			= 04;
+ DP_150 		= 05;
+ WP_50			= 06;
+ FP_650			= 07;
+ FP_800			= 08;
+ FP_2000		= 09;
+ SK_21F			= 0A;
+ SK_31F			= 0B;
+ FMP_10			= 0C;
+ FP_550			= 0D;
+ FP_700X		= 0E;
+ DP_25X			= 0F;
+ DP_150X		= 10;
+ WP_50X 		= 11;
+ WP_500X		= 12;
+ FMP_55X		= 13;
+ FMP_350X		= 14;
+ DP_05C			= 15;
+ FP_700			= 16;
+
+Модел - име:
+http://localhost:8080/datasnap/rest/TSM/get_device_Model_Name
+
+Група:
+http://localhost:8080/datasnap/rest/TSM/get_device_Group
+
+ Group_A = 1
+ Group_B = 2
+ Group_C = 3
+ 
+ Group_A: FP-650, FP-800, FP-2000, SK-21F, SK-31F, FMP-10, FP-550, FP-700
+ Group_B: DP-05, DP-15, DP-25, DP-35, DP-150, WP-50
+ Group_C: FP-700X, DP-25X, DP-150X, WP-50X, WP-500X, FMP-55X, FMP-350X, DP-05C
+

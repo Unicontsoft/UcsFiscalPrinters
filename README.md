@@ -1,25 +1,40 @@
-## Unicontsoft Fiscal Printers Component
+<div align="center">
+<img width="64" height="64" src="contrib/UcsFPHub/res/UcsFPHub3.png">
 
-UcsFP is a COM component that can be used to configure and operate  fiscal printers that are popular in Bulgaria. The component supports printing fiscal and non-fiscal receipts, printing daily reports as well as configuring device settings (usually done by registered companies).
+## Unicontsoft Fiscal Printers Component 2.0
 
-UcsFP implements lowest-level protocols that are supported by the fiscal printers, usually sending native commands directly to the COM port the device is attached to.
+[![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/wqweto.UcsFiscalPrinters?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build/latest?definitionId=1&branchName=master)
+[![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/wqweto/UcsFiscalPrinters/blob/master/LICENSE)
+</div>
 
-UcsFP support ESP/POS protocol for "kitchen" order lists and non-fiscal receipts. ESC/POS protocol supports serial and  TCP/IP (LAN) connectivity.
+`UcsFP20` is a COM component that can be used to configure and operate fiscal printers that are popular in Bulgaria.
 
-UcsFP supports remoting through COM+ so a single fiscal device can be used by multiple workstations.
+`UcsFP20` implements lowest-level protocols that are supported by the fiscal printers, usually sending native commands directly to the COM port the device is attached to.
 
-#### Currently supported devices by manufacturers
- - Datecs (http://www.datecs.bg)
- - Tremol (http://www.tremol.bg)
- - Eltrade (http://www.eltrade.com)
- - Daisy (http://www.daisytech.com/)
+`UcsFP20` supports ESP/POS protocol for "kitchen" order lists. ESC/POS protocol supports serial and TCP/IP (LAN) connectivity.
 
-#### UcsFP is tested on the following models
- - FP-550KL, DP-55KL (in production)
- - FP-550-05 DV (legacy, in production)
- - Tremol ZM-KL (in production)
- - Eltrade A300 (legacy, development only)
- - Daisy Perfect S-KL, FX1300-KL (development only)
- - Tremol EP-80250, Epson TM-T88III ("kitchen" order lists)
+### Available protocols
+
+Here is a complete list of implemented protocols with corresponding tested and supported models:
+
+Protocol         | Manufacturer | Tested models  | Other supported models
+----             | ------------ | -------------  | ----------------------
+`TREMOL`         | Tremol Ltd.  | M20            | All
+`DATECS`         | Datecs Ltd.  | DP-25, FP-650  | A models, B models
+`DATECS/X`       | Datecs Ltd.  | DP-25X         | X models
+`DAISY`          | Daisy Ltd.   | CompactM       | All
+`INCOTEX`        | Incotex Ltd. | 181, 777       | All
+`ELTRADE`        | Eltrade Ltd. | A3             | All
+`ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
+`PROXY`          | Unicontsoft  | UcsFPHub       | All
+
+### Sub-projects
+
+`UcsFPHub`: [Unicontsoft Fiscal Printers Hub](contrib/UcsFPHub) -- a REST service to provide remote access to locally attached fiscal devices
+`UcsFPHub`: [PROTOCOL.md](contrib/UcsFPHub/PROTOCOL.md) -- REST service protocol description
  
+### ToDo
+
+  - [ ] Update documentation 
+
 Enjoy!

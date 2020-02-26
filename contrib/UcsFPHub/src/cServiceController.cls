@@ -34,6 +34,7 @@ Private Const ERR_INVALID_XML       As String = "Невалидна XML заявка"
 Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
 Private Const ERR_MISSING_PAYLOAD   As String = "Празна заявка"
 Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
+Private Const ERR_MISSING_PARAMETER As String = "Липсва параметър %1"
 
 Private m_lLastCode                 As Long
 Private m_sLastError                As String
@@ -47,8 +48,11 @@ Private m_oFP                       As cFiscalPrinter
 
 Private Sub PrintError(sFunction As String)
     m_sLastError = Err.Description
-    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
 End Sub
 
 '=========================================================================
@@ -61,6 +65,10 @@ End Property
 
 Property Get LastError() As String
     LastError = m_sLastError
+End Property
+
+Property Get Printers() As Object
+    Set Printers = m_oPrinters
 End Property
 
 '=========================================================================
@@ -111,7 +119,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             End If
         End If
     End If
-    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals))?$/i", sPath, vMatches) = 0 Then
+    If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals|drawer))?$/i", sPath, vMatches) = 0 Then
         m_lLastCode = 404
         m_sLastError = ERR_INVALID_URL
         sResponse = pvEncodeErrorText(m_sLastError)
@@ -144,8 +152,10 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         Set oRequest = C_Obj(vJson)
         If oRequest Is Nothing Then
             Select Case LCase$(At(vMatches, 1))
-            Case vbNullString, "totals"
+            Case vbNullString
                 JsonItem(oRequest, "IncludeAll") = True
+            Case "totals"
+                JsonItem(oRequest, "IncludeAllTotals") = True
             Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
@@ -158,7 +168,11 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
         Select Case LCase$(At(vMatches, 1))
         Case vbNullString
-            If Not m_oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) Then
+            If UBound(JsonKeys(oRequest)) = 0 Then
+                JsonItem(oInfo, "Ok") = True
+                sResponse = JsonDump(oInfo, Minimize:=True)
+                JsonItem(oInfo, "Ok") = Empty
+            ElseIf Not m_oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
         Case "status"
@@ -185,23 +199,40 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             If Not m_oFP.GetDailyTotals(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
+        Case "drawer"
+            If Not C_Bool(JsonItem(oRequest, "IsOpen")) Then
+                m_lLastCode = 400
+                m_sLastError = Printf(ERR_MISSING_PARAMETER, "IsOpen")
+                sResponse = pvEncodeErrorText(m_sLastError)
+                GoTo QH
+            End If
+            If Not m_oFP.OpenDrawer(JsonDump(oRequest, Minimize:=True), sResponse) Then
+                GoTo QH
+            End If
         End Select
     End If
     '--- success
     ServiceRequest = True
 QH:
-    If LCase$(JsonItem(oParams, "format")) = "xml" And LenB(sResponse) <> 0 Then
-        If JsonParse(sResponse, vJson) Then
-            sResponse = JsonToXmlDocument(vJson).Xml
-        End If
+    If LenB(sResponse) <> 0 Then
+        Select Case LCase$(JsonItem(oParams, "format"))
+        Case "xml"
+            If JsonParse(sResponse, vJson) Then
+                sResponse = JsonToXmlDocument(vJson).Xml
+            End If
+        Case "json"
+            If JsonParse(sResponse, vJson) Then
+                sResponse = JsonDump(vJson)
+            End If
+        End Select
     End If
-    If ServiceRequest And LenB(sRequestId) <> 0 Then
+    If ServiceRequest And LenB(sRequestId) <> 0 And InStr(sResponse, """Ok"":true") <> 0 Then
         Set oEntry = Nothing
         JsonItem(oEntry, "Path") = sPath
         JsonItem(oEntry, "QueryString") = sQueryString
         JsonItem(oEntry, "Request") = sRequest
         JsonItem(oEntry, "Response") = sResponse
-        JsonItem(oEntry, "DateTime") = Now
+        JsonItem(oEntry, "DateTime") = GetCurrentNow
         JsonItem(m_oRequestsCache, sRequestId) = oEntry
     End If
     Exit Function

@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -58,6 +58,17 @@ Private Const SM_REMOTESESSION              As Long = &H1000
 '--- for UrlUnescapeW
 Private Const URL_UNESCAPE_AS_UTF8          As Long = &H40000
 Private Const INTERNET_MAX_URL_LENGTH       As Long = 2048
+'--- for OpenProcessToken
+Private Const TOKEN_READ                    As Long = &H20008
+'--- for SystemParametersInfo
+Private Const SPI_GETICONTITLELOGFONT       As Long = 31
+Private Const FW_NORMAL                     As Long = 400
+'--- GetDeviceCaps constants
+Private Const LOGPIXELSX                    As Long = 88
+Private Const LOGPIXELSY                    As Long = 90
+'--- for ShellExecuteEx
+Private Const SEE_MASK_NOASYNC              As Long = &H100
+Private Const SEE_MASK_FLAG_NO_UI           As Long = &H400
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -83,21 +94,102 @@ Private Declare Function DispCallFunc Lib "oleaut32" (ByVal pvInstance As Long, 
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetAdaptersInfo Lib "iphlpapi" (lpAdapterInfo As Any, lpSize As Long) As Long
 Private Declare Function SHGetFolderPath Lib "shfolder" Alias "SHGetFolderPathA" (ByVal hWnd As Long, ByVal csidl As Long, ByVal hToken As Long, ByVal dwFlags As Long, ByVal szPath As String) As Long
+Private Declare Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessID As Long) As Long
+Private Declare Function GetProcessTimes Lib "kernel32" (ByVal hProcess As Long, lpCreationTime As FILETIME, lpExitTime As FILETIME, lpKernelTime As FILETIME, lpUserTime As FILETIME) As Long
+Private Declare Function FileTimeToLocalFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
+Private Declare Function FileTimeToSystemTime Lib "kernel32" (lpFileTime As FILETIME, lpSystemTime As SYSTEMTIME) As Long
+Private Declare Function SystemTimeToVariantTime Lib "oleaut32" (lpSystemTime As SYSTEMTIME, pvTime As Date) As Long
+Private Declare Function GetCurrentProcess Lib "kernel32" () As Long
+Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+Private Declare Function OpenProcessToken Lib "advapi32" (ByVal ProcessHandle As Long, ByVal DesiredAccess As Long, TokenHandle As Long) As Long
+Private Declare Function GetTokenInformation Lib "advapi32" (ByVal TokenHandle As Long, ByVal TokenInformationClass As Long, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
+Private Declare Function LookupAccountSid Lib "advapi32" Alias "LookupAccountSidA" (ByVal lpSystemName As String, ByVal sID As Long, ByVal Name As String, cbName As Long, ByVal ReferencedDomainName As String, cbReferencedDomainName As Long, peUse As Long) As Long
+Private Declare Function SystemParametersInfo Lib "user32" Alias "SystemParametersInfoA" (ByVal uAction As Long, ByVal uParam As Long, ByRef lpvParam As Any, ByVal fuWinIni As Long) As Long
+Private Declare Function lstrlenA Lib "kernel32" (lpString As Any) As Long
+Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
+Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
+Private Declare Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExA" (lpExecInfo As SHELLEXECUTEINFO) As Long
+
+Private Type FILETIME
+    dwLowDateTime   As Long
+    dwHighDateTime  As Long
+End Type
+
+Private Type SYSTEMTIME
+    wYear           As Integer
+    wMonth          As Integer
+    wDayOfWeek      As Integer
+    wDay            As Integer
+    wHour           As Integer
+    wMinute         As Integer
+    wSecond         As Integer
+    wMilliseconds   As Integer
+End Type
+
+Private Type LOGFONT
+    lfHeight            As Long
+    lfWidth             As Long
+    lfEscapement        As Long
+    lfOrientation       As Long
+    lfWeight            As Long
+    lfItalic            As Byte
+    lfUnderline         As Byte
+    lfStrikeOut         As Byte
+    lfCharSet           As Byte
+    lfOutPrecision      As Byte
+    lfClipPrecision     As Byte
+    lfQuality           As Byte
+    lfPitchAndFamily    As Byte
+    lfFaceName(1 To 32) As Byte
+End Type
+
+Private Type SHELLEXECUTEINFO
+    cbSize              As Long
+    fMask               As Long
+    hWnd                As Long
+    lpVerb              As String
+    lpFile              As String
+    lpParameters        As String
+    lpDirectory         As Long
+    nShow               As Long
+    hInstApp            As Long
+    '  optional fields
+    lpIDList            As Long
+    lpClass             As Long
+    hkeyClass           As Long
+    dwHotKey            As Long
+    hIcon               As Long
+    hProcess            As Long
+End Type
 
 '=========================================================================
 ' Constants and member variables
 '=========================================================================
 
-Private m_cRegExpCache              As Collection
 Private m_sErrComputerName          As String
+Private m_sngScreenTwipsPerPixelX   As Single
+Private m_sngScreenTwipsPerPixelY   As Single
+Private m_sngOrigTwipsPerPixelX     As Single
+Private m_sngOrigTwipsPerPixelY     As Single
+Private m_dCurrentStartDate         As Date
+Private m_dblCurrentStartTimer      As Double
 
 '=========================================================================
 ' Error handling
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
-    Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
-    DebugLog Err.Description & " [" & MODULE_NAME & "." & sFunction & "]", vbLogEventTypeError
+    #If USE_DEBUG_LOG <> 0 Then
+        DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
+    #Else
+        Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
+    #End If
+End Sub
+
+Private Sub RaiseError(sFunction As String)
+    PrintError sFunction
+    Err.Raise Err.Number, MODULE_NAME & "." & sFunction & vbCrLf & Err.Source, Err.Description
 End Sub
 
 '=========================================================================
@@ -248,8 +340,7 @@ Public Sub WriteTextFile(sFile As String, sText As String, ByVal eType As UcsFil
     End With
     Exit Sub
 EH:
-    PrintError FUNC_NAME
-    Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
+    RaiseError FUNC_NAME
 End Sub
 
 Public Function MkPath(sPath As String) As Boolean
@@ -309,7 +400,7 @@ Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As O
                         Else
                             .Item("error") = "Option -" & vElem & " requires an argument"
                         End If
-                        GoTo Conitnue
+                        GoTo Continue
                     End If
                 Next
                 .Item("-" & Mid$(At(vArgs, lIdx), 2)) = True
@@ -317,13 +408,13 @@ Public Function GetOpt(vArgs As Variant, Optional OptionsWithArg As String) As O
                 .Item("numarg") = .Item("numarg") + 1
                 .Item("arg" & .Item("numarg")) = At(vArgs, lIdx)
             End Select
-Conitnue:
+Continue:
         Next
     End With
     Set GetOpt = oRetVal
 End Function
 
-Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
+Public Property Get At(vData As Variant, ByVal lIdx As Long, Optional sDefault As String) As String
     On Error GoTo QH
     At = sDefault
     If IsArray(vData) Then
@@ -336,7 +427,7 @@ Public Function At(vData As Variant, ByVal lIdx As Long, Optional sDefault As St
         End If
     End If
 QH:
-End Function
+End Property
 
 Public Function Peek(ByVal lPtr As Long) As Long
     Call CopyMemory(Peek, ByVal lPtr, 4)
@@ -344,38 +435,6 @@ End Function
 
 Public Function PeekInt(ByVal lPtr As Long) As Integer
     Call CopyMemory(PeekInt, ByVal lPtr, 2)
-End Function
-
-Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
-    Const VT_BYREF      As Long = &H4000
-    Const S_OK          As Long = 0
-    Dim pVbCol          As IVbCollection
-    Dim vItem           As Variant
-
-    If pCol Is Nothing Then
-        '--- do nothing
-    ElseIf (PeekInt(VarPtr(RetVal)) And VT_BYREF) = 0 Then
-        If TypeOf pCol Is IVbCollection Then
-            Set pVbCol = pCol
-            SearchCollection = (pVbCol.Item(Index, RetVal) = S_OK)
-        Else
-            Err.Raise vbObjectError, , "Not implemented"
-        End If
-    Else
-        If TypeOf pCol Is IVbCollection Then
-            Set pVbCol = pCol
-            SearchCollection = (pVbCol.Item(Index, vItem) = S_OK)
-        Else
-            Err.Raise vbObjectError, , "Not implemented"
-        End If
-        If SearchCollection Then
-            If IsObject(vItem) Then
-                Set RetVal = vItem
-            Else
-                RetVal = vItem
-            End If
-        End If
-    End If
 End Function
 
 Public Function C_Lng(Value As Variant) As Long
@@ -415,6 +474,16 @@ Public Function C_Bool(Value As Variant) As Boolean
         C_Bool = Value
     ElseIf VariantChangeType(vDest, Value, VARIANT_ALPHABOOL, vbBoolean) = 0 Then
         C_Bool = vDest
+    End If
+End Function
+
+Public Function C_Dbl(Value As Variant) As Double
+    Dim vDest           As Variant
+    
+    If VarType(Value) = vbDouble Then
+        C_Dbl = Value
+    ElseIf VariantChangeType(vDest, Value, 0, vbDouble) = 0 Then
+        C_Dbl = vDest
     End If
 End Function
 
@@ -476,50 +545,6 @@ EH:
     Resume Next
 End Function
 
-Public Function InitRegExp(sPattern As String) As Object
-    Const FUNC_NAME     As String = "InitRegExp"
-    Dim lPos            As Long
-    
-    On Error GoTo EH
-    If Not SearchCollection(m_cRegExpCache, sPattern, RetVal:=InitRegExp) Then
-        Set InitRegExp = CreateObject("VBScript.RegExp")
-        With InitRegExp
-            lPos = InStrRev(sPattern, "/")
-            If Left$(sPattern, 1) = "/" And lPos > 1 Then
-                .Pattern = Mid$(sPattern, 2, lPos - 2)
-                .IgnoreCase = (InStr(lPos, sPattern, "i") > 0)
-                .MultiLine = (InStr(lPos, sPattern, "m") > 0)
-                .Global = (InStr(lPos, sPattern, "l") = 0)
-            Else
-                .Global = True
-                .Pattern = sPattern
-            End If
-        End With
-        If m_cRegExpCache Is Nothing Then
-            Set m_cRegExpCache = New Collection
-        End If
-        m_cRegExpCache.Add InitRegExp, sPattern
-        If m_cRegExpCache.Count > 1000 Then
-            m_cRegExpCache.Remove 1
-        End If
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Public Function Split2(sText As String, sDelim As String) As Variant
-    Dim lPos            As Long
-    
-    lPos = InStr(sText, sDelim)
-    If lPos > 0 Then
-        Split2 = Array(Left$(sText, lPos - 1), Mid$(sText, lPos + Len(sDelim)))
-    Else
-        Split2 = Array(sText)
-    End If
-End Function
-
 Public Function Printf(ByVal sText As String, ParamArray A() As Variant) As String
     Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
     Dim lIdx            As Long
@@ -573,6 +598,67 @@ Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As Str
     End If
 End Function
 
+Public Function GetErrorProcessCreationTime(Optional ByVal lPID As Long) As Date
+    Const PROCESS_QUERY_INFORMATION     As Long = &H400&
+    Dim hProcess    As Long
+    Dim uCreation   As FILETIME
+    Dim uDummy      As FILETIME
+    
+    If lPID = 0 Then
+        lPID = GetCurrentProcessId()
+    End If
+    hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, 0, lPID)
+    If hProcess <> 0 Then
+        If GetProcessTimes(hProcess, uCreation, uDummy, uDummy, uDummy) <> 0 Then
+            GetErrorProcessCreationTime = pvFromFileTime(uCreation)
+        End If
+        Call CloseHandle(hProcess)
+    End If
+End Function
+
+Private Function pvFromFileTime(uTime As FILETIME) As Date
+    Dim uLocalTime      As FILETIME
+    Dim uSysTime        As SYSTEMTIME
+    
+    If FileTimeToLocalFileTime(uTime, uLocalTime) <> 0 Then
+        If FileTimeToSystemTime(uLocalTime, uSysTime) <> 0 Then
+            Call SystemTimeToVariantTime(uSysTime, pvFromFileTime)
+        End If
+    End If
+End Function
+
+Public Function GetCurrentProcessUser(Optional ByVal IncludeDomain As Boolean = True) As String
+    Dim hProcessID      As Long
+    Dim hToken          As Long
+    Dim lNeeded         As Long
+    Dim baBuffer()      As Byte
+    Dim sUser           As String
+    Dim sDomain         As String
+    
+    hProcessID = GetCurrentProcess()
+    If hProcessID <> 0 Then
+        If OpenProcessToken(hProcessID, TOKEN_READ, hToken) = 1 Then
+            Call GetTokenInformation(hToken, 1, ByVal 0, 0, lNeeded)
+                ReDim baBuffer(0 To lNeeded) As Byte
+                '--- enum TokenInformationClass { TokenUser = 1, TokenGroups = 2, ... }
+                If GetTokenInformation(hToken, 1, baBuffer(0), UBound(baBuffer), lNeeded) = 1 Then
+                    sUser = String$(1000, 0)
+                    sDomain = String$(1000, 0)
+                    If LookupAccountSid(vbNullString, Peek(VarPtr(baBuffer(0))), sUser, Len(sUser), sDomain, Len(sDomain), 0) = 1 Then
+                        If IncludeDomain Then
+                            GetCurrentProcessUser = Left$(sDomain, InStr(sDomain, vbNullChar) - 1)
+                            If LenB(GetCurrentProcessUser) <> 0 Then
+                                GetCurrentProcessUser = GetCurrentProcessUser & "\"
+                            End If
+                        End If
+                        GetCurrentProcessUser = GetCurrentProcessUser & Left$(sUser, InStr(sUser, vbNullChar) - 1)
+                    End If
+                End If
+        End If
+        Call CloseHandle(hProcessID)
+    End If
+End Function
+
 Public Function GetProcessName() As String
     GetProcessName = String$(1000, 0)
     Call GetModuleFileName(0, GetProcessName, Len(GetProcessName) - 1)
@@ -597,7 +683,7 @@ Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
 QH:
 End Sub
 
-Public Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
+Private Function pvParseTokenByRegExp(sText As String, sPattern As String) As String
     Dim oCol            As Object
     
     Set oCol = InitRegExp(sPattern).Execute(sText)
@@ -628,30 +714,12 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
     Set ParseQueryString = oRetVal
 End Function
 
-Public Function ParseConnectString(ByVal sDeviceString As String) As Object
-    Const KEY_PATTERN   As String = "^([^=]+)="
-    Const VALUE_PATTERN As String = "^\s*('[^']*'|""[^""]*""|[^;]*)\s*;?"
-    Dim sKey            As String
-    Dim sValue          As String
-    Dim oRetVal         As Object
-    
-    Do
-        sKey = Trim$(pvParseTokenByRegExp(sDeviceString, KEY_PATTERN))
-        If LenB(sKey) = 0 Then
-            Exit Do
-        End If
-        sValue = Trim$(pvParseTokenByRegExp(sDeviceString, VALUE_PATTERN))
-        If Len(sValue) >= 2 Then
-            If Left$(sValue, 1) = Right$(sValue, 1) Then
-                Select Case Asc(sValue)
-                Case 34, 39 '--- ' and "
-                    sValue = Mid$(sValue, 2, Len(sValue) - 2)
-                End Select
-            End If
-        End If
-        JsonItem(oRetVal, sKey) = sValue
-    Loop
-    Set ParseConnectString = oRetVal
+Public Function ParseConnectString(ByVal sConnStr As String, Optional Separator As String = ";") As Object
+    Set ParseConnectString = ParseDeviceString(sConnStr, Separator)
+End Function
+
+Public Function ToConnectString(oMap As Object, Optional Separator As String = ";") As String
+    ToConnectString = ToDeviceString(oMap, Separator)
 End Function
 
 Public Function Quote(sText As String) As String
@@ -731,24 +799,56 @@ EH:
     Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
-Public Function PutObject(oObj As Object, sPathName As String) As Long
+Public Function PutObject(oObj As Object, sPathName As String, Optional ByVal Flags As Long) As Long
     Const ROTFLAGS_REGISTRATIONKEEPSALIVE As Long = 1
     Const IDX_REGISTER  As Long = 3
+    Dim hResult         As Long
     Dim pROT            As IUnknown
     Dim pMoniker        As IUnknown
     
-    Call GetRunningObjectTable(0, pROT)
-    Call CreateFileMoniker(StrPtr(sPathName), pMoniker)
-    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
+    hResult = CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    If hResult < 0 Then
+        Err.Raise hResult, "CreateFileMoniker"
+    End If
+    DispCallByVtbl pROT, IDX_REGISTER, ROTFLAGS_REGISTRATIONKEEPSALIVE Or Flags, ObjPtr(oObj), ObjPtr(pMoniker), VarPtr(PutObject)
 End Function
 
 Public Sub RevokeObject(ByVal lCookie As Long)
     Const IDX_REVOKE    As Long = 4
+    Dim hResult         As Long
     Dim pROT            As IUnknown
     
-    Call GetRunningObjectTable(0, pROT)
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
     DispCallByVtbl pROT, IDX_REVOKE, lCookie
 End Sub
+
+Public Function IsObjectRunning(sPathName As String) As Boolean
+    Const IDX_ISRUNNING As Long = 5
+    Const S_OK          As Long = 0
+    Dim hResult         As Long
+    Dim pROT            As IUnknown
+    Dim pMoniker        As IUnknown
+    
+    hResult = GetRunningObjectTable(0, pROT)
+    If hResult < 0 Then
+        Err.Raise hResult, "GetRunningObjectTable"
+    End If
+    hResult = CreateFileMoniker(StrPtr(sPathName), pMoniker)
+    If hResult < 0 Then
+        Err.Raise hResult, "CreateFileMoniker"
+    End If
+    If DispCallByVtbl(pROT, IDX_ISRUNNING, ObjPtr(pMoniker)) = S_OK Then
+        '--- success
+        IsObjectRunning = True
+    End If
+End Function
 
 Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArray A() As Variant) As Variant
     Const CC_STDCALL    As Long = 4
@@ -765,7 +865,7 @@ Private Function DispCallByVtbl(pUnk As IUnknown, ByVal lIndex As Long, ParamArr
     Next
     hResult = DispCallFunc(ObjPtr(pUnk), lIndex * 4, CC_STDCALL, vbLong, lIdx, vType(0), vPtr(0), DispCallByVtbl)
     If hResult < 0 Then
-        Err.Raise hResult
+        Err.Raise hResult, "DispCallFunc"
     End If
 End Function
 
@@ -813,5 +913,284 @@ Public Function GetSpecialFolder(ByVal eType As UcsOpenSaveDirectoryType) As Str
     GetSpecialFolder = String$(1000, 0)
     Call SHGetFolderPath(0, eType, 0, 0, GetSpecialFolder)
     GetSpecialFolder = Left$(GetSpecialFolder, InStr(GetSpecialFolder, vbNullChar) - 1)
+End Function
+
+Property Get SystemIconFont() As StdFont
+    Dim uFont           As LOGFONT
+    Dim sBuffer         As String
+    Dim hTempDC         As Long
+    
+    Call SystemParametersInfo(SPI_GETICONTITLELOGFONT, LenB(uFont), uFont, 0)
+    Set SystemIconFont = New StdFont
+    With SystemIconFont
+        sBuffer = Space$(lstrlenA(uFont.lfFaceName(1)))
+        CopyMemory ByVal sBuffer, uFont.lfFaceName(1), Len(sBuffer)
+        .Name = sBuffer
+        .Bold = (uFont.lfWeight >= FW_NORMAL)
+        .Charset = uFont.lfCharSet
+        .Italic = (uFont.lfItalic <> 0)
+        .Strikethrough = (uFont.lfStrikeOut <> 0)
+        .Underline = (uFont.lfUnderline <> 0)
+        .Weight = uFont.lfWeight
+        hTempDC = GetDC(0)
+        .Size = -(uFont.lfHeight * 72) / GetDeviceCaps(hTempDC, LOGPIXELSY)
+        Call ReleaseDC(0, hTempDC)
+    End With
+End Property
+
+Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal sFill As String) As String
+    If LenB(sFill) = 0 Then
+        sFill = IIf(lSize > 0, " ", "0")
+    End If
+    If lSize > 0 Then
+        Pad = Left$(sText & String(lSize, sFill), lSize)
+    Else
+        Pad = Right$(String(-lSize, sFill) & sText, -lSize)
+    End If
+End Function
+
+Public Function ConcatCollection(oCol As Collection, Optional Separator As String = vbCrLf) As String
+    Dim lSize           As Long
+    Dim vElem           As Variant
+    
+    For Each vElem In oCol
+        lSize = lSize + Len(vElem) + Len(Separator)
+    Next
+    If lSize > 0 Then
+        ConcatCollection = String$(lSize - Len(Separator), 0)
+        lSize = 1
+        For Each vElem In oCol
+            If lSize <= Len(ConcatCollection) Then
+                Mid$(ConcatCollection, lSize, Len(vElem) + Len(Separator)) = vElem & Separator
+            End If
+            lSize = lSize + Len(vElem) + Len(Separator)
+        Next
+    End If
+End Function
+
+Public Sub MoveCtl( _
+            oCtl As Object, _
+            ByVal Left As Single, _
+            Optional Top As Variant, _
+            Optional Width As Variant, _
+            Optional Height As Variant)
+    Const FUNC_NAME     As String = "MoveCtl"
+    Dim oCtlExt         As VBControlExtender
+    
+    On Error GoTo EH
+    If oCtl Is Nothing Then
+        Exit Sub
+    End If
+    If TypeOf oCtl Is VBControlExtender Then
+        Set oCtlExt = oCtl
+        If IsMissing(Top) Then
+            If oCtlExt.Left <> Left Then
+                oCtlExt.Move Left
+            End If
+        ElseIf IsMissing(Width) Then
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                oCtlExt.Move Left, Top
+            End If
+        ElseIf IsMissing(Height) Then
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Or oCtlExt.Width <> Limit(Width, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtlExt.Move Left, Top, Limit(Width, 0)
+                ElseIf oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                    oCtlExt.Move oCtlExt.Left, oCtlExt.Top, Limit(Width, 0)
+                    oCtlExt.Move Left, Top
+                Else
+                    oCtlExt.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0)
+                    oCtlExt.Move Left
+                End If
+            End If
+        Else
+            If oCtlExt.Left <> Left Or oCtlExt.Top <> Top Or oCtlExt.Width <> Limit(Width, 0) Or oCtlExt.Height <> Limit(Height, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtlExt.Move Left, Top, Limit(Width, 0), Limit(Height, 0)
+                ElseIf oCtlExt.Left <> Left Or oCtlExt.Top <> Top Then
+                    oCtlExt.Move oCtlExt.Left, oCtlExt.Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtlExt.Move Left, Top
+                Else
+                    oCtlExt.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtlExt.Move Left
+                End If
+            End If
+        End If
+    Else
+        If IsMissing(Top) Then
+            If oCtl.Left <> Left Then
+                oCtl.Move Left
+            End If
+        ElseIf IsMissing(Width) Then
+            If oCtl.Left <> Left Or oCtl.Top <> Top Then
+                oCtl.Move Left, Top
+            End If
+        ElseIf IsMissing(Height) Then
+            If oCtl.Left <> Left Or oCtl.Top <> Top Or oCtl.Width <> Limit(Width, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtl.Move Left, Top, Limit(Width, 0)
+                ElseIf oCtl.Left <> Left Or oCtl.Top <> Top Then
+                    oCtl.Move oCtl.Left, oCtl.Top, Limit(Width, 0)
+                    oCtl.Move Left, Top
+                Else
+                    oCtl.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0)
+                    oCtl.Move Left
+                End If
+            End If
+        Else
+            If oCtl.Left <> Left Or oCtl.Top <> Top Or oCtl.Width <> Limit(Width, 0) Or oCtl.Height <> Limit(Height, 0) Then
+                If 1440 \ ScreenTwipsPerPixelX = 1440 / ScreenTwipsPerPixelX Then
+                    oCtl.Move Left, Top, Limit(Width, 0), Limit(Height, 0)
+                ElseIf oCtl.Left <> Left Or oCtl.Top <> Top Then
+                    oCtl.Move oCtl.Left, oCtl.Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtl.Move Left, Top
+                Else
+                    oCtl.Move Left + ScreenTwipsPerPixelX, Top, Limit(Width, 0), Limit(Height, 0)
+                    oCtl.Move Left
+                End If
+            End If
+        End If
+    End If
+    Exit Sub
+EH:
+    RaiseError FUNC_NAME
+End Sub
+
+Property Get ScreenTwipsPerPixelX() As Single
+    If m_sngScreenTwipsPerPixelX <> 0 Then
+        ScreenTwipsPerPixelX = m_sngScreenTwipsPerPixelX
+    ElseIf Screen.TwipsPerPixelX <> 0 Then
+        ScreenTwipsPerPixelX = Screen.TwipsPerPixelX
+    Else
+        ScreenTwipsPerPixelX = 15
+    End If
+End Property
+
+Property Get ScreenTwipsPerPixelY() As Single
+    If m_sngScreenTwipsPerPixelY <> 0 Then
+        ScreenTwipsPerPixelY = m_sngScreenTwipsPerPixelY
+    ElseIf Screen.TwipsPerPixelY <> 0 Then
+        ScreenTwipsPerPixelY = Screen.TwipsPerPixelY
+    Else
+        ScreenTwipsPerPixelY = 15
+    End If
+End Property
+
+Property Get OrigTwipsPerPixelX() As Single
+    If m_sngOrigTwipsPerPixelX <> 0 Then
+        OrigTwipsPerPixelX = m_sngOrigTwipsPerPixelX
+    Else
+        OrigTwipsPerPixelX = ScreenTwipsPerPixelX
+    End If
+End Property
+
+Property Get OrigTwipsPerPixelY() As Single
+    If m_sngOrigTwipsPerPixelY <> 0 Then
+        OrigTwipsPerPixelY = m_sngOrigTwipsPerPixelY
+    Else
+        OrigTwipsPerPixelY = ScreenTwipsPerPixelY
+    End If
+End Property
+
+Public Function Limit( _
+            ByVal Value As Double, _
+            Optional Min As Variant, _
+            Optional Max As Variant) As Double
+    Const FUNC_NAME     As String = "Limit"
+    
+    On Error GoTo EH
+    Limit = Value
+    If Not IsMissing(Min) Then
+        If Value < C_Dbl(Min) Then
+            Limit = C_Dbl(Min)
+        End If
+    End If
+    If Not IsMissing(Max) Then
+        If Value > C_Dbl(Max) Then
+            Limit = C_Dbl(Max)
+        End If
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Sub ApplyTheme()
+    Dim hScreenDC           As Long
+    
+    hScreenDC = GetDC(0)
+    m_sngScreenTwipsPerPixelX = GetDeviceCaps(hScreenDC, LOGPIXELSX)
+    m_sngScreenTwipsPerPixelY = GetDeviceCaps(hScreenDC, LOGPIXELSY)
+    Call ReleaseDC(0, hScreenDC)
+    If m_sngScreenTwipsPerPixelX <> 0 Then
+        m_sngOrigTwipsPerPixelX = Int(1440 / m_sngScreenTwipsPerPixelX)
+        m_sngScreenTwipsPerPixelX = 1440 / m_sngScreenTwipsPerPixelX
+    End If
+    If m_sngScreenTwipsPerPixelY <> 0 Then
+        m_sngOrigTwipsPerPixelY = Int(1440 / m_sngScreenTwipsPerPixelY)
+        m_sngScreenTwipsPerPixelY = 1440 / m_sngScreenTwipsPerPixelY
+    End If
+End Sub
+
+Public Function SetCurrentDateTimer(ByVal dDate As Date, dblTimer As Double, Optional Error As String) As Boolean
+    m_dCurrentStartDate = dDate
+    m_dblCurrentStartTimer = dblTimer
+    Error = vbNullString
+    '--- success
+    SetCurrentDateTimer = True
+End Function
+
+Property Get GetCurrentNow() As Date
+    If m_dCurrentStartDate = 0 Then
+        GetCurrentNow = VBA.Now
+    Else
+        GetCurrentNow = DateAdd("s", TimerEx - m_dblCurrentStartTimer, m_dCurrentStartDate)
+    End If
+End Property
+
+Property Get GetCurrentTimer() As Double
+    GetCurrentTimer = TimerEx - m_dblCurrentStartTimer
+End Property
+
+Property Get GetCurrentDate() As Date
+    GetCurrentDate = Fix(GetCurrentNow)
+End Property
+
+Public Function IconScale(ByVal sngSize As Single) As Long
+    If ScreenTwipsPerPixelX < 6.5 Then
+        IconScale = Int(sngSize * 3)
+    ElseIf ScreenTwipsPerPixelX < 9.5 Then
+        IconScale = Int(sngSize * 2)
+    ElseIf ScreenTwipsPerPixelX < 11.5 Then
+        IconScale = Int(sngSize * 3 \ 2)
+    Else
+        IconScale = Int(sngSize * 1)
+    End If
+End Function
+
+Public Function ShellExec(sExeFile As String, sParams As String) As Boolean
+    Dim uShell          As SHELLEXECUTEINFO
+    
+    With uShell
+        .cbSize = Len(uShell)
+        .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
+        .lpFile = sExeFile
+        .lpParameters = sParams
+    End With
+    Call ShellExecuteEx(uShell)
+End Function
+
+Public Function Clamp( _
+            ByVal lValue As Long, _
+            Optional ByVal lMin As Long = -2147483647, _
+            Optional ByVal lMax As Long = 2147483647) As Long
+    Select Case lValue
+    Case lMin To lMax
+        Clamp = lValue
+    Case Is < lMin
+        Clamp = lMin
+    Case Is > lMax
+        Clamp = lMax
+    End Select
 End Function
 
