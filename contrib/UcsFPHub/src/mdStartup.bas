@@ -36,7 +36,7 @@ Private Declare Function InitCommonControls Lib "comctl32" () As Long
 '=========================================================================
 
 Private Const STR_LATEST_COMMIT         As String = ""
-Public Const STR_VERSION                As String = "0.1.46" & STR_LATEST_COMMIT
+Public Const STR_VERSION                As String = "0.1.47" & STR_LATEST_COMMIT
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
