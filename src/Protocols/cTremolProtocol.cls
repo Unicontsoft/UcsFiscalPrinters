@@ -1390,7 +1390,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim sParam          As String
     Dim vPayments       As Variant
     Dim vChanges        As Variant
-    Dim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
+    Dim vRetVal(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
     Dim lIdx            As Long
     Dim lPmtIndex       As Long
     Dim lOffset         As Long

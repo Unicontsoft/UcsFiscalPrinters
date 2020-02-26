@@ -1499,7 +1499,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
     Dim vDepSum         As Variant
-    Dim vRetVal(0 To MAX_PMT_TYPE - 1) As Variant
+    Dim vRetVal(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
