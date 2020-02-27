@@ -159,7 +159,7 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_PING_TIMEOUT          As Long = 200
+Private Const DEF_PING_TIMEOUT          As Long = 400
 Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_MAX_OPERCODE          As Long = 2
 Private Const DEF_MAX_OPERNAME          As Long = 20
@@ -1855,6 +1855,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim lPrintType      As Long
     Dim vElem           As Variant
     Dim dLastDate       As Date
+    Dim sVatIndexes     As String
     
     On Error GoTo EH
     '--- ring sale
@@ -2145,11 +2146,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Else
                 pvGetCommandConfig CONF_NAME, "FiscalPayAndClose", eCmd, ucsZekCmdFiscalPayAndClose, sParam, vbNullString, _
                     "Index", lIndex, 19, _
-                    "VatIndexes", sParam, "2|3|4|14|15|16|17|18"
+                    "VatIndexes", sVatIndexes, "2|3|4|14|15|16|17|18"
                 uCtx.ReceiptNo = RTrim$(At(vSplit, lIndex))
                 uCtx.ReceiptDate = pvRawGetClock()
                 dblTotal = 0
-                For Each vElem In Split(sParam, "|")
+                For Each vElem In Split(sVatIndexes, "|")
                     dblTotal = dblTotal + C_Dbl(At(vSplit, vElem))
                 Next
                 '--- reverse sign for reversal or credit note
