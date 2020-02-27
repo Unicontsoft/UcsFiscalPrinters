@@ -84,7 +84,6 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function CancelIo Lib "kernel32" (ByVal hFile As Long) As Long
-Private Declare Function CancelIoEx Lib "kernel32" (ByVal hFile As Long, lpOverlapped As Any) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Private Declare Function PurgeComm Lib "kernel32" (ByVal hFile As Long, ByVal dwFlags As Long) As Long
 Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
@@ -321,113 +320,81 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
     If UBound(m_baBuffer) < 0 Then
         ReDim m_baBuffer(0 To 65535) As Byte
     End If
-    m_lActual = 0
-    lResult = ReadFile(m_hComm, m_baBuffer(0), UBound(m_baBuffer) + 1, m_lActual, uReadOver)
-    lLastErr = Err.LastDllError
-    If lResult = 0 Then
-        If lLastErr = ERROR_IO_PENDING Then
-            bPendingRead = True
-            lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
-            lLastErr = Err.LastDllError
-            If lResult <> WAIT_OBJECT_0 Then
-                m_bClearPersistent = True
-                If lResult = WAIT_TIMEOUT Then
-                    m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                    DebugLog FUNC_NAME, "ReadFile#1 timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-                Else
-                    m_sLastError = GetErrorDescription(lLastErr)
-                    DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#1, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+    GoTo InLoop
+    Do
+        lRetryCount = lRetryCount + 1
+        m_lMask = 0
+        lResult = WaitCommEvent(m_hComm, m_lMask, uWaitOver)
+        lLastErr = Err.LastDllError
+        If lResult = 0 Then
+            If lLastErr = ERROR_IO_PENDING Then
+                bPendingWait = True
+                lResult = WaitForMultipleObjects(1, uWaitOver.hEvent, 0, Timeout)
+                lLastErr = Err.LastDllError
+                If lResult <> WAIT_OBJECT_0 Then
+                    m_bClearPersistent = True
+                    If lResult = WAIT_TIMEOUT Then
+                        m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+                        DebugLog FUNC_NAME, "WaitCommEvent timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    Else
+                        m_sLastError = GetErrorDescription(lLastErr)
+                        DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    End If
+                    GoTo QH
                 End If
+                bPendingWait = False
+            Else
+                m_bClearPersistent = True
+                m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetErrorDescription(lLastErr))
+                DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
-            bPendingRead = False
-            m_lActual = 0
-            Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 0)
-        Else
-            m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "ReadFile#1, lResult=" & lResult & ", m_sLastError=" & m_sLastError
-            GoTo QH
         End If
-    End If
-    If m_lActual > 0 Or Timeout = 0 Then
-        lActual = m_lActual
-        GoTo QH
-    End If
-RetryWait:
-    lRetryCount = lRetryCount + 1
-    m_lMask = 0
-    lResult = WaitCommEvent(m_hComm, m_lMask, uWaitOver)
-    lLastErr = Err.LastDllError
-    If lResult = 0 Then
-        If lLastErr = ERROR_IO_PENDING Then
-            bPendingWait = True
-            lResult = WaitForMultipleObjects(1, uWaitOver.hEvent, 0, Timeout)
-            lLastErr = Err.LastDllError
-            If lResult <> WAIT_OBJECT_0 Then
-                m_bClearPersistent = True
-                If lResult = WAIT_TIMEOUT Then
-                    m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                    DebugLog FUNC_NAME, "WaitCommEvent timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-                Else
-                    m_sLastError = GetErrorDescription(lLastErr)
-                    DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+InLoop:
+        m_lActual = 0
+        lResult = ReadFile(m_hComm, m_baBuffer(0), UBound(m_baBuffer) + 1, m_lActual, uReadOver)
+        lLastErr = Err.LastDllError
+        If lResult = 0 Then
+            If lLastErr = ERROR_IO_PENDING Then
+                bPendingRead = True
+                lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
+                lLastErr = Err.LastDllError
+                If lResult <> WAIT_OBJECT_0 Then
+                    m_bClearPersistent = True
+                    If lResult = WAIT_TIMEOUT Then
+                        m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+                        DebugLog FUNC_NAME, "ReadFile timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    Else
+                        m_sLastError = GetErrorDescription(lLastErr)
+                        DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    End If
+                    GoTo QH
                 End If
+                bPendingRead = False
+                m_lActual = 0
+                Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 0)
+            ElseIf lLastErr = ERROR_HANDLE_EOF Then
+                GoTo Continue
+            Else
+                m_bClearPersistent = True
+                m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
+                DebugLog FUNC_NAME, "ReadFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
                 GoTo QH
             End If
-            bPendingWait = False
-        Else
-            m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+        End If
+        If m_lActual > 0 Or Timeout = 0 Then
+            lActual = m_lActual
             GoTo QH
         End If
-    End If
-    m_lActual = 0
-    lResult = ReadFile(m_hComm, m_baBuffer(0), UBound(m_baBuffer) + 1, m_lActual, uReadOver)
-    lLastErr = Err.LastDllError
-    If lResult = 0 Then
-        If lLastErr = ERROR_IO_PENDING Then
-            bPendingRead = True
-            lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
-            lLastErr = Err.LastDllError
-            If lResult <> WAIT_OBJECT_0 Then
-                m_bClearPersistent = True
-                If lResult = WAIT_TIMEOUT Then
-                    m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                    DebugLog FUNC_NAME, "ReadFile#2 timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-                Else
-                    m_sLastError = GetErrorDescription(lLastErr)
-                    DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile#2, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-                End If
-                GoTo QH
-            End If
-            bPendingRead = False
-            m_lActual = 0
-            Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 0)
-        ElseIf lLastErr = ERROR_HANDLE_EOF Then
-            GoTo RetryWait
-        Else
+        If TimerEx > dblTimerEx + Timeout / 1000# Then
             m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "ReadFile#2, lResult=" & lResult & _
-                ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+            m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
+            DebugLog FUNC_NAME, "ReadData timeout, lRetryCount=" & lRetryCount & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
             GoTo QH
         End If
-    End If
-    If m_lActual > 0 Then
-        lActual = m_lActual
-        GoTo QH
-    End If
-    If TimerEx > dblTimerEx + Timeout / 1000# Then
-        m_bClearPersistent = True
-        m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-        DebugLog FUNC_NAME, "ReadData timeout, lRetryCount=" & lRetryCount & ", Timeout=" & Timeout & _
-            ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
-        GoTo QH
-    End If
-    Call Sleep(1)
-    GoTo RetryWait
+        Call Sleep(1)
+Continue:
+    Loop
 QH:
     If IsLogDataDumpEnabled Then
         DebugLog FUNC_NAME, "lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", bPendingWait=" & bPendingWait & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
@@ -537,10 +504,8 @@ EH:
 End Function
 
 Private Function pvCancelIoPending(ByVal hFile As Long, uOver As OVERLAPPED) As Long
-    On Error GoTo QH
-    pvCancelIoPending = CancelIoEx(hFile, uOver)
-    Exit Function
-QH:
+    #If uOver Then '--- touch args
+    #End If
     pvCancelIoPending = CancelIo(hFile)
 End Function
 
