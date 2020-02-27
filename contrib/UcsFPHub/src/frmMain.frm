@@ -267,7 +267,7 @@ Attribute SubclassProc.VB_MemberFlags = "40"
     Case WM_DEVICECHANGE
         Select Case wParam
         Case DBT_DEVICEARRIVAL, DBT_DEVICEREMOVECOMPLETE
-            LocalEndpointForm.Autodetect Async:=True, Delay:=1000
+            LocalEndpointForm.Autodetect Async:=True, Delay:=IIf(wParam = DBT_DEVICEARRIVAL, 15000, 1000)
         End Select
         Handled = True
     End Select
