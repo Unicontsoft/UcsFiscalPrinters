@@ -292,7 +292,7 @@ RetryWrite:
     WriteData = True
 QH:
     If bPendingWrite Then
-        pvCancelIoPending m_hComm, uWriteOver
+        Call CancelIo(m_hComm)
     End If
     Call CloseHandle(uWriteOver.hEvent)
     Exit Function
@@ -397,7 +397,7 @@ Continue:
     Loop
 QH:
     If IsLogDataDumpEnabled Then
-        DebugLog FUNC_NAME, "lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", bPendingWait=" & bPendingWait & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+        DebugLog FUNC_NAME, "Will return, lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", bPendingWait=" & bPendingWait & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
     End If
     If lActual > 0 Then
         ReDim Result(0 To lActual - 1) As Byte
@@ -407,11 +407,8 @@ QH:
     Else
         Result = vbNullString
     End If
-    If bPendingRead Then
-        pvCancelIoPending m_hComm, uReadOver
-    End If
-    If bPendingWait Then
-        pvCancelIoPending m_hComm, uWaitOver
+    If bPendingRead Or bPendingWait Then
+        Call CancelIo(m_hComm)
     End If
     Call CloseHandle(uReadOver.hEvent)
     Call CloseHandle(uWaitOver.hEvent)
@@ -501,12 +498,6 @@ Private Function pvInternal(ByVal lIdx As UcsConnectorErrorsEnum) As String
     Exit Function
 EH:
     RaiseError FUNC_NAME
-End Function
-
-Private Function pvCancelIoPending(ByVal hFile As Long, uOver As OVERLAPPED) As Long
-    #If uOver Then '--- touch args
-    #End If
-    pvCancelIoPending = CancelIo(hFile)
 End Function
 
 #If Not ImplUseShared Then
