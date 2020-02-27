@@ -1519,7 +1519,7 @@ RetrySend:
     End If
     '--- read response
     sText = vbNullString
-    Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
+    Do
         If TimerEx > dblTimerEx + lTimeout / 1000# Then
             Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
             GoTo QH
@@ -1542,7 +1542,7 @@ RetrySend:
         If InStr(sBuffer, Chr$(SYM_SYN)) > 0 Then
             dblTimerEx = TimerEx
         End If
-    Loop
+    Loop While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)
     Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
@@ -1614,7 +1614,9 @@ Private Function pvToWireLong(ByVal lValue As Long) As String
 End Function
 
 Private Function pvFromWireLong(baValue() As Byte) As Long
-    pvFromWireLong = (baValue(0) - &H30) * &H1000 + (baValue(2) - &H30) * &H100 + (baValue(4) - &H30) * &H10 + (baValue(6) - &H30)
+    If baValue(0) >= &H30 And baValue(2) >= &H30 And baValue(4) >= &H30 And baValue(6) >= &H30 Then
+        pvFromWireLong = (baValue(0) - &H30) * &H1000 + (baValue(2) - &H30) * &H100 + (baValue(4) - &H30) * &H10 + (baValue(6) - &H30)
+    End If
 End Function
 
 Private Sub pvSetStatus(sStatus As String)
