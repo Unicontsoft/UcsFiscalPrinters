@@ -1018,9 +1018,9 @@ Public Function PrintDailyZReport( _
         End If
         GoTo QH
     End If
-    If (IsDaisy Or IsIncotex) And (ReportType = ucsFscRstDailyByOperators Or ReportType = ucsFscRstDaily) Then
+    If IsDaisy And (ReportType = ucsFscRstDailyByOperators Or ReportType = ucsFscRstDaily) Then
         pvGetCommandConfig CONF_NAME, "InitOperatorReset", eCmd, ucsIslCmdInitOperatorReset, sParam, "0" & DEF_SEP & "9999"
-        SendCommand eCmd, sParam
+        pvTransmitCommand m_oConnector, m_lCommandTimeout, eCmd, sParam
     End If
     '--- success
     PrintDailyZReport = True
@@ -1571,7 +1571,7 @@ Public Function GetTotalsByTaxGroups() As Variant
     Dim sParam          As String
     Dim lOffset         As Long
     Dim lRevOffset      As Long
-    Dim sClosure        As String
+    Dim sFormatAmount   As String
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTaxRates", eCmd, ucsIslCmdInfoTaxRates, sParam, vbNullString
@@ -1583,14 +1583,18 @@ Public Function GetTotalsByTaxGroups() As Variant
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
         vRevSum = vPmtSum
     ElseIf IsIncotex Then
-        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
-            "Offset", lOffset, -2
-        sClosure = At(Split(SendCommand(eCmd, sParam), DEF_SEP), lOffset)
-        pvGetCommandConfig CONF_NAME, "InfoFiscalRecord", eCmd, ucsIslCmdInfoFiscalRecord, sParam, "%1" & DEF_SEP & "0", _
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, vbNullString, _
             "Offset", lOffset, 1, _
-            "RevOffset", lRevOffset, 9
-        sParam = Printf(sParam, sClosure)
+            "RevOffset", lRevOffset, 9, _
+            "FormatAmount", sFormatAmount, FORMAT_BASE_2
         vPmtSum = Split(SendCommand(eCmd, sParam), DEF_SEP)
+        '--- incotex idiosyncrasy: can return netto sums w/o VAT only
+        For lIdx = 0 To UBound(vTaxRates)
+            If lOffset + lIdx <= UBound(vPmtSum) Then
+                vPmtSum(lOffset + lIdx) = Format$(ParseSum(At(vPmtSum, lOffset + lIdx)) * (1# + ParseSum(At(vTaxRates, lIdx)) / 100#), sFormatAmount)
+            End If
+        Next
+        '--- incotex idiosyncrasy: no reversals info
         vRevSum = vPmtSum
     ElseIf IsEltrade Then
         pvGetCommandConfig CONF_NAME, "InfoTotalsByTaxGroups", eCmd, ucsIslCmdInfoTotalsByTaxGroups, sParam, "0", _
@@ -1860,7 +1864,7 @@ RetrySend:
     End If
     '--- read response
     sText = vbNullString
-    Do While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
+    Do
         If TimerEx > dblTimerEx + lTimeout / 1000# Then
             Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
             GoTo QH
@@ -1883,7 +1887,7 @@ RetrySend:
         If InStr(sBuffer, Chr$(SYM_SYN)) > 0 Then
             dblTimerEx = TimerEx
         End If
-    Loop
+    Loop While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)
     Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
@@ -2782,7 +2786,7 @@ Private Function pvGetPmtMapping() As Object
     Dim oRetVal         As Object
     
     On Error GoTo EH
-    If IsDaisy Or IsIncotex Then
+    If IsDaisy Then
         pvGetCommandConfig CONF_NAME, "ExtendedInitPayment", eCmd, ucsIslCmdExtendedInitPayment, sParam, "R%1", _
             "Offset", lOffset, 3
         For lIdx = 0 To 4
