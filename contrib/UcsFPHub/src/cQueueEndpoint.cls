@@ -88,6 +88,7 @@ Private Const STR_SSH_TUNNEL_PORT_UNACCESSIBLE  As String = "Тунелът е отворен, 
 Private Const STR_SSH_TUNNEL_MISSING_FILE       As String = "Липсва файл %1"
 Private Const STR_SSH_TUNNEL_TIMEOUT            As String = "Отваряне на SSH тунел отне прекалено много време"
 Private Const STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY As String = "SSH сървърът използва неоторизиран ключ"
+Private Const STR_SSH_TUNNEL_MISSING_PASSPHRASE As String = "Клиентският ключ изисква парола"
 
 Private m_sLastError                As String
 Private m_oConfig                   As Object
@@ -553,7 +554,7 @@ Private Function pvMakeSshTunnel( _
     Dim sInput          As String
     Dim lAttempt        As Long
     Dim lMaxAttempts    As Long
-    Dim dblTimer        As Double
+    Dim dblTimerEx      As Double
     Dim lTimeout        As Double
     Dim lExtraTimeout   As Double
     Dim vElem           As Variant
@@ -577,12 +578,11 @@ Private Function pvMakeSshTunnel( _
     If LenB(sExeFile) = 0 Then
         sExeFile = LocateFile(PathCombine(App.Path, "plink.exe"))
     End If
-    If LenB(sExeFile) = 0 Then
-        sExeFile = PathCombine(App.Path, "plink.exe")
-    End If
     '--- check plink.exe exists
-    If Not FileExists(sExeFile) Then
-        sError = Printf(STR_SSH_TUNNEL_MISSING_FILE, sExeFile)
+    If FileExists(sExeFile) Then
+        sExeFile = ArgvQuote(sExeFile)
+    ElseIf LenB(sExeFile) = 0 Then
+        sError = Printf(STR_SSH_TUNNEL_MISSING_FILE, "plink.exe")
         GoTo QH
     End If
     '--- figure out free local port
@@ -626,7 +626,7 @@ Private Function pvMakeSshTunnel( _
     '---   -i     keyfile
     '---   -L     local port tunnel [local_IP:]local_port:remote_IP:remote_port
     '---   -R     remote port tunnel [remote_IP:]remote_port:local_IP:local_port
-    sParams = Printf("%1 -ssh -2 -C -N -v -l %2", ArgvQuote(sSshSrv), ArgvQuote(sUser)) & _
+    sParams = Printf("%1 -C -N -v -l %2", ArgvQuote(sSshSrv), ArgvQuote(sUser)) & _
         IIf(LenB(sSqlSrv) <> 0, Printf(" -L %1", ArgvQuote(lLocalPort & ":" & sSqlSrv & ":" & lSqlPort)), vbNullString) & _
         IIf(LenB(sMirrorSrv) <> 0, Printf(" -L %1", ArgvQuote((lLocalPort + 1) & ":" & sMirrorSrv & ":" & lMirrorPort)), vbNullString) & _
         IIf(LenB(sKeyFile) <> 0, Printf(" -i %1", ArgvQuote(sKeyFile)), vbNullString) & _
@@ -639,10 +639,10 @@ Private Function pvMakeSshTunnel( _
     '--- shell plink.exe
     Set oTunnel = New cExec
     With oTunnel
-        .Run sExeFile, sParams, StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        dblTimer = TimerEx
+        .Run vbNullString, sExeFile & " " & sParams, StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        dblTimerEx = TimerEx
         Do While Not .AtEndOfError Or Not .AtEndOfOutput
-            If TimerEx - dblTimer > lTimeout + lExtraTimeout Then
+            If TimerEx > dblTimerEx + lTimeout + lExtraTimeout Then
                 sError = STR_SSH_TUNNEL_TIMEOUT & vbCrLf & sInput
                 If .KillProcess() Then
                     Call Sleep(100)
@@ -655,7 +655,7 @@ Private Function pvMakeSshTunnel( _
                 If IsLogDebugEnabled Then
                     DebugLog MODULE_NAME, FUNC_NAME, Left$(sLine, Len(sLine) - 2), vbLogEventTypeDebug
                 End If
-                sInput = sInput & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimer, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
+                sInput = sInput & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
             If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
                 lExtraTimeout = lTimeout
@@ -672,9 +672,20 @@ Private Function pvMakeSshTunnel( _
                 Next
                 If bAcceptKeys Then
                     .WriteInput "y" & vbCrLf
-                    sInput = Replace(sInput, "y/n", vbNullString)
+                    sInput = Replace(sInput, "y/n", "{y}/n")
                 Else
                     sError = STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY & vbCrLf & sError
+                    GoTo QH
+                End If
+            ElseIf InStr(sInput, "Press Return to begin session") > 0 Then
+                .WriteInput vbCrLf
+                sInput = Replace(sInput, "Press Return", "{P}ress Return")
+            ElseIf InStr(sInput, "Passphrase for key") > 0 Then
+                If LenB(sPass) <> 0 Then
+                    .WriteInput sPass & vbCrLf
+                    sInput = Replace(sInput, "Passphrase for", "{P}assphrase for")
+                Else
+                    sError = STR_SSH_TUNNEL_MISSING_PASSPHRASE
                     GoTo QH
                 End If
             ElseIf InStr(sInput, "Local port " & lLocalPort & " forwarding") > 0 Then
