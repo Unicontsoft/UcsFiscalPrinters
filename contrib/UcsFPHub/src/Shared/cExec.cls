@@ -178,13 +178,13 @@ Public Function Run( _
         m_hReadError = 0
     End If
     '--- argv quote executable if not already quoted
-    If Left$(sFile, 1) <> """" Then
+    If LenB(sFile) <> 0 And Left$(sFile, 1) <> """" Then
         sCommandLine = ArgvQuote(sFile)
     Else
         sCommandLine = sFile
     End If
     If LenB(sParams) <> 0 Then
-        sCommandLine = sCommandLine & " " & sParams
+        sCommandLine = IIf(LenB(sCommandLine) <> 0, sCommandLine & " ", vbNullString) & sParams
     End If
     '--- create pipes
     uSA.nLength = Len(uSA)
@@ -239,6 +239,25 @@ Public Function Run( _
 EH:
     PrintError FUNC_NAME
 End Function
+
+Public Sub Detach()
+    If m_hProcess <> 0 Then
+        Call CloseHandle(m_hProcess)
+        m_hProcess = 0
+    End If
+    If m_hReadOutput <> 0 Then
+        Call CloseHandle(m_hReadOutput)
+        m_hReadOutput = 0
+    End If
+    If m_hReadError <> 0 Then
+        Call CloseHandle(m_hReadError)
+        m_hReadError = 0
+    End If
+    If m_hWriteInput <> 0 Then
+        Call CloseHandle(m_hWriteInput)
+        m_hWriteInput = 0
+    End If
+End Sub
 
 Public Function AtEndOfError() As Boolean
     Dim lTotal2         As Long
@@ -406,7 +425,7 @@ End Function
 '= private ===============================================================
 
 ' based on https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way
-Private Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As String
+Public Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As String
     Const WHITESPACE As String = "*[ " & vbTab & vbVerticalTab & vbCrLf & "]*"
     
     If Not Force And LenB(sArg) <> 0 And Not sArg Like WHITESPACE Then
@@ -427,19 +446,6 @@ End Function
 Private Sub Class_Terminate()
     If m_hProcess <> 0 Then
         Call TerminateProcess(m_hProcess, 0)
-        Call CloseHandle(m_hProcess)
-        m_hProcess = 0
     End If
-    If m_hReadOutput <> 0 Then
-        Call CloseHandle(m_hReadOutput)
-        m_hReadOutput = 0
-    End If
-    If m_hReadError <> 0 Then
-        Call CloseHandle(m_hReadError)
-        m_hReadError = 0
-    End If
-    If m_hWriteInput <> 0 Then
-        Call CloseHandle(m_hWriteInput)
-        m_hWriteInput = 0
-    End If
+    Detach
 End Sub
