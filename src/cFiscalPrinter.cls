@@ -228,6 +228,7 @@ Public Function EnumPorts(sResponse As String) As Boolean
             JsonItem(oItem, "Firmware") = Zn(Trim$(At(vElem, 4)), Empty)
             JsonItem(oItem, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
             JsonItem(oItem, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
+            JsonItem(oItem, "ModelGroup") = Zn(Trim$(At(vElem, 7)), Empty)
         Else
             JsonItem(oItem, "Port") = Zn(Trim$(C_Str(vElem)), Empty)
         End If
