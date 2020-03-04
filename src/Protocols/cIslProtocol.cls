@@ -355,6 +355,16 @@ Private Type UcsLocalizedConfigType
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
+Private Type UcsGetDeviceInfoType
+    Protocol            As String
+    Model               As String
+    Firmware            As String
+    DeviceSerialNo      As String
+    FiscalMemoryNo      As String
+    ModelGroup          As UcsModelGroupEnum
+    Error               As String
+End Type
+
 '=========================================================================
 ' Error handling
 '=========================================================================
@@ -613,9 +623,11 @@ Private Property Get pvModelGroup() As UcsModelGroupEnum
     End If
     If Not IsArray(m_vDeviceNumbers) Then
         pvModelGroup = C_Lng(Zn(At(Split(C_Str(m_vDeviceNumbers), "|"), 2), -1))
+    Else
+        pvModelGroup = -1
     End If
     If pvModelGroup < 0 Then
-        pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, vbNullString, pvModelGroup
+        pvModelGroup = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).ModelGroup
     End If
 QH:
     Exit Property
@@ -640,12 +652,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim hEvents()       As Long
     Dim lEventsCount    As Long
     Dim lResult         As Long
-    Dim sProtocol       As String
-    Dim sModel          As String
-    Dim sFirmware       As String
-    Dim sDeviceSerialNo As String
-    Dim sFiscalMemoryNo As String
-    Dim lModelGroup     As UcsModelGroupEnum
     Dim vSpeeds         As Variant
     Dim sDefProbe       As String
     Dim baBuffer()      As Byte
@@ -705,10 +711,12 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         End If
                         If Left$(sBuffer, Len(sReplyText)) = sReplyText Then
                             DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(sBuffer)
-                            If pvRawGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo, lModelGroup) Then
-                                vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, sProtocol, sModel, sFirmware, sDeviceSerialNo, sFiscalMemoryNo, lModelGroup)
-                                DebugLog FUNC_NAME, "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", sProtocol=" & sProtocol & ", sModel=" & sModel & ", sFirmware=" & sFirmware & ", sDeviceSerialNo=" & sDeviceSerialNo & ", sFiscalMemoryNo=" & sFiscalMemoryNo & ", lModelGroup=" & lModelGroup
-                            End If
+                            With pvRawGetDeviceInfo(.Connector, lDeviceInfoTimeout, Empty)
+                                If LenB(.Protocol) <> 0 Then
+                                    vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, .Protocol, .Model, .Firmware, .DeviceSerialNo, .FiscalMemoryNo, .ModelGroup)
+                                    DebugLog FUNC_NAME, "Auto-detected vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", .Protocol=" & .Protocol & ", .Model=" & .Model & ", .Firmware=" & .Firmware & ", .DeviceSerialNo=" & .DeviceSerialNo & ", FiscalMemoryNo=" & .FiscalMemoryNo & ", ModelGroup=" & .ModelGroup
+                                End If
+                            End With
                         Else
                             DebugLog FUNC_NAME, "Discarding vSpeed=" & vSpeed & ", lIdx=" & lIdx & ", " & .Connector.Device & " reply 0x" & ToHexDump(sBuffer)
                         End If
@@ -732,10 +740,7 @@ Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
     Dim sDeviceSerialNo As String
-    Dim sFiscalMemoryNo As String
-    Dim lModelGroup     As Long
     Dim lIdx            As Long
-    Dim sError          As String
     Dim vSplit          As Variant
     
     On Error GoTo EH
@@ -756,13 +761,16 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
-        If Not pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, sDeviceSerialNo, sFiscalMemoryNo, lModelGroup, Error:=sError) Then
-            pvSetLastError sError
-            GoTo QH
-        End If
-        JsonItem(oOptions, "DeviceSerialNo") = sDeviceSerialNo
-        JsonItem(oOptions, "FiscalMemoryNo") = sFiscalMemoryNo
-        JsonItem(oOptions, "ModelGroup") = lModelGroup
+        With pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers)
+            If LenB(.Protocol) = 0 Then
+                pvSetLastError .Error
+                GoTo QH
+            End If
+            JsonItem(oOptions, "DeviceSerialNo") = .DeviceSerialNo
+            JsonItem(oOptions, "FiscalMemoryNo") = .FiscalMemoryNo
+            JsonItem(oOptions, "ModelGroup") = .ModelGroup
+            sDeviceSerialNo = .DeviceSerialNo
+        End With
     Else
         m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo")) & "|" & Trim$(JsonItem(oOptions, "ModelGroup"))
     End If
@@ -1263,7 +1271,7 @@ Public Function GetDeviceSerialNo() As String
         GetDeviceSerialNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 0)
     End If
     If LenB(GetDeviceSerialNo) = 0 Then
-        pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, GetDeviceSerialNo, vbNullString, 0
+        GetDeviceSerialNo = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).DeviceSerialNo
     End If
     Exit Function
 EH:
@@ -1278,7 +1286,7 @@ Public Function GetFiscalMemoryNo() As String
         GetFiscalMemoryNo = At(Split(C_Str(m_vDeviceNumbers), "|"), 1)
     End If
     If LenB(GetFiscalMemoryNo) = 0 Then
-        pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, vbNullString, vbNullString, GetFiscalMemoryNo, 0
+        GetFiscalMemoryNo = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).FiscalMemoryNo
     End If
     Exit Function
 EH:
@@ -1289,7 +1297,7 @@ Public Function GetDeviceProtocol() As String
     Const FUNC_NAME     As String = "GetDeviceProtocol"
     
     On Error GoTo EH
-    pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, GetDeviceProtocol, vbNullString, vbNullString, vbNullString, vbNullString, 0
+    GetDeviceProtocol = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).Protocol
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1299,7 +1307,7 @@ Public Function GetDeviceModel() As String
     Const FUNC_NAME     As String = "GetDeviceModel"
     
     On Error GoTo EH
-    pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, GetDeviceModel, vbNullString, vbNullString, vbNullString, 0
+    GetDeviceModel = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).Model
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1309,7 +1317,7 @@ Public Function GetDeviceFirmware() As String
     Const FUNC_NAME     As String = "GetDeviceFirmware"
     
     On Error GoTo EH
-    pvRawGetDeviceInfo m_oConnector, m_lCommandTimeout, m_vDeviceNumbers, vbNullString, vbNullString, GetDeviceFirmware, vbNullString, vbNullString, 0
+    GetDeviceFirmware = pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout, m_vDeviceNumbers).Firmware
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2697,14 +2705,7 @@ End Function
 Private Function pvRawGetDeviceInfo( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
-            vResult As Variant, _
-            sProtocol As String, _
-            sModel As String, _
-            sFirmware As String, _
-            sDeviceSerialNo As String, _
-            sFiscalMemoryNo As String, _
-            lModelGroup As UcsModelGroupEnum, _
-            Optional Error As String) As Boolean
+            vResult As Variant) As UcsGetDeviceInfoType
     Const FUNC_NAME     As String = "pvRawGetDeviceInfo"
     Const CONF_NAME     As String = "GetDeviceInfo"
     Dim eCmd            As UcsIslCommandsEnum
@@ -2716,6 +2717,7 @@ Private Function pvRawGetDeviceInfo( _
     Dim lSerialIndex    As Long
     Dim vSplit          As Variant
     Dim lEcrTimeout     As Long
+    Dim uRetVal         As UcsGetDeviceInfoType
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoDiagnostics", eCmd, ucsIslCmdInfoDiagnostics, sParam, "0", _
@@ -2725,10 +2727,10 @@ Private Function pvRawGetDeviceInfo( _
         "NameIndex", lNameIndex, 0, _
         "SerialIndex", lSerialIndex, 4
     If Not IsArray(vResult) Then
-        vSplit = Split(pvRawSendCommand(oConnector, lTimeout, eCmd, vbNullString, FUNC_NAME, Error:=Error), DEF_SEP)
+        vSplit = Split(pvRawSendCommand(oConnector, lTimeout, eCmd, vbNullString, FUNC_NAME, Error:=uRetVal.Error), DEF_SEP)
         If LenB(At(vSplit, lNameIndex)) = 0 Then
-            Error = vbNullString
-            vSplit = Split(pvRawSendCommand(oConnector, lTimeout, eCmd, sParam, FUNC_NAME, Error:=Error), DEF_SEP)
+            uRetVal.Error = vbNullString
+            vSplit = Split(pvRawSendCommand(oConnector, lTimeout, eCmd, sParam, FUNC_NAME, Error:=uRetVal.Error), DEF_SEP)
         End If
         If UBound(vSplit) >= lSerialIndex Then
             vResult = vSplit
@@ -2758,23 +2760,22 @@ Private Function pvRawGetDeviceInfo( _
     If LenB(At(vResult, lSerialIndex)) <> 0 Then
         '--- check serial
         If Left$(At(vResult, lSerialIndex), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Then
-            sProtocol = STR_PROTOCOL_DAISY
+            uRetVal.Protocol = STR_PROTOCOL_DAISY
         ElseIf Left$(At(vResult, lSerialIndex), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
-            sProtocol = STR_PROTOCOL_INCOTEX
+            uRetVal.Protocol = STR_PROTOCOL_INCOTEX
         ElseIf Left$(At(vResult, lSerialIndex), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
-            sProtocol = STR_PROTOCOL_ELTRADE
+            uRetVal.Protocol = STR_PROTOCOL_ELTRADE
         ElseIf LenB(At(vResult, lSerialIndex)) <> 0 Then
-            sProtocol = STR_PROTOCOL_DATECS_FP
+            uRetVal.Protocol = STR_PROTOCOL_DATECS_FP
         End If
         vSplit = Split(RTrim$(At(vResult, lNameIndex)) & RTrim$(" " & At(vResult, lNameIndex + 1)), Limit:=2)
-        sModel = RTrim$(At(vSplit, 0))
-        sFirmware = RTrim$(At(vSplit, 1))
-        sDeviceSerialNo = RTrim$(At(vResult, lSerialIndex))
-        sFiscalMemoryNo = RTrim$(At(vResult, lSerialIndex + 1))
-        lModelGroup = C_Lng(At(vResult, 6))
-        '--- success
-        pvRawGetDeviceInfo = True
+        uRetVal.Model = RTrim$(At(vSplit, 0))
+        uRetVal.Firmware = RTrim$(At(vSplit, 1))
+        uRetVal.DeviceSerialNo = RTrim$(At(vResult, lSerialIndex))
+        uRetVal.FiscalMemoryNo = RTrim$(At(vResult, lSerialIndex + 1))
+        uRetVal.ModelGroup = C_Lng(At(vResult, 6))
     End If
+    pvRawGetDeviceInfo = uRetVal
     Exit Function
 EH:
     PrintError FUNC_NAME
