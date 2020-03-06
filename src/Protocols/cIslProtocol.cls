@@ -2571,7 +2571,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If .PmtType <> 0 Then
                 If Abs(.PmtAmount) < DBL_EPSILON Then
                     eCmd = ucsIslCmdNoop
-                ElseIf uRow(0).InitReceiptType = ucsFscRcpReversal Or uRow(0).InitReceiptType = ucsFscRcpCreditNote Then
+                ElseIf .PrintRowType = ucsFscRcpReversal Or .PrintRowType = ucsFscRcpCreditNote Then
                     eCmd = ucsIslCmdNoop
                 Else
                     lIndex = pvToDevicePmtIndex(.PmtType)
@@ -2607,7 +2607,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
                 uCtx.ReceiptDate = GetClock()
                 uCtx.ReceiptAmount = ParseSum(At(vSplit, lAmountIndex))
-                Select Case uRow(0).InitReceiptType
+                Select Case .PrintRowType
                 Case ucsFscRcpReversal, ucsFscRcpCreditNote
                     uCtx.ReceiptAmount = -uCtx.ReceiptAmount
                 End Select

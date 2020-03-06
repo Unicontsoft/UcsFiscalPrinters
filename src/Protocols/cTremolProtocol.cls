@@ -1959,7 +1959,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%9"
                 lPrintType = 65
             End Select
-            pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsZekCmdFiscalOpen, sParam, sParam, _
+            pvGetCommandConfig CONF_NAME, "FiscalOpen" & .PrintRowType, eCmd, ucsZekCmdFiscalOpen, sParam, sParam, _
                 "PrintType", lPrintType, lPrintType
             sParam = Printf(sParam, Pad(.InitOperatorCode, -m_uConfig.MaxOperCode), _
                 Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
@@ -2010,12 +2010,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             If .PluDepartmentNo <> 0 Then
-                pvGetCommandConfig CONF_NAME, "FiscalDepartmentSell" & .InitReceiptType, eCmd, ucsZekCmdFiscalDepartmentSell, sParam, "%1", _
+                pvGetCommandConfig CONF_NAME, "FiscalDepartmentSell" & .PrintRowType, eCmd, ucsZekCmdFiscalDepartmentSell, sParam, "%1", _
                     "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
                     "FormatQty", sFormatQty, FORMAT_BASE_3, _
                     "FormatDisc", sFormatDisc, FORMAT_BASE_2
             Else
-                pvGetCommandConfig CONF_NAME, "FiscalSell" & .InitReceiptType, eCmd, ucsZekCmdFiscalSell, sParam, "%1", _
+                pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsZekCmdFiscalSell, sParam, "%1", _
                     "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
                     "FormatQty", sFormatQty, FORMAT_BASE_3, _
                     "FormatDisc", sFormatDisc, FORMAT_BASE_2
@@ -2137,7 +2137,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If .PmtType <> 0 Then
                 If Abs(.PmtAmount) < DBL_EPSILON Then
                     eCmd = ucsZekCmdNoop
-                ElseIf uRow(0).InitReceiptType = ucsFscRcpReversal Or uRow(0).InitReceiptType = ucsFscRcpCreditNote Then
+                ElseIf .PrintRowType = ucsFscRcpReversal Or .PrintRowType = ucsFscRcpCreditNote Then
                     eCmd = ucsZekCmdNoop
                 Else
                     If pvToDevicePmtIndex(.PmtType) < 0 Then
@@ -2160,7 +2160,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     dblTotal = dblTotal + C_Dbl(At(vSplit, vElem))
                 Next
                 '--- reverse sign for reversal or credit note
-                Select Case uRow(0).InitReceiptType
+                Select Case .PrintRowType
                 Case ucsFscRcpReversal, ucsFscRcpCreditNote
                     dblTotal = -dblTotal
                 End Select

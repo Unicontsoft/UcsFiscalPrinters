@@ -1828,7 +1828,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & _
                     IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & DEF_SEP & "%7" & DEF_SEP & "%8", DEF_SEP & DEF_SEP & DEF_SEP) & _
                     DEF_SEP & "%9" & DEF_SEP
-                pvGetCommandConfig CONF_NAME, "FiscalReversal" & .InitReceiptType, eCmd, ucsDcsCmdFiscalReversal, sParam, sParam, _
+                pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsDcsCmdFiscalReversal, sParam, sParam, _
                     "FormatDate", sFormatDate, FORMAT_DATE_EXTENDED
                 sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitRevData(ucsRevType), _
                     .InitRevData(ucsRevReceiptNo), Format$(.InitRevData(ucsRevReceiptDate), sFormatDate), .InitRevData(ucsRevFiscalMemoryNo), _
@@ -1836,7 +1836,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Case Else
                 '--- %1={OpCode}<SEP>%2={OpPwd}%3=(<SEP>{NSale})<SEP>{TillNmb}<SEP>{Invoice}<SEP>
                 sParam = "%1" & DEF_SEP & "%2%3" & DEF_SEP & "1" & DEF_SEP & IIf(.InitReceiptType = ucsFscRcpInvoice, "I", vbNullString) & DEF_SEP
-                pvGetCommandConfig CONF_NAME, "FiscalOpen" & .InitReceiptType, eCmd, ucsDcsCmdFiscalOpen, sParam, sParam
+                pvGetCommandConfig CONF_NAME, "FiscalOpen" & .PrintRowType, eCmd, ucsDcsCmdFiscalOpen, sParam, sParam
                 sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & .InitUniqueSaleNo, vbNullString))
             End Select
@@ -2014,7 +2014,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If .PmtType <> 0 Then
                 If Abs(.PmtAmount) < DBL_EPSILON Then
                     eCmd = ucsDcsCmdNoop
-                ElseIf uRow(0).InitReceiptType = ucsFscRcpReversal Or uRow(0).InitReceiptType = ucsFscRcpCreditNote Then
+                ElseIf .PrintRowType = ucsFscRcpReversal Or .PrintRowType = ucsFscRcpCreditNote Then
                     eCmd = ucsDcsCmdNoop
                 Else
                     '--- %1={PaidMode}<SEP>%2={Amount}<SEP>{Type}<SEP>
@@ -2035,7 +2035,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         Or LenB(At(vSplit, lAmountIndex)) = 0 _
                         Or Not uCtx.PmtPrinted Then
                     sParam = DEF_SEP & DEF_SEP & DEF_SEP
-                    pvGetCommandConfig CONF_NAME, "FiscalPayment", eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
+                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
                     sParam = Printf(sParam, pvToDevicePmtIndex(ucsFscPmtCash))
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     If LenB(m_uPrintData.LastError) = 0 Then
@@ -2046,7 +2046,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Case ucsFscRcpInvoice, ucsFscRcpCreditNote
                     '--- %1={Seller}<SEP>%2={Receiver}<SEP>%3={Buyer}<SEP>%4={Address1}<SEP>%5={Address2}<SEP>%6={TypeTAXN}<SEP>%7={TAXN}<SEP>%8={VATN}<SEP>
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8" & DEF_SEP
-                    pvGetCommandConfig CONF_NAME, "FiscalCgInfo", eCmd, ucsDcsCmdFiscalCgInfo, sParam, sParam
+                    pvGetCommandConfig CONF_NAME, "FiscalCgInfo" & .PrintRowType, eCmd, ucsDcsCmdFiscalCgInfo, sParam, sParam
                     With uRow(0)
                         sParam = Printf(sParam, Left$(.InitOperatorName, m_uConfig.MaxCgInfo(ucsMciOperatorName)), _
                             Left$(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxCgInfo(ucsMciCgPrsReceive)), _
