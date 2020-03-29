@@ -83,6 +83,7 @@ Private Const STR_TREMOL_ERRORS         As String = "Неизвестна грешка|Няма харт
 Private Const STR_TREMOL_TEXTS          As String = "В брой|С карта|По банка|Надбавка%1|Отстъпка%1|Междинна сума|Продажби %1|ЕИК;ЕГН;ЛНЧ;Служебен No"
 Private Const STR_ESP_POS_INTERNAL      As String = "Няма започната бележка|Грешка на ред %1: %2|Неподдържан вид отстъпка %1"
 Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТАЛОНИ|В.ТАЛОНИ|АМБАЛАЖ|В.ОБСЛУЖВАНЕ|ПОВРЕДИ|С КАРТА|ПО БАНКA|НЗОК|ПРОГ.ТИП 2|ЕВРО|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
+Private Const STR_PROXY_INTERNAL        As String = "Устройството не е намерено|Невалидно състояние на готовност %1|Невалидeн JSON: %1|Неподдържан вид отстъпка %1"
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Грешка при WaitCommEvent: %1"
 Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 '--- enums texts
@@ -857,6 +858,7 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipInit As Boole
         pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
     Case STR_PROTOCOL_PROXY
         Set pvInit = New cProxyProtocol
+        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_PROXY_INTERNAL)
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
