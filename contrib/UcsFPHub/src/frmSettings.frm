@@ -28,7 +28,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   9
+      TabIndex        =   12
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -37,7 +37,7 @@ Begin VB.Form frmSettings
          Caption         =   "Тест"
          Height          =   432
          Left            =   8484
-         TabIndex        =   20
+         TabIndex        =   8
          Tag             =   "FONT"
          Top             =   2436
          Width           =   1104
@@ -46,7 +46,7 @@ Begin VB.Form frmSettings
          Caption         =   "Бързи настройки"
          Height          =   4380
          Left            =   0
-         TabIndex        =   13
+         TabIndex        =   15
          Tag             =   "FONT"
          Top             =   0
          Width           =   4464
@@ -71,7 +71,7 @@ Begin VB.Form frmSettings
             Caption         =   "Прилагане"
             Height          =   432
             Left            =   2772
-            TabIndex        =   18
+            TabIndex        =   6
             Tag             =   "FONT"
             Top             =   3612
             Width           =   1440
@@ -113,7 +113,7 @@ Begin VB.Form frmSettings
             Caption         =   "Сериен номер на ФУ:"
             Height          =   192
             Left            =   252
-            TabIndex        =   19
+            TabIndex        =   20
             Tag             =   "FONT"
             Top             =   3024
             UseMnemonic     =   0   'False
@@ -125,7 +125,7 @@ Begin VB.Form frmSettings
             Caption         =   "Парола по подразбиране:"
             Height          =   192
             Left            =   252
-            TabIndex        =   17
+            TabIndex        =   19
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
@@ -137,7 +137,7 @@ Begin VB.Form frmSettings
             Caption         =   "Протокол за комуникация:"
             Height          =   192
             Left            =   252
-            TabIndex        =   16
+            TabIndex        =   18
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
@@ -149,7 +149,7 @@ Begin VB.Form frmSettings
             Caption         =   "Скорост на комуникация:"
             Height          =   192
             Left            =   252
-            TabIndex        =   15
+            TabIndex        =   17
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
@@ -161,7 +161,7 @@ Begin VB.Form frmSettings
             Caption         =   "Комуникационен порт:"
             Height          =   192
             Left            =   252
-            TabIndex        =   14
+            TabIndex        =   16
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
@@ -175,7 +175,7 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         TabIndex        =   11
+         TabIndex        =   9
          Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
@@ -184,35 +184,10 @@ Begin VB.Form frmSettings
          Height          =   2928
          IntegralHeight  =   0   'False
          Left            =   4620
-         TabIndex        =   6
+         TabIndex        =   7
          Tag             =   "MONO"
          Top             =   84
          Width           =   5052
-      End
-   End
-   Begin VB.PictureBox picTab 
-      BorderStyle     =   0  'None
-      HasDC           =   0   'False
-      Height          =   6984
-      Index           =   1
-      Left            =   252
-      ScaleHeight     =   6984
-      ScaleWidth      =   9924
-      TabIndex        =   7
-      TabStop         =   0   'False
-      Top             =   504
-      Visible         =   0   'False
-      Width           =   9924
-      Begin VB.TextBox txtConfig 
-         BorderStyle     =   0  'None
-         Height          =   5640
-         Left            =   0
-         MultiLine       =   -1  'True
-         ScrollBars      =   3  'Both
-         TabIndex        =   8
-         Tag             =   "MONO"
-         Top             =   0
-         Width           =   6396
       End
    End
    Begin VB.PictureBox picTab 
@@ -223,7 +198,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   10
+      TabIndex        =   14
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -235,10 +210,35 @@ Begin VB.Form frmSettings
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   12
+         TabIndex        =   11
          Tag             =   "MONO"
          Top             =   0
          Width           =   9252
+      End
+   End
+   Begin VB.PictureBox picTab 
+      BorderStyle     =   0  'None
+      HasDC           =   0   'False
+      Height          =   6984
+      Index           =   1
+      Left            =   252
+      ScaleHeight     =   6984
+      ScaleWidth      =   9924
+      TabIndex        =   13
+      TabStop         =   0   'False
+      Top             =   504
+      Visible         =   0   'False
+      Width           =   9924
+      Begin VB.TextBox txtConfig 
+         BorderStyle     =   0  'None
+         Height          =   5640
+         Left            =   0
+         MultiLine       =   -1  'True
+         ScrollBars      =   3  'Both
+         TabIndex        =   10
+         Tag             =   "MONO"
+         Top             =   0
+         Width           =   6396
       End
    End
    Begin UcsFPHub.AlphaBlendTabStrip tabMain 
