@@ -797,7 +797,7 @@ Public Function Init(sDeviceString As String) As Boolean
     End With
     '--- more dependant on m_uConfig being populated
     With m_uPrintData.Config
-        .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP)))
+        .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP And Not IsIncotex)))
     End With
     '--- success
     Init = True
