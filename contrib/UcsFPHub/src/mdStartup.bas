@@ -264,6 +264,9 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             Process = 1
             GoTo QH
         End If
+        If FileLen(sConfFile) = 0 Then
+            GoTo LoadDefaultConfig
+        End If
         If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
             DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
             Process = 1
@@ -271,6 +274,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         End If
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_LOADING_CONFIG, sConfFile)
     Else
+LoadDefaultConfig:
         JsonItem(m_oConfig, "Printers/Autodetect") = True
         JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
         JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT

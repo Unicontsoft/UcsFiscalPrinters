@@ -737,8 +737,12 @@ Private Function pvLoadConfig(sConfFile As String) As Boolean
     
     On Error GoTo EH
     If FileExists(sConfFile) Then
+        If FileLen(sConfFile) = 0 Then
+            GoTo LoadDefaultConfig
+        End If
         pvConfigText = ReadTextFile(sConfFile)
     Else
+LoadDefaultConfig:
         mnuFile(ucsMnuFileRestart).Enabled = False
         JsonItem(oConfig, "Printers/Autodetect") = True
         JsonItem(oConfig, "Endpoints/0/Binding") = "RestHttp"
