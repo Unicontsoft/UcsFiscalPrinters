@@ -956,6 +956,9 @@ RetryRestart:
     JsonItem(oDevice, "DeviceSerialNo") = Zn(Trim$(txtSerialNo.Text), Empty)
     JsonItem(oDevice, "DefaultPassword") = Zn(Trim$(txtDefPass.Text), Empty)
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
+    If UBound(JsonKeys(oConfig, "Printers/" & m_sPrinterID)) < 0 Then
+        JsonItem(oConfig, "Printers/" & m_sPrinterID) = Empty
+    End If
     pvConfigText = JsonDump(oConfig)
     If pvSaveConfig(m_sConfFile) Then
         frRestart
@@ -1264,9 +1267,16 @@ End Sub
 
 Private Sub cobProtocol_Change()
     Const FUNC_NAME     As String = "cobProtocol_Change"
+    Dim oConfig         As Object
     
     On Error GoTo EH
     If Not m_bInSet Then
+        If LenB(cobProtocol.Text) <> 0 Then
+            Set oConfig = JsonParseObject(pvConfigText)
+            If Not IsObject(JsonItem(oConfig, "Printers/" & m_sPrinterID)) Then
+                chkAutoDetect.Value = vbUnchecked
+            End If
+        End If
         pvQuickSettingsChanged = True
     End If
     Exit Sub
