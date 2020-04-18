@@ -81,6 +81,7 @@ Private Const UnitPoint                     As Long = 3
 Private Const TextRenderingHintAntiAlias    As Long = 4
 '--- for GdipSetSmoothingMode
 Private Const SmoothingModeAntiAlias        As Long = 4
+Private Const DT_CALCRECT                   As Long = &H400
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (lpDst As Any, lpSrc As Any, ByVal ByteLength As Long)
 Private Declare Function CreateCompatibleDC Lib "gdi32" (ByVal hDC As Long) As Long
@@ -93,6 +94,7 @@ Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA"
 Private Declare Function OleTranslateColor Lib "oleaut32" (ByVal lOleColor As Long, ByVal lHPalette As Long, ByVal lColorRef As Long) As Long
 Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
+Private Declare Function DrawText Lib "user32" Alias "DrawTextA" (ByVal hDC As Long, ByVal lpStr As String, ByVal nCount As Long, lpRect As Any, ByVal wFormat As Long) As Long
 '--- GDI+
 Private Declare Function GdiplusStartup Lib "gdiplus" (hToken As Long, pInputBuf As Any, Optional ByVal pOutputBuf As Long = 0) As Long
 Private Declare Function GdipCreateFontFamilyFromName Lib "gdiplus" (ByVal lNamePtr As Long, ByVal hFontCollection As Long, hFontFamily As Long) As Long
@@ -448,8 +450,20 @@ Private Function pvPaintControl(ByVal hDC As Long) As Boolean
     Dim sngTop          As Single
     Dim sngWidth        As Single
     Dim sngHeight       As Single
+    Dim rcRect(0 To 3)  As Long
+    Dim pFont           As IFont
+    Dim hPrevFont       As Long
     
     On Error GoTo EH
+    If GetModuleHandle("gdiplus") = 0 Then
+        rcRect(2) = ScaleX(ScaleWidth, ScaleMode, vbPixels)
+        rcRect(3) = ScaleY(ScaleHeight, ScaleMode, vbPixels)
+        Set pFont = m_oFont
+        hPrevFont = SelectObject(hDC, pFont.hFont)
+        Call DrawText(hDC, m_sCaption, -1, rcRect(0), 0)
+        Call SelectObject(hDC, hPrevFont)
+        GoTo QH
+    End If
     If GdipCreateFromHDC(hDC, hGraphics) <> 0 Then
         GoTo QH
     End If
@@ -530,6 +544,9 @@ Private Function pvPrepareFont(oFont As StdFont, hFont As Long) As Boolean
     Dim eStyle          As FontStyle
 
     On Error GoTo EH
+    If GetModuleHandle("gdiplus") = 0 Then
+        GoTo QH
+    End If
     If oFont Is Nothing Then
         GoTo QH
     End If
@@ -647,23 +664,32 @@ Private Sub pvSizeExtender(oExt As VBControlExtender)
     Dim sngWidth        As Single
     Dim sngHeight       As Single
     Dim uBounds         As RECTF
+    Dim rcRect(0 To 3)  As Long
+    Dim pFont           As IFont
+    Dim hPrevFont       As Long
     
-    If m_hFont = 0 Then
-        GoTo QH
-    End If
     hDC = GetDC(ContainerHwnd)
     If hDC = 0 Then
         GoTo QH
     End If
-    If GdipCreateFromHDC(hDC, hGraphics) <> 0 Then
-        GoTo QH
+    If m_hFont <> 0 Then
+        If GdipCreateFromHDC(hDC, hGraphics) <> 0 Then
+            GoTo QH
+        End If
+        If GdipMeasureString(hGraphics, StrPtr(m_sCaption), -1, m_hFont, uBounds, 0, uBounds, 0, 0) <> 0 Then
+            GoTo QH
+        End If
+        '--- ceil
+        sngWidth = -Int(-uBounds.Right)
+        sngHeight = -Int(-uBounds.Bottom)
+    Else
+        Set pFont = m_oFont
+        hPrevFont = SelectObject(hDC, pFont.hFont)
+        Call DrawText(hDC, m_sCaption, -1, rcRect(0), DT_CALCRECT)
+        Call SelectObject(hDC, hPrevFont)
+        sngWidth = rcRect(2)
+        sngHeight = rcRect(3)
     End If
-    If GdipMeasureString(hGraphics, StrPtr(m_sCaption), -1, m_hFont, uBounds, 0, uBounds, 0, 0) <> 0 Then
-        GoTo QH
-    End If
-    '--- ceil
-    sngWidth = -Int(-uBounds.Right)
-    sngHeight = -Int(-uBounds.Bottom)
     oExt.Width = ScaleX(sngWidth, vbPixels, m_eContainerScaleMode)
     oExt.Height = ScaleY(sngHeight, vbPixels, m_eContainerScaleMode)
 QH:
@@ -946,7 +972,9 @@ Private Sub UserControl_Initialize()
     
     If GetModuleHandle("gdiplus") = 0 Then
         aInput(0) = 1
+        On Error Resume Next
         Call GdiplusStartup(0, aInput(0))
+        On Error GoTo 0
     End If
     m_eContainerScaleMode = vbTwips
 End Sub

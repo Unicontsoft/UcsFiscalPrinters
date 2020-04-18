@@ -80,6 +80,7 @@ Event BeforeClick(TabIndex As Long, Cancel As Boolean)
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (lpDst As Any, lpSrc As Any, ByVal ByteLength As Long)
 Private Declare Function OleTranslateColor Lib "oleaut32" (ByVal lOleColor As Long, ByVal lHPalette As Long, ByVal lColorRef As Long) As Long
+Private Declare Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleA" (ByVal lpModuleName As String) As Long
 '--- GDI+
 Private Declare Function GdipCreateSolidFill Lib "gdiplus" (ByVal argb As Long, hBrush As Long) As Long
 Private Declare Function GdipSetSolidFillColor Lib "gdiplus" (ByVal hBrush As Long, ByVal argb As Long) As Long
@@ -329,6 +330,9 @@ Private Function pvDrawRect(ByVal hGraphics As Long, _
     Dim sngPixel        As Single
     
     On Error GoTo EH
+    If GetModuleHandle("gdiplus") = 0 Then
+        GoTo QH
+    End If
     sngPixel = IconScale(16!) / 16!
     If GdipCreateSolidFill(clrLeft, hBrush) <> 0 Then
         GoTo QH

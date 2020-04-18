@@ -161,7 +161,9 @@ Public Function Init(oPrinters As Object, sConfFile As String, sProductName As S
     uFilter.dbcc_size = Len(uFilter)
     uFilter.dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE
     Call CLSIDFromString(StrPtr(GUID_DEVINTERFACE_USB_DEVICE), uFilter.dbcc_classguid(0))
+    On Error Resume Next
     m_hDevNotify = RegisterDeviceNotification(hWnd, uFilter, DEVICE_NOTIFY_WINDOW_HANDLE)
+    On Error GoTo EH
     Set m_pSubclass = InitSubclassingThunk(hWnd, Me, pvAddressOfSubclassProc.SubclassProc(0, 0, 0, 0, 0))
     '--- success
     Init = True
