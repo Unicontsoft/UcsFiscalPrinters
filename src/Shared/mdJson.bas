@@ -627,25 +627,29 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Case vbBoolean
         JsonDump = IIf(vJson, "true", "false")
     Case vbString
-        '--- one-time initialization of transcoding array
-        If IsEmpty(vTranscode) Then
-            vTranscode = Split(STR_CODES, "|")
-        End If
-        For lIdx = 1 To Len(vJson)
-            lAsc = AscW(Mid$(vJson, lIdx, 1))
-            If lAsc = 92 Or lAsc = 34 Then '--- \ and "
-                JsonDump = JsonDump & "\" & ChrW$(lAsc)
-            ElseIf lAsc >= 32 And lAsc < 256 Then
-                JsonDump = JsonDump & ChrW$(lAsc)
-            ElseIf lAsc >= 0 And lAsc < 32 Then
-                JsonDump = JsonDump & vTranscode(lAsc)
-            ElseIf Asc(Mid$(vJson, lIdx, 1)) <> 63 Or Mid$(vJson, lIdx, 1) = "?" Then '--- ?
-                JsonDump = JsonDump & ChrW$(AscW(Mid$(vJson, lIdx, 1)))
-            Else
-                JsonDump = JsonDump & "\u" & Right$("0000" & Hex$(lAsc), 4)
+        If vJson Like "*[?""\" & Chr$(0) & "-" & Chr$(31) & "]*" Then
+            '--- one-time initialization of transcoding array
+            If IsEmpty(vTranscode) Then
+                vTranscode = Split(STR_CODES, "|")
             End If
-        Next
-        JsonDump = """" & JsonDump & """"
+            For lIdx = 1 To Len(vJson)
+                lAsc = AscW(Mid$(vJson, lIdx, 1))
+                If lAsc = 92 Or lAsc = 34 Then '--- \ and "
+                    JsonDump = JsonDump & "\" & ChrW$(lAsc)
+                ElseIf lAsc >= 32 And lAsc < 256 Then
+                    JsonDump = JsonDump & ChrW$(lAsc)
+                ElseIf lAsc >= 0 And lAsc < 32 Then
+                    JsonDump = JsonDump & vTranscode(lAsc)
+                ElseIf Asc(Mid$(vJson, lIdx, 1)) <> 63 Or Mid$(vJson, lIdx, 1) = "?" Then '--- ?
+                    JsonDump = JsonDump & ChrW$(AscW(Mid$(vJson, lIdx, 1)))
+                Else
+                    JsonDump = JsonDump & "\u" & Right$("0000" & Hex$(lAsc), 4)
+                End If
+            Next
+            JsonDump = """" & JsonDump & """"
+        Else
+            JsonDump = """" & vJson & """"
+        End If
     Case Else
         If IsArray(vJson) Then
             For Each vKeys In vJson
