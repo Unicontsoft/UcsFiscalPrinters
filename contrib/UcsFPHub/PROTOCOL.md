@@ -584,8 +584,8 @@ Supported `ReversalType` values:
 Name                | Value | Description
 ----                | ----- | -----------
 `OperatorError`     | 0     | Operator entry error (default)
-`Refund`            | 1     | Refund defective/returned goods
-`TaxBaseReduction`  | 2     | Reduction of price/quantity of items in an invoice. Use for credit notes only
+`Refund`            | 1     | Refund defective/returned goods or reduction of quantity of items in an invoice
+`TaxBaseReduction`  | 2     | Reduction of price of items in an invoice
 
 Supported `TaxNoType` values
 
@@ -678,12 +678,12 @@ C:> curl -X POST http://localhost:8192/printers/DT518315/report ^
 
 Supported `ReportType` values:
 
-Name        | Value | Description
-----        | ----- | -----------
-`Daily`     | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.
-`Number`    | 2     | Not implemented
-`Date`      | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.
-`Operator`  | 4     | Not implemented
+Name                 | Value | Description
+----                 | ----- | -----------
+`Daily`              | 1     | Prints daily X or Z report. Set `IsClear` for Z report, `IsItems` for report by items, `IsDepartments` for daily report by departments.
+`MonthlyByReceiptNo` | 2     | Not implemented
+`MonthlyByDate`      | 3     | Prints monthly fiscal report. Use `FromDate` and `ToDate` to specify date range.
+`DailyByOperators`   | 4     | Prints daily operators report. Set `IsClear` to reset operators daily counters.
 
 
 #### `GET` `/printers/:printer_id/datetime`
@@ -778,7 +778,7 @@ C:> curl -X GET http://localhost:8192/printers/ZK133759/totals -sS | jq
 
 #### `POST` `/printers/:printer_id/drawer`
 
-Send impulse from fiscal device to open connected drawer.
+Send impulse from fiscal device to open the connected drawer. Use to manually open the drawer only as most fiscal devices automatically open the drawer already after a receipt is successfully printed.
 
 ```shell
 C:> curl -X POST http://localhost:8192/printers/DT518315/drawer ^
