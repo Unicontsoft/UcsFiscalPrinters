@@ -43,6 +43,7 @@ Private Const LNG_QUEUE_FIELDS          As Long = 6
 Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
 Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
+Private Const ERR_COMMUNCATION_FAILURE  As String = "%Communication link failure%"
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
@@ -345,6 +346,10 @@ EH:
     Resume NextLine
 NextLine:
     On Error Resume Next
+    If vErr(2) Like ERR_COMMUNCATION_FAILURE Then
+        Set m_oConn = Nothing
+        Set m_oRecvConn = Nothing
+    End If
     If pvIsConnAlive(m_oConn) Then
         If vErr(0) = ERR_DB_E_NOTABLE Then
             pvQueueSetup
