@@ -65,7 +65,7 @@ Begin VB.Form frmSettings
             TabIndex        =   0
             Tag             =   "FONT"
             Top             =   420
-            Width           =   3708
+            Width           =   4128
          End
          Begin VB.CommandButton cmdApply 
             Caption         =   "Прилагане"
