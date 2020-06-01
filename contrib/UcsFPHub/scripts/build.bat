@@ -8,6 +8,7 @@ set "VbCodeLines=%bin_dir%\VbCodeLines.exe"
 set "Ummm=%bin_dir%\UMMM.exe"
 set "mt=C:\Work\BuildTools\UMMM\mt.exe"
 set "replace=cscript //nologo C:\Work\BuildTools\WixScripts\Replace.vbs"
+set "codesign=call C:\Work\BuildTools\Certificates\codesign.bat"
 if not exist "%mt%" set "mt=mt.exe"
 set "Vb6=%ProgramFiles%\Microsoft Visual Studio\VB98\VB6.EXE"
 if not exist "%Vb6%" set "Vb6=%ProgramFiles(x86)%\Microsoft Visual Studio\VB98\VB6.EXE"
@@ -39,6 +40,10 @@ for %%i in ("%file_dir%\*.vbp") do (
 echo Embedding manifest in %output_exe%...
 "%Ummm%" "%file_dir%\UcsFPHub.ini"
 "%mt%" -nologo -manifest "%file_dir%\UcsFPHub.ini.manifest" -outputresource:"%output_exe%;1"
+
+
+echo Code-signing %output_exe%...
+%codesign% /d "Unicontsoft Fiscal Printers Hub" %output_exe%
 
 git checkout -- "%bin_dir%\..\src\Shared\mdJson.bas"
 
