@@ -158,6 +158,7 @@ Private Const DEF_SOCKET_PORT           As Long = 8000
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_PING_TIMEOUT          As Long = 400
 Private Const DEF_ROW_CHARS             As Long = 32
@@ -439,7 +440,7 @@ End Property
 Private Property Get pvItemChars() As Long
     pvItemChars = m_uPrintData.Config.ItemChars
     If pvItemChars = 0 Then
-        pvItemChars = pvRowChars - 6
+        pvItemChars = pvRowChars - 2
     End If
 End Property
 
@@ -628,6 +629,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
@@ -2022,6 +2024,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             vSplit = WrapText(.PluItemName & IIf(LenB(.PluUnitOfMeasure) <> 0, " (" & .PluUnitOfMeasure & ")", vbNullString), _
                 Clamp(pvCommentChars, , pvItemChars))
+            If m_uPrintData.Config.MaxItemLines > 0 Then
+                If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
+                    ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+                End If
+            End If
             For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH

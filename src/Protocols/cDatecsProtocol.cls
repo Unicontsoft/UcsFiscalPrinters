@@ -199,6 +199,7 @@ Private Const DEF_ITEM_CHARS            As Long = 72
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
@@ -607,6 +608,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
@@ -661,7 +663,6 @@ End Function
 
 Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String, Optional LogName As String) As String
     Const FUNC_NAME     As String = "SendCommand"
-    Const ERR_OPER_WRONG_PASSWORD As Long = -102002
     Dim sError          As String
     Dim lPos            As Long
     
@@ -1867,6 +1868,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
+            If m_uPrintData.Config.MaxItemLines > 0 Then
+                If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
+                    ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+                End If
+            End If
             For lIdx = 0 To UBound(vSplit) - 1
                 If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
                     GoTo QH

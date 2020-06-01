@@ -36,6 +36,7 @@ Private Const DEF_ITEM_CHARS            As Long = 72
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_HEADERS               As String = "Наименование на задълженото лице|Адрес на задълженото лице|Наименование на обект|Адрес на обект"
 Private Const DEF_FOOTERS               As String = "Заповядайте отново!"
 Private Const DEF_PMTNAMES              As String = "В брой|С чек|Талони|В.талони|Амбалаж|В.обслужване|Повреди|С карта|По банкa|НЗОК|Прог.тип 2"
@@ -151,7 +152,7 @@ End Property
 Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
-    Dim sSerial         As String
+    Dim sDeviceSerialNo As String
     Dim oResponse       As Object
     
     On Error GoTo EH
@@ -160,27 +161,28 @@ Public Function Init(sDeviceString As String) As Boolean
     If ParseUrl(C_Str(JsonItem(oOptions, "Url")), m_uRemote) Then
         pvSendRequest "GET", vbNullString, Nothing, oResponse
     End If
-    sSerial = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
-    If LenB(sSerial) = 0 Then
+    sDeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
+    If LenB(sDeviceSerialNo) = 0 Then
         pvSetLastError pvInternal(ucsErrDeviceNotFound)
         GoTo QH
     End If
     With m_uPrintData.Config
-        .RowChars = GetConfigNumber(sSerial, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .CommentChars = GetConfigNumber(sSerial, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
-        .ItemChars = GetConfigNumber(sSerial, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
-        .AbsoluteDiscount = C_Bool(GetConfigValue(sSerial, "AbsoluteDiscount", True))
-        .NegativePrices = C_Bool(GetConfigValue(sSerial, "NegativePrices", True))
-        .MinDiscount = GetConfigNumber(sSerial, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
-        .MaxDiscount = GetConfigNumber(sSerial, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sSerial, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
+        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
+        .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", True))
+        .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", True))
+        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
         '--- from response
         .RowChars = Znl(C_Lng(JsonItem(oResponse, "CharsPerLine")), .RowChars)
         .CommentChars = Znl(C_Lng(JsonItem(oResponse, "CommentTextMaxLength")), .CommentChars)
         .ItemChars = Znl(C_Lng(JsonItem(oResponse, "ItemNameMaxLength")), .ItemChars)
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sSerial, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
         .DeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
         .FiscalMemoryNo = Zn(C_Str(JsonItem(oResponse, "FiscalMemoryNo")), C_Str(JsonItem(oOptions, "FiscalMemoryNo")))
         .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), "Proxy")

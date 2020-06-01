@@ -135,6 +135,7 @@ Public Type UcsPpdConfigValues
     MinDiscount         As Double
     MaxDiscount         As Double
     MaxReceiptRows      As Long
+    MaxItemLines        As Long
 End Type
 
 Public Type UcsPpdLocalizedTexts

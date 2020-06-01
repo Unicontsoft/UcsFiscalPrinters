@@ -248,6 +248,7 @@ Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
 Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
+Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
@@ -798,6 +799,7 @@ Public Function Init(sDeviceString As String) As Boolean
     '--- more dependant on m_uConfig being populated
     With m_uPrintData.Config
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP And Not IsIncotex)))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), IIf(IsEltrade, 0, DEF_MAX_ITEM_LINES)))
     End With
     '--- success
     Init = True
@@ -2406,15 +2408,23 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sUnit = IIf(Not IsFP And Not IsIncotex, .PluUnitOfMeasure, vbNullString)
                 vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
                     Clamp(pvCommentChars, , pvItemChars))
-                For lIdx = 0 To UBound(vSplit) - 2
-                    If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
-                        GoTo QH
+                If m_uPrintData.Config.MaxItemLines > 0 Then
+                    If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
+                        ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
                     End If
-                Next
-                sData = At(vSplit, UBound(vSplit))
-                If UBound(vSplit) > 0 Then
-                    sData = At(vSplit, UBound(vSplit) - 1) & vbLf & sData
+                Else
+                    For lIdx = 0 To UBound(vSplit) - 2
+                        If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
+                            GoTo QH
+                        End If
+                    Next
+                    If UBound(vSplit) >= 2 Then
+                        vSplit(0) = vSplit(UBound(vSplit) - 1)
+                        vSplit(1) = vSplit(UBound(vSplit))
+                        ReDim Preserve vSplit(0 To 1) As Variant
+                    End If
                 End If
+                sData = Join(vSplit, vbLf)
                 If .PluDepartmentNo <> 0 Then
                     sData = sData & vbTab & .PluDepartmentNo & vbTab
                 Else
