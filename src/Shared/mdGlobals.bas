@@ -1547,8 +1547,12 @@ Public Function ToConnectorDevice( _
                 For Each vElem In vPorts
                     If IsArray(vElem) Then
                         If JsonItem(oOptions, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty) Then
-                            JsonItem(oOptions, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
-                            JsonItem(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
+                            If LenB(JsonItem(oOptions, "Port")) = 0 Then
+                                JsonItem(oOptions, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
+                            End If
+                            If LenB(JsonItem(oOptions, "Speed")) = 0 Then
+                                JsonItem(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
+                            End If
                             JsonItem(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
                             JsonItem(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
                             Exit For
