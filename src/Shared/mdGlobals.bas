@@ -517,7 +517,7 @@ Public Function GetDecimalSeparator() As String
 End Function
 
 Public Function IsDelimiter(sText As String) As Boolean
-    Const STR_DELIMS As String = "~#$^&*_+-=\|/ " & vbTab & vbCrLf
+    Const STR_DELIMS As String = "~#$^&*_+-=\|, " & vbTab & vbCrLf
     If InStr(1, STR_DELIMS, Left$(sText, 1)) > 0 Then
         IsDelimiter = True
     End If
