@@ -143,7 +143,7 @@ Private Function pvQueueLoopAsync() As Boolean
     Const FUNC_NAME     As String = "pvQueueLoopAsync"
     
     On Error GoTo EH
-    m_oRecvConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, -1), , adAsyncExecute Or adAsyncFetch
+    m_oRecvConn.Execute Printf(STR_QUEUE_LOOP, m_sQueueName, -1), Options:=adCmdText Or adAsyncExecute Or adAsyncFetch
     '--- success
     pvQueueLoopAsync = True
     Exit Function
@@ -173,7 +173,7 @@ End Function
 
 Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
-    With cn.Execute("SELECT @@SERVERNAME, DB_NAME()")
+    With cn.Execute("SELECT @@SERVERNAME, DB_NAME()", Options:=adCmdText)
         m_sSqlInstance = .Fields.Item(0).Value
         m_sSqlDatabase = .Fields.Item(1).Value
     End With
@@ -318,11 +318,11 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
                 sHandle = C_Str(pRecordset!Handle.Value)
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse))
+                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse)), Options:=adCmdText Or adExecuteNoRecords
                     Else
                         lErrorCode = Znl(lErrorCode, 500)
                         m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                            Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode))))
+                            Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
                     End If
                 ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
                     sResponse = C_Str(pRecordset!ErrorText.Value)
@@ -357,9 +357,11 @@ NextLine:
         If LenB(sHandle) <> 0 Then
             lErrorCode = Znl(lErrorCode, 500)
             m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
+                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
         End If
-        pvQueueLoopAsync
+        If vErr(0) <> adErrOperationCancelled Then
+            pvQueueLoopAsync
+        End If
     Else
         Set m_oConn = Nothing
         Set m_oRecvConn = Nothing
@@ -371,9 +373,11 @@ NextLine:
             If LenB(sHandle) <> 0 Then
                 lErrorCode = Znl(lErrorCode, 500)
                 m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                    Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode))))
+                    Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
             End If
-            pvQueueLoopAsync
+            If vErr(0) <> adErrOperationCancelled Then
+                pvQueueLoopAsync
+            End If
         End If
     End If
     If m_pTimeoutTimer Is Nothing Then

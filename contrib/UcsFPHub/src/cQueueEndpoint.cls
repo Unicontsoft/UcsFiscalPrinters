@@ -175,7 +175,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     End If
     '--- sync devices date/time if needed
     If Not IsEmpty(JsonItem(oConfig, "SyncDateTimeAdjustTolerance")) Then
-        dClock = m_oConn.Execute("SELECT GETDATE()").Fields(0).Value
+        dClock = m_oConn.Execute("SELECT GETDATE()", Options:=adCmdText).Fields(0).Value
         pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
@@ -475,12 +475,12 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
     Select Case LCase$(JsonItem(oConfig, "Binding"))
     Case "mssqlservicebroker"
-        With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()")
+        With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()", Options:=adCmdText)
             m_sSqlInstance = .Fields.Item(0).Value
             m_sSqlDatabase = .Fields.Item(1).Value
         End With
     Case "mysqlmessagequeue"
-        With m_oConn.Execute("SELECT @@HOSTNAME, DATABASE();")
+        With m_oConn.Execute("SELECT @@HOSTNAME, DATABASE();", Options:=adCmdText)
             m_sSqlInstance = .Fields.Item(0).Value
             m_sSqlDatabase = .Fields.Item(1).Value
         End With
