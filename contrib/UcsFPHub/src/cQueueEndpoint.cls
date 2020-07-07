@@ -75,6 +75,7 @@ Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- defaults
 Private Const DEF_MSSQL_TIMEOUT         As Long = 15000
 Private Const DEF_MYSQL_TIMEOUT         As Long = 5000
+Private Const DEF_ASYNC_COMMAND_TIMEOUT As Long = 3600 '--- 1h
 '--- params
 Private Const PRM_SQLSERVER             As String = "SqlServer"
 Private Const PRM_DBUSER                As String = "DbUser"
@@ -472,7 +473,11 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
-    m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
+    If Not IsEmpty(JsonItem(oConfig, "CommandTimeout")) Then
+        m_oConn.CommandTimeout = C_Lng(JsonItem(oConfig, "CommandTimeout"))
+    Else
+        m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
+    End If
     Select Case LCase$(JsonItem(oConfig, "Binding"))
     Case "mssqlservicebroker"
         With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()", Options:=adCmdText)
@@ -488,7 +493,11 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oRecvConn = New ADODB.Connection
     m_oRecvConn.CursorLocation = adUseClient
     m_oRecvConn.Open sLocalConnStr
-    m_oRecvConn.CommandTimeout = 0
+    If Not IsEmpty(JsonItem(oConfig, "AsyncCommandTimeout")) Then
+        m_oRecvConn.CommandTimeout = C_Lng(JsonItem(oConfig, "AsyncCommandTimeout"))
+    Else
+        m_oRecvConn.CommandTimeout = DEF_ASYNC_COMMAND_TIMEOUT
+    End If
     DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
     '--- success
     pvOpenConn = True

@@ -330,6 +330,9 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
                         sPrinterID = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
                         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
                     End If
+                    If C_Lng(pRecordset!Result.Value) = 2 Then
+                        pvQueueSetup
+                    End If
                 End If
                 pvRestartTimer
             End If
