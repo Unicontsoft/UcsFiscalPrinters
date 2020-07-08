@@ -50,6 +50,13 @@ DECLARE     @RetVal         INT
 SELECT      @RetVal = 0
             , @Timeout = COALESCE(@Timeout, 5000)
 
+IF NOT EXISTS (SELECT 0 FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName)
+BEGIN
+            SELECT      @RetVal = 2
+                        , @ErrorText = N'Queue not found'
+            GOTO        QH
+END
+
 SELECT      @SQL = N'
 WAITFOR (   RECEIVE     TOP (1) @Handle = conversation_handle 
                         , @Request = CONVERT(NVARCHAR(MAX), message_body)

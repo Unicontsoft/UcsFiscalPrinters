@@ -39,13 +39,13 @@ SELECT      @Mode = COALESCE(@Mode, '')
             , @QueueName = COALESCE(@QueueName, @Prefix + N'Queue/' + @Suffix)
             , @SvcName = COALESCE(@SvcName, @Prefix + N'Service/' + @Suffix)
 
-IF EXISTS (SELECT * FROM sys.databases WHERE database_id = DB_ID() AND is_broker_enabled = 0)
+IF EXISTS (SELECT 0 FROM sys.databases WHERE database_id = DB_ID() AND is_broker_enabled = 0)
 BEGIN
-            SET         @SQL = N'ALTER DATABASE ' + QUOTENAME(DB_NAME()) + N' SET ENABLE_BROKER WITH ROLLBACK IMMEDIATE'
+            SET         @SQL = N'BEGIN TRY ALTER DATABASE ' + QUOTENAME(DB_NAME()) + N' SET ENABLE_BROKER WITH ROLLBACK IMMEDIATE END TRY BEGIN CATCH END CATCH'
             EXEC        (@SQL)
 END
 
-IF EXISTS (SELECT * FROM sys.services WHERE name = @SvcName) AND @Mode IN ('DROP_SERVICE', 'DROP_EXISTING', 'DROP_ONLY')
+IF EXISTS (SELECT 0 FROM sys.services WHERE name = @SvcName) AND @Mode IN ('DROP_SERVICE', 'DROP_EXISTING', 'DROP_ONLY')
 BEGIN
             SET         @CrsClean = CURSOR FAST_FORWARD FOR 
             SELECT      conversation_handle 
@@ -65,11 +65,14 @@ BEGIN
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@SvcName)
-            EXEC        (@SQL)
+            IF  EXISTS (SELECT 0 FROM sys.services WHERE name = @SvcName)
+            BEGIN
+                        SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@SvcName)
+                        EXEC        (@SQL)
+            END
 END
 
-IF EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
+IF EXISTS (SELECT 0 FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode IN ('DROP_EXISTING', 'DROP_ONLY')
 BEGIN
             SET         @CrsClean = CURSOR FAST_FORWARD FOR 
             SELECT      name
@@ -83,29 +86,38 @@ BEGIN
                         FETCH NEXT  FROM @CrsClean INTO @Name
                         IF          @@FETCH_STATUS <> 0 BREAK
 
-                        SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@Name)
-                        EXEC        (@SQL)
+                        IF  EXISTS (SELECT 0 FROM sys.services WHERE name = @Name)
+                        BEGIN
+                                    SET         @SQL = N'DROP SERVICE ' + QUOTENAME(@Name)
+                                    EXEC        (@SQL)
+                        END
             END
 
             CLOSE       @CrsClean
             DEALLOCATE  @CrsClean
 
-            SET         @SQL = N'DROP QUEUE dbo.' + QUOTENAME(@QueueName)
-            EXEC        (@SQL)
+            IF EXISTS (SELECT 0 FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName)
+            BEGIN
+                        SET         @SQL = N'DROP QUEUE dbo.' + QUOTENAME(@QueueName)
+                        EXEC        (@SQL)
+            END
 END
 
-IF NOT EXISTS (SELECT * FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName) AND @Mode NOT IN ('DROP_ONLY')
+IF          @Mode NOT IN ('DROP_ONLY')
 BEGIN
-            SET         @SQL = N'CREATE QUEUE dbo.' + QUOTENAME(@QueueName)
-            EXEC        (@SQL)
+            IF NOT EXISTS (SELECT 0 FROM sys.service_queues WHERE SCHEMA_NAME(schema_id) = N'dbo' AND name = @QueueName)
+            BEGIN
+                        SET         @SQL = N'CREATE QUEUE dbo.' + QUOTENAME(@QueueName)
+                        EXEC        (@SQL)
 
-            SET         @SQL = N'GRANT RECEIVE ON dbo.' + QUOTENAME(@QueueName) + N' TO public'
-            EXEC        (@SQL)
-END
+                        SET         @SQL = N'GRANT RECEIVE ON dbo.' + QUOTENAME(@QueueName) + N' TO public'
+                        EXEC        (@SQL)
+            END
 
-IF NOT EXISTS (SELECT * FROM sys.services WHERE name = @SvcName) AND @Mode NOT IN ('DROP_ONLY')
-BEGIN
-            SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE dbo.' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
-            EXEC        (@SQL)
+            IF NOT EXISTS (SELECT 0 FROM sys.services WHERE name = @SvcName)
+            BEGIN
+                        SET         @SQL = N'CREATE SERVICE ' + QUOTENAME(@SvcName) + N' ON QUEUE dbo.' + QUOTENAME(@QueueName) + N' ([DEFAULT])'
+                        EXEC        (@SQL)
+            END
 END
 GO
