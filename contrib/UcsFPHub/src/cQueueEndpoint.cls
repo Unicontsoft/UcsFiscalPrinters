@@ -75,7 +75,7 @@ Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- defaults
 Private Const DEF_MSSQL_TIMEOUT         As Long = 15000
 Private Const DEF_MYSQL_TIMEOUT         As Long = 5000
-Private Const DEF_ASYNC_COMMAND_TIMEOUT As Long = 3600 '--- 1h
+Private Const DEF_ASYNC_COMMAND_TIMEOUT As Long = 12& * 3600 '--- 12h
 '--- params
 Private Const PRM_SQLSERVER             As String = "SqlServer"
 Private Const PRM_DBUSER                As String = "DbUser"
