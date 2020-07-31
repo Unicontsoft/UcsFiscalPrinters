@@ -257,9 +257,10 @@ Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
 Private Const FORMAT_DATE_REPORT        As String = "ddmmyy"
-Private Const FORMAT_DATE_XML          As String = "yyyy\-mm\-dd\Thh\:nn\:ss"
+Private Const FORMAT_DATE_XML           As String = "yyyy\-mm\-dd\Thh\:nn\:ss"
 Private Const MAX_HEADER_LINES          As Long = 6
 Private Const MAX_FOOTER_LINES          As Long = 2
+Private Const MAX_UNIT_OF_MEASURE       As Long = 8
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -2433,7 +2434,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sData = sData & SafeFormat(.PluPrice, sFormatPrice)
                 sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
                 If Abs(.PluQuantity - 1) > DBL_EPSILON Or LenB(sUnit) <> 0 Then
-                    sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & IIf(LenB(sUnit) <> 0, "#" & sUnit, vbNullString)
+                    sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & _
+                        IIf(LenB(sUnit) <> 0, "#" & Left$(sUnit, MAX_UNIT_OF_MEASURE), vbNullString)
                 End If
                 Select Case .DiscType
                 Case ucsFscDscPlu
@@ -2445,7 +2447,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End Select
                 sUnit = IIf(IsIncotex, .PluUnitOfMeasure, vbNullString)
                 If LenB(sUnit) <> 0 Then
-                    sData = sData & "@" & sUnit
+                    sData = sData & "@" & Left$(sUnit, MAX_UNIT_OF_MEASURE)
                 End If
                 sParam = Printf(sParam, sData)
             End If

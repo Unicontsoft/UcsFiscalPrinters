@@ -211,6 +211,7 @@ Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
 Private Const MAX_HEADER_LINES          As Long = 10
 Private Const MAX_FOOTER_LINES          As Long = 10
+Private Const MAX_UNIT_OF_MEASURE       As Long = 6
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -1899,7 +1900,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sDiscType, _
                 IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(.DiscValue), sFormatDisc), vbNullString), _
                 .PluDepartmentNo, _
-                IIf(LenB(.PluUnitOfMeasure) <> 0, .PluUnitOfMeasure & DEF_SEP, vbNullString))
+                IIf(LenB(.PluUnitOfMeasure) <> 0, Left$(.PluUnitOfMeasure, MAX_UNIT_OF_MEASURE) & DEF_SEP, vbNullString))
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
             If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
