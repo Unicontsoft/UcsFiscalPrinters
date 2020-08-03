@@ -1212,9 +1212,10 @@ Public Function GetLastInvoiceNo() As String
     Dim lIndex          As Long
     Dim lStatus         As Long
     Dim lOffset         As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
-    lOffset = -1
+    lOffset = 1
     If IsFP Then
         '--- datecs FP idiosyncrasy: current invoice number is not incremented until fiscal transaction is closed
         pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsIslCmdInfoTransaction, sParam, vbNullString, _
@@ -1227,9 +1228,10 @@ Public Function GetLastInvoiceNo() As String
     pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
         "Index", lIndex, 10, _
         "Offset", lOffset, lOffset
-    GetLastInvoiceNo = At(Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP), lIndex)
+    vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP)
+    GetLastInvoiceNo = At(vSplit, lIndex)
     If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
-        GetLastInvoiceNo = Val(GetLastInvoiceNo) + lOffset
+        GetLastInvoiceNo = Val(GetLastInvoiceNo) - lOffset
     End If
     Exit Function
 EH:

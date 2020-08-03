@@ -1115,17 +1115,18 @@ Public Function GetLastInvoiceNo() As String
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lOffset         As Long
     Dim vSplit          As Variant
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoInvoiceNo", eCmd, ucsZekCmdInfoInvoiceNo, sParam, vbNullString, _
-        "Index", lIndex, 0
+        "Index", lIndex, 0, _
+        "Offset", lOffset, 1
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-    If Not IsNumeric(At(vSplit, lIndex)) Then
-        GoTo QH
+    GetLastInvoiceNo = At(vSplit, lIndex)
+    If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) And At(vSplit, lIndex) <> At(vSplit, lIndex + 1) Then
+        GetLastInvoiceNo = Val(GetLastInvoiceNo) - lOffset
     End If
-    '--- success
-    GetLastInvoiceNo = C_Dbl(At(vSplit, lIndex)) - 1
 QH:
     Exit Function
 EH:
