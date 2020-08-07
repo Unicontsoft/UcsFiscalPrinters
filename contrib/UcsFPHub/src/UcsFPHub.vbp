@@ -1,6 +1,6 @@
 Type=Exe
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\..\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Reference=*\G{D486E66A-12B5-4ECC-B3FA-0C8AEAD0626E}#2a.0#0#..\..\..\bin\UcsFP20.dll#Unicontsoft Fiscal Printers Component 2.0 (2.0.37)
+Reference=*\G{D486E66A-12B5-4ECC-B3FA-0C8AEAD0626E}#2b.0#0#..\..\..\bin\UcsFP20.dll#Unicontsoft Fiscal Printers Component 2.0 (2.0.38)
 Reference=*\G{26E1B82A-01EF-4120-BE7D-04FCA41E7E74}#1.0#0#..\..\..\bin\NTVBSvcW.tlb#VB-friendly NT Service Unicode API Functions
 Reference=*\G{2A75196C-D9EB-4129-B803-931327F72D5C}#2.8#0#..\..\..\..\..\Program Files (x86)\Common Files\System\ado\msado28.tlb#Microsoft ActiveX Data Objects 2.8 Library
 Module=mdGlobals; mdGlobals.bas
