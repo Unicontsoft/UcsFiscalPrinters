@@ -124,6 +124,7 @@ Public Type UcsPpdExecuteContext
     ReceiptDate         As Date
     ReceiptAmount       As Double
     InvoiceNo           As String
+    CommitSent          As Boolean
 End Type
 
 Public Type UcsPpdConfigValues

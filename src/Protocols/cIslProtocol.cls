@@ -202,6 +202,7 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+Private Declare Function vbaObjSetAddref Lib "msvbvm60" Alias "__vbaObjSetAddref" (oDest As Any, ByVal lSrcPtr As Long) As Long
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -215,7 +216,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
@@ -263,6 +264,7 @@ Private Const MAX_FOOTER_LINES          As Long = 2
 Private Const MAX_UNIT_OF_MEASURE       As Long = 8
 
 Private m_sDevice                   As String
+Private m_lEventSinkPtr             As Long
 Private m_oConnector                As IDeviceConnector
 Private m_lConnectionTimeout        As Long
 Private m_lCommandTimeout           As Long
@@ -293,6 +295,7 @@ Private Enum UcsInternalErrors
     ucsErrCannotPrint
     ucsErrWrongInvoiceNo
     ucsErrUnsupportedDiscType
+    ucsErrCommitReceiptCancelled
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -637,6 +640,10 @@ EH:
     RaiseError FUNC_NAME
 End Property
 
+Private Property Get pvEventSink() As Object
+    Call vbaObjSetAddref(pvEventSink, m_lEventSinkPtr)
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -738,7 +745,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function Init(sDeviceString As String) As Boolean
+Public Function Init(sDeviceString As String, Optional EventSink As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
     Dim sDeviceSerialNo As String
@@ -746,8 +753,9 @@ Public Function Init(sDeviceString As String) As Boolean
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
+    DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString & ", EventSink=&H" & Hex$(ObjPtr(EventSink))
     pvSetLastError vbNullString
+    m_lEventSinkPtr = ObjPtr(EventSink)
     Set oOptions = ParseDeviceString(sDeviceString)
     m_lConnectionTimeout = C_Lng(JsonItem(oOptions, "ConnectionTimeout"))
     If m_lConnectionTimeout <= 0 Then
@@ -2598,12 +2606,18 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab & sType & "%1", _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
                     sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
+                    If Not pvCommitReceipt(uCtx, At(vSplit, lAmountIndex), .PrintRowType) Then
+                        GoTo QH
+                    End If
                 End If
             Else
                 '--- check if anything left for payment
                 If ParseSum(At(vSplit, lAmountIndex)) > ParseSum(At(vSplit, lPaidIndex)) _
                         Or LenB(At(vSplit, lAmountIndex)) = 0 _
                         Or Not uCtx.PmtPrinted Then
+                    If Not pvCommitReceipt(uCtx, At(vSplit, lAmountIndex), .PrintRowType) Then
+                        GoTo QH
+                    End If
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     If LenB(m_uPrintData.LastError) = 0 Then
@@ -2615,20 +2629,13 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                 End If
-                uCtx.ReceiptNo = GetLastReceiptNo()
-                If LenB(uCtx.ReceiptNo) <> 0 And Not IsEltrade Then
-                    uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
-                End If
-                uCtx.ReceiptDate = GetClock()
-                uCtx.ReceiptAmount = ParseSum(At(vSplit, lAmountIndex))
-                Select Case .PrintRowType
-                Case ucsFscRcpReversal, ucsFscRcpCreditNote
-                    uCtx.ReceiptAmount = -uCtx.ReceiptAmount
-                End Select
                 If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                     pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsIslCmdFiscalClose, sParam, vbNullString
                 Else
                     pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
+                End If
+                If Not pvCommitReceipt(uCtx, At(vSplit, lAmountIndex), .PrintRowType) Then
+                    GoTo QH
                 End If
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
@@ -2654,6 +2661,40 @@ QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+Private Function pvCommitReceipt(uCtx As UcsPpdExecuteContext, sAmountSum As String, ByVal ePrintRowType As UcsFiscalReceiptTypeEnum) As Boolean
+    Dim oCtx            As Object
+    Dim bCancel         As Boolean
+    
+    If Not uCtx.CommitSent Then
+        uCtx.ReceiptNo = GetLastReceiptNo()
+        If LenB(uCtx.ReceiptNo) <> 0 And Not IsEltrade Then
+            uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
+        End If
+        uCtx.ReceiptDate = GetClock()
+        uCtx.ReceiptAmount = ParseSum(sAmountSum)
+        Select Case ePrintRowType
+        Case ucsFscRcpReversal, ucsFscRcpCreditNote
+            uCtx.ReceiptAmount = -uCtx.ReceiptAmount
+        End Select
+        If m_lEventSinkPtr <> 0 Then
+            Set oCtx = Nothing
+            JsonItem(oCtx, "ReceiptNo") = uCtx.ReceiptNo
+            JsonItem(oCtx, "ReceiptDate") = uCtx.ReceiptDate
+            JsonItem(oCtx, "ReceiptAmount") = uCtx.ReceiptAmount
+            JsonItem(oCtx, "InvoiceNo") = uCtx.InvoiceNo
+            pvEventSink.OnBeforeCommitReceipt oCtx, bCancel
+            If bCancel Then
+                pvSetLastError pvInternal(ucsErrCommitReceiptCancelled)
+                GoTo QH
+            End If
+        End If
+        uCtx.CommitSent = True
+    End If
+    '--- success
+    pvCommitReceipt = True
+QH:
 End Function
 
 Private Function pvPrintCgDetails(uFirstRow As UcsPpdRowData) As Boolean
@@ -3279,8 +3320,8 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(DeviceString As String) As Boolean
-    IDeviceProtocol_Init = Init(DeviceString)
+Private Function IDeviceProtocol_Init(DeviceString As String, Optional EventSink As Object) As Boolean
+    IDeviceProtocol_Init = Init(DeviceString, EventSink)
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean

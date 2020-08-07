@@ -904,7 +904,7 @@ Private Function IDeviceProtocol_GetTotalsStats() As Variant
     IDeviceProtocol_GetTotalsStats = GetTotalsStats()
 End Function
 
-Private Function IDeviceProtocol_Init(DeviceString As String) As Boolean
+Private Function IDeviceProtocol_Init(DeviceString As String, Optional EventSink As Object) As Boolean
     IDeviceProtocol_Init = Init(DeviceString)
 End Function
 

@@ -140,9 +140,10 @@ End Enum
 '
 ' @param `DeviceString`     [input] semi-colon delimited key=value pairs as "Port=COM1;Speed=9600[;BaudRate=num][;Persistent=bool]
 '                                   [;DataBits=num] [;Parity=bool][;StopBits=num][;Timeout=num][;RowChars=num]"
+' @param `EventSink`        [in, optional] reference to sink object for protocol events
 ' @return `True` on success, `False` on error. `GetLastError` method can be use to retrieve error details
 '
-Public Function Init(DeviceString As String) As Boolean
+Public Function Init(DeviceString As String, Optional EventSink As Object) As Boolean
 Attribute Init.VB_Description = "Used to initialize the protocol handler. Here the COM port is opened and initial device configuration is retrieved"
 
 End Function
