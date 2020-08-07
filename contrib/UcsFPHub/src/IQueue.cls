@@ -35,3 +35,7 @@ End Function
 Public Function Terminate() As Boolean
 
 End Function
+
+Public Function IsConversationAlive() As Boolean
+
+End Function

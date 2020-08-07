@@ -340,3 +340,7 @@ End Function
 Private Function IQueue_Terminate() As Boolean
     IQueue_Terminate = pvQueueTerminate
 End Function
+
+Private Function IQueue_IsConversationAlive() As Boolean
+    IQueue_IsConversationAlive = True
+End Function

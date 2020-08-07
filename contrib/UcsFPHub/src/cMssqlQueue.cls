@@ -60,6 +60,7 @@ Private m_oCallback                 As cQueueEndpoint
 Private m_sLastError                As String
 Private m_sSqlInstance              As String
 Private m_sSqlDatabase              As String
+Private m_sConvHandle               As String
 
 '=========================================================================
 ' Error handling
@@ -213,6 +214,23 @@ Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
 QH:
 End Function
 
+Private Function pvIsConversationAlive() As Boolean
+    Const FUNC_NAME     As String = "pvIsConversationAlive"
+    
+    On Error GoTo EH
+    If LenB(m_sConvHandle) Then
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle
+        End If
+        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PING__"), Options:=adCmdText Or adExecuteNoRecords
+        '--- success
+        pvIsConversationAlive = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
 Private Function pvPrepareServiceBrokerSendCommand( _
             cn As ADODB.Connection, _
             Optional Request As String, _
@@ -316,6 +334,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
                 pvQueueLoopAsync
                 Set m_pTimeoutTimer = Nothing
                 sHandle = C_Str(pRecordset!Handle.Value)
+                m_sConvHandle = sHandle
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
                         m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse)), Options:=adCmdText Or adExecuteNoRecords
@@ -339,6 +358,7 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
         End If
     End If
 QH:
+    m_sConvHandle = vbNullString
     bHere = False
     Exit Sub
 EH:
@@ -405,3 +425,8 @@ End Function
 Private Function IQueue_Terminate() As Boolean
     IQueue_Terminate = pvQueueTerminate
 End Function
+
+Private Function IQueue_IsConversationAlive() As Boolean
+    IQueue_IsConversationAlive = pvIsConversationAlive
+End Function
+

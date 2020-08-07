@@ -98,7 +98,7 @@ Private m_pTimer                    As IUnknown
 Private m_oConn                     As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
 Private m_oRecvConn                 As ADODB.Connection
-Private m_oController               As cServiceController
+Private WithEvents m_oController    As cServiceController
 Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
 Private m_dSshLastAccess            As Date
@@ -762,6 +762,23 @@ Private Function pvSetConnProp(ByVal sConnStr As String, sProp As String, sValue
     JsonItem(oMap, sProp) = Zn(sValue, Empty)
     pvSetConnProp = ToConnectString(oMap)
 End Function
+
+'=========================================================================
+' Events
+'=========================================================================
+
+Private Sub m_oController_BeforeCommitReceipt(oCtx As Object, Cancel As Boolean)
+    Const FUNC_NAME     As String = "m_oController_BeforeCommitReceipt"
+    
+    On Error GoTo EH
+    If Not m_oQueue.IsConversationAlive() Then
+        Cancel = True
+    End If
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+End Sub
+
 '=========================================================================
 ' Base class events
 '=========================================================================

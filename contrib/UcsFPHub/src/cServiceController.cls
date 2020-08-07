@@ -26,6 +26,12 @@ DefObj A-Z
 Private Const MODULE_NAME As String = "cServiceController"
 
 '=========================================================================
+' Public events
+'=========================================================================
+
+Event BeforeCommitReceipt(oCtx As Object, Cancel As Boolean)
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -40,7 +46,7 @@ Private m_lLastCode                 As Long
 Private m_sLastError                As String
 Private m_oPrinters                 As Object
 Private m_oRequestsCache            As Object
-Private m_oFP                       As cFiscalPrinter
+Private WithEvents m_oFP            As cFiscalPrinter
 
 '=========================================================================
 ' Error handling
@@ -241,10 +247,10 @@ EH:
     Err.Raise Err.Number, MODULE_NAME & "." & FUNC_NAME & vbCrLf & Err.Source, Err.Description
 End Function
 
-Private Function pvGetPrinterInfo(sPrinterId As String) As Object
+Private Function pvGetPrinterInfo(sPrinterID As String) As Object
     Dim sKey            As String
     
-    sKey = Zn(JsonItem(m_oPrinters, "Aliases/" & sPrinterId), sPrinterId)
+    sKey = Zn(JsonItem(m_oPrinters, "Aliases/" & sPrinterID), sPrinterID)
     If LenB(sKey) <> 0 Then
         Set pvGetPrinterInfo = C_Obj(JsonItem(m_oPrinters, sKey))
     End If
@@ -257,3 +263,11 @@ Private Function pvEncodeErrorText(sErrorText As String) As String
     JsonItem(oResponse, "ErrorText") = sErrorText
     pvEncodeErrorText = JsonDump(oResponse, Minimize:=True)
 End Function
+
+'=========================================================================
+' Events
+'=========================================================================
+
+Private Sub m_oFP_BeforeCommitReceipt(oCtx As Object, Cancel As Boolean)
+    RaiseEvent BeforeCommitReceipt(oCtx, Cancel)
+End Sub
