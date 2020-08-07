@@ -13,7 +13,7 @@ CREATE PROC usp_sys_ServiceBrokerSetupService (
 ) WITH EXECUTE AS OWNER AS
 /*------------------------------------------------------------------------
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '

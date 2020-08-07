@@ -81,7 +81,7 @@ CREATE PROC usp_sys_ServiceBrokerSend (
 ) AS
 /*------------------------------------------------------------------------
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -125,8 +125,13 @@ BEGIN
 
                         IF          @Request IS NULL
                         BEGIN
-                                    ; SEND ON   CONVERSATION @Handle (N'__FIN__')
-                                    ; END       CONVERSATION @Handle
+                                    IF EXISTS ( SELECT      *
+                                                FROM        sys.conversation_endpoints
+                                                WHERE       conversation_handle = @Handle AND state NOT IN ('CD', 'ER') )
+                                    BEGIN
+                                                ; SEND ON   CONVERSATION @Handle (N'__FIN__')
+                                                ; END       CONVERSATION @Handle
+                                    END
                                     GOTO        QH
                         END
 

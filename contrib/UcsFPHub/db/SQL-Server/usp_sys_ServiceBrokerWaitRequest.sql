@@ -34,7 +34,7 @@ CREATE PROC usp_sys_ServiceBrokerWaitRequest (
 ) AS
 /*------------------------------------------------------------------------
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2020 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -46,6 +46,7 @@ SET         NOCOUNT ON
 
 DECLARE     @RetVal         INT
             , @SQL          NVARCHAR(MAX)
+            , @State        VARCHAR(50)
 
 SELECT      @RetVal = 0
             , @Timeout = COALESCE(@Timeout, 5000)
@@ -64,7 +65,8 @@ WAITFOR (   RECEIVE     TOP (1) @Handle = conversation_handle
                         , @SvcName = service_name
             FROM        dbo.' + QUOTENAME(@QueueName) + N'  ), TIMEOUT ' + CONVERT(NVARCHAR(50), @Timeout)
 RepeatWait:
-SELECT      @Handle = NULL, @Request = NULL, @MsgType = NULL, @SvcName = NULL, @ErrorText = NULL
+BEGIN TRAN
+SELECT      @Handle = NULL, @Request = NULL, @MsgType = NULL, @SvcName = NULL, @ErrorText = NULL, @State = NULL
 EXEC        dbo.sp_executesql @SQL
                 , N'@Handle UNIQUEIDENTIFIER OUTPUT, @Request NVARCHAR(MAX) OUTPUT, @MsgType SYSNAME OUTPUT, @SvcName SYSNAME OUTPUT'
                 , @Handle OUTPUT, @Request OUTPUT, @MsgType OUTPUT, @SvcName OUTPUT
@@ -72,6 +74,7 @@ EXEC        dbo.sp_executesql @SQL
 IF          @Handle IS NULL
 BEGIN
             --PRINT { fn CURRENT_TIMESTAMP() } + ': Timeout'
+            ROLLBACK
 
             SELECT      @RetVal = 99
                         , @ErrorText = N'Timeout'
@@ -80,9 +83,10 @@ END
                         
 IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/EndDialog'
 BEGIN
-            --PRINT { fn CURRENT_TIMESTAMP() } + ': Closed by ' + @MsgType
+            --PRINT { fn CURRENT_TIMESTAMP() } + ': Conversation closed by ' + @MsgType
 
             ; END       CONVERSATION @Handle
+            COMMIT
 
             GOTO        RepeatWait
 END
@@ -90,6 +94,7 @@ END
 IF          @MsgType = 'http://schemas.microsoft.com/SQL/ServiceBroker/Error'
 BEGIN
             ; END       CONVERSATION @Handle
+            COMMIT
 
             SELECT      @RetVal = 1
                         , @ErrorText = LEFT(CONVERT(XML, @Request).value('declare namespace ns="http://schemas.microsoft.com/SQL/ServiceBroker/Error";
@@ -97,11 +102,26 @@ BEGIN
             GOTO        QH
 END
 
-IF          @Request = N'__FIN__'
+SELECT      @State = state
+FROM        sys.conversation_endpoints
+WHERE       conversation_handle = @Handle
+
+IF          @State IN ('DI', 'DO', 'ER')
 BEGIN
-            --PRINT { fn CURRENT_TIMESTAMP() } + ': Conversation closed'
+            --PRINT { fn CURRENT_TIMESTAMP() } + ': Conversation closed by state ' + @State
 
             ; END       CONVERSATION @Handle
+            COMMIT
+
+            GOTO        RepeatWait
+END
+
+IF          @Request = N'__FIN__'
+BEGIN
+            --PRINT { fn CURRENT_TIMESTAMP() } + ': Conversation closed by __FIN__'
+
+            ; END       CONVERSATION @Handle
+            COMMIT
 
             GOTO        RepeatWait
 END
@@ -111,11 +131,13 @@ BEGIN
             --PRINT { fn CURRENT_TIMESTAMP() } + ': Ping reply send'
 
             ; SEND ON CONVERSATION @Handle (N'__PONG__')
+            COMMIT
 
             GOTO        RepeatWait
 END
 
 ; SEND ON   CONVERSATION @Handle (N'__ACK__')
+COMMIT
 
 QH:
 RETURN      @RetVal
