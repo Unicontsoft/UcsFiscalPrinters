@@ -1194,3 +1194,8 @@ Public Function Clamp( _
     End Select
 End Function
 
+Public Function IsOnlyDigits(ByVal sText As String) As Boolean
+    If LenB(sText) <> 0 Then
+        IsOnlyDigits = Not (sText Like "*[!0-9]*")
+    End If
+End Function

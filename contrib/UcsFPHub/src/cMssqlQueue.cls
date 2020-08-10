@@ -60,6 +60,7 @@ Private m_oCallback                 As cQueueEndpoint
 Private m_sLastError                As String
 Private m_sSqlInstance              As String
 Private m_sSqlDatabase              As String
+Private m_lSqlProcessID             As Long
 Private m_sConvHandle               As String
 
 '=========================================================================
@@ -115,7 +116,6 @@ End Function
 
 Private Function pvQueueSetup() As Boolean
     Const FUNC_NAME     As String = "pvQueueSetup"
-    Dim lPos            As Long
     Dim lIdx            As Long
     Dim vElem           As Variant
     
@@ -123,8 +123,7 @@ Private Function pvQueueSetup() As Boolean
     '-- setup initiator queue
     m_oConn.usp_sys_ServiceBrokerSetupService
     '-- setup target queue
-    lPos = InStr(m_sQueueName, "/")
-    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_EXISTING"
+    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_EXISTING"
     lIdx = lIdx + 1
     For Each vElem In m_vPrinters
         If LenB(C_Str(vElem)) <> 0 Then
@@ -154,15 +153,13 @@ End Function
 
 Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
-    Dim lPos            As Long
     
     On Error GoTo EH
     If pvIsConnBusy(m_oRecvConn) Then
         m_oRecvConn.Cancel
     End If
     If pvIsConnAlive(m_oConn) Then
-        lPos = InStr(m_sQueueName, "/")
-        m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_ONLY"
+        m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     End If
     '--- success
@@ -174,9 +171,10 @@ End Function
 
 Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
-    With cn.Execute("SELECT @@SERVERNAME, DB_NAME()", Options:=adCmdText)
+    With cn.Execute("SELECT @@SERVERNAME, DB_NAME(), @@SPID", Options:=adCmdText)
         m_sSqlInstance = .Fields.Item(0).Value
         m_sSqlDatabase = .Fields.Item(1).Value
+        m_lSqlProcessID = .Fields.Item(2).Value
     End With
     '--- success
     pvIsConnAlive = True
@@ -190,12 +188,10 @@ QH:
 End Function
 
 Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
-    Dim lPos            As Long
     Dim sHandle         As String
     
     On Error GoTo QH
-    lPos = InStr(m_sQueueName, "/")
-    With pvPrepareServiceBrokerSendCommand(cn, Request:="__PING__", TargetSvc:=STR_SVC_PREFIX & Mid$(m_sQueueName, lPos))
+    With pvPrepareServiceBrokerSendCommand(cn, Request:="__PING__", TargetSvc:=STR_SVC_PREFIX & "/" & m_lSqlProcessID)
         .Execute
         If .Parameters("RetVal").Value <> 0 Then
             GoTo QH
@@ -218,11 +214,11 @@ Private Function pvIsConversationAlive() As Boolean
     Const FUNC_NAME     As String = "pvIsConversationAlive"
     
     On Error GoTo EH
-    If LenB(m_sConvHandle) Then
+    If LenB(m_sConvHandle) <> 0 Then
         If IsLogDebugEnabled Then
             DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle
         End If
-        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PING__"), Options:=adCmdText Or adExecuteNoRecords
+        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
         '--- success
         pvIsConversationAlive = True
     End If

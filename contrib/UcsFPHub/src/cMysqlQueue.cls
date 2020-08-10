@@ -67,6 +67,7 @@ Private m_oCallback                 As cQueueEndpoint
 Private m_sLastError                As String
 Private m_sSqlInstance              As String
 Private m_sSqlDatabase              As String
+Private m_lSqlProcessID             As Long
 Private m_pRecordset                As Recordset
 
 '=========================================================================
@@ -122,13 +123,11 @@ End Function
 
 Private Function pvQueueSetup() As Boolean
     Const FUNC_NAME     As String = "pvQueueSetup"
-    Dim lPos            As Long
     Dim lIdx            As Long
     Dim vElem           As Variant
     
     On Error GoTo EH
-    lPos = InStr(m_sQueueName, "/")
-    m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_EXISTING"
+    m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_EXISTING"
     lIdx = lIdx + 1
     For Each vElem In m_vPrinters
         If LenB(C_Str(vElem)) <> 0 Then
@@ -158,15 +157,13 @@ End Function
 
 Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
-    Dim lPos            As Long
     
     On Error GoTo EH
     If pvIsConnBusy(m_oRecvConn) Then
         m_oRecvConn.Cancel
     End If
     If pvIsConnAlive(m_oConn) Then
-        lPos = InStr(m_sQueueName, "/")
-        m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & Mid$(m_sQueueName, lPos), "DROP_ONLY"
+        m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     End If
     '--- success
@@ -178,9 +175,10 @@ End Function
 
 Public Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
     On Error GoTo QH
-    With cn.Execute("SELECT @@HOSTNAME, DATABASE();", Options:=adCmdText)
+    With cn.Execute("SELECT @@HOSTNAME, DATABASE(), CONNECTION_ID();", Options:=adCmdText)
         m_sSqlInstance = .Fields.Item(0).Value
         m_sSqlDatabase = .Fields.Item(1).Value
+        m_lSqlProcessID = .Fields.Item(2).Value
     End With
     '--- success
     pvIsConnAlive = True

@@ -99,6 +99,7 @@ Private m_oConn                     As ADODB.Connection
 Attribute m_oConn.VB_VarHelpID = -1
 Private m_oRecvConn                 As ADODB.Connection
 Private WithEvents m_oController    As cServiceController
+Attribute m_oController.VB_VarHelpID = -1
 Private m_oSshTunnel                As cExec
 Private m_lSshLocalPort             As Long
 Private m_dSshLastAccess            As Date
@@ -254,11 +255,8 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     End If
     vSplit = Split(sSvcName, "/")
     If UBound(vSplit) = 1 Then
-        sPrinterID = At(vSplit, 1)
-        If LenB(sPrinterID) = 0 Then
-            lErrorCode = 400
-            sResponse = Printf(ERR_INVALID_SERVICE, sSvcName)
-            GoTo QH
+        If Not IsOnlyDigits(At(vSplit, 1)) Then
+            sPrinterID = At(vSplit, 1)
         End If
     End If
     If Left$(sRequest, 1) = "<" Then
