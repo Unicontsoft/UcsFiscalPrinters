@@ -735,7 +735,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lStatus         As Long
-    Dim dblTimer        As Double
+    Dim dblTimerEx      As Double
     Dim sCurrent        As String
     Dim sOuter          As String
     Dim lIter           As Long
@@ -744,8 +744,8 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     On Error GoTo EH
     pvSetLastError vbNullString
     Timeout = Znl(Timeout, m_lCommandTimeout)
-    dblTimer = TimerEx + Timeout / 1000#
-    Do While TimerEx < dblTimer
+    dblTimerEx = TimerEx + Timeout / 1000#
+    Do While TimerEx < dblTimerEx
         lIter = lIter + 1
         pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
             "Status", lStatus, ucsZekCmdFastIsOnline
@@ -2233,12 +2233,12 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim lStatus         As Long
-    Dim dblTimer        As Double
+    Dim dblTimerEx      As Double
     Dim sCurrent        As String
     Dim lIter           As Long
     
     On Error GoTo EH
-    dblTimer = TimerEx + lTimeout / 1000#
+    dblTimerEx = TimerEx + lTimeout / 1000#
     Do
         lIter = lIter + 1
         pvGetCommandConfig CONF_NAME, "FastIsOnline", eCmd, ucsZekCmdFastIsOnline, sParam, vbNullString, _
@@ -2250,7 +2250,7 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
             End If
             Exit Do
         End If
-    Loop While TimerEx < dblTimer
+    Loop While TimerEx < dblTimerEx
     If InStr(sCurrent, Chr$(lStatus)) = 0 Then
         Error = pvInternal(ucsErrDeviceNotOnline)
         GoTo QH
@@ -2267,7 +2267,7 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
             End If
             Exit Do
         End If
-    Loop While TimerEx < dblTimer
+    Loop While TimerEx < dblTimerEx
     Do While LenB(sCurrent) <> 0
         Select Case Asc(sCurrent)
         Case lStatus '--- STA_READY
