@@ -90,7 +90,7 @@ Private Const STR_TREMOL_TEXTS          As String = "В брой|С карта|По банка|Над
 Private Const STR_ESP_POS_INTERNAL      As String = "Няма започната бележка|Грешка на ред %1: %2|Неподдържан вид отстъпка %1"
 Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТАЛОНИ|В.ТАЛОНИ|АМБАЛАЖ|В.ОБСЛУЖВАНЕ|ПОВРЕДИ|С КАРТА|ПО БАНКA|НЗОК|ПРОГ.ТИП 2|ЕВРО|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
 Private Const STR_PROXY_INTERNAL        As String = "Устройството не е намерено|Невалидно състояние на готовност %1|Невалидeн JSON: %1|Неподдържан вид отстъпка %1"
-Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка при отваряне: %1|Грешка при SetCommTimeouts: %1|Грешка при BuildCommDCB: %1|Грешка при SetCommState: %1|Грешка при WriteFile: %1|Време за достъп изтече в очакване на отговор|Грешка при ReadFile: %1|Грешка при WaitCommEvent: %1"
+Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка от %1: %2|Време за достъп изтече в очакване на отговор"
 Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 '--- enums texts
 Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packing|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"

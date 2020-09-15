@@ -39,7 +39,7 @@ Implements IDeviceConnector
         [_ucsFscLciMax]
     End Enum
     
-    Private Const STR_CONNECTOR_ERRORS      As String = "No device info set|CreateFile failed: %1|SetCommTimeouts failed: %1|BuildCommDCB failed: %1|SetCommState failed: %1|WriteFile failure: %1|Timeout waiting for response|ReadFile failed: %1|WaitCommEvent failed: %1"
+    Private Const STR_CONNECTOR_ERRORS      As String = "No device info set|%1 failed: %2|Timeout waiting for response"
     Private Const vbLogEventTypeDebug       As Long = vbLogEventTypeInformation + 1
     
     Private Logger                  As Object
@@ -53,7 +53,6 @@ Implements IDeviceConnector
 
 '--- for CreateFile
 Private Const INVALID_HANDLE_VALUE          As Long = -1
-Private Const ERROR_ACCESS_DENIED           As Long = 5
 '--- for WaitCommEvent
 Private Const EV_RXCHAR                     As Long = &H1
 Private Const EV_ERR                        As Long = &H80
@@ -78,6 +77,7 @@ Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer 
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function SetCommTimeouts Lib "kernel32" (ByVal hFile As Long, lpCommTimeouts As COMMTIMEOUTS) As Long
 Private Declare Function BuildCommDCB Lib "kernel32" Alias "BuildCommDCBA" (ByVal lpDef As String, lpDCB As DCB) As Long
+Private Declare Function GetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Function SetCommState Lib "kernel32" (ByVal hCommDev As Long, lpDCB As DCB) As Long
 Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
 Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As OVERLAPPED) As Long
@@ -219,6 +219,8 @@ End Property
 Public Function Init(Device As String, Optional ByVal Timeout As Long) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim vSplit          As Variant
+    Dim dblTimerEx      As Double
+    Dim lRetryCount     As Long
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "Device=" & Device & ", Timeout=" & Timeout
@@ -228,10 +230,20 @@ Public Function Init(Device As String, Optional ByVal Timeout As Long) As Boolea
     vSplit = Split(Device, ",")
     m_sDevice = Trim$(At(vSplit, 0, "COM1")) & "," & C_Lng(At(vSplit, 1, DEF_SPEED)) & "," & At(vSplit, 2) & "," & C_Lng(At(vSplit, 3, "8")) & "," & _
         IIf(UCase$(At(vSplit, 4, "N")) = "Y", "Y", "N") & "," & C_Lng(At(vSplit, 5, "1"))
-    m_hComm = pvOpenPort(m_sDevice, m_lTimeout, m_sLastError)
-    If LenB(m_sLastError) <> 0 Then
-        GoTo QH
-    End If
+    dblTimerEx = TimerEx
+    Do
+        lRetryCount = lRetryCount + 1
+        m_sLastError = vbNullString
+        m_hComm = pvOpenPort(m_sDevice, m_sLastError)
+        If LenB(m_sLastError) = 0 Then
+            Exit Do
+        End If
+        DebugLog FUNC_NAME, "pvOpenPort failed, lRetryCount=" & lRetryCount & ", m_sLastError=" & m_sLastError
+        If TimerEx > dblTimerEx + m_lTimeout / 1000 Then
+            GoTo QH
+        End If
+        Call Sleep(100)
+    Loop
     Call SetCommMask(m_hComm, EV_RXCHAR Or EV_ERR)
     '--- success
     Init = True
@@ -279,7 +291,7 @@ RetryWrite:
             Call GetOverlappedResult(m_hComm, uWriteOver, m_lWritten, 0)
         Else
             m_bClearPersistent = True
-            m_sLastError = Printf(pvInternal(ucsErrWriteFileFailure), GetErrorDescription(lLastErr))
+            m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "WriteFile", GetErrorDescription(lLastErr))
             DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
             GoTo QH
         End If
@@ -345,7 +357,7 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                 bPendingWait = False
             Else
                 m_bClearPersistent = True
-                m_sLastError = Printf(pvInternal(ucsErrWaitCommEventFailed), GetErrorDescription(lLastErr))
+                m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "WaitCommEvent", GetErrorDescription(lLastErr))
                 DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
                 GoTo QH
             End If
@@ -377,7 +389,7 @@ InLoop:
                 GoTo Continue
             Else
                 m_bClearPersistent = True
-                m_sLastError = Printf(pvInternal(ucsErrReadFileFailed), GetErrorDescription(lLastErr))
+                m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "ReadFile", GetErrorDescription(lLastErr))
                 DebugLog FUNC_NAME, "ReadFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
                 GoTo QH
             End If
@@ -424,14 +436,12 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional Error As String) As Long
+Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
     Dim vSplit          As Variant
     Dim hComm           As Long
     Dim uTimeout        As COMMTIMEOUTS
     Dim uDCB            As DCB
-    Dim lLastErr        As Long
-    Dim dblTimer        As Double
     
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
@@ -441,22 +451,8 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
     End If
     hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
     If hComm = INVALID_HANDLE_VALUE Then
-        lLastErr = Err.LastDllError
-        Error = Printf(pvInternal(ucsErrCreateFileFailed), GetErrorDescription(lLastErr))
-        If lLastErr = ERROR_ACCESS_DENIED And lTimeout <> 0 Then
-            dblTimer = TimerEx + lTimeout / 1000#
-            Do While TimerEx < dblTimer
-                Call Sleep(100)
-                hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
-                If hComm <> INVALID_HANDLE_VALUE Then
-                    Error = vbNullString
-                    Exit Do
-                End If
-            Loop
-        End If
-        If LenB(Error) <> 0 Then
-            GoTo QH
-        End If
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "CreateFile", GetErrorDescription(Err.LastDllError))
+        GoTo QH
     End If
     With uTimeout
         .ReadIntervalTimeout = -1
@@ -466,17 +462,22 @@ Private Function pvOpenPort(sDevice As String, ByVal lTimeout As Long, Optional 
         .WriteTotalTimeoutMultiplier = 1
     End With
     If SetCommTimeouts(hComm, uTimeout) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommTimeoutsFailed), GetErrorDescription(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "SetCommTimeouts", GetErrorDescription(Err.LastDllError))
+        PortWrapper.CloseComPort hComm, ClearPersistent:=True
+        GoTo QH
+    End If
+    If GetCommState(hComm, uDCB) = 0 Then
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "GetCommState", GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If
     If BuildCommDCB("baud=" & At(vSplit, 1, DEF_SPEED) & " data=" & At(vSplit, 3, 8) & " parity=" & At(vSplit, 4, "N") & " stop=" & At(vSplit, 5, 1), uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrBuildCommDCBFailed), GetErrorDescription(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "BuildCommDCB", GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If
     If SetCommState(hComm, uDCB) = 0 Then
-        Error = Printf(pvInternal(ucsErrSetCommStateFailed), GetErrorDescription(Err.LastDllError))
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "SetCommState", GetErrorDescription(Err.LastDllError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If

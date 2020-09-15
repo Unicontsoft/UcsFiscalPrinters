@@ -29,14 +29,8 @@ Option Explicit
 
 Public Enum UcsConnectorErrorsEnum
     ucsErrNoDeviceInfoSet
-    ucsErrCreateFileFailed
-    ucsErrSetCommTimeoutsFailed
-    ucsErrBuildCommDCBFailed
-    ucsErrSetCommStateFailed
-    ucsErrWriteFileFailure
+    ucsErrApiCallFailed
     ucsErrTimeoutWaitingForResponse
-    ucsErrReadFileFailed
-    ucsErrWaitCommEventFailed
 End Enum
 
 Public Function GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String
