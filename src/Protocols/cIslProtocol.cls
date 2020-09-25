@@ -248,7 +248,9 @@ Private Const DEF_SOCKET_PORT           As Long = 4999
 Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 120
+Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_ECR_RECEIPT_ROWS  As Long = 50
+Private Const DEF_MAX_DAISY_RECEIPT_ROWS As Long = 70
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
@@ -538,6 +540,7 @@ Private Property Get pvRowChars() As Long
     Dim lOffset         As Long
     Dim sResult         As String
     Dim vSplit          As Variant
+    Dim bIsDaisy        As Boolean
     
     On Error GoTo EH
     If m_uPrintData.Config.RowChars = 0 Then
@@ -546,8 +549,8 @@ Private Property Get pvRowChars() As Long
             "DaisyPrefix", sDaisyPrefix, "DY", _
             "IncotexPrefix", sIncotexPrefix, "IN", _
             "EltradePrefix", sEltradePrefix, "ED"
-        If Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0 Or _
-                Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
+        bIsDaisy = Left$(GetDeviceSerialNo(), Len(sDaisyPrefix)) = sDaisyPrefix And LenB(sDaisyPrefix) <> 0
+        If bIsDaisy Or Left$(GetDeviceSerialNo(), Len(sIncotexPrefix)) = sIncotexPrefix And LenB(sIncotexPrefix) <> 0 Then
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
             m_uPrintData.Config.RowChars = C_Lng(At(vSplit, lIndex + 0))
             If m_uPrintData.Config.CommentChars = 0 Then
@@ -556,8 +559,11 @@ Private Property Get pvRowChars() As Long
             If m_uPrintData.Config.ItemChars = 0 Then
                 m_uPrintData.Config.ItemChars = C_Lng(At(vSplit, lIndex + 2))
             End If
-            If m_uPrintData.Config.MaxReceiptRows = DEF_MAX_RECEIPT_ROWS And C_Lng(At(vSplit, lIndex + 15)) > 0 Then
-                m_uPrintData.Config.MaxReceiptRows = C_Lng(At(vSplit, lIndex + 15))
+            If C_Lng(At(vSplit, lIndex + 15)) > 0 Then
+                If m_uPrintData.Config.MaxReceiptRows = DEF_MAX_RECEIPT_ROWS And Not bIsDaisy _
+                        Or m_uPrintData.Config.MaxReceiptRows = DEF_MAX_DAISY_RECEIPT_ROWS And bIsDaisy Then
+                    m_uPrintData.Config.MaxReceiptRows = (C_Lng(At(vSplit, lIndex + 15)) - 20) / Znl(m_uPrintData.Config.MaxItemLines, 2)
+                End If
             End If
         ElseIf Left$(GetDeviceSerialNo(), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
             pvGetCommandConfig CONF_NAME, "InitItem", eCmd, ucsIslCmdInitItem, sParam, "I", _
@@ -793,7 +799,6 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
@@ -807,6 +812,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
     End With
     '--- more dependant on m_uConfig being populated
     With m_uPrintData.Config
+        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), IIf(IsEcr, DEF_MAX_ECR_RECEIPT_ROWS, IIf(IsDaisy, DEF_MAX_DAISY_RECEIPT_ROWS, DEF_MAX_RECEIPT_ROWS))))
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP And Not IsIncotex)))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), IIf(IsEltrade, 0, DEF_MAX_ITEM_LINES)))
     End With
