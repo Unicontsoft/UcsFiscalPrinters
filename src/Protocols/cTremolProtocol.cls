@@ -1658,7 +1658,7 @@ Private Function pvRawSendCommand( _
     Error = vbNullString
     bLogging = (eCmd > [_ucsZekCmdFastMax])
     If bLogging Then
-        DebugLog Zn(LogName, FUNC_NAME), "eCmd=&H" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
+        DebugLog Zn(LogName, FUNC_NAME), "eCmd=&H" & Hex$(eCmd) & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString) & ", lTimeout=" & lTimeout
     End If
     dblTimerEx = TimerEx
 RetrySend:
@@ -1752,7 +1752,7 @@ RetryParse:
                     Exit Do
                 End If
             Case ZFP_RETRY          ' &HE
-                DebugLog Zn(LogName, FUNC_NAME), "eCmd=&H" & Hex$(eCmd) & ", Retry requested, sText=" & sText
+                DebugLog Zn(LogName, FUNC_NAME), "Will retry requested, sText=" & sText
                 GoTo RetrySend
             Case ZFP_NACK           ' &H15
                 Error = Printf(pvInternal(ucsErrInvalidMessageFormatOrChecksum), "0x" & ToHexDump(sText))

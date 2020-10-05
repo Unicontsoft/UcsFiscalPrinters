@@ -1863,7 +1863,7 @@ Private Function pvRawSendCommand( _
     Dim dblTimerEx      As Double
     
     On Error GoTo EH
-    DebugLog Zn(LogName, FUNC_NAME), "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString)
+    DebugLog Zn(LogName, FUNC_NAME), "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString) & ", lTimeout=" & lTimeout
     '--- prepare command
     sSend = Data
     Do While eCmd >= &H100
