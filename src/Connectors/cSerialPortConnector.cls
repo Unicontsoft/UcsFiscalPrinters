@@ -452,6 +452,7 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
     If hComm = INVALID_HANDLE_VALUE Then
         Error = Printf(pvInternal(ucsErrApiCallFailed), "CreateFile", GetErrorDescription(Err.LastDllError))
+        PortWrapper.CloseComPort hComm, ClearPersistent:=True
         GoTo QH
     End If
     With uTimeout
