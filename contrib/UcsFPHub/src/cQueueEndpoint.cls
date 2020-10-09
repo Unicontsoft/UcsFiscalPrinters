@@ -69,7 +69,6 @@ Private Const STR_DATETIME_SETUP        As String = "Принтер %1 е с установен ча
 Private Const STR_DATETIME_ERROR        As String = "Принтер %1 върна грешка %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
 '--- errors
-Private Const ERR_INVALID_SERVICE       As String = "Невалидна Service Broker услуга: %1"
 Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
 Private Const ERR_INVALID_XML           As String = "Невалиден XML"
 '--- defaults
@@ -100,7 +99,7 @@ Attribute m_oConn.VB_VarHelpID = -1
 Private m_oRecvConn                 As ADODB.Connection
 Private WithEvents m_oController    As cServiceController
 Attribute m_oController.VB_VarHelpID = -1
-Private m_oSshTunnel                As cExec
+Private m_oSshTunnel                As Object
 Private m_lSshLocalPort             As Long
 Private m_dSshLastAccess            As Date
 Private m_oQueue                    As IQueue
@@ -360,7 +359,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Dim sLocalConnStr   As String
     Dim oSshSettings    As Object
     Dim sSshError       As String
-    Dim oTunnel         As cExec
+    Dim oTunnel         As Object
     Dim lLocalPort      As Long
     Dim vSplit          As Variant
     Dim vSqlServer      As Variant
@@ -550,7 +549,7 @@ Private Function pvMakeSshTunnel( _
             ByVal lMirrorPort As Long, _
             sExtraParams As String, _
             sError As String, _
-            oTunnel As cExec, _
+            oTunnel As Object, _
             lLocalPort As Long) As Boolean
     Const FUNC_NAME     As String = "pvMakeSshTunnel"
     Const DEF_TIMEOUT   As Long = 10
@@ -644,7 +643,7 @@ Private Function pvMakeSshTunnel( _
         DebugLog MODULE_NAME, FUNC_NAME, "sParams=" & sParams, vbLogEventTypeDebug
     End If
     '--- shell plink.exe
-    Set oTunnel = New cExec
+    Set oTunnel = InitExec()
     With oTunnel
         .Run vbNullString, sExeFile & " " & sParams, StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         dblTimerEx = TimerEx

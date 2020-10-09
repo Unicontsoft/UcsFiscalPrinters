@@ -14,7 +14,6 @@ Class=cServiceController; cServiceController.cls
 Module=mdNtService; Shared\mdNtService.bas
 Class=cQueueEndpoint; cQueueEndpoint.cls
 Class=cSysTray; Shared\cSysTray.cls
-Class=cExec; Shared\cExec.cls
 Form=frmLocalEndpoint.frm
 Class=IEndpoint; IEndpoint.cls
 Module=mdMST; Shared\mdMST.bas

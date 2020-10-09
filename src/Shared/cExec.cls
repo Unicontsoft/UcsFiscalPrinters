@@ -13,9 +13,9 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFP20 (c) 2008-2020 by Unicontsoft
 '
-' Unicontsoft Fiscal Printers Hub
+' Unicontsoft Fiscal Printers Component 2.0
 '
 ' This project is licensed under the terms of the MIT license
 ' See the LICENSE file in the project root for more information
@@ -278,7 +278,7 @@ Public Function ReadError(ByVal lSize As Long) As String
     If m_hReadError <> 0 Then
         szBuffer = String$(lSize, 0)
         If ReadFile(m_hReadError, ByVal szBuffer, lSize, lRead, 0) <> 0 Then
-            ReadError = Left$(szBuffer, lSize)
+            ReadError = Left$(szBuffer, lRead)
         Else
             Call CloseHandle(m_hReadError)
             m_hReadError = 0
@@ -339,7 +339,7 @@ Public Function ReadOutput(ByVal lSize As Long) As String
     If m_hReadOutput <> 0 Then
         szBuffer = String$(lSize, 0)
         If ReadFile(m_hReadOutput, ByVal szBuffer, lSize, lRead, 0) <> 0 Then
-            ReadOutput = Left$(szBuffer, lSize)
+            ReadOutput = Left$(szBuffer, lRead)
         Else
             Call CloseHandle(m_hReadOutput)
             m_hReadOutput = 0

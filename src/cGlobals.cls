@@ -104,3 +104,7 @@ End Function
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
     SearchCollection = mdGlobals.SearchCollection(pCol, Index, RetVal)
 End Function
+
+Public Function InitExec() As Object
+    Set InitExec = New cExec
+End Function

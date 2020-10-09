@@ -88,6 +88,7 @@ Private Declare Function RegOpenKeyEx Lib "advapi32" Alias "RegOpenKeyExA" (ByVa
 Private Declare Function RegQueryValueEx Lib "advapi32" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
 Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
+Private Declare Function RegEnumValue Lib "advapi32" Alias "RegEnumValueA" (ByVal hKey As Long, ByVal dwIndex As Long, ByVal lpValueName As String, lpcbValueName As Long, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
 Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Private Declare Function GetOpenFileName Lib "comdlg32" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
@@ -797,6 +798,27 @@ Public Sub RegWriteValue(ByVal hRoot As UcsRegistryRootsEnum, sKey As String, sV
         Call RegCloseKey(hKey)
     End If
 End Sub
+
+Public Function RegEnumValues(ByVal hRoot As UcsRegistryRootsEnum, sKey As String) As Variant
+    Dim hKey            As Long
+    Dim sBuffer         As String
+    Dim vRetVal         As Variant
+    Dim lIdx            As Long
+    
+    vRetVal = Array()
+    If RegOpenKeyEx(hRoot, sKey, 0, &H20001, hKey) = 0 Then '--- &H20001 = READ_CONTROL Or KEY_QUERY_VALUE
+        For lIdx = 0 To 2 ^ 30
+            sBuffer = String$(1000, 0)
+            If RegEnumValue(hKey, lIdx, sBuffer, Len(sBuffer) - 1, 0, 0, ByVal 0, 0) <> 0 Then
+                Exit For
+            End If
+            ReDim Preserve vRetVal(0 To UBound(vRetVal) + 1) As Variant
+            vRetVal(UBound(vRetVal)) = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+        Next
+        Call RegCloseKey(hKey)
+    End If
+    RegEnumValues = vRetVal
+End Function
 
 Public Function GetSystemDirectory() As String
     GetSystemDirectory = String$(1000, 0)
@@ -1740,3 +1762,8 @@ End Property
 Public Property Get IsLogDataDumpEnabled() As Boolean
     IsLogDataDumpEnabled = Logger.LogLevel >= vbLogEventTypeDataDump
 End Property
+
+Public Function PathCombine(sPath As String, sFile As String) As String
+    PathCombine = sPath & IIf(LenB(sPath) <> 0 And Right$(sPath, 1) <> "\" And LenB(sFile) <> 0, "\", vbNullString) & sFile
+End Function
+

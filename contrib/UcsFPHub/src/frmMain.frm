@@ -225,7 +225,7 @@ Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUse
     If CheckUpdate = vbFalse Then
         StartAutoUpdate = True
     Else
-        With New cExec
+        With InitExec()
             .Run m_sExeAutoUpdate, "/checkupdate", StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
             StartAutoUpdate = .GetExitCode() <> 0
         End With

@@ -70,6 +70,10 @@ Private Const VARIANT_ALPHABOOL             As Long = 2
 '--- for FormatMessage
 Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
+'--- error codes
+Private Const ERROR_ACCESS_DENIED           As Long = 5&
+'--- for SetInformationJobObject
+Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
@@ -438,10 +442,14 @@ End Function
 
 Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     Const FUNC_NAME     As String = "pvOpenPort"
+    Const KEY_PORTS     As String = "Hardware\DeviceMap\SerialComm"
     Dim vSplit          As Variant
     Dim hComm           As Long
     Dim uTimeout        As COMMTIMEOUTS
     Dim uDCB            As DCB
+    Dim lApiError       As Long
+    Dim sExeFile        As String
+    Dim vElem           As Variant
     
     On Error GoTo EH
     vSplit = Split(sDevice, ",")
@@ -451,8 +459,34 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
     End If
     hComm = PortWrapper.OpenComPort(At(vSplit, 0), C_Bool(At(vSplit, 2)))
     If hComm = INVALID_HANDLE_VALUE Then
-        Error = Printf(pvInternal(ucsErrApiCallFailed), "CreateFile", GetErrorDescription(Err.LastDllError))
+        lApiError = Err.LastDllError
+        Error = Printf(pvInternal(ucsErrApiCallFailed), "CreateFile", GetErrorDescription(lApiError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
+        If lApiError = ERROR_ACCESS_DENIED Then
+            sExeFile = GetEnvironmentVar("_UCS_NT_HANDLE")
+            If LenB(sExeFile) = 0 Then
+                sExeFile = LocateFile(PathCombine(App.Path, "handle.exe"))
+            End If
+            '--- check handle.exe exists
+            If FileExists(sExeFile) Then
+                With New cExec
+                    sExeFile = .ArgvQuote(sExeFile)
+                End With
+            Else
+                sExeFile = vbNullString
+            End If
+        End If
+        If LenB(sExeFile) <> 0 Then
+            For Each vElem In RegEnumValues(HKEY_LOCAL_MACHINE, KEY_PORTS)
+                If LCase$(RegReadString(HKEY_LOCAL_MACHINE, KEY_PORTS, C_Str(vElem))) = LCase$(At(vSplit, 0)) Then
+                    With New cExec
+                        .Run vbNullString, sExeFile & " -accepteula -a " & .ArgvQuote(C_Str(vElem)), StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                        vElem = Split(preg_replace("/(\r*\n)*$/m", .ReadAllOutput), vbCrLf)
+                    End With
+                    Error = Error & " (" & At(vElem, -1) & ")"
+                End If
+            Next
+        End If
         GoTo QH
     End If
     With uTimeout
