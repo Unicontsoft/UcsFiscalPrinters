@@ -54,8 +54,10 @@ Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 Private Const STR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
 Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да отворите предишната инстанция?"
+Private Const MSG_RUNNING_NO_MONIKER    As String = "%1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да използвате предишната инстанция?"
 Private Const STR_PREFIX_ERROR          As String = "[Грешка] "
 Private Const STR_PREFIX_WARNING        As String = "[Внимание] "
+Private Const STR_NEW_INSTANCE_CONFIRM  As String = "Потвърдено стартиране на втора инстанция"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Конфигурационен файл %1 не е намерен"
 Private Const ERR_PARSING_CONFIG        As String = "Невалиден %1: %2"
@@ -244,9 +246,17 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             Case vbYes
                 GetObject(STR_MONIKER).ShowConfig
                 GoTo QH
+            Case vbNo
+                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM
             Case vbCancel
                 GoTo QH
             End Select
+        ElseIf App.PrevInstance Then
+            If MsgBox(Printf(MSG_RUNNING_NO_MONIKER, App.ProductName), vbQuestion Or vbYesNo) = vbYes Then
+                GoTo QH
+            Else
+                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM & " (App.PrevInstance=" & App.PrevInstance & ")"
+            End If
         End If
     End If
     '--- respawn hidden in systray
