@@ -659,7 +659,11 @@ Private Function pvMakeSshTunnel( _
             sLine = .ReadPendingOutput & .ReadPendingError
             If Len(sLine) > 1 Then
                 If IsLogDebugEnabled Then
-                    DebugLog MODULE_NAME, FUNC_NAME, Left$(sLine, Len(sLine) - 2), vbLogEventTypeDebug
+                    For Each vElem In Split(sInput, vbCrLf)
+                        If LenB(vElem) <> 0 Then
+                            DebugLog MODULE_NAME, FUNC_NAME, Mid$(sExeFile, InStrRev(sExeFile, "\") + 1) & ": " & vElem, vbLogEventTypeDebug
+                        End If
+                    Next
                 End If
                 sInput = sInput & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
             End If
