@@ -599,7 +599,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             ElseIf .DiscType = ucsFscDscSubtotalAbs Then
                 JsonItem(oItem, "DiscountAmount") = .DiscValue
             Else
-                pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                 GoTo QH
             End If
             JsonItem(oRequest, "Rows/-1") = oItem

@@ -779,7 +779,7 @@ Public Function PrintDailyXReport( _
     Case ucsFscRstDailyByOperators
         pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintReportByOperators, sParam, DEF_SEP & DEF_SEP & "0" & DEF_SEP
     Case Else
-        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), GetReportTypeName(ReportType))
         GoTo QH
     End Select
     sPrevReceiptNo = GetLastReceiptNo()
@@ -825,7 +825,7 @@ Public Function PrintDailyZReport( _
     Case ucsFscRstDailyByOperators
         pvGetCommandConfig CONF_NAME, "PrintDailyReport" & ReportType, eCmd, ucsDcsCmdPrintReportByOperators, sParam, DEF_SEP & DEF_SEP & "1" & DEF_SEP
     Case Else
-        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), GetReportTypeName(ReportType))
         GoTo QH
     End Select
     sPrevReceiptNo = GetLastReceiptNo()
@@ -1937,7 +1937,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         End If
                     Next
                 Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                     GoTo QH
                 End Select
             Case Else
@@ -1948,7 +1948,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Case ucsFscDscSubtotalAbs
                     sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
                 Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                     GoTo QH
                 End Select
                 '--- %1={Print}<SEP>{Display}<SEP>%2={DiscountType}<SEP>%3={DiscountValue}<SEP>
@@ -2042,7 +2042,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         "FormatZero", sFormatZero, "\"
                     lIndex = pvToDevicePmtIndex(.PmtType)
                     If lIndex < 0 Then
-                        pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                        pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), GetPmtTypeName(.PmtType))
                         GoTo QH
                     End If
                     sParam = Printf(sParam, lIndex, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))

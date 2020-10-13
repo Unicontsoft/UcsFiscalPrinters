@@ -194,6 +194,9 @@ Public Const STR_CONNECTOR_ERRORS       As String = "No device info set|%1 faile
 Public Const vbLogEventTypeDebug        As Long = vbLogEventTypeInformation + 1
 Public Const vbLogEventTypeDataDump     As Long = vbLogEventTypeInformation + 2
 Public Const STR_ENUM_STATUS_CODE       As String = "ready|busy|failed"
+Private Const STR_VL_PMTTYPE_NAME       As String = "Cash|Cheque|Coupon|Voucher|Packaging|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
+Private Const STR_VL_DISCTYPE_NAME      As String = "Plu|Subtotal|Total|SubtotalAbs"
+Private Const STR_VL_REPORTTYPE_NAME    As String = "Daily|DailyByItems|DailyByDepartments|DailyByItemsAndDepartments|DailyByOperators|MonthlyShort|MonthlyDetailed"
 
 Private m_sDecimalSeparator         As String
 Private m_oConfig                   As Object
@@ -1767,3 +1770,14 @@ Public Function PathCombine(sPath As String, sFile As String) As String
     PathCombine = sPath & IIf(LenB(sPath) <> 0 And Right$(sPath, 1) <> "\" And LenB(sFile) <> 0, "\", vbNullString) & sFile
 End Function
 
+Public Function GetPmtTypeName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As String
+    GetPmtTypeName = At(Split(STR_VL_PMTTYPE_NAME, "|"), PmtType - 1, "N/A") & " (" & PmtType & ")"
+End Function
+
+Public Function GetDiscTypeName(ByVal DiscType As UcsFiscalDiscountTypeEnum) As String
+    GetDiscTypeName = At(Split(STR_VL_DISCTYPE_NAME, "|"), DiscType - 1, "N/A") & " (" & DiscType & ")"
+End Function
+
+Public Function GetReportTypeName(ByVal ReportType As UcsFiscalReportsTypeEnum) As String
+    GetReportTypeName = At(Split(STR_VL_REPORTTYPE_NAME, "|"), ReportType, "N/A") & " (" & ReportType & ")"
+End Function

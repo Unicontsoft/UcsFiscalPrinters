@@ -913,7 +913,7 @@ Public Function PrintMonthlyReport( _
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsZekCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case Else
-        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), ReportType)
+        pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), GetReportTypeName(ReportType))
         GoTo QH
     End Select
     sPrevReceiptNo = pvRawGetLastReceiptNo()
@@ -2095,7 +2095,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         End If
                     Next
                 Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                     GoTo QH
                 End Select
             Case Else
@@ -2103,7 +2103,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Case ucsFscDscSubtotal, ucsFscDscSubtotalAbs
                     sParam = "1" & DEF_SEP & "0" & IIf(.DiscType = ucsFscDscSubtotal, ",", ":") & "%1"
                 Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), .DiscType)
+                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                     GoTo QH
                 End Select
                 pvGetCommandConfig CONF_NAME, "FiscalSubtotal" & .DiscType, eCmd, ucsZekCmdFiscalSubtotal, sParam, sParam, _
@@ -2163,7 +2163,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     eCmd = ucsZekCmdNoop
                 Else
                     If pvToDevicePmtIndex(.PmtType) < 0 Then
-                        pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), .PmtType)
+                        pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), GetPmtTypeName(.PmtType))
                         GoTo QH
                     End If
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsZekCmdFiscalPayment, sParam, pvToDevicePmtIndex(.PmtType) & DEF_SEP & "0" & DEF_SEP & "%1", _
