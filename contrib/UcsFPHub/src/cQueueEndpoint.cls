@@ -40,6 +40,7 @@ Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As String, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSAData As Any) As Long
 Private Declare Function WSACleanup Lib "ws2_32" () As Long
 Private Declare Function SocketInit Lib "ws2_32" Alias "socket" (ByVal lAf As Long, ByVal lSocketType As Long, ByVal lProtocol As Long) As Long
@@ -180,8 +181,13 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
-    sQueueName = GetErrorComputerName() & "/" & Right$(Replace(GetMacAddress(), ":", vbNullString), 6) & "/" & m_sSqlInstance & "/" & m_sSqlDatabase
-    sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), sQueueName)
+    sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), "{COMPUTER_NAME}/{MAC_ADDRESS}/{PROCESS_ID}/{SQL_DB}")
+    sQueueName = Replace(Replace(Replace(Replace(Replace(sQueueName, _
+        "{COMPUTER_NAME}", GetErrorComputerName()), _
+        "{MAC_ADDRESS}", Right$(Replace(GetMacAddress(), ":", vbNullString), 6)), _
+        "{PROCESS_ID}", GetCurrentProcessId), _
+        "{SQL_INSTANCE}", m_sSqlInstance), _
+        "{SQL_DB}", m_sSqlDatabase)
     Select Case LCase$(JsonItem(oConfig, "Binding"))
     Case "mssqlservicebroker"
         lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_MSSQL_TIMEOUT)
