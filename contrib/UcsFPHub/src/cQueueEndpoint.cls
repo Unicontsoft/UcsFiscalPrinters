@@ -664,14 +664,15 @@ Private Function pvMakeSshTunnel( _
             Call Sleep(1)
             sLine = .ReadPendingOutput & .ReadPendingError
             If Len(sLine) > 1 Then
+                sLine = Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
                 If IsLogDebugEnabled Then
-                    For Each vElem In Split(sInput, vbCrLf)
+                    For Each vElem In Split(sLine, vbCrLf)
                         If LenB(vElem) <> 0 Then
-                            DebugLog MODULE_NAME, FUNC_NAME, Mid$(sExeFile, InStrRev(sExeFile, "\") + 1) & ": " & vElem, vbLogEventTypeDebug
+                            DebugLog MODULE_NAME, FUNC_NAME, "[" & Mid$(sExeFile, InStrRev(sExeFile, "\") + 1) & "] " & vElem, vbLogEventTypeDebug
                         End If
                     Next
                 End If
-                sInput = sInput & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": " & Replace(Left$(sLine, Len(sLine) - 1), vbCrLf, vbCrLf & Format$(TimerEx - dblTimerEx, FORMAT_BASE_3) & ": ") & Right$(sLine, 1)
+                sInput = sInput & sLine
             End If
             If InStr(sInput, "Server version") > 0 And lExtraTimeout = 0 Then
                 lExtraTimeout = lTimeout
