@@ -53,8 +53,10 @@ Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
 Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 Private Const STR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
-Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да отворите предишната инстанция?"
-Private Const MSG_RUNNING_NO_MONIKER    As String = "%1 вече е стартиран" & vbCrLf & vbCrLf & "Желаете ли да използвате предишната инстанция?"
+Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран"
+Private Const MSG_OPEN_PREVIOUS         As String = "Желаете ли да отворите предишната инстанция?"
+Private Const MSG_RUNNING_NO_MONIKER    As String = "%1 вече е стартиран"
+Private Const MSG_USE_PREVIOUS          As String = "Желаете ли да използвате предишната инстанция?"
 Private Const STR_PREFIX_ERROR          As String = "[Грешка] "
 Private Const STR_PREFIX_WARNING        As String = "[Внимание] "
 Private Const STR_NEW_INSTANCE_CONFIRM  As String = "Потвърдено стартиране на втора инстанция"
@@ -242,7 +244,11 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     '--- check for previous instance
     If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) And Not C_Bool(m_oOpt.Item("--console")) Then
         If IsObjectRunning(STR_MONIKER) Then
-            Select Case MsgBox(Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbQuestion Or vbYesNoCancel)
+            If Not C_Bool(m_oOpt.Item("--multi-instance")) Then
+                MsgBox Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbExclamation
+                GoTo QH
+            End If
+            Select Case MsgBox(Printf(MSG_ALREADY_RUNNING & vbCrLf & vbCrLf & MSG_OPEN_PREVIOUS, STR_MONIKER), vbQuestion Or vbYesNoCancel)
             Case vbYes
                 GetObject(STR_MONIKER).ShowConfig
                 GoTo QH
@@ -252,11 +258,18 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
                 GoTo QH
             End Select
         ElseIf App.PrevInstance Then
-            If MsgBox(Printf(MSG_RUNNING_NO_MONIKER, App.ProductName), vbQuestion Or vbYesNo) = vbYes Then
+            If Not C_Bool(m_oOpt.Item("--multi-instance")) Then
+                MsgBox Printf(MSG_RUNNING_NO_MONIKER, App.ProductName), vbExclamation
                 GoTo QH
-            Else
-                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM & " (App.PrevInstance=" & App.PrevInstance & ")"
             End If
+            Select Case MsgBox(Printf(MSG_RUNNING_NO_MONIKER & vbCrLf & vbCrLf & MSG_USE_PREVIOUS, App.ProductName), vbQuestion Or vbYesNoCancel)
+            Case vbYes
+                GoTo QH
+            Case vbNo
+                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM & " (App.PrevInstance=" & App.PrevInstance & ")"
+            Case vbCancel
+                GoTo QH
+            End Select
         End If
     End If
     '--- respawn hidden in systray
