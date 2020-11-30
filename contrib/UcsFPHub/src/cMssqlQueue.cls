@@ -155,13 +155,40 @@ Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
     
     On Error GoTo EH
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "Before pvIsConnBusy", vbLogEventTypeDebug
+    End If
     If pvIsConnBusy(m_oRecvConn) Then
-        m_oRecvConn.Cancel
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "Before m_oRecvConn.Close", vbLogEventTypeDebug
+        End If
+        On Error Resume Next
+        m_oRecvConn.Close
+        On Error GoTo EH
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "After m_oRecvConn.Close", vbLogEventTypeDebug
+        End If
+    Else
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "Not pvIsConnBusy(m_oRecvConn)", vbLogEventTypeDebug
+        End If
+    End If
+    Set m_oRecvConn = Nothing
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "Before pvIsConnAlive", vbLogEventTypeDebug
     End If
     If pvIsConnAlive(m_oConn) Then
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "Before usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
+        End If
         m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
+    Else
+        If IsLogDebugEnabled Then
+            DebugLog MODULE_NAME, FUNC_NAME, "Not pvIsConnAlive(m_oConn)", vbLogEventTypeDebug
+        End If
     End If
+    Set m_oConn = Nothing
     '--- success
     pvQueueTerminate = True
     Exit Function
@@ -216,7 +243,7 @@ Private Function pvIsConversationAlive() As Boolean
     On Error GoTo EH
     If LenB(m_sConvHandle) <> 0 Then
         If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle
+            DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle, vbLogEventTypeDebug
         End If
         m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
         '--- success
@@ -267,8 +294,10 @@ Public Function TimerProc() As Long
     Dim oRecvConn       As Object
     
     On Error GoTo EH
-    If pvIsQueueAlive(m_oConn) Then
-        GoTo QH
+    If Not m_oConn Is Nothing Then
+        If pvIsQueueAlive(m_oConn) Then
+            GoTo QH
+        End If
     End If
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
@@ -425,4 +454,3 @@ End Function
 Private Function IQueue_IsConversationAlive() As Boolean
     IQueue_IsConversationAlive = pvIsConversationAlive
 End Function
-

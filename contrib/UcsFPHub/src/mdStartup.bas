@@ -59,6 +59,7 @@ Private Const MSG_RUNNING_NO_MONIKER    As String = "%1 вече е стартиран"
 Private Const MSG_USE_PREVIOUS          As String = "Желаете ли да използвате предишната инстанция?"
 Private Const STR_PREFIX_ERROR          As String = "[Грешка] "
 Private Const STR_PREFIX_WARNING        As String = "[Внимание] "
+Private Const STR_PREFIX_DEBUG          As String = "[Debug] "
 Private Const STR_NEW_INSTANCE_CONFIRM  As String = "Потвърдено стартиране на втора инстанция"
 '--- errors
 Private Const ERR_CONFIG_NOT_FOUND      As String = "Конфигурационен файл %1 не е намерен"
@@ -522,6 +523,8 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
             sPrefix = sPrefix & STR_PREFIX_ERROR
         Case vbLogEventTypeWarning
             sPrefix = sPrefix & STR_PREFIX_WARNING
+        Case vbLogEventTypeDebug
+            sPrefix = sPrefix & STR_PREFIX_DEBUG
         End Select
         sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
         If eType = vbLogEventTypeError Then
