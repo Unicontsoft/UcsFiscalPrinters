@@ -60,11 +60,11 @@ Begin VB.Form frmSettings
          End
          Begin VB.CheckBox chkAutoDetect 
             Caption         =   "Автоматично откриване на устройства"
-            Height          =   348
+            Height          =   516
             Left            =   252
             TabIndex        =   0
             Tag             =   "FONT"
-            Top             =   420
+            Top             =   336
             Width           =   4128
          End
          Begin VB.CommandButton cmdApply 
@@ -117,8 +117,7 @@ Begin VB.Form frmSettings
             Tag             =   "FONT"
             Top             =   3024
             UseMnemonic     =   0   'False
-            Width           =   2640
-            WordWrap        =   -1  'True
+            Width           =   1524
          End
          Begin VB.Label Label4 
             AutoSize        =   -1  'True
@@ -129,8 +128,7 @@ Begin VB.Form frmSettings
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
-            Width           =   2640
-            WordWrap        =   -1  'True
+            Width           =   1836
          End
          Begin VB.Label Label3 
             AutoSize        =   -1  'True
@@ -141,8 +139,7 @@ Begin VB.Form frmSettings
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
-            Width           =   2640
-            WordWrap        =   -1  'True
+            Width           =   1872
          End
          Begin VB.Label Label2 
             AutoSize        =   -1  'True
@@ -153,8 +150,7 @@ Begin VB.Form frmSettings
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
-            Width           =   2640
-            WordWrap        =   -1  'True
+            Width           =   1788
          End
          Begin VB.Label Label1 
             AutoSize        =   -1  'True
@@ -165,8 +161,7 @@ Begin VB.Form frmSettings
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
-            Width           =   2640
-            WordWrap        =   -1  'True
+            Width           =   1596
          End
       End
       Begin VB.TextBox txtInfo 
