@@ -47,7 +47,7 @@ steps:
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     continueOnError: true
     inputs:
-      githubConnection: wqweto
+      githubConnection: github.com_wqweto
       repositoryName: wqweto/UcsFiscalPrinters
       action: delete
       tag: UcsFPHub-latest
@@ -56,7 +56,7 @@ steps:
     displayName: 'Create release `UcsFPHub-latest` on github.com'
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     inputs:
-      githubConnection: wqweto
+      githubConnection: github.com_wqweto
       repositoryName: wqweto/UcsFiscalPrinters
       action: create
       tagSource: manual
