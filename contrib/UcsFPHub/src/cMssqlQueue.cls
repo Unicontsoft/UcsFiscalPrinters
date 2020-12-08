@@ -102,16 +102,19 @@ Public Function Init(oConn As Object, oRecvConn As Object, vPrinters As Variant,
     m_sQueueName = sQueueName
     m_lQueueTimeout = lQueueTimeout
     Set m_oCallback = oCallback
-    If pvIsConnAlive(m_oConn) Then
-        pvQueueSetup
-        pvQueueLoopAsync
-        pvRestartTimer
-        '--- success
-        Init = True
+    If Not pvIsConnAlive(m_oConn) Then
+        GoTo QH
     End If
+    pvQueueSetup
+    pvQueueLoopAsync
+    pvRestartTimer
+    '--- success
+    Init = True
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvQueueSetup() As Boolean
@@ -120,6 +123,7 @@ Private Function pvQueueSetup() As Boolean
     Dim vElem           As Variant
     
     On Error GoTo EH
+    m_oConn.usp_sys_ServiceBrokerCleanup
     '-- setup initiator queue
     m_oConn.usp_sys_ServiceBrokerSetupService
     '-- setup target queue
@@ -137,6 +141,7 @@ Private Function pvQueueSetup() As Boolean
     Exit Function
 EH:
     PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvQueueLoopAsync() As Boolean
@@ -194,6 +199,7 @@ Private Function pvQueueTerminate() As Boolean
     Exit Function
 EH:
     PrintError FUNC_NAME
+    Resume Next
 End Function
 
 Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
@@ -240,18 +246,17 @@ End Function
 Private Function pvIsConversationAlive() As Boolean
     Const FUNC_NAME     As String = "pvIsConversationAlive"
     
-    On Error GoTo EH
-    If LenB(m_sConvHandle) <> 0 Then
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle, vbLogEventTypeDebug
-        End If
-        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
-        '--- success
-        pvIsConversationAlive = True
+    On Error GoTo QH
+    If LenB(m_sConvHandle) = 0 Then
+        GoTo QH
     End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle, vbLogEventTypeDebug
+    End If
+    m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
+    '--- success
+    pvIsConversationAlive = True
+QH:
 End Function
 
 Private Function pvPrepareServiceBrokerSendCommand( _
