@@ -317,6 +317,11 @@ Friend Function frReopenConn(oConn As Object, Optional oRecvConn As Object) As B
     End If
 End Function
 
+Friend Sub frReleaseConn()
+    Set m_oConn = Nothing
+    Set m_oRecvConn = Nothing
+End Sub
+
 '= private ===============================================================
 
 Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) As Boolean

@@ -159,13 +159,16 @@ Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
     
     On Error GoTo EH
-    If pvIsConnBusy(m_oRecvConn) Then
-        m_oRecvConn.Cancel
-    End If
+    DebugLog MODULE_NAME, FUNC_NAME, "Check connection alive", vbLogEventTypeDebug
     If pvIsConnAlive(m_oConn) Then
+        DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_umq_setup_service", vbLogEventTypeDebug
         m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     End If
+    m_oCallback.frReleaseConn
+    Set m_oConn = Nothing
+    Set m_oRecvConn = Nothing
+    DebugLog MODULE_NAME, FUNC_NAME, "Connections released", vbLogEventTypeDebug
     '--- success
     pvQueueTerminate = True
     Exit Function

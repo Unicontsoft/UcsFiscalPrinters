@@ -160,40 +160,16 @@ Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
     
     On Error GoTo EH
-    If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "Before pvIsConnBusy", vbLogEventTypeDebug
-    End If
-    If pvIsConnBusy(m_oRecvConn) Then
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "Before m_oRecvConn.Close", vbLogEventTypeDebug
-        End If
-        On Error Resume Next
-        m_oRecvConn.Close
-        On Error GoTo EH
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "After m_oRecvConn.Close", vbLogEventTypeDebug
-        End If
-    Else
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "Not pvIsConnBusy(m_oRecvConn)", vbLogEventTypeDebug
-        End If
-    End If
-    Set m_oRecvConn = Nothing
-    If IsLogDebugEnabled Then
-        DebugLog MODULE_NAME, FUNC_NAME, "Before pvIsConnAlive", vbLogEventTypeDebug
-    End If
+    DebugLog MODULE_NAME, FUNC_NAME, "Check connection alive", vbLogEventTypeDebug
     If pvIsConnAlive(m_oConn) Then
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "Before usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
-        End If
+        DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
         m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
-    Else
-        If IsLogDebugEnabled Then
-            DebugLog MODULE_NAME, FUNC_NAME, "Not pvIsConnAlive(m_oConn)", vbLogEventTypeDebug
-        End If
     End If
+    m_oCallback.frReleaseConn
     Set m_oConn = Nothing
+    Set m_oRecvConn = Nothing
+    DebugLog MODULE_NAME, FUNC_NAME, "Connections released", vbLogEventTypeDebug
     '--- success
     pvQueueTerminate = True
     Exit Function
