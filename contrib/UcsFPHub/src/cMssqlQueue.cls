@@ -43,7 +43,10 @@ Private Const LNG_QUEUE_FIELDS          As Long = 6
 Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (N'%2')"
 Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
-Private Const ERR_COMMUNCATION_FAILURE  As String = "%Communication link failure%"
+Private Const ERR_CONNECTION_FAILURE    As String = "*Connection failure*"
+Private Const ERR_TERMINATED_BY_SERVER  As String = "*Connection may have been terminated by the server*"
+Private Const ERR_COMMUNCATION_FAILURE  As String = "*Communication link failure*"
+Private Const ERR_FORCIBLY_CLOSED       As String = "*existing connection was forcibly closed*"
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
@@ -158,20 +161,30 @@ End Function
 
 Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
+    Dim oTempConn       As Connection
     
     On Error GoTo EH
-    DebugLog MODULE_NAME, FUNC_NAME, "Check connection alive", vbLogEventTypeDebug
-    If pvIsConnAlive(m_oConn) Then
-        DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
-        m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
-    End If
-    m_oCallback.frReleaseConn
-    Set m_oConn = Nothing
+    Set oTempConn = m_oRecvConn
     Set m_oRecvConn = Nothing
-    DebugLog MODULE_NAME, FUNC_NAME, "Connections released", vbLogEventTypeDebug
+    DebugLog MODULE_NAME, FUNC_NAME, "Check if receive connection is busy", vbLogEventTypeDebug
+    If pvIsConnBusy(oTempConn) Then
+        DebugLog MODULE_NAME, FUNC_NAME, "Will cancel receive connection", vbLogEventTypeDebug
+        oTempConn.Cancel
+    End If
+    On Error Resume Next
+    oTempConn.Execute "ROLLBACK"
+    On Error GoTo EH
+    DebugLog MODULE_NAME, FUNC_NAME, "Check if control connection is alive", vbLogEventTypeDebug
+    If Not pvIsConnAlive(m_oConn) Then
+        GoTo QH
+    End If
+    DebugLog MODULE_NAME, FUNC_NAME, "Call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
+    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     '--- success
     pvQueueTerminate = True
+QH:
+    Set m_oRecvConn = oTempConn
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -282,12 +295,18 @@ Public Function TimerProc() As Long
     End If
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
-    pvQueueTerminate
-    If m_oCallback.frReopenConn(oConn, oRecvConn) Then
-        Set m_oConn = oConn
-        Set m_oRecvConn = oRecvConn
-        pvQueueLoopAsync
+    If Not pvQueueTerminate() Or Not pvIsConnAlive(m_oRecvConn) Then
+        m_oCallback.frReleaseConn
+        Set m_oConn = Nothing
+        Set m_oRecvConn = Nothing
+        DebugLog MODULE_NAME, FUNC_NAME, "All connections released", vbLogEventTypeDebug
+        If m_oCallback.frReopenConn(oConn, oRecvConn) Then
+            Set m_oConn = oConn
+            Set m_oRecvConn = oRecvConn
+        End If
     End If
+    pvQueueSetup
+    pvQueueLoopAsync
 QH:
     pvRestartTimer
     Exit Function
@@ -375,7 +394,7 @@ EH:
     Resume NextLine
 NextLine:
     On Error Resume Next
-    If vErr(2) Like ERR_COMMUNCATION_FAILURE Then
+    If vErr(2) Like ERR_CONNECTION_FAILURE Or vErr(2) Like ERR_TERMINATED_BY_SERVER Or vErr(2) Like ERR_COMMUNCATION_FAILURE Or vErr(2) Like ERR_FORCIBLY_CLOSED Then
         Set m_oConn = Nothing
         Set m_oRecvConn = Nothing
     End If
