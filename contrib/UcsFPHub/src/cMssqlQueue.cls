@@ -166,19 +166,21 @@ Private Function pvQueueTerminate() As Boolean
     On Error GoTo EH
     Set oTempConn = m_oRecvConn
     Set m_oRecvConn = Nothing
-    DebugLog MODULE_NAME, FUNC_NAME, "Check if receive connection is busy", vbLogEventTypeDebug
-    If pvIsConnBusy(oTempConn) Then
-        DebugLog MODULE_NAME, FUNC_NAME, "Will cancel receive connection", vbLogEventTypeDebug
-        oTempConn.Cancel
+    DebugLog MODULE_NAME, FUNC_NAME, "Will check if receive connection is alive", vbLogEventTypeDebug
+    If Not pvIsConnAlive(oTempConn) Then
+        GoTo QH
     End If
     On Error Resume Next
-    oTempConn.Execute "ROLLBACK"
+    DebugLog MODULE_NAME, FUNC_NAME, "Will cancel receive connection", vbLogEventTypeDebug
+    oTempConn.Cancel
+    DebugLog MODULE_NAME, FUNC_NAME, "Will rollback on receive connection", vbLogEventTypeDebug
+    oTempConn.Execute "IF @@TRANCOUNT > 0 ROLLBACK", Options:=adCmdText Or adExecuteNoRecords
     On Error GoTo EH
-    DebugLog MODULE_NAME, FUNC_NAME, "Check if control connection is alive", vbLogEventTypeDebug
+    DebugLog MODULE_NAME, FUNC_NAME, "Will check if control connection is alive", vbLogEventTypeDebug
     If Not pvIsConnAlive(m_oConn) Then
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, "Call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
+    DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
     m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     '--- success
@@ -203,11 +205,11 @@ Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
 QH:
 End Function
 
-Private Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
-    On Error GoTo QH
-    pvIsConnBusy = (cn.State And adStateExecuting) <> 0
-QH:
-End Function
+'Private Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
+'    On Error GoTo QH
+'    pvIsConnBusy = (cn.State And adStateExecuting) <> 0
+'QH:
+'End Function
 
 Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
     Dim sHandle         As String
@@ -295,7 +297,7 @@ Public Function TimerProc() As Long
     End If
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
-    If Not pvQueueTerminate() Or Not pvIsConnAlive(m_oRecvConn) Then
+    If Not pvQueueTerminate() Then
         m_oCallback.frReleaseConn
         Set m_oConn = Nothing
         Set m_oRecvConn = Nothing
