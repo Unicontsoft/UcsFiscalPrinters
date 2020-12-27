@@ -52,8 +52,8 @@ Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 
 Private m_pTimeoutTimer             As IUnknown
 Attribute m_pTimeoutTimer.VB_VarHelpID = -1
-Private m_oConn                     As ADODB.Connection
-Attribute m_oConn.VB_VarHelpID = -1
+Private m_oCtrlConn                 As ADODB.Connection
+Attribute m_oCtrlConn.VB_VarHelpID = -1
 Private WithEvents m_oRecvConn      As ADODB.Connection
 Attribute m_oRecvConn.VB_VarHelpID = -1
 Private m_vPrinters                 As Variant
@@ -95,20 +95,19 @@ End Property
 ' Methods
 '=========================================================================
 
-Public Function Init(oConn As Object, oRecvConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
+Public Function Init(oCtrlConn As Object, oRecvConn As Object, vPrinters As Variant, sQueueName As String, ByVal lQueueTimeout As Long, oCallback As Object) As Boolean
     Const FUNC_NAME     As String = "Init"
     
     On Error GoTo EH
-    Set m_oConn = oConn
+    Set m_oCtrlConn = oCtrlConn
     Set m_oRecvConn = oRecvConn
     m_vPrinters = vPrinters
     m_sQueueName = sQueueName
     m_lQueueTimeout = lQueueTimeout
     Set m_oCallback = oCallback
-    If Not pvIsConnAlive(m_oConn) Then
+    If Not pvQueueSetup() Then
         GoTo QH
     End If
-    pvQueueSetup
     pvQueueLoopAsync
     pvRestartTimer
     '--- success
@@ -126,21 +125,25 @@ Private Function pvQueueSetup() As Boolean
     Dim vElem           As Variant
     
     On Error GoTo EH
-    m_oConn.usp_sys_ServiceBrokerCleanup
+    If Not pvIsConnAlive(m_oRecvConn, m_lSqlProcessID) Then
+        GoTo QH
+    End If
+    m_oCtrlConn.usp_sys_ServiceBrokerCleanup
     '-- setup initiator queue
-    m_oConn.usp_sys_ServiceBrokerSetupService
+    m_oCtrlConn.usp_sys_ServiceBrokerSetupService
     '-- setup target queue
-    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_EXISTING"
+    m_oRecvConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_EXISTING"
     lIdx = lIdx + 1
     For Each vElem In m_vPrinters
         If LenB(C_Str(vElem)) <> 0 Then
-            m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & C_Str(vElem), "DROP_SERVICE"
+            m_oRecvConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & C_Str(vElem), "DROP_SERVICE"
             lIdx = lIdx + 1
         End If
     Next
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx)
     '--- success
     pvQueueSetup = True
+QH:
     Exit Function
 EH:
     PrintError FUNC_NAME
@@ -161,55 +164,47 @@ End Function
 
 Private Function pvQueueTerminate() As Boolean
     Const FUNC_NAME     As String = "pvQueueTerminate"
-    Dim oTempConn       As Connection
+    Dim oRecvConn       As Connection
     
     On Error GoTo EH
-    Set oTempConn = m_oRecvConn
+    Set oRecvConn = m_oRecvConn
     Set m_oRecvConn = Nothing
     DebugLog MODULE_NAME, FUNC_NAME, "Will check if receive connection is alive", vbLogEventTypeDebug
-    If Not pvIsConnAlive(oTempConn) Then
+    If Not pvIsConnAlive(oRecvConn) Then
         GoTo QH
     End If
+    DebugLog MODULE_NAME, FUNC_NAME, "Will cancel async operation", vbLogEventTypeDebug
     On Error Resume Next
-    DebugLog MODULE_NAME, FUNC_NAME, "Will cancel receive connection", vbLogEventTypeDebug
-    oTempConn.Cancel
-    DebugLog MODULE_NAME, FUNC_NAME, "Will rollback on receive connection", vbLogEventTypeDebug
-    oTempConn.Execute "IF @@TRANCOUNT > 0 ROLLBACK", Options:=adCmdText Or adExecuteNoRecords
+    oRecvConn.Cancel
+    oRecvConn.Execute "IF @@TRANCOUNT > 0 ROLLBACK", Options:=adCmdText Or adExecuteNoRecords
     On Error GoTo EH
+    oRecvConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
     DebugLog MODULE_NAME, FUNC_NAME, "Will check if control connection is alive", vbLogEventTypeDebug
-    If Not pvIsConnAlive(m_oConn) Then
+    If Not pvIsConnAlive(m_oCtrlConn) Then
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_sys_ServiceBrokerSetupService", vbLogEventTypeDebug
-    m_oConn.usp_sys_ServiceBrokerSetupService m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
     '--- success
     pvQueueTerminate = True
 QH:
-    Set m_oRecvConn = oTempConn
+    Set m_oRecvConn = oRecvConn
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
 End Function
 
-Private Function pvIsConnAlive(cn As ADODB.Connection) As Boolean
+Private Function pvIsConnAlive(cn As ADODB.Connection, Optional lSqlProcessID As Long) As Boolean
     On Error GoTo QH
     With cn.Execute("SELECT @@SERVERNAME, DB_NAME(), @@SPID", Options:=adCmdText)
         m_sSqlInstance = .Fields.Item(0).Value
         m_sSqlDatabase = .Fields.Item(1).Value
-        m_lSqlProcessID = .Fields.Item(2).Value
+        lSqlProcessID = .Fields.Item(2).Value
     End With
     '--- success
     pvIsConnAlive = True
 QH:
 End Function
-
-'Private Function pvIsConnBusy(cn As ADODB.Connection) As Boolean
-'    On Error GoTo QH
-'    pvIsConnBusy = (cn.State And adStateExecuting) <> 0
-'QH:
-'End Function
 
 Private Function pvIsQueueAlive(cn As ADODB.Connection) As Boolean
     Dim sHandle         As String
@@ -244,7 +239,7 @@ Private Function pvIsConversationAlive() As Boolean
     If IsLogDebugEnabled Then
         DebugLog MODULE_NAME, FUNC_NAME, "m_sConvHandle=" & m_sConvHandle, vbLogEventTypeDebug
     End If
-    m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
+    m_oCtrlConn.Execute Printf(STR_SEND_ON_CONV, Quote(m_sConvHandle), "__PONG__"), Options:=adCmdText Or adExecuteNoRecords
     '--- success
     pvIsConversationAlive = True
 QH:
@@ -286,12 +281,12 @@ End Function
 
 Public Function TimerProc() As Long
     Const FUNC_NAME     As String = "TimerProc"
-    Dim oConn           As Object
+    Dim oCtrlConn       As Object
     Dim oRecvConn       As Object
     
     On Error GoTo EH
-    If Not m_oConn Is Nothing Then
-        If pvIsQueueAlive(m_oConn) Then
+    If Not m_oCtrlConn Is Nothing Then
+        If pvIsQueueAlive(m_oCtrlConn) Then
             GoTo QH
         End If
     End If
@@ -299,15 +294,20 @@ Public Function TimerProc() As Long
     DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout) / 1000)
     If Not pvQueueTerminate() Then
         m_oCallback.frReleaseConn
-        Set m_oConn = Nothing
+        Set m_oCtrlConn = Nothing
         Set m_oRecvConn = Nothing
         DebugLog MODULE_NAME, FUNC_NAME, "All connections released", vbLogEventTypeDebug
-        If m_oCallback.frReopenConn(oConn, oRecvConn) Then
-            Set m_oConn = oConn
-            Set m_oRecvConn = oRecvConn
-        End If
     End If
-    pvQueueSetup
+    If m_oCtrlConn Is Nothing Then
+        If Not m_oCallback.frReopenConn(oCtrlConn, oRecvConn) Then
+            GoTo QH
+        End If
+        Set m_oCtrlConn = oCtrlConn
+        Set m_oRecvConn = oRecvConn
+    End If
+    If Not pvQueueSetup() Then
+        GoTo QH
+    End If
     pvQueueLoopAsync
 QH:
     pvRestartTimer
@@ -341,8 +341,9 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
     Dim lErrorCode      As Long
     Dim sPrinterID      As String
     Dim vErr            As Variant
-    Dim oConn           As ADODB.Connection
+    Dim oCtrlConn       As ADODB.Connection
     Dim oRecvConn       As ADODB.Connection
+    Dim lSqlProcessID   As Long
     
     On Error GoTo EH
     If bHere Then
@@ -364,10 +365,10 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
                 m_sConvHandle = sHandle
                 If C_Lng(pRecordset!Result.Value) = 0 And LenB(sHandle) <> 0 Then
                     If m_oCallback.frHandleRequest(C_Str(pRecordset!SvcName.Value), C_Str(pRecordset!Request.Value), sResponse, lErrorCode) Then
-                        m_oConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse)), Options:=adCmdText Or adExecuteNoRecords
+                        m_oCtrlConn.Execute Printf(STR_SEND_ON_CONV, Quote(sHandle), Quote(sResponse)), Options:=adCmdText Or adExecuteNoRecords
                     Else
                         lErrorCode = Znl(lErrorCode, 500)
-                        m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
+                        m_oCtrlConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
                             Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
                     End If
                 ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
@@ -377,7 +378,9 @@ Private Sub m_oRecvConn_ExecuteComplete(ByVal RecordsAffected As Long, ByVal pEr
                         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
                     End If
                     If C_Lng(pRecordset!Result.Value) = 2 Then
-                        pvQueueSetup
+                        If Not pvQueueSetup() Then
+                            GoTo QH
+                        End If
                     End If
                 End If
                 pvRestartTimer
@@ -396,39 +399,41 @@ EH:
     Resume NextLine
 NextLine:
     On Error Resume Next
-    If vErr(2) Like ERR_CONNECTION_FAILURE Or vErr(2) Like ERR_TERMINATED_BY_SERVER Or vErr(2) Like ERR_COMMUNCATION_FAILURE Or vErr(2) Like ERR_FORCIBLY_CLOSED Then
-        Set m_oConn = Nothing
-        Set m_oRecvConn = Nothing
+    If Not pvIsConnAlive(m_oRecvConn, lSqlProcessID) Then
+        lSqlProcessID = 0
     End If
-    If pvIsConnAlive(m_oConn) Then
-        If vErr(0) = ERR_DB_E_NOTABLE Then
-            pvQueueSetup
-        End If
-        If LenB(sHandle) <> 0 Then
-            lErrorCode = Znl(lErrorCode, 500)
-            m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
-        End If
-        If vErr(0) <> adErrOperationCancelled Then
-            pvQueueLoopAsync
-        End If
-    Else
-        Set m_oConn = Nothing
+    Select Case True
+    Case vErr(2) Like ERR_CONNECTION_FAILURE, _
+            vErr(2) Like ERR_TERMINATED_BY_SERVER, _
+            vErr(2) Like ERR_COMMUNCATION_FAILURE, _
+            vErr(2) Like ERR_FORCIBLY_CLOSED, _
+            Not pvIsConnAlive(m_oCtrlConn), _
+            lSqlProcessID <> m_lSqlProcessID
+        m_oCallback.frReleaseConn
+        Set m_oCtrlConn = Nothing
         Set m_oRecvConn = Nothing
-        If Not m_oCallback.frReopenConn(oConn, oRecvConn) Then
-            '--- do nothing
-        Else
-            Set m_oConn = oConn
-            Set m_oRecvConn = oRecvConn
-            If LenB(sHandle) <> 0 Then
-                lErrorCode = Znl(lErrorCode, 500)
-                m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                    Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
-            End If
-            If vErr(0) <> adErrOperationCancelled Then
-                pvQueueLoopAsync
-            End If
+        DebugLog MODULE_NAME, FUNC_NAME, "All connections released", vbLogEventTypeDebug
+    End Select
+    If m_oCtrlConn Is Nothing Then
+        If Not m_oCallback.frReopenConn(oCtrlConn, oRecvConn) Then
+            GoTo QH
         End If
+        Set m_oCtrlConn = oCtrlConn
+        Set m_oRecvConn = oRecvConn
+        vErr(0) = ERR_DB_E_NOTABLE
+    End If
+    If LenB(sHandle) <> 0 Then
+        lErrorCode = Znl(lErrorCode, 500)
+        m_oCtrlConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
+            Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
+    End If
+    If vErr(0) = ERR_DB_E_NOTABLE Then
+        If Not pvQueueSetup Then
+            GoTo QH
+        End If
+    End If
+    If vErr(0) <> adErrOperationCancelled Then
+        pvQueueLoopAsync
     End If
     If m_pTimeoutTimer Is Nothing Then
         pvRestartTimer
