@@ -39,24 +39,16 @@ Private Const MODULE_NAME As String = "mdJson"
     Private Const PTR_SIZE                  As Long = 4
     Private Const SIGN_BIT                  As Long = &H80000000
 #End If
-'--- for CompareStringW
-Private Const LOCALE_USER_DEFAULT           As Long = &H400
-Private Const NORM_IGNORECASE               As Long = 1
-Private Const CSTR_LESS_THAN                As Long = 1
-Private Const CSTR_EQUAL                    As Long = 2
-Private Const CSTR_GREATER_THAN             As Long = 3
 '--- for VariantChangeType
 Private Const VARIANT_ALPHABOOL             As Long = 2
 
 #If HasPtrSafe Then
     Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
     Private Declare PtrSafe Function ArrPtr Lib "vbe7" Alias "VarPtr" (Ptr() As Any) As LongPtr
-    Private Declare PtrSafe Function CompareStringW Lib "kernel32" (ByVal Locale As Long, ByVal dwCmpFlags As Long, lpString1 As Any, ByVal cchCount1 As Long, lpString2 As Any, ByVal cchCount2 As Long) As Long
     Private Declare PtrSafe Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
 #Else
     Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
     Private Declare Function ArrPtr Lib "msvbvm60" Alias "VarPtr" (Ptr() As Any) As Long
-    Private Declare Function CompareStringW Lib "kernel32" (ByVal Locale As Long, ByVal dwCmpFlags As Long, lpString1 As Any, ByVal cchCount1 As Long, lpString2 As Any, ByVal cchCount2 As Long) As Long
     Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
 #End If
 
@@ -1445,6 +1437,7 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
         Dim lPtr        As Long
     #End If
     Dim sTemp           As String
+    Dim eMethod         As VbCompareMethod
     
     If Not oCol Is Nothing Then
         #If LargeAddressAware Then
@@ -1455,32 +1448,27 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
             Call CopyMemory(lEofPtr, ByVal ObjPtr(oCol) + o_pEndTreePtr, PTR_SIZE)
         #End If
     End If
-    If StrPtr(sKey) = 0 Then
-        sKey = ""
-    End If
+    eMethod = IIf(IgnoreCase, vbTextCompare, vbBinaryCompare)
     Do While lItemPtr <> lEofPtr
         #If LargeAddressAware Then
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal (lItemPtr Xor SIGN_BIT) + o_KeyPtr Xor SIGN_BIT, PTR_SIZE)
         #Else
             Call CopyMemory(ByVal VarPtr(sTemp), ByVal lItemPtr + o_KeyPtr, PTR_SIZE)
         #End If
-        If StrPtr(sTemp) = 0 Then
-            sTemp = ""
-        End If
-        Select Case CompareStringW(LOCALE_USER_DEFAULT, -IgnoreCase * NORM_IGNORECASE, ByVal StrPtr(sKey), Len(sKey), ByVal StrPtr(sTemp), Len(sTemp))
-        Case CSTR_LESS_THAN
+        Select Case StrComp(sKey, sTemp, eMethod)
+        Case Is < 0
             #If LargeAddressAware Then
                 Call CopyMemory(lItemPtr, ByVal (lItemPtr Xor SIGN_BIT) + o_pLeftBranch Xor SIGN_BIT, PTR_SIZE)
             #Else
                 Call CopyMemory(lItemPtr, ByVal lItemPtr + o_pLeftBranch, PTR_SIZE)
             #End If
-        Case CSTR_GREATER_THAN
+        Case Is > 0
             #If LargeAddressAware Then
                 Call CopyMemory(lItemPtr, ByVal (lItemPtr Xor SIGN_BIT) + o_pRightBranch Xor SIGN_BIT, PTR_SIZE)
             #Else
                 Call CopyMemory(lItemPtr, ByVal lItemPtr + o_pRightBranch, PTR_SIZE)
             #End If
-        Case CSTR_EQUAL
+        Case Else
             lPtr = ObjPtr(oCol)
             Do While lPtr <> lItemPtr
                 #If LargeAddressAware Then
@@ -1491,9 +1479,6 @@ Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As Stri
                 CollectionIndexByKey = CollectionIndexByKey + 1
             Loop
             GoTo QH
-        Case Else
-            Call CopyMemory(ByVal VarPtr(sTemp), NULL_PTR, PTR_SIZE)
-            Err.Raise vbObjectError, , "Error " & Err.LastDllError & " from CompareStringW"
         End Select
     Loop
 QH:
