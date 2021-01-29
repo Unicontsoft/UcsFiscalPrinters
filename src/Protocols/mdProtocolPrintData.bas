@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdProtocolPrintData"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2021 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -137,6 +137,7 @@ Public Type UcsPpdConfigValues
     MaxDiscount         As Double
     MaxReceiptRows      As Long
     MaxItemLines        As Long
+    EmptyUniqueSaleNo   As String
 End Type
 
 Public Type UcsPpdLocalizedTexts
@@ -211,7 +212,7 @@ Public Function PpdStartReceipt( _
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
         .InitTableNo = TableNo
-        .InitUniqueSaleNo = SafeText(UniqueSaleNo)
+        .InitUniqueSaleNo = SafeText(Zn(UniqueSaleNo, uData.Config.EmptyUniqueSaleNo))
         .InitDisablePrinting = DisablePrinting
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
