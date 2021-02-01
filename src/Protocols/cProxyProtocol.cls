@@ -176,14 +176,14 @@ Public Function Init(sDeviceString As String) As Boolean
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
-        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", vbNullString)
+        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
         '--- from response
         .RowChars = Znl(C_Lng(JsonItem(oResponse, "CharsPerLine")), .RowChars)
         .CommentChars = Znl(C_Lng(JsonItem(oResponse, "CommentTextMaxLength")), .CommentChars)
         .ItemChars = Znl(C_Lng(JsonItem(oResponse, "ItemNameMaxLength")), .ItemChars)
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonItem(oOptions, "DefaultPassword")))
         .DeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
         .FiscalMemoryNo = Zn(C_Str(JsonItem(oResponse, "FiscalMemoryNo")), C_Str(JsonItem(oOptions, "FiscalMemoryNo")))
         .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), "Proxy")

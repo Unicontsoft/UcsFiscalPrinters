@@ -255,6 +255,8 @@ Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
+Private Const DEF_MAX_REV_REASON        As Long = 30
+Private Const DEF_MAX_ECR_REV_REASON    As Long = 42
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
@@ -352,6 +354,7 @@ Private Type UcsConfigValues
     CodePage            As Long
     MaxCgInfo(0 To [_ucsMciLast] - 1) As Long
     MaxOperatorName     As Long
+    MaxRevReason        As Long
     DefPmtTypes         As String
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
@@ -799,16 +802,17 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", vbNullString)
+        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", JsonItem(oOptions, "DefaultPassword"))
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonItem(oOptions, "DefaultPassword")))
         .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
             .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
         Next
         .MaxOperatorName = GetConfigNumber(sDeviceSerialNo, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
+        .MaxRevReason = GetConfigNumber(sDeviceSerialNo, "MaxRevReason", Znl(C_Lng(JsonItem(oOptions, "MaxRevReason")), IIf(IsEcr, DEF_MAX_ECR_REV_REASON, DEF_MAX_REV_REASON)))
         Set .ConfigCommands = GetConfigCollection(sDeviceSerialNo, "Commands")
     End With
     '--- more dependant on m_uConfig being populated
@@ -2315,8 +2319,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             ElseIf IsEcr Then
                 Select Case .InitReceiptType
                 Case ucsFscRcpReversal, ucsFscRcpCreditNote
-                    '--- %1=<OpCode>,%2=<OpPwd>,%3=<NSale>,<TillNmb>,%4=(<DocType>,<DocNumber>,<DocDateTime>,<FMNumber>)[,<Invoice>,%5=(<InvNumber>,<Reason>)]
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "1" & DEF_SEP & "%4" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & DEF_SEP & "%5", vbNullString)
+                    '--- %1=<OpCode>,%2=<OpPwd>,%3=<NSale>,<TillNmb>,%4=(<DocType>,<DocNumber>,<DocDateTime>,<FMNumber>)[,<Invoice>,%5=<InvNumber>,%6=<Reason>]
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "1" & DEF_SEP & "%4" & _
+                        IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & DEF_SEP & "%5" & DEF_SEP & "%6", vbNullString)
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsIslCmdFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
@@ -2325,8 +2330,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             DEF_SEP & .InitRevData(ucsRevReceiptNo) & _
                             DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                             DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo), _
-                        .InitRevData(ucsRevInvoiceNo) & _
-                            DEF_SEP & .InitRevData(ucsRevReason))
+                        .InitRevData(ucsRevInvoiceNo), _
+                        Left$(.InitRevData(ucsRevReason), m_uConfig.MaxRevReason))
                 Case Else
                     '--- %1=<OpCode>,%2=<OpPwd>%3=([,<NSale>]),<TillNmb>[,<Invoice>]
                     sParam = "%1" & DEF_SEP & "%2%3" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpInvoice, DEF_SEP & "I", vbNullString)
@@ -2341,17 +2346,18 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "T", _
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "E", _
                         True, "R")
-                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StType><DocNo>)%5=([,<StUNP>,<StDT>,<StFMIN>])[#<RevType>]
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & "%3", vbNullString) & DEF_SEP & "%4%5"
+                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StType><DocNo>)[,%5=(<StUNP>,<StDT>,<StFMIN>)])%6=[#<RevType>]
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & "%3", vbNullString) & _
+                        DEF_SEP & "%4" & DEF_SEP & "%5" & IIf(.InitReceiptType = ucsFscRcpCreditNote, "#%6", vbNullString)
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsIslCmdFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                         .InitRevData(ucsRevInvoiceNo), _
                         sRevType & .InitRevData(ucsRevReceiptNo), _
-                        IIf(LenB(.InitUniqueSaleNo) <> 0, _
-                            DEF_SEP & .InitUniqueSaleNo & _
+                        .InitUniqueSaleNo & _
                             DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
-                            DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo), vbNullString))
+                            DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo), _
+                        Left$(.InitRevData(ucsRevReason), m_uConfig.MaxRevReason))
                 Case Else
                     '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>]%3=[,<UNP>]
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpInvoice, DEF_SEP & "I", vbNullString) & "%3"
