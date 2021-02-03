@@ -212,11 +212,7 @@ Public Function PpdStartReceipt( _
         .InitOperatorName = SafeText(OperatorName)
         .InitOperatorPassword = SafeText(OperatorPassword)
         .InitTableNo = TableNo
-        If LenB(UniqueSaleNo) <> 0 Then
-            .InitUniqueSaleNo = SafeText(UniqueSaleNo)
-        ElseIf .InitReceiptType = ucsFscRcpReversal Or .InitReceiptType = ucsFscRcpCreditNote Then
-            .InitUniqueSaleNo = SafeText(uData.Config.EmptyUniqueSaleNo)
-        End If
+        .InitUniqueSaleNo = SafeText(Zn(UniqueSaleNo, uData.Config.EmptyUniqueSaleNo))
         .InitDisablePrinting = DisablePrinting
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
