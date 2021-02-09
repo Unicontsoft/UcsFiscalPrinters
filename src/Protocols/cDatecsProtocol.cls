@@ -1294,6 +1294,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim sParam          As String
     Dim lOffset         As Long
     Dim lRevOffset      As Long
+    Dim lPmtRange       As Long
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "0" & DEF_SEP, _
@@ -1306,10 +1307,13 @@ Public Function GetTotalsByPaymentTypes() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
-        If lPmtIndex >= 0 Then
-            vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
-        End If
+        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+            lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
+            If lPmtIndex < 0 Then
+                Exit For
+            End If
+            vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+        Next
     Next
     '--- success
     GetTotalsByPaymentTypes = vRetVal
@@ -2209,9 +2213,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         pvToDevicePmtIndex = 5      ' 3=SOT (ÂÀÓ×ÅÐ)
     Case ucsFscPmtCard
         pvToDevicePmtIndex = 2      ' 7=SCards (ÄÅÁ.ÊÀÐÒÀ)
-    Case ucsFscPmtBank
-'        pvToDevicePmtIndex = 1      ' 7=SCards (ÊÐÅÄÈÒ)
-        pvToDevicePmtIndex = -1     ' unsupported
+    Case ucsFscPmtCard + PMT_STEP
+        pvToDevicePmtIndex = 1      ' 7=SCards (ÊÐÅÄÈÒ)
     End Select
     Exit Function
 EH:

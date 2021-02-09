@@ -312,6 +312,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
     Dim dReceiptDate    As Date
     Dim dblReceiptAmount As Double
     Dim sInvoiceNo      As String
+    Dim lPmtRange       As Long
     
     On Error GoTo EH
     If Not pvCommonProlog(sRequest, oJson, sLastErr, oFP, oRetVal) Then
@@ -379,8 +380,9 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                     End If
                 Case ucsRwtPayment
                     lIdx = JsonEnumValue(.PaymentType, STR_ENUM_PAYMENT_TYPE)
-                    If lIdx < MIN_PMT_TYPE Or lIdx > MAX_PMT_TYPE Then
-                        lIdx = DEF_PMT_TYPE
+                    lPmtRange = lIdx - (lIdx Mod PMT_STEP)
+                    If lIdx < lPmtRange + MIN_PMT_TYPE Or lIdx > lPmtRange + MAX_PMT_TYPE Then
+                        lIdx = lPmtRange + DEF_PMT_TYPE
                     End If
                     oFP.AddPayment lIdx, Zn(.PaymentName, Trim$(oFP.GetPaymentName(lIdx))), C_Dbl(.Amount)
                 Case ucsRwtText
@@ -1063,6 +1065,8 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
     Dim oItem           As Object
     Dim sName           As String
     Dim lTaxGroup       As Long
+    Dim aNames(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As String
+    Dim lPmtRange       As Long
     
     bIncludeAll = JsonBoolItem(oJson, "IncludeAll")
     If JsonBoolItem(oJson, "IncludeTaxNo") Or bIncludeAll Then
@@ -1102,8 +1106,15 @@ Private Sub pvCommonIncludesMiddleware(oFP As IDeviceProtocol, oJson As Object, 
         End If
     End If
     If JsonBoolItem(oJson, "IncludePaymentNames") Or bIncludeAll Then
-        For lIdx = 1 To 12
-            JsonItem(oRetVal, "PaymentNames/-1") = Trim$(oFP.GetPaymentName(lIdx))
+        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+            For lIdx = MIN_PMT_TYPE To MAX_PMT_TYPE
+                aNames(lIdx - MIN_PMT_TYPE) = Trim$(oFP.GetPaymentName(lPmtRange + lIdx))
+            Next
+            If LenB(Join(aNames, vbNullString)) <> 0 Then
+                For lIdx = 0 To UBound(aNames)
+                    JsonItem(oRetVal, "PaymentNames/-1") = aNames(lIdx)
+                Next
+            End If
         Next
     End If
     If JsonBoolItem(oJson, "IncludeTaxRates") Or bIncludeAll Then

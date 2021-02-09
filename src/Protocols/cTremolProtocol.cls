@@ -468,9 +468,10 @@ Private Property Get pvPaymentTypes() As String
         If Abs(Val(At(vSplit, IDX_EURO_RATE))) < DBL_EPSILON Then
             For lIdx = 0 To UBound(vSplit) - IDX_CODE_PAYM1 - 1
                 lTagNo = C_Lng(At(vSplit, IDX_CODE_PAYM1 + lIdx))
-                If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
-                    JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, lIdx))
-                End If
+                Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
+                    lTagNo = lTagNo + PMT_STEP
+                Loop
+                JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, lIdx))
             Next
             Set m_uConfig.PmtMapping = oRetVal
         End If
@@ -1411,6 +1412,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lIdx            As Long
     Dim lPmtIndex       As Long
     Dim lOffset         As Long
+    Dim lPmtRange       As Long
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "4", _
@@ -1422,10 +1424,13 @@ Public Function GetTotalsByPaymentTypes() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
-        If lPmtIndex >= 0 Then
-            vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)))
-        End If
+        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+            lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
+            If lPmtIndex < 0 Then
+                Exit For
+            End If
+            vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)))
+        Next
     Next
     '--- success
     GetTotalsByPaymentTypes = vRetVal

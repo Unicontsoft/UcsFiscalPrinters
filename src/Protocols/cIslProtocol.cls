@@ -1542,6 +1542,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lOffset         As Long
     Dim lRevOffset      As Long
     Dim vTemp           As Variant
+    Dim lPmtRange       As Long
     
     On Error GoTo EH
     If IsEcr Then
@@ -1571,14 +1572,17 @@ Public Function GetTotalsByPaymentTypes() As Variant
         GoTo QH
     End If
     For lIdx = 0 To UBound(vRetVal)
-        lPmtIndex = pvToDevicePmtIndex(lIdx + 1)
-        If lPmtIndex >= 0 Then
-            If IsArray(vRevSum) Then
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
-            Else
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+            lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
+            If lPmtIndex < 0 Then
+                Exit For
             End If
-        End If
+            If IsArray(vRevSum) Then
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+            Else
+                vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+            End If
+        Next
     Next
     If IsEltrade And IsArray(vRetVal(0)) Then
         '--- eltrade idiosyncrasy: service deposit/withdraw is added to cash total
@@ -2889,9 +2893,10 @@ Private Function pvGetPmtMapping() As Object
                 End If
                 lTagNo = C_Lng(At(vSplit, lOffset))
             End If
-            If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
-                JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 1))
-            End If
+            Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
+                lTagNo = lTagNo + PMT_STEP
+            Loop
+            JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 1))
         Next
     ElseIf IsEcr Then
         pvGetCommandConfig CONF_NAME, "EcrReadRow", eCmd, ucsIslCmdEcrReadRow, sParam, "21;1;", _
@@ -2904,13 +2909,15 @@ Private Function pvGetPmtMapping() As Object
                     GoTo QH
                 End If
                 lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
+                If lTagNo = 8 Then lTagNo = 7
             End If
-            If IsEmpty(JsonItem(oRetVal, "#" & lTagNo)) Then
-                vSplit = Split(SendCommand(eCmd, Printf(sParam, lIdx + 1), LogName:=FUNC_NAME), ";")
-                '--- 1 - disabled, 0 - not disabled
-                If C_Lng(At(vSplit, 3)) = 0 Then
-                    JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 2))
-                End If
+            Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
+                lTagNo = lTagNo + PMT_STEP
+            Loop
+            vSplit = Split(SendCommand(eCmd, Printf(sParam, lIdx + 1), LogName:=FUNC_NAME), ";")
+            '--- 1 - disabled, 0 - not disabled
+            If C_Lng(At(vSplit, 3)) = 0 Then
+                JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, 2))
             End If
         Next
     End If
@@ -2943,8 +2950,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 1      ' N=SCheck (С ЧЕК)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (КРЕДИТ)
-'        Case ucsFscPmtCash
-'            pvToDevicePmtIndex = 3      ' D=SCash (USD)
+        Case ucsFscPmtCash + PMT_STEP
+            pvToDevicePmtIndex = 3      ' D=SCash (USD)
         Case ucsFscPmtEUR
             pvToDevicePmtIndex = 4      ' B=SCash (EURO)
         End Select
@@ -2990,8 +2997,8 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
-'        Case ucsFscPmtCard
-'            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
+        Case ucsFscPmtCard + PMT_STEP
+            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 2      ' C=SCards (ДЕБ.КАРТА)
         Case ucsFscPmtCustom1
@@ -3005,18 +3012,18 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
         Select Case PmtType
         Case ucsFscPmtCash
             pvToDevicePmtIndex = 0      ' P=SCash (В брой)
-'        Case ucsFscPmtCard
-'            pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
+        Case ucsFscPmtCard + PMT_STEP
+            pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
         Case ucsFscPmtCheque
             pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
         Case ucsFscPmtCard
             pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
         Case ucsFscPmtCustom1
             pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
-'        Case ucsFscPmtCustom1
-'            pvToDevicePmtIndex = 5      ' J=SR1 (Програмируем тип плащане 2)
-'        Case ucsFscPmtCustom1
-'            pvToDevicePmtIndex = 6      ' K=SR1 (Програмируем тип плащане 3)
+        Case ucsFscPmtCustom1 + PMT_STEP
+            pvToDevicePmtIndex = 5      ' J=SR1 (Програмируем тип плащане 2)
+        Case ucsFscPmtCustom2 + PMT_STEP
+            pvToDevicePmtIndex = 6      ' K=SR1 (Програмируем тип плащане 3)
         Case ucsFscPmtCustom2
             pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 4)
 '        Case ucsFscPmtCash
@@ -3051,29 +3058,30 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
     
     On Error GoTo EH
     lIndex = pvToDevicePmtIndex(PmtType)
-    If lIndex >= 0 Then
-        If IsDaisy Then
-            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (60 + lIndex)
-        ElseIf IsIncotex Then
-            If lIndex = 0 Then
-                pvToDevicePmtName = pvText(ucsTxtPaymentCash)
-                GoTo QH
-            End If
-            pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (9 + lIndex)
+    If lIndex < 0 Then
+        GoTo QH
+    End If
+    If IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (60 + lIndex)
+    ElseIf IsIncotex Then
+        If lIndex = 0 Then
+            pvToDevicePmtName = pvText(ucsTxtPaymentCash)
+            GoTo QH
+        End If
+        pvGetCommandConfig CONF_NAME, "ExtendedInitText" & PmtType, eCmd, ucsIslCmdExtendedInitText, sParam, "R" & (9 + lIndex)
+    Else
+        pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
+    End If
+    pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam, LogName:=FUNC_NAME)))
+    '--- check for failure (returns 'F')
+    If pvToDevicePmtName = "F" Then
+        If lIndex < 4 Then
+            pvToDevicePmtName = pvText(ucsTxtPaymentCash + lIndex)
         Else
-            pvGetCommandConfig CONF_NAME, "InitPaymentType" & PmtType, eCmd, ucsIslCmdInitPaymentType, sParam, Mid$(DefPmtTypes, lIndex + 1, 1)
+            pvToDevicePmtName = vbNullString
         End If
-        pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam, LogName:=FUNC_NAME)))
-        '--- check for failure (returns 'F')
-        If pvToDevicePmtName = "F" Then
-            If lIndex < 4 Then
-                pvToDevicePmtName = pvText(ucsTxtPaymentCash + lIndex)
-            Else
-                pvToDevicePmtName = vbNullString
-            End If
-        ElseIf IsIncotex Then
-            pvToDevicePmtName = At(Split(pvToDevicePmtName, DEF_SEP), 1)
-        End If
+    ElseIf IsIncotex Then
+        pvToDevicePmtName = At(Split(pvToDevicePmtName, DEF_SEP), 1)
     End If
 QH:
     Exit Function

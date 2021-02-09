@@ -77,6 +77,7 @@ Public Const MAX_TAX_GROUP              As Long = 8
 Public Const DEF_TAX_GROUP              As Long = 2
 Public Const MIN_PMT_TYPE               As Long = 1
 Public Const MAX_PMT_TYPE               As Long = [_ucsFscPmtMax] - 1
+Public Const PMT_STEP                   As Long = [_ucsFscPmtMax] - 1
 Public Const DEF_PMT_TYPE               As Long = 1
 Public Const DEF_PRICE_SCALE            As Long = 2
 Public Const DEF_QUANTITY_SCALE         As Long = 3
@@ -386,7 +387,8 @@ Public Function PpdAddPayment( _
             Optional PmtName As String, _
             Optional ByVal Amount As Double) As Boolean
     Const FUNC_NAME     As String = "PpdAddPayment"
-
+    Dim lPmtRange       As Long
+    
     On Error GoTo EH
     '--- sanity check
     If uData.RowCount = 0 Then
@@ -395,7 +397,8 @@ Public Function PpdAddPayment( _
     End If
     With uData.Row(pvAddRow(uData))
         .RowType = ucsRowPayment
-        .PmtType = Clamp(PmtType, MIN_PMT_TYPE, MAX_PMT_TYPE)
+        lPmtRange = PmtType - (PmtType Mod PMT_STEP)
+        .PmtType = Clamp(PmtType, lPmtRange + MIN_PMT_TYPE, lPmtRange + MAX_PMT_TYPE)
         .PmtName = SafeText(PmtName)
         .PmtAmount = Round(Amount, DEF_PRICE_SCALE)
         .PrintRowType = uData.Row(0).InitReceiptType
