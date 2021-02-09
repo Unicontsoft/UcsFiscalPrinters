@@ -835,6 +835,7 @@ Public Function Connect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout
+    pvSetLastError vbNullString
     Set m_oConnector = InitDeviceConnector(m_sDevice, m_lConnectionTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
     If m_oConnector Is Nothing Then
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
@@ -1264,7 +1265,7 @@ End Function
 Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
     Const FUNC_NAME     As String = "GetLastQRCodeInfo"
     Const CONF_NAME     As String = FUNC_NAME
-    Dim eCmd            As UcsDatecsCommandsEnum
+    Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
     Dim lDateIndex      As Long
@@ -2909,7 +2910,6 @@ Private Function pvGetPmtMapping() As Object
                     GoTo QH
                 End If
                 lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
-                If lTagNo = 8 Then lTagNo = 7
             End If
             Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
                 lTagNo = lTagNo + PMT_STEP
@@ -3121,6 +3121,11 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    If LenB(sError) = 0 Then
+        m_eStatus = 0
+        m_eDip = 0
+        m_eMemory = 0
+    End If
     Exit Sub
 EH:
     RaiseError FUNC_NAME

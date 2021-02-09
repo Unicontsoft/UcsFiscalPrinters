@@ -645,6 +645,7 @@ Public Function Connect() As Boolean
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout
+    pvSetLastError vbNullString
     Set m_oConnector = InitDeviceConnector(m_sDevice, m_lConnectionTimeout, LocalizedText(ucsFscLciConnectorErrors), m_uPrintData.LastError)
     If m_oConnector Is Nothing Then
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
@@ -2271,6 +2272,10 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    If LenB(sError) = 0 Then
+        m_eStatus = 0
+        m_eMemory = 0
+    End If
     Exit Sub
 EH:
     RaiseError FUNC_NAME

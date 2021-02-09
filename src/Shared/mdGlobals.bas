@@ -239,7 +239,11 @@ End Property
 '=========================================================================
 
 Private Sub Main()
-    Const FUNC_NAME     As String = "Main"
+    InitGlobals
+End Sub
+
+Public Sub InitGlobals()
+    Const FUNC_NAME     As String = "InitGlobals"
     Dim sFile           As String
     Dim vJson           As Variant
     Dim sError          As String
