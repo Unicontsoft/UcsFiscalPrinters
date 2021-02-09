@@ -164,7 +164,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -244,6 +244,7 @@ Private Enum UcsInternalErrors
     ucsErrWrongInvoiceNo
     ucsErrUnsupportedDiscType
     ucsErrCommitReceiptCancelled
+    ucsErrInsufficientSum
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -945,6 +946,9 @@ Public Function PrintServiceDeposit( _
         GoTo QH
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
+        If m_uPrintData.LastError = "ERR_R_PAY_NOCASH" Then
+            pvSetLastError pvInternal(ucsErrInsufficientSum)
+        End If
         GoTo QH
     End If
     If bPrint Then

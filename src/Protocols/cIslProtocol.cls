@@ -216,7 +216,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available (%1)"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
@@ -300,6 +300,7 @@ Private Enum UcsInternalErrors
     ucsErrWrongInvoiceNo
     ucsErrUnsupportedDiscType
     ucsErrCommitReceiptCancelled
+    ucsErrInsufficientSum
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -923,7 +924,7 @@ Public Function PrintDuplicate( _
     SendCommand eCmd, sParam, LogName:=FUNC_NAME
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
         End If
         GoTo QH
@@ -982,7 +983,7 @@ Public Function PrintDailyXReport( _
     SendCommand eCmd, sParam, LogName:=FUNC_NAME
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
         End If
         GoTo QH
@@ -1041,7 +1042,7 @@ Public Function PrintDailyZReport( _
     SendCommand eCmd, sParam, LogName:=FUNC_NAME
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
         End If
         GoTo QH
@@ -1096,7 +1097,7 @@ Public Function PrintMonthlyReport( _
     SendCommand eCmd, sParam, LogName:=FUNC_NAME
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-        If LenB(LastError) = 0 Then
+        If LenB(m_uPrintData.LastError) = 0 Then
             pvSetLastError pvInternal(ucsErrCannotPrint)
         End If
         GoTo QH
@@ -1154,7 +1155,10 @@ Public Function PrintServiceDeposit( _
         ReceiptNo = GetLastReceiptNo()
         ReceiptAmount = Amount
         If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
-            If LenB(LastError) = 0 Then
+            If Amount < 0 Then
+                pvSetLastError Printf(pvInternal(ucsErrInsufficientSum), SafeFormat(ParseSum(At(vSplit, lIndex)), FORMAT_BASE_2))
+            End If
+            If LenB(m_uPrintData.LastError) = 0 Then
                 pvSetLastError pvInternal(ucsErrCannotPrint)
             End If
             GoTo QH
