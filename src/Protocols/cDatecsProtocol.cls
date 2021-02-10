@@ -1288,7 +1288,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Const CONF_NAME     As String = FUNC_NAME
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
-    Dim vRetVal(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim lPmtIndex       As Long
     Dim eCmd            As UcsDatecsCommandsEnum
@@ -1296,6 +1296,8 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lOffset         As Long
     Dim lRevOffset      As Long
     Dim lPmtRange       As Long
+    Dim vTotals(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim bHasTotals      As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments0", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "0" & DEF_SEP, _
@@ -1307,14 +1309,20 @@ Public Function GetTotalsByPaymentTypes() As Variant
     If UBound(vPmtSum) <= 0 Then
         GoTo QH
     End If
-    For lIdx = 0 To UBound(vRetVal)
-        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+    For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+        Erase vTotals
+        bHasTotals = False
+        For lIdx = 0 To UBound(vTotals)
             lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
-            If lPmtIndex < 0 Then
-                Exit For
+            If lPmtIndex >= 0 Then
+                vTotals(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                bHasTotals = True
             End If
-            vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
         Next
+        If Not bHasTotals And lPmtRange > 0 Then
+            Exit For
+        End If
+        vRetVal = ConcatArrays(vRetVal, vTotals)
     Next
     '--- success
     GetTotalsByPaymentTypes = vRetVal
@@ -2094,7 +2102,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 If uCtx.PmtPrinted Or SumArray(uCtx.GrpTotal) > DBL_EPSILON Then
                     pvGetCommandConfig CONF_NAME, "FiscalClose" & .PrintRowType, eCmd, ucsDcsCmdFiscalClose, sParam, vbNullString
                 Else
-                    pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsIslCmdFiscalCancel, sParam, vbNullString
+                    pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsDcsCmdFiscalCancel, sParam, vbNullString
                 End If
                 bNeedCommit = True
             End If

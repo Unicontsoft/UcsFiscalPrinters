@@ -1535,7 +1535,7 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim vPmtSum         As Variant
     Dim vRevSum         As Variant
     Dim vDepSum         As Variant
-    Dim vRetVal(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
@@ -1544,6 +1544,8 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lRevOffset      As Long
     Dim vTemp           As Variant
     Dim lPmtRange       As Long
+    Dim vTotals(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim bHasTotals      As Boolean
     
     On Error GoTo EH
     If IsEcr Then
@@ -1572,24 +1574,30 @@ Public Function GetTotalsByPaymentTypes() As Variant
     If UBound(vPmtSum) <= 0 Then
         GoTo QH
     End If
-    For lIdx = 0 To UBound(vRetVal)
-        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+    For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+        Erase vTotals
+        bHasTotals = False
+        For lIdx = 0 To UBound(vTotals)
             lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
-            If lPmtIndex < 0 Then
-                Exit For
-            End If
-            If IsArray(vRevSum) Then
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
-            Else
-                vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+            If lPmtIndex >= 0 Then
+                If IsArray(vRevSum) Then
+                    vTotals(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)), ParseSum(At(vRevSum, lPmtIndex + lRevOffset)))
+                Else
+                    vTotals(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)))
+                End If
+                bHasTotals = True
             End If
         Next
+        If Not bHasTotals And lPmtRange > 0 Then
+            Exit For
+        End If
+        vRetVal = ConcatArrays(vRetVal, vTotals)
     Next
-    If IsEltrade And IsArray(vRetVal(0)) Then
+    If IsEltrade And IsArray(vTotals(0)) Then
         '--- eltrade idiosyncrasy: service deposit/withdraw is added to cash total
         pvGetCommandConfig CONF_NAME, "FiscalServiceDeposit", eCmd, ucsIslCmdFiscalServiceDeposit, sParam, "0"
         vDepSum = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-        vRetVal(0)(1) = vRetVal(0)(1) - ParseSum(At(vDepSum, 2)) - ParseSum(At(vDepSum, 3))
+        vTotals(0)(1) = vTotals(0)(1) - ParseSum(At(vDepSum, 2)) - ParseSum(At(vDepSum, 3))
     End If
     '--- success
     GetTotalsByPaymentTypes = vRetVal
@@ -2910,6 +2918,7 @@ Private Function pvGetPmtMapping() As Object
                     GoTo QH
                 End If
                 lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
+                If lTagNo = 8 Then lTagNo = 7
             End If
             Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
                 lTagNo = lTagNo + PMT_STEP

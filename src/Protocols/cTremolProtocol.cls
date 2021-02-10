@@ -1407,31 +1407,39 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Const CONF_NAME     As String = FUNC_NAME
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
-    Dim vPayments       As Variant
-    Dim vChanges        As Variant
-    Dim vRetVal(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim vPmtSum         As Variant
+    Dim vChangeSum      As Variant
+    Dim vRetVal         As Variant
     Dim lIdx            As Long
     Dim lPmtIndex       As Long
     Dim lOffset         As Long
     Dim lPmtRange       As Long
+    Dim vTotals(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
+    Dim bHasTotals      As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoRegisters4", eCmd, ucsZekCmdInfoRegisters, sParam, "4", _
         "Offset", lOffset, 1
-    vPayments = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    vPmtSum = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
     pvGetCommandConfig CONF_NAME, "InfoRegisters6", eCmd, ucsZekCmdInfoRegisters, sParam, "6"
-    vChanges = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-    If UBound(vPayments) <= 0 Then
+    vChangeSum = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    If UBound(vPmtSum) <= 0 Then
         GoTo QH
     End If
-    For lIdx = 0 To UBound(vRetVal)
-        For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+    For lPmtRange = 0 To PMT_STEP * MAX_PMT_TYPE Step PMT_STEP
+        Erase vTotals
+        bHasTotals = False
+        For lIdx = 0 To UBound(vTotals)
             lPmtIndex = pvToDevicePmtIndex(lPmtRange + lIdx + 1)
-            If lPmtIndex < 0 Then
-                Exit For
+            If lPmtIndex >= 0 Then
+                vTotals(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPmtSum, lPmtIndex + lOffset)) - ParseSum(At(vChangeSum, lPmtIndex + lOffset)))
+                bHasTotals = True
             End If
-            vRetVal(lIdx) = Array(pvToDevicePmtName(lPmtRange + lIdx + 1), ParseSum(At(vPayments, lPmtIndex + lOffset)) - ParseSum(At(vChanges, lPmtIndex + lOffset)))
         Next
+        If Not bHasTotals And lPmtRange > 0 Then
+            Exit For
+        End If
+        vRetVal = ConcatArrays(vRetVal, vTotals)
     Next
     '--- success
     GetTotalsByPaymentTypes = vRetVal

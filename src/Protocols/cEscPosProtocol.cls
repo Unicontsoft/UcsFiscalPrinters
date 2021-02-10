@@ -882,8 +882,8 @@ End Function
 Private Sub pvGetCommandConfig( _
             sFunction As String, _
             sKey As String, _
-            eCmd As UcsIslCommandsEnum, _
-            ByVal eCmdDefault As UcsIslCommandsEnum, _
+            eCmd As Long, _
+            ByVal eCmdDefault As Long, _
             sParam As String, _
             sParamDefault As String, _
             ParamArray A() As Variant)
