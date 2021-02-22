@@ -105,6 +105,7 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdInfoDepartment = 88
     ucsDcsCmdInfoDiagnostics = 90
     ucsDcsCmdInfoBulstat = 99
+    ucsIslCmdInfoSums = 103
     ucsDcsCmdInfoTotalsByPayments = 110
     ucsDcsCmdInfoOperator = 112
     ucsDcsCmdInfoMemoryDump = 116
@@ -1032,11 +1033,18 @@ Public Function GetLastInvoiceNo() As String
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim lIndex          As Long
+    Dim lOffset         As Long
+    Dim vSplit          As Variant
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, vbNullString, _
-        "Index", lIndex, 3
-    GetLastInvoiceNo = At(Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP), lIndex)
+    pvGetCommandConfig CONF_NAME, "InfoSums", eCmd, ucsIslCmdInfoSums, sParam, vbNullString, _
+        "Index", lIndex, 10, _
+        "Offset", lOffset, 1
+    vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP)
+    GetLastInvoiceNo = At(vSplit, lIndex)
+    If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
+        GetLastInvoiceNo = Val(GetLastInvoiceNo) - lOffset
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1798,6 +1806,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim bNeedCommit     As Boolean
     Dim oCtx            As Object
     Dim bCancel         As Boolean
+    Dim sSettingBeg     As String
+    Dim sSettingEnd     As String
     
     On Error GoTo EH
     '--- ring sale
@@ -1845,10 +1855,21 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If LenB(.InitInvData(ucsInvDocNo)) <> 0 Then
                 Select Case .InitReceiptType
                 Case ucsFscRcpInvoice, ucsFscRcpCreditNote
-                    pvGetCommandConfig CONF_NAME, "InfoInvoiceRangeBeg", 0, 0, sParam, "InvoiceRangeBeg"
-                    pvSettings(sParam) = .InitInvData(ucsInvDocNo)
-                    pvGetCommandConfig CONF_NAME, "InfoInvoiceRangeEnd", 0, 0, sParam, "InvoiceRangeEnd"
-                    pvSettings(sParam) = .InitInvData(ucsInvDocNo)
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
+                    pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, sParam, _
+                        "SettingBeg", sSettingBeg, "InvoiceRangeBeg", _
+                        "SettingEnd", sSettingEnd, "InvoiceRangeEnd"
+                    sParam = Printf(sParam, .InitInvData(ucsInvDocNo), .InitInvData(ucsInvDocNo) + 1)
+                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        '--- try alternative invoice no setup
+                        If pvSettings(sSettingBeg) <> .InitInvData(ucsInvDocNo) Then
+                            pvSettings(sSettingBeg) = .InitInvData(ucsInvDocNo)
+                        End If
+                        If pvSettings(sSettingEnd) <> .InitInvData(ucsInvDocNo) + 1 Then
+                            pvSettings(sSettingEnd) = .InitInvData(ucsInvDocNo) + 1
+                        End If
+                    End If
                 End Select
             End If
             '--- setup fiscal receipt
