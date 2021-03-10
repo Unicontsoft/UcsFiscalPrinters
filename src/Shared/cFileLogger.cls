@@ -246,7 +246,7 @@ Private Function pvOutputLog(sModule As String, sFunction As String, sText As St
         m_nLogFile = nLogFile
     End If
     Print #m_nLogFile, sPrefix & sText & sSuffix
-    If LOF(m_nLogFile) > MAX_FILE_SIZE Or Val(GetEnvironmentVar("_UCS_FISCAL_PRINTER_FLUSH_LOG")) <> 0 Then
+    If LOF(m_nLogFile) > MAX_FILE_SIZE Or Val(Zn(GetEnvironmentVar("_UCS_FISCAL_PRINTER_FLUSH_LOG"), "1")) <> 0 Then
         Close #m_nLogFile
         m_nLogFile = 0
     End If
