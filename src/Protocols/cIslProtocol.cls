@@ -253,7 +253,8 @@ Private Const DEF_MAX_ECR_RECEIPT_ROWS  As Long = 50
 Private Const DEF_MAX_DAISY_RECEIPT_ROWS As Long = 70
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_MAX_CGINFO            As String = "14|24|25|25|14|35|35"  '-- see UcsMaxCgInfoEnum below
+Private Const DEF_MAX_CGINFO            As String = "14|25|25|25|14|31|36"  '-- see UcsMaxCgInfoEnum below
+Private Const DEF_MAX_ECR_CGINFO        As String = "14|36|36|36|14|36|36"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_MAX_REV_REASON        As Long = 30
 Private Const DEF_MAX_ECR_REV_REASON    As Long = 42
@@ -808,9 +809,9 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonItem(oOptions, "DefaultPassword")))
         .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
-        vSplit = Split(DEF_MAX_CGINFO, "|")
+        vSplit = Split(IIf(IsFP, DEF_MAX_CGINFO, DEF_MAX_ECR_CGINFO), "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
-            .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
+            .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, Znl(C_Lng(JsonItem(oOptions, "MaxCgInfo" & lIdx)), C_Lng(vSplit(lIdx))))
         Next
         .MaxOperatorName = GetConfigNumber(sDeviceSerialNo, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
         .MaxRevReason = GetConfigNumber(sDeviceSerialNo, "MaxRevReason", Znl(C_Lng(JsonItem(oOptions, "MaxRevReason")), IIf(IsEcr, DEF_MAX_ECR_REV_REASON, DEF_MAX_REV_REASON)))

@@ -628,7 +628,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .IsEcr = GetConfigNumber(sDeviceSerialNo, "IsEcr", Znl(C_Lng(JsonItem(oOptions, "IsEcr")), vbUseDefault))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
-            .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, C_Lng(vSplit(lIdx)))
+            .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, Znl(C_Lng(JsonItem(oOptions, "MaxCgInfo" & lIdx)), C_Lng(vSplit(lIdx))))
         Next
         .MaxOperatorName = GetConfigNumber(sDeviceSerialNo, "MaxOperatorName", Znl(C_Lng(JsonItem(oOptions, "MaxOperatorName")), DEF_MAX_OPERATOR_NAME))
         Set .ConfigCommands = GetConfigCollection(sDeviceSerialNo, "Commands")
