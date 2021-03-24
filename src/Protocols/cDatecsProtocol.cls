@@ -1392,11 +1392,14 @@ Public Function GetTotalsStats() As Variant
     Dim vSplit          As Variant
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
-        "Index", lIndex, 3
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsDcsCmdInfoTotalsByPayments, sParam, "2" & DEF_SEP, _
+        "Index", lIndex, 1
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
     lReceipts = C_Lng(At(vSplit, lIndex))
-    dLastDate = ParseExtendedDate(At(vSplit, lIndex + 1))
+    pvGetCommandConfig CONF_NAME, "InfoDevice", eCmd, ucsDcsCmdInfoDevice, sParam, "3" & DEF_SEP, _
+        "Index", lIndex, 4
+    vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    dLastDate = ParseExtendedDate(At(vSplit, lIndex))
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
 EH:
