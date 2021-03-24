@@ -14,7 +14,7 @@ Attribute VB_Exposed = True
 Attribute VB_Description = "cFiscalPrinter class is used as a high-level device management component that can instantiate specific device drivers and can be used to call methods of the chatty IDeviceProtocol protocol in batches"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2020 by Unicontsoft
+' UcsFP20 (c) 2008-2021 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -336,7 +336,7 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceiptNo)) <> 0 Then
             If Pad(sPrevReceiptNo, -Len(JsonItem(oRetVal, "PrevReceiptNo"))) <> JsonItem(oRetVal, "PrevReceiptNo") And C_Lng(JsonItem(oJson, "PrevReceiptCount")) <> 0 Then
-                If C_Str(JsonItem(oJson, "PrevReceiptCount")) <> At(oFP.GetTotalsStats(), 0) Then
+                If C_Lng(JsonItem(oJson, "PrevReceiptCount")) < C_Lng(At(oFP.GetTotalsStats(), 0)) Then
                     JsonItem(oRetVal, "PrevReceiptNo") = Empty
                     GoTo ReturnReceiptInfo
                 End If
