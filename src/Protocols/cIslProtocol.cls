@@ -2919,7 +2919,6 @@ Private Function pvGetPmtMapping() As Object
                     GoTo QH
                 End If
                 lTagNo = C_Lng(At(vConfig, lOffset + lIdx))
-                If lTagNo = 8 Then lTagNo = 7
             End If
             Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
                 lTagNo = lTagNo + PMT_STEP
