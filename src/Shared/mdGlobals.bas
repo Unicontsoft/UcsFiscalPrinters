@@ -55,20 +55,10 @@ Private Const ERROR_SEM_TIMEOUT             As Long = 121&
 '--- for GetLocaleInfo
 Private Const LOCALE_USER_DEFAULT           As Long = &H400
 Private Const LOCALE_SDECIMAL               As Long = &HE   ' decimal separator
-'--- windows messages
-Private Const WM_PRINTCLIENT                As Long = &H318
-Private Const WM_MOUSELEAVE                 As Long = &H2A3
 '--- registry
 Private Const REG_SZ                        As Long = 1
 Private Const REG_EXPAND_SZ                 As Long = 2
 Private Const REG_DWORD                     As Long = 4
-'--- for GetOpenFileNameA
-Private Const OFN_HIDEREADONLY              As Long = &H4&
-Private Const OFN_EXTENSIONDIFFERENT        As Long = &H400
-Private Const OFN_CREATEPROMPT              As Long = &H2000&
-Private Const OFN_EXPLORER                  As Long = &H80000
-Private Const OFN_LONGNAMES                 As Long = &H200000
-Private Const OFN_ENABLESIZING              As Long = &H800000
 '--- for VariantChangeType
 Private Const VARIANT_ALPHABOOL             As Long = 2
 
@@ -80,19 +70,12 @@ Private Declare Function QueryDosDevice Lib "kernel32" Alias "QueryDosDeviceA" (
 Private Declare Function CreateFile Lib "kernel32" Alias "CreateFileA" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, ByVal lpSecurityAttributes As Long, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function GetLocaleInfo Lib "kernel32" Alias "GetLocaleInfoA" (ByVal Locale As Long, ByVal LCType As Long, ByVal lpLCData As String, ByVal cchData As Long) As Long
-Private Declare Function DllGetVersion Lib "comctl32" (pdvi As DLLVERSIONINFO) As Long
-Private Declare Function SetWindowSubclass Lib "comctl32" (ByVal hWnd As Long, ByVal pfnSubclass As Long, ByVal uIdSubclass As Long, ByVal dwRefData As Long) As Long
-Private Declare Function DefSubclassProc Lib "comctl32" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
-Private Declare Function DefWindowProc Lib "user32" Alias "DefWindowProcA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
 Private Declare Function RegOpenKeyEx Lib "advapi32" Alias "RegOpenKeyExA" (ByVal hKey As Long, ByVal lpSubKey As String, ByVal ulOptions As Long, ByVal samDesired As Long, phkResult As Long) As Long
 Private Declare Function RegQueryValueEx Lib "advapi32" Alias "RegQueryValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
 Private Declare Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExA" (ByVal hKey As Long, ByVal lpValueName As String, ByVal lpReserved As Long, ByVal dwType As Long, lpData As Any, ByVal cbData As Long) As Long
 Private Declare Function RegCloseKey Lib "advapi32" (ByVal hKey As Long) As Long
 Private Declare Function RegEnumValue Lib "advapi32" Alias "RegEnumValueA" (ByVal hKey As Long, ByVal dwIndex As Long, ByVal lpValueName As String, lpcbValueName As Long, ByVal lpReserved As Long, lpType As Long, lpData As Any, lpcbData As Long) As Long
-Private Declare Function APIGetSystemDirectory Lib "kernel32" Alias "GetSystemDirectoryA" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Private Declare Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsA" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
-Private Declare Function GetOpenFileName Lib "comdlg32" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
-Private Declare Function ApiEmptyDoubleArray Lib "oleaut32" Alias "SafeArrayCreateVector" (Optional ByVal vt As VbVarType = vbDouble, Optional ByVal lLow As Long = 0, Optional ByVal lCount As Long = 0) As Double()
 Private Declare Function IsTextUnicode Lib "advapi32" (lpBuffer As Any, ByVal cb As Long, lpi As Long) As Long
 Private Declare Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesA" (ByVal lpFileName As String) As Long
 Private Declare Function VariantChangeType Lib "oleaut32" (vDest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As Long) As Long
@@ -103,32 +86,6 @@ Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCo
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
 
-Private Type OPENFILENAME
-    lStructSize         As Long     ' size of type/structure
-    hWndOwner           As Long     ' Handle of owner window
-    hInstance           As Long
-    lpstrFilter         As Long     ' Filters used to select files
-    lpstrCustomFilter   As Long
-    nMaxCustomFilter    As Long
-    nFilterIndex        As Long     ' index of Filter to start with
-    lpstrFile           As Long     ' Holds filepath and name
-    nMaxFile            As Long     ' Maximum Filepath and name length
-    lpstrFileTitle      As Long     ' Filename
-    nMaxFileTitle       As Long     ' Max Length of filename
-    lpstrInitialDir     As Long     ' Starting Directory
-    lpstrTitle          As Long     ' Title of window
-    Flags               As Long
-    nFileOffset         As Integer
-    nFileExtension      As Integer
-    lpstrDefExt         As Long
-    lCustData           As Long
-    lpfnHook            As Long
-    lpTemplateName      As Long
-    pvReserved          As Long
-    dwReserved          As Long
-    FlagsEx             As Long
-End Type
-
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
     dwMajorVersion      As Long
@@ -136,14 +93,6 @@ Private Type OSVERSIONINFO
     dwBuildNumber       As Long
     dwPlatformID        As Long
     szCSDVersion        As String * 128      '  Maintenance string for PSS usage
-End Type
-
-Private Type DLLVERSIONINFO
-    cbSize              As Long
-    dwMajor             As Long
-    dwMinor             As Long
-    dwBuildNumber       As Long
-    dwPlatformID        As Long
 End Type
 
 Private Type VBGUID
@@ -276,16 +225,6 @@ Public Property Get At(vData As Variant, ByVal lIdx As Long, Optional sDefault A
         End If
         If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
             At = C_Str(vData(lIdx))
-        End If
-    End If
-QH:
-End Property
-
-Public Property Let ValueAt(vData As Variant, ByVal lIdx As Long, vValue As Variant)
-    On Error GoTo QH
-    If IsArray(vData) Then
-        If LBound(vData) <= lIdx And lIdx <= UBound(vData) Then
-            vData(lIdx) = vValue
         End If
     End If
 QH:
@@ -700,58 +639,6 @@ Public Function SumArray(vArray As Variant) As Double
     Next
 End Function
 
-Public Function IsComCtl6Loaded() As Boolean
-    Dim uVer            As DLLVERSIONINFO
-    
-    uVer.cbSize = Len(uVer)
-    Call DllGetVersion(uVer)
-    IsComCtl6Loaded = (uVer.dwMajor >= 6)
-End Function
-
-Public Function FixThemeSupport(oControls As Object) As Boolean
-    Const FUNC_NAME     As String = "FixThemeSupport"
-    Dim oCtl            As Object
-    
-    On Error GoTo EH
-    If IsComCtl6Loaded() Then
-        For Each oCtl In oControls
-            If TypeOf oCtl Is VB.Frame Then
-                SetWindowSubclass oCtl.hWnd, AddressOf pvRedirectFrame, 0, 0
-            End If
-        Next
-        '--- success
-        FixThemeSupport = True
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Function pvRedirectFrame( _
-            ByVal hWnd As Long, _
-            ByVal wMsg As Long, _
-            ByVal wParam As Long, _
-            ByVal lParam As Long, _
-            ByVal uIdSubclass As Long, _
-            ByVal dwRefData As Long) As Long
-    Const FUNC_NAME     As String = "pvRedirectFrame"
-    
-    On Error GoTo EH
-    #If uIdSubclass And dwRefData Then '--- touch args
-    #End If
-    Select Case wMsg
-    Case WM_PRINTCLIENT, WM_MOUSELEAVE
-        pvRedirectFrame = DefWindowProc(hWnd, wMsg, wParam, lParam)
-    Case Else
-        pvRedirectFrame = DefSubclassProc(hWnd, wMsg, wParam, lParam)
-    End Select
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
 Public Function RegReadString(ByVal hRoot As UcsRegistryRootsEnum, sKey As String, sValue As String) As String
     Dim hKey            As Long
     Dim lType           As Long
@@ -827,47 +714,6 @@ Public Function RegEnumValues(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
     RegEnumValues = vRetVal
 End Function
 
-Public Function GetSystemDirectory() As String
-    GetSystemDirectory = String$(1000, 0)
-    APIGetSystemDirectory GetSystemDirectory, Len(GetSystemDirectory) - 1
-    GetSystemDirectory = Left$(GetSystemDirectory, InStr(GetSystemDirectory, vbNullChar) - 1)
-End Function
-
-Public Function OpenSaveDialog(ByVal hWndOwner As Long, ByVal sFilter As String, ByVal sTitle As String, sFile As String) As Boolean
-    Const FUNC_NAME     As String = "OpenSaveDialog"
-    Dim uOFN            As OPENFILENAME
-    Dim sBuffer         As String
-    Dim baFilter()      As Byte
-    Dim baTitle()       As Byte
-    
-    On Error GoTo EH
-    baFilter = ToAscii(Replace(sFilter, "|", vbNullChar))
-    baTitle = ToAscii(sTitle)
-    sBuffer = String$(1000, 0)
-    If OsVersion >= 500 Then
-        uOFN.lStructSize = Len(uOFN)
-    Else
-        uOFN.lStructSize = Len(uOFN) - 12
-    End If
-    uOFN.Flags = OFN_LONGNAMES Or OFN_CREATEPROMPT Or OFN_HIDEREADONLY Or OFN_EXTENSIONDIFFERENT Or OFN_EXPLORER Or OFN_ENABLESIZING
-    uOFN.hWndOwner = hWndOwner
-    uOFN.lpstrFilter = VarPtr(baFilter(0))
-    uOFN.nFilterIndex = 1
-    uOFN.lpstrTitle = VarPtr(baTitle(0))
-    uOFN.lpstrFile = StrPtr(sBuffer)
-    uOFN.nMaxFile = Len(sBuffer)
-    If GetOpenFileName(uOFN) <> 0 Then
-        sFile = StrConv(sBuffer, vbUnicode)
-        sFile = Left$(sFile, InStr(sFile, vbNullChar) - 1)
-        '--- success
-        OpenSaveDialog = True
-    End If
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
 Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal sFill As String) As String
     If LenB(sFill) = 0 Then
         sFill = IIf(lSize > 0, " ", "0")
@@ -879,10 +725,6 @@ Public Function Pad(ByVal sText As String, ByVal lSize As Long, Optional ByVal s
     End If
 End Function
 
-Public Function EmptyDoubleArray() As Double()
-    EmptyDoubleArray = ApiEmptyDoubleArray()
-End Function
-
 Public Function FileExists(sFile As String) As Boolean
     If GetFileAttributes(sFile) = -1 Then ' INVALID_FILE_ATTRIBUTES
     Else
@@ -891,8 +733,8 @@ Public Function FileExists(sFile As String) As Boolean
 End Function
 
 Public Function ReadTextFile(sFile As String) As String
-    Const BOM_UTF       As String = "ï»¿" '--- "\xEF\xBB\xBF"
-    Const BOM_UNICODE   As String = "ÿþ"  '--- "\xFF\xFE"
+    Dim BOM_UTF8      As String: BOM_UTF8 = Chr$(&HEF) & Chr$(&HBB) & Chr$(&HBF)
+    Dim BOM_UNICODE   As String: BOM_UNICODE = Chr$(&HFF) & Chr$(&HFE)
     Const ForReading    As Long = 1
     Dim lSize           As Long
     Dim sPrefix         As String
@@ -903,13 +745,13 @@ Public Function ReadTextFile(sFile As String) As String
             Exit Function
         End If
         sPrefix = .OpenTextFile(sFile, ForReading).Read(IIf(lSize < 50, lSize, 50))
-        If Left$(sPrefix, Len(BOM_UTF)) <> BOM_UTF And Left$(sPrefix, Len(BOM_UNICODE)) <> BOM_UNICODE Then
+        If Left$(sPrefix, Len(BOM_UTF8)) <> BOM_UTF8 And Left$(sPrefix, Len(BOM_UNICODE)) <> BOM_UNICODE Then
             '--- special xml encoding test
             If InStr(1, sPrefix, "<?xml", vbTextCompare) > 0 And InStr(1, sPrefix, "utf-8", vbTextCompare) > 0 Then
-                sPrefix = BOM_UTF
+                sPrefix = BOM_UTF8
             End If
         End If
-        If Left$(sPrefix, Len(BOM_UTF)) <> BOM_UTF Then
+        If Left$(sPrefix, Len(BOM_UTF8)) <> BOM_UTF8 Then
             On Error GoTo QH
             ReadTextFile = .OpenTextFile(sFile, ForReading, False, Left$(sPrefix, Len(BOM_UNICODE)) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0).ReadAll()
         Else
@@ -917,7 +759,7 @@ Public Function ReadTextFile(sFile As String) As String
                 .Open
                 If Left$(sPrefix, Len(BOM_UNICODE)) = BOM_UNICODE Then
                     .Charset = "Unicode"
-                ElseIf Left$(sPrefix, Len(BOM_UTF)) = BOM_UTF Then
+                ElseIf Left$(sPrefix, Len(BOM_UTF8)) = BOM_UTF8 Then
                     .Charset = "UTF-8"
                 Else
                     .Charset = "_autodetect_all"
@@ -1297,30 +1139,6 @@ QH:
         RetVal = Array(hResult, uInfo.sCode, uInfo.Description, uInfo.Source)
     End If
 End Function
-
-Public Function DispPropertyGet(pDisp As Object, PropName As String, Optional RetVal As Variant) As Variant
-    If DispInvoke(pDisp, PropName, VbMethod Or VbGet, RetVal:=RetVal) Then
-        AssignVariant DispPropertyGet, RetVal
-    End If
-End Function
-
-Public Property Get LockControl(oCtl As Object) As Boolean
-    Dim vResult         As Variant
-    
-    If DispInvoke(oCtl, "Locked", RetVal:=vResult) Then
-        LockControl = vResult
-    ElseIf DispInvoke(oCtl, "Enabled", RetVal:=vResult) Then
-        LockControl = Not vResult
-    End If
-End Property
-
-Public Property Let LockControl(oCtl As Object, ByVal bValue As Boolean)
-    If DispInvoke(oCtl, "Locked", VbLet, Args:=bValue) Or TypeOf oCtl Is ListBox Then
-        DispInvoke oCtl, "BackColor", VbLet, Args:=IIf(bValue, vbButtonFace, vbWindowBackground)
-    Else
-        DispInvoke oCtl, "Enabled", VbLet, Args:=Not bValue
-    End If
-End Property
 
 Public Function ParseSum(sValue As String) As Double
     If InStr(sValue, ".") > 0 Then
