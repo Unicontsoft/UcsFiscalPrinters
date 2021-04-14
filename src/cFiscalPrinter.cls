@@ -508,7 +508,7 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
         DebugLog FUNC_NAME, "Not bResult, sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
         GoTo QH
     End If
-    If LenB(sReceiptNo) And dReceiptDate = 0 Then
+    If LenB(sReceiptNo) = 0 And dReceiptDate = 0 Then
         sReceiptNo = oFP.GetLastReceiptNo()
         dReceiptDate = oFP.GetClock()
     End If
@@ -743,7 +743,7 @@ Public Function PrintServiceDeposit(sRequest As String, sResponse As String) As 
         GoTo QH
     End If
     If Abs(C_Dbl(JsonItem(oJson, "Amount"))) > DBL_EPSILON Then
-        If LenB(sReceiptNo) And dReceiptDate = 0 Then
+        If LenB(sReceiptNo) = 0 And dReceiptDate = 0 Then
             sReceiptNo = oFP.GetLastReceiptNo()
             dReceiptDate = oFP.GetClock()
         End If
