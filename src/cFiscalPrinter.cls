@@ -93,7 +93,7 @@ Private Const STR_PROXY_INTERNAL        As String = "Устройството не е намерено|
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка от %1: %2|Време за достъп изтече в очакване на отговор"
 Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 '--- enums texts
-Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packing|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
+Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packaging|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
 Private Const STR_ENUM_RECEIPT_TYPE     As String = "|Sale|Reversal|Invoice|CreditNote|OrderList"
 Private Const STR_ENUM_CGTAXNO_TYPE     As String = "EIC|CitizenNo|ForeignerNo|OfficialNo"
 Private Const STR_ENUM_REVERSAL_TYPE    As String = "OperatorError|Refund|TaxBaseReduction"
