@@ -342,6 +342,8 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
     m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    '--- success
+    PrintMonthlyReport = True
 QH:
     Exit Function
 EH:
@@ -368,6 +370,8 @@ Public Function PrintDailyReport(ByVal IsClear As Boolean, ByVal ReportType As U
     m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
     m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
     m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    '--- success
+    PrintDailyReport = True
 QH:
     Exit Function
 EH:
