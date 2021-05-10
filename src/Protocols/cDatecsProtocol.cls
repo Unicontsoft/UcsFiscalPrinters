@@ -1626,7 +1626,7 @@ RetryParse:
         If Status(ucsDcsStbGeneralError) Then
             Error = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
         End If
-        DebugLog Zn(LogName, FUNC_NAME), "RetVal=" & pvRawSendCommand & _
+        DebugLog Zn(LogName, FUNC_NAME), "RetVal=" & pvRawSendCommand & pvToErrorCode(pvRawSendCommand) & _
             IIf(Status(ucsDcsStbGeneralError), ", ErrorText=" & Error, vbNullString) & _
             IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory))), vbNullString)
     Else
@@ -2313,20 +2313,28 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Function pvToErrorCode(sCode As String) As String
+Private Function pvToErrorCode(ByVal sCode As String) As String
     Const FUNC_NAME     As String = "pvToErrorCode"
-    Dim vSplit          As Variant
+    Static vSplit       As Variant
     Dim lIdx            As Long
     
     On Error GoTo EH
-    vSplit = Split(STR_ERROR_CODES, "|")
-    For lIdx = 0 To UBound(vSplit) - 1 Step 2
-        If sCode = At(vSplit, lIdx) Then
-            pvToErrorCode = At(vSplit, lIdx + 1)
-            Exit Function
-        End If
-    Next
-    pvToErrorCode = "Error " & sCode
+    If Not IsArray(vSplit) Then
+        vSplit = Split(STR_ERROR_CODES, "|")
+    End If
+    lIdx = InStr(sCode, DEF_SEP)
+    If lIdx > 1 Then
+        sCode = Left$(sCode, lIdx - 1)
+    End If
+    If C_Lng(sCode) <> 0 Then
+        For lIdx = 0 To UBound(vSplit) - 1 Step 2
+            If sCode = At(vSplit, lIdx) Then
+                pvToErrorCode = At(vSplit, lIdx + 1)
+                Exit Function
+            End If
+        Next
+        pvToErrorCode = "Error " & sCode
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
