@@ -1820,7 +1820,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
         vSplit = Split(Replace(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), vbLf, DEF_SEP), DEF_SEP)
         If UBound(vSplit) > 0 Then
             GetDepartmentName = RTrim$(At(vSplit, lIndex))
-            TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+            TaxGroup = Limit(AscW(At(vSplit, lTaxIndex) & " ") - 1039, 0, 8)
         End If
     Else
         pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdInfoDepartment, sParam, "%1", _
@@ -1830,7 +1830,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
         vSplit = Split(Mid$(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), 2), DEF_SEP)
         If UBound(vSplit) > 0 Then
             GetDepartmentName = RTrim$(At(vSplit, lIndex))
-            TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+            TaxGroup = Limit(AscW(At(vSplit, lTaxIndex) & " ") - 1039, 0, 8)
         End If
     End If
     Exit Function
@@ -2470,7 +2470,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 If .PluDepartmentNo <> 0 Then
                     sData = sData & vbTab & .PluDepartmentNo & vbTab
                 Else
-                    sData = sData & vbTab & Chr$(191 + .PluTaxGroup)
+                    sData = sData & vbTab & ChrW$(1039 + .PluTaxGroup)
                 End If
                 sData = sData & SafeFormat(.PluPrice, sFormatPrice)
                 sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
@@ -2510,7 +2510,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & ChrW$(1039 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                     SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
                                 GoTo QH
                             End If

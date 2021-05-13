@@ -1615,7 +1615,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
     End If
     '--- success
     GetDepartmentName = RTrim$(At(vSplit, lIndex))
-    TaxGroup = Limit(Asc(At(vSplit, lTaxIndex) & " ") - 191, 0, 8)
+    TaxGroup = Limit(AscW(At(vSplit, lTaxIndex) & " ") - 1039, 0, 8)
 QH:
     Exit Function
 EH:
@@ -2066,7 +2066,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If .PluDepartmentNo <> 0 Then
                 sData = sData & DEF_SEP & Chr$(&H80 + .PluDepartmentNo) & DEF_SEP
             Else
-                sData = sData & DEF_SEP & Chr$(191 + .PluTaxGroup) & DEF_SEP
+                sData = sData & DEF_SEP & ChrW$(1039 + .PluTaxGroup) & DEF_SEP
             End If
             If Abs(.PluQuantity) > DBL_EPSILON Then
                 sData = sData & SafeFormat(.PluPrice, sFormatPrice)
@@ -2103,7 +2103,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & Chr$(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & ChrW$(1039 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                     SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
                                 GoTo QH
                             End If

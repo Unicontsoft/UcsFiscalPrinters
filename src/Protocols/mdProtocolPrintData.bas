@@ -587,7 +587,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             If Not uData.Config.NegativePrices And dblPrice < DBL_EPSILON Then '--- less than or *equal to* 0 (dblPrice <= 0)
                 vSplit = WrapText(uData.Row(lRow).PluItemName, uData.Config.ItemChars)
                 lIdx = Clamp(UBound(vSplit), , 1)
-                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & Chr$(191 + uData.Row(lRow).PluTaxGroup), uData.Config.CommentChars)
+                vSplit(lIdx) = AlignText(vSplit(lIdx), SafeFormat(dblTotal + dblDiscTotal, FORMAT_BASE_2) & " " & ChrW$(1039 + uData.Row(lRow).PluTaxGroup), uData.Config.CommentChars)
                 uData.Row(lRow).RowType = ucsRowLine
                 uData.Row(lRow).LineText = vSplit(0)
                 If lIdx > 0 Then
@@ -709,7 +709,7 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
         '--- append fiscal rows for GrpTotal by VAT groups
         For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
             If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                PpdAddPLU uData, Printf(Zn(uData.LocalizedText.TxtPluSales, TXT_PLUSALES), Chr$(191 + lIdx)), _
+                PpdAddPLU uData, Printf(Zn(uData.LocalizedText.TxtPluSales, TXT_PLUSALES), ChrW$(1039 + lIdx)), _
                     uCtx.GrpTotal(lIdx), TaxGroup:=lIdx, BeforeIndex:=lRow
                 lRow = lRow + 1
             End If

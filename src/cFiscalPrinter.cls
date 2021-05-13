@@ -963,7 +963,7 @@ EH:
 End Function
 
 Private Function pvGetTaxGroup(sTaxGroup As String) As Long
-    pvGetTaxGroup = Asc(sTaxGroup & " ") - 191 '--- 191 = Asc("À") - 1
+    pvGetTaxGroup = AscW(sTaxGroup & " ") - 1039 '--- 1039 = AscW("À") - 1
     If pvGetTaxGroup < MIN_TAX_GROUP Or pvGetTaxGroup > MAX_TAX_GROUP Then
         pvGetTaxGroup = C_Lng(sTaxGroup)
         If pvGetTaxGroup < MIN_TAX_GROUP Or pvGetTaxGroup > MAX_TAX_GROUP Then
