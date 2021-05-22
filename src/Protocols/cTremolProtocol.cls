@@ -520,8 +520,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If UBound(vPorts) < 0 Then
         GoTo QH
     End If
-    baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_TREMOL, "ProbeText", Chr$(ucsZekCmdFastIsReady)), m_uConfig.CodePage)
-    sReplyText = GetConfigValue(STR_PROTOCOL_TREMOL, "ReplyText", Chr$(ucsZekCmdFastIsReady))
+    baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_TREMOL, "ProbeText", pvChr(ucsZekCmdFastIsReady)), m_uConfig.CodePage)
+    sReplyText = GetConfigValue(STR_PROTOCOL_TREMOL, "ReplyText", pvChr(ucsZekCmdFastIsReady))
     lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_TREMOL, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -742,6 +742,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
     Dim sCurrent        As String
     Dim sOuter          As String
     Dim lIter           As Long
+    Dim lReadyStatus    As Long
     Dim lDelay          As Long
     
     On Error GoTo EH
@@ -754,16 +755,16 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
             "Status", lStatus, ucsZekCmdFastIsOnline
         sOuter = pvRawSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, FUNC_NAME, Error:=sError)
         Do While LenB(sOuter) <> 0
-            Select Case Asc(sOuter)
-            Case lStatus
+            Select Case pvAsc(sOuter)
+            Case lStatus '--- ucsZekCmdFastIsOnline
                 lIter = lIter + 1
                 pvGetCommandConfig CONF_NAME, "FastStatus", eCmd, ucsZekCmdFastStatus, sParam, vbNullString, _
-                    "ReadyStatus", lStatus, STA_READY, _
+                    "ReadyStatus", lReadyStatus, STA_READY, _
                     "Delay", lDelay, 40
                 sCurrent = pvRawSendCommand(m_oConnector, pvPingTimeout, eCmd, sParam, FUNC_NAME, Error:=sError)
                 Do While LenB(sCurrent) <> 0
-                    Select Case Asc(sCurrent)
-                    Case lStatus '--- STA_READY
+                    Select Case pvAsc(sCurrent)
+                    Case lReadyStatus '--- STA_READY
                         '--- success
                         WaitDevice = True
                         If lIter > 2 Then
@@ -1683,16 +1684,16 @@ RetrySend:
     End If
     '--- prepare command
     If eCmd <= [_ucsZekCmdFastMax] Then
-        sText = Chr$(eCmd)
+        sText = pvChr(eCmd)
     ElseIf eCmd = ucsZekCmdInitLogo Or eCmd = ucsZekCmdInitLogoByNum Then
-        sText = Chr$(ZFP_STX) & Chr$(&H39) & Chr$(&H37) & Chr$(eCmd) & Data
+        sText = pvChr(ZFP_STX) & pvChr(&H39) & pvChr(&H37) & pvChr(eCmd) & Data
         lTimeout = 60000
     Else
-        sText = Chr$(ZFP_STX) & Chr$(ZFP_BASEDATA + 3 + Len(Data)) & Chr$(m_lSequence) & Chr$(eCmd) & Data
+        sText = pvChr(ZFP_STX) & pvChr(ZFP_BASEDATA + 3 + Len(Data)) & pvChr(m_lSequence) & pvChr(eCmd) & Data
         '--- increment sequence
         m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
         '--- append checksum and terminator
-        sText = sText & pvCheckSum(sText) & Chr$(ZFP_ETX)
+        sText = sText & pvCheckSum(sText) & pvChr(ZFP_ETX)
     End If
     '--- send request
     DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sText
@@ -1723,11 +1724,11 @@ RetrySend:
         End If
 RetryParse:
         If LenB(sText) <> 0 Then
-            Select Case Asc(sText)
+            Select Case pvAsc(sText)
             Case ZFP_STX            ' &H2
                 '--- check if response complete
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then      ' &HA
-                    lSize = Asc(Mid$(sText, 2, 1)) - ZFP_BASEDATA - 3
+                If Len(sText) > 6 And pvAsc(Right$(sText, 1)) = ZFP_ETX Then    ' &HA
+                    lSize = pvAsc(Mid$(sText, 2, 1)) - ZFP_BASEDATA - 3
                     '--- check message length
                     If Len(sText) - 7 <> lSize Then
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
@@ -1745,7 +1746,7 @@ RetryParse:
                     Exit Do
                 End If
             Case ZFP_ACK            ' &H6
-                If Len(sText) > 6 And Asc(Right$(sText, 1)) = ZFP_ETX Then      ' &HA
+                If Len(sText) > 6 And pvAsc(Right$(sText, 1)) = ZFP_ETX Then    ' &HA
                     lSize = Len(sText) - 5
                     '--- parse respone
                     sText = Mid$(sText, 3, lSize)
@@ -1754,8 +1755,8 @@ RetryParse:
                         Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
                         Exit Do
                     End If
-                    m_eError = Asc(Mid$(sText, 1)) - &H30
-                    m_eStatus = Asc(Mid$(sText, 2)) - &H30
+                    m_eError = pvAsc(Mid$(sText, 1)) - &H30
+                    m_eStatus = pvAsc(Mid$(sText, 2)) - &H30
                     If m_eError <> 0 Or m_eStatus <> 0 Then
                         DebugLog Zn(LogName, FUNC_NAME), "eCmd=&H" & Hex$(eCmd) & IIf(LenB(StatusText) <> 0, ", StatusText=" & StatusText, vbNullString) & _
                             IIf(LenB(ErrorText) <> 0, ", ErrorText=" & ErrorText, vbNullString) & ", Received=0x" & ToHexDump(sText)
@@ -1776,8 +1777,8 @@ RetryParse:
                 If eCmd <= [_ucsZekCmdFastMax] Then
                     pvRawSendCommand = Right$(sText, 1)
                 Else
-                    lIdx = InStr(sText, Chr$(ZFP_STX))
-                    lIdx = Clamp(InStr(sText, Chr$(ZFP_ACK)), , Znl(lIdx, 2147483647))
+                    lIdx = InStr(sText, pvChr(ZFP_STX))
+                    lIdx = Clamp(InStr(sText, pvChr(ZFP_ACK)), , Znl(lIdx, 2147483647))
                     If lIdx > 1 Then
                         DebugLog Zn(LogName, FUNC_NAME), "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
                         sText = Mid$(sText, lIdx)
@@ -1995,7 +1996,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Pad(.InitOperatorPassword, m_uConfig.MaxOperPassword), _
                 IIf(m_uConfig.DetailedReceipt, 1, 0), _
                 IIf(m_uConfig.PrintVat, 1, 0), _
-                Chr$(IIf(.InitDisablePrinting, 8, IIf(m_uConfig.DelayPrint, 2, 0) Or IIf(m_uConfig.BufferPrint, 4, 0)) Or lPrintType), _
+                pvChr(IIf(.InitDisablePrinting, 8, IIf(m_uConfig.DelayPrint, 2, 0) Or IIf(m_uConfig.BufferPrint, 4, 0)) Or lPrintType), _
                 Pad(.InitInvData(ucsInvCgName), m_uConfig.MaxCompany) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgPrsReceive), m_uConfig.MaxPrsReceive) & _
                     DEF_SEP & Pad(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxVatNo) & _
@@ -2064,9 +2065,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             Next
             sData = Pad(At(vSplit, UBound(vSplit)), m_uConfig.MaxPluName)
             If .PluDepartmentNo <> 0 Then
-                sData = sData & DEF_SEP & Chr$(&H80 + .PluDepartmentNo) & DEF_SEP
+                sData = sData & DEF_SEP & pvChr(&H80 + .PluDepartmentNo) & DEF_SEP
             Else
-                sData = sData & DEF_SEP & ChrW$(1039 + .PluTaxGroup) & DEF_SEP
+                sData = sData & DEF_SEP & pvChr(191 + .PluTaxGroup) & DEF_SEP
             End If
             If Abs(.PluQuantity) > DBL_EPSILON Then
                 sData = sData & SafeFormat(.PluPrice, sFormatPrice)
@@ -2103,7 +2104,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & ChrW$(1039 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & pvChr(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                     SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
                                 GoTo QH
                             End If
@@ -2266,7 +2267,7 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
             Exit Do
         End If
     Loop While TimerEx < dblTimerEx
-    If InStr(sCurrent, Chr$(lStatus)) = 0 Then
+    If InStr(sCurrent, pvChr(lStatus)) = 0 Then
         Error = pvInternal(ucsErrDeviceNotOnline)
         GoTo QH
     End If
@@ -2284,7 +2285,7 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
         End If
     Loop While TimerEx < dblTimerEx
     Do While LenB(sCurrent) <> 0
-        Select Case Asc(sCurrent)
+        Select Case pvAsc(sCurrent)
         Case lStatus '--- STA_READY
             '--- success
             pvRawIsDeviceReady = True
@@ -2301,7 +2302,7 @@ Private Function pvRawIsDeviceReady(oConnector As IDeviceConnector, ByVal lTimeo
             pvRawIsDeviceReady = False
         Case Else
             If LenB(Error) = 0 Then
-                Error = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrUnknown) & " " & Asc(sCurrent)
+                Error = At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrUnknown) & " " & pvAsc(sCurrent)
                 pvRawIsDeviceReady = False
             End If
         End Select
@@ -2536,10 +2537,18 @@ Private Function pvCheckSum(sText As String) As String
     For lIdx = 1 To Len(sText) - 1
         lSum = lSum Xor baText(lIdx)
     Next
-    pvCheckSum = Chr$((lSum \ &H10 Mod &H10) + &H30) & Chr$((lSum \ &H1 Mod &H10) + &H30)
+    pvCheckSum = pvChr((lSum \ &H10 Mod &H10) + &H30) & pvChr((lSum \ &H1 Mod &H10) + &H30)
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+Private Function pvChr(ByVal lChar As Long) As String
+    pvChr = FromAsciiChar(lChar, m_uConfig.CodePage)
+End Function
+
+Private Function pvAsc(sText As String) As Long
+    pvAsc = ToAsciiChar(sText, m_uConfig.CodePage)
 End Function
 
 '=========================================================================
@@ -2555,6 +2564,7 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciPrinterErrors) = STR_ERRORS
     LocalizedText(ucsFscLciReceiptTexts) = STR_RECEIPT_TEXTS
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_TREMOL, "Commands")
+    m_uConfig.CodePage = DEF_CODEPAGE
 End Sub
 
 '=========================================================================

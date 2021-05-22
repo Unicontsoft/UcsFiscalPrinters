@@ -277,8 +277,8 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                     If Not .Connector Is Nothing Then
                         sCmd = STR_ESC & "@"            '--- Initialize printer
                         '--- STR_GS & "I1"
-                        sCmd = STR_GS & "r" & Chr$(1)   '--- Transmits paper sensor status
-                        .Connector.WriteData ToAscii(sCmd), 1
+                        sCmd = STR_GS & "r" & pvChr(1)  '--- Transmits paper sensor status
+                        .Connector.WriteData ToAscii(sCmd, m_lCodePage), 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
                         lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
@@ -332,8 +332,8 @@ Private Function pvRawGetAutodetectInfo(oConnector As IDeviceConnector, ByVal lI
     Dim lRepeat         As Long
     
 Repeat:
-    sCmd = STR_GS & "I" & Chr$(lIndex)
-    If oConnector.WriteData(ToAscii(sCmd), 100) Then
+    sCmd = STR_GS & "I" & pvChr(lIndex)
+    If oConnector.WriteData(ToAscii(sCmd, m_lCodePage), 100) Then
         If oConnector.ReadData(baBuffer, 100) Then
             If baBuffer(0) = 95 Then
                 sRetVal = Mid$(StrConv(baBuffer, vbUnicode), 2)
@@ -406,10 +406,10 @@ Public Function Connect() As Boolean
     End If
     sCmd = STR_ESC & "@"                        '--- Initialize printer
     If m_lCodePage = 866 Then
-        sCmd = sCmd & STR_ESC & "t" & Chr$(17)  '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
+        sCmd = sCmd & STR_ESC & "t" & pvChr(17) '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
     End If
     sCmd = sCmd & STR_ESC & "M" & vbNullChar       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
@@ -447,8 +447,8 @@ Public Function OpenDrawer() As Boolean
     Dim sCmd            As String
     
     '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
-    sCmd = STR_ESC & "p" & vbNullChar & Chr$(25) & Chr$(250)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
+    sCmd = STR_ESC & "p" & vbNullChar & pvChr(25) & pvChr(250)
+    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -477,8 +477,8 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Dim sCmd            As String
     Dim baBuffer()      As Byte
     
-    sCmd = STR_GS & "r" & Chr$(1)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
+    sCmd = STR_GS & "r" & pvChr(1)
+    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
         StatusText = m_oConnector.GetLastError()
         GetDeviceStatus = ucsFscStaFailed
         GoTo QH
@@ -551,8 +551,8 @@ Private Function pvSendPaperFeed(Optional ByVal Lines As Long = 1) As Boolean
     Dim sCmd            As String
     
     DebugLog FUNC_NAME, "Lines=" & Lines
-    sCmd = STR_ESC & "d" & Chr$(Lines)
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
+    sCmd = STR_ESC & "d" & pvChr(Lines)
+    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -568,9 +568,9 @@ Private Function pvSendPaperCut(Optional ByVal Full As Boolean = True, Optional 
     DebugLog FUNC_NAME, "Full=" & Full & ", Lines=" & Lines
     sCmd = STR_GS & "V" & IIf(Full, "A" & vbNullChar, "0")
     If Lines > 0 Then
-        sCmd = sCmd & STR_ESC & "d" & Chr$(Lines)
+        sCmd = sCmd & STR_ESC & "d" & pvChr(Lines)
     End If
-    If Not m_oConnector.WriteData(ToAscii(sCmd), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -684,7 +684,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         End If
                         vSplit(lIdx) = AlignText(vSplit(lIdx), sData, pvCommentChars - 2)
                     End If
-                    vSplit(UBound(vSplit)) = AlignText(vSplit(UBound(vSplit)), " " & SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvCommentChars)
+                    vSplit(UBound(vSplit)) = AlignText(vSplit(UBound(vSplit)), " " & SafeFormat(dblTotal, sFormatAmount) & " " & ChrW$(1039 + .PluTaxGroup), pvCommentChars)
                     pvPrintLine vSplit
                 Else
                     vSplit = WrapMultiline(.PluItemName, pvCommentChars - 2)
@@ -698,12 +698,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     Next
                     pvPrintLine AlignText(pvText(ucsTxtPluPrice), SafeFormat(.PluPrice, sFormatPrice), pvCommentChars - 2)
                     pvPrintLine AlignText(pvText(ucsTxtPluQuantity), SafeFormat(.PluQuantity, sFormatQty), pvCommentChars - 2)
-                    pvPrintLine AlignText(pvText(ucsTxtPluTotal), SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvCommentChars)
+                    pvPrintLine AlignText(pvText(ucsTxtPluTotal), SafeFormat(dblTotal, sFormatAmount) & " " & ChrW$(1039 + .PluTaxGroup), pvCommentChars)
                 End If
                 Select Case .DiscType
                 Case ucsFscDscPlu, ucsFscDscPluAbs
                     sData = AlignText(Printf(IIf(dblDisc > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), IIf(.DiscType = ucsFscDscPlu, SafeFormat(Abs(.DiscValue), sFormatDisc) & " %", vbNullString)), _
-                        SafeFormat(dblDisc, sFormatAmount) & " " & Chr$(191 + .PluTaxGroup), pvCommentChars)
+                        SafeFormat(dblDisc, sFormatAmount) & " " & ChrW$(1039 + .PluTaxGroup), pvCommentChars)
                     pvPrintLine sData
                 End Select
             End Select
@@ -718,7 +718,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                         dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
                         pvPrintLine AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), SafeFormat(Abs(.DiscValue), sFormatDisc) & " %"), _
-                            SafeFormat(dblTotal, sFormatAmount) & " " & Chr$(191 + lIdx), pvCommentChars)
+                            SafeFormat(dblTotal, sFormatAmount) & " " & ChrW$(1039 + lIdx), pvCommentChars)
                     End If
                 Next
             Case Else
@@ -789,8 +789,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                                     dblTotal = Round(uCtx.GrpTotal(lIdx) - uCtx.GrpTotal(lIdx) / (1 + C_Dbl(At(vSplit, lIdx - 1)) / 100#), DEF_PRICE_SCALE)
                                     '--- then, calc TaxBase = Total - VAT
                                     dblTotal = Round(uCtx.GrpTotal(lIdx) - dblTotal, DEF_PRICE_SCALE)
-                                    pvPrintLine AlignText(Printf(pvText(ucsTxtGroupTotal), Chr$(191 + lIdx)), SafeFormat(uCtx.GrpTotal(lIdx), sFormatAmount), pvCommentChars - 2)
-                                    pvPrintLine AlignText(Printf(pvText(ucsTxtGroupVat), Chr$(191 + lIdx), SafeFormat(C_Dbl(At(vSplit, lIdx - 1)), sFormatAmount) & "%"), _
+                                    pvPrintLine AlignText(Printf(pvText(ucsTxtGroupTotal), ChrW$(1039 + lIdx)), SafeFormat(uCtx.GrpTotal(lIdx), sFormatAmount), pvCommentChars - 2)
+                                    pvPrintLine AlignText(Printf(pvText(ucsTxtGroupVat), ChrW$(1039 + lIdx), SafeFormat(C_Dbl(At(vSplit, lIdx - 1)), sFormatAmount) & "%"), _
                                         SafeFormat(Round(uCtx.GrpTotal(lIdx) - dblTotal, DEF_PRICE_SCALE), sFormatAmount), pvCommentChars - 2)
                                     pvPrintLine AlignText(pvText(ucsTxtGroupNetto), SafeFormat(dblTotal, sFormatAmount), pvCommentChars - 2)
                                 End If
@@ -900,17 +900,12 @@ Private Sub pvSetLastError(sError As String)
     m_uPrintData.LastError = sError
 End Sub
 
-'Private Function SafeText(sText As String) As String
-'    Dim lIdx            As Long
-'
-'    SafeText = sText
-'    For lIdx = 0 To 31
-'        Select Case lIdx
-'        Case 10, 13
-'        Case Else
-'            SafeText = Replace(SafeText, Chr$(lIdx), vbNullString)
-'        End Select
-'    Next
+Private Function pvChr(ByVal lChar As Long) As String
+    pvChr = FromAsciiChar(lChar, m_lCodePage)
+End Function
+
+'Private Function pvAsc(sText As String) As Long
+'    pvAsc = ToAsciiChar(sText, m_lCodePage)
 'End Function
 
 '=========================================================================
@@ -922,6 +917,7 @@ Private Sub Class_Initialize()
     m_lCommandTimeout = DEF_TIMEOUT
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_ESCPOS, "Commands")
+    m_lCodePage = DEF_CODEPAGE
 End Sub
 
 '=========================================================================

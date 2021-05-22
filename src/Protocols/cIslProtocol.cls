@@ -685,9 +685,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If UBound(vPorts) < 0 Then
         GoTo QH
     End If
-    sDefProbe = Chr$(SYM_PREAMBLE) & Chr$(&H25) & Chr$(&H23) & Chr$(&H4A) & Chr$(&H58) & Chr$(SYM_POSTAMBLE) & Chr$(&H30) & Chr$(&H30) & Chr$(&H3E) & Chr$(&H3F) & Chr$(SYM_TERMINATOR)
+    sDefProbe = pvChr(SYM_PREAMBLE) & pvChr(&H25) & pvChr(&H23) & pvChr(&H4A) & pvChr(&H58) & pvChr(SYM_POSTAMBLE) & pvChr(&H30) & pvChr(&H30) & pvChr(&H3E) & pvChr(&H3F) & pvChr(SYM_TERMINATOR)
     baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_DATECS_FP, "ProbeText", sDefProbe), m_uConfig.CodePage)
-    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", Chr$(SYM_PREAMBLE)) ' PREAMBLE (&H1)
+    sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_FP, "ReplyText", pvChr(SYM_PREAMBLE)) ' PREAMBLE (&H1)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_FP, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
     AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_DATECS_FP, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
@@ -723,10 +723,10 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
             With aPorts(lIdx)
                 If Not .Connector Is Nothing And .EventMask <> 0 Then
                     If .Connector.ReadData(baBuffer, lTimeout) And UBound(baBuffer) >= 0 Then
-                        sBuffer = Replace(Replace(StrConv(baBuffer, vbUnicode), Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString)
+                        sBuffer = Replace(Replace(StrConv(baBuffer, vbUnicode), pvChr(SYM_NAK), vbNullString), pvChr(SYM_SYN), vbNullString)
                         If LenB(sBuffer) = 0 Then
                             If .Connector.ReadData(baBuffer, lTimeout) And UBound(baBuffer) >= 0 Then
-                                sBuffer = Replace(Replace(StrConv(baBuffer, vbUnicode), Chr$(SYM_NAK), vbNullString), Chr$(SYM_SYN), vbNullString)
+                                sBuffer = Replace(Replace(StrConv(baBuffer, vbUnicode), pvChr(SYM_NAK), vbNullString), pvChr(SYM_SYN), vbNullString)
                             End If
                         End If
                         If Left$(sBuffer, Len(sReplyText)) = sReplyText Then
@@ -1890,14 +1890,14 @@ Private Function pvRawSendCommand( _
     '--- prepare command
     sSend = Data
     Do While eCmd >= &H100
-        sSend = Chr$(eCmd Mod &H100) & sSend
+        sSend = pvChr(eCmd Mod &H100) & sSend
         eCmd = eCmd \ &H100
     Loop
-    sSend = Chr$(SYM_PREAMBLE) & Chr$(SYM_BASEDATA + 4 + Len(sSend)) & Chr$(m_lSequence) & Chr$(eCmd) & sSend & Chr$(SYM_POSTAMBLE)
+    sSend = pvChr(SYM_PREAMBLE) & pvChr(SYM_BASEDATA + 4 + Len(sSend)) & pvChr(m_lSequence) & pvChr(eCmd) & sSend & pvChr(SYM_POSTAMBLE)
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
     '--- append checksum and terminator
-    sSend = sSend & pvCheckSum(sSend) & Chr$(SYM_TERMINATOR)
+    sSend = sSend & pvCheckSum(sSend) & pvChr(SYM_TERMINATOR)
     '--- send request
     dblTimerEx = TimerEx
 RetrySend:
@@ -1927,27 +1927,27 @@ RetrySend:
         sBuffer = FromAscii(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
         '--- check for NAK (&H15)
-        If InStr(sBuffer, Chr$(SYM_NAK)) > 0 Then
+        If InStr(sBuffer, pvChr(SYM_NAK)) > 0 Then
             DebugLog Zn(LogName, FUNC_NAME), "Will retry send on NAK received, sBuffer=0x" & ToHexDump(sBuffer)
             GoTo RetrySend
         End If
         '--- remove SYN (&H16)
-        sText = sText & Replace(sBuffer, Chr$(SYM_SYN), vbNullString)
+        sText = sText & Replace(sBuffer, pvChr(SYM_SYN), vbNullString)
         '--- restart timeout timer
-        If InStr(sBuffer, Chr$(SYM_SYN)) > 0 Then
+        If InStr(sBuffer, pvChr(SYM_SYN)) > 0 Then
             dblTimerEx = TimerEx
         End If
-    Loop While Right$(sText, 1) <> Chr$(SYM_TERMINATOR)
+    Loop While Right$(sText, 1) <> pvChr(SYM_TERMINATOR)
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)
-    Debug.Assert Right$(sText, 1) = Chr$(SYM_TERMINATOR)
-    If Left$(sText, 1) = Chr$(SYM_PREAMBLE) Then
-        lIdx = InStr(sText, Chr$(SYM_POSTAMBLE))
+    Debug.Assert Right$(sText, 1) = pvChr(SYM_TERMINATOR)
+    If Left$(sText, 1) = pvChr(SYM_PREAMBLE) Then
+        lIdx = InStr(sText, pvChr(SYM_POSTAMBLE))
         If lIdx <= 2 Then
             Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
             GoTo QH
         End If
-        lSize = Asc(Mid$(sText, 2, 1)) - SYM_BASEDATA
+        lSize = pvAsc(Mid$(sText, 2, 1)) - SYM_BASEDATA
         '--- check message length
         If lSize < 4 Or lSize >= lIdx Then
             Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
@@ -1959,7 +1959,7 @@ RetryParse:
             GoTo QH
         End If
         '--- check for status info
-        lIdx = InStrRev(sText, Chr$(SYM_SEPARATOR), lIdx)
+        lIdx = InStrRev(sText, pvChr(SYM_SEPARATOR), lIdx)
         If lIdx > 4 Then
             pvSetStatus Mid$(sText, lIdx + 1, 6)
             lSize = lIdx - 1
@@ -1975,7 +1975,7 @@ RetryParse:
             IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory))), vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
-        lIdx = InStr(sText, Chr$(SYM_PREAMBLE))
+        lIdx = InStr(sText, pvChr(SYM_PREAMBLE))
         If lIdx > 1 Then
             DebugLog Zn(LogName, FUNC_NAME), "Trim bogus symbols, Prefix=0x" & ToHexDump(Left$(sText, lIdx - 1))
             sText = Mid$(sText, lIdx)
@@ -2005,7 +2005,7 @@ Private Function pvCheckSum(sText As String) As String
 End Function
 
 Private Function pvToWireLong(ByVal lValue As Long) As String
-    pvToWireLong = Chr$((lValue \ &H1000 Mod &H10) + &H30) & Chr$((lValue \ &H100 Mod &H10) + &H30) & Chr$((lValue \ &H10 Mod &H10) + &H30) & Chr$((lValue \ &H1 Mod &H10) + &H30)
+    pvToWireLong = pvChr((lValue \ &H1000 Mod &H10) + &H30) & pvChr((lValue \ &H100 Mod &H10) + &H30) & pvChr((lValue \ &H10 Mod &H10) + &H30) & pvChr((lValue \ &H1 Mod &H10) + &H30)
 End Function
 
 Private Sub pvSetStatus(sStatus As String)
@@ -2470,7 +2470,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 If .PluDepartmentNo <> 0 Then
                     sData = sData & vbTab & .PluDepartmentNo & vbTab
                 Else
-                    sData = sData & vbTab & ChrW$(1039 + .PluTaxGroup)
+                    sData = sData & vbTab & pvChr(191 + .PluTaxGroup)
                 End If
                 sData = sData & SafeFormat(.PluPrice, sFormatPrice)
                 sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
@@ -2510,7 +2510,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     For lIdx = 1 To UBound(uCtx.GrpTotal)
                         If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
                             dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & ChrW$(1039 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
+                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & pvChr(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
                                     SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
                                 GoTo QH
                             End If
@@ -3160,6 +3160,14 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
+Private Function pvChr(ByVal lChar As Long) As String
+    pvChr = FromAsciiChar(lChar, m_uConfig.CodePage)
+End Function
+
+Private Function pvAsc(sText As String) As Long
+    pvAsc = ToAsciiChar(sText, m_uConfig.CodePage)
+End Function
+
 '=========================================================================
 ' Base class events
 '=========================================================================
@@ -3192,6 +3200,7 @@ Private Sub Class_Initialize()
     LocalizedText(ucsFscLciMemoryTexts, eIdx) = STR_MEMORY_INCO
     LocalizedText(ucsFscLciExtendedErrors, eIdx) = STR_EXTENDED_INCO
     Set m_uConfig.ConfigCommands = GetConfigCollection(STR_PROTOCOL_DATECS_FP, "Commands")
+    m_uConfig.CodePage = DEF_CODEPAGE
 End Sub
 
 '=========================================================================

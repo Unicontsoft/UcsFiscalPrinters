@@ -1166,12 +1166,21 @@ Public Function FromAscii(baRecv() As Byte, Optional ByVal CodePage As Long) As 
     Dim lSize           As Long
     
     If UBound(baRecv) >= 0 Then
-        FromAscii = String$(2 * (UBound(baRecv) + 1), 0)
-        lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromAscii), Len(FromAscii) + 1)
-        If lSize <> Len(FromAscii) Then
-            FromAscii = Left$(FromAscii, lSize)
+        lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, 0, 0)
+        If lSize > 0 Then
+            FromAscii = String$(lSize, 0)
+            lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromAscii), lSize)
         End If
     End If
+End Function
+
+Public Function ToAsciiChar(sText As String, Optional ByVal CodePage As Long) As Long
+    Call WideCharToMultiByte(CodePage, 0, StrPtr(sText), 1, ToAsciiChar, 1, 0, 0)
+End Function
+
+Public Function FromAsciiChar(ByVal lChar As Long, Optional ByVal CodePage As Long) As String
+    FromAsciiChar = vbNullChar
+    Call MultiByteToWideChar(CodePage, 0, lChar, 1, StrPtr(FromAsciiChar), 1)
 End Function
 
 Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
