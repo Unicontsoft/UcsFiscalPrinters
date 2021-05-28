@@ -278,7 +278,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         sCmd = STR_ESC & "@"            '--- Initialize printer
                         '--- STR_GS & "I1"
                         sCmd = STR_GS & "r" & pvChr(1)  '--- Transmits paper sensor status
-                        .Connector.WriteData ToAscii(sCmd, m_lCodePage), 1
+                        .Connector.WriteData ToMultiByte(sCmd, m_lCodePage), 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
                         lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
@@ -333,7 +333,7 @@ Private Function pvRawGetAutodetectInfo(oConnector As IDeviceConnector, ByVal lI
     
 Repeat:
     sCmd = STR_GS & "I" & pvChr(lIndex)
-    If oConnector.WriteData(ToAscii(sCmd, m_lCodePage), 100) Then
+    If oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), 100) Then
         If oConnector.ReadData(baBuffer, 100) Then
             If baBuffer(0) = 95 Then
                 sRetVal = Mid$(StrConv(baBuffer, vbUnicode), 2)
@@ -409,7 +409,7 @@ Public Function Connect() As Boolean
         sCmd = sCmd & STR_ESC & "t" & pvChr(17) '--- Select character code table: Page 17 [PC866 (Cyrillic #2)]
     End If
     sCmd = sCmd & STR_ESC & "M" & vbNullChar       '--- Select character font: Font A (12 x 24), Font B (9 x 17)
-    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         DebugLog FUNC_NAME, "WriteData failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
@@ -448,7 +448,7 @@ Public Function OpenDrawer() As Boolean
     
     '--- first drawer (Pin2): pulse ON for 50ms then OFF for 500ms
     sCmd = STR_ESC & "p" & vbNullChar & pvChr(25) & pvChr(250)
-    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -478,7 +478,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Dim baBuffer()      As Byte
     
     sCmd = STR_GS & "r" & pvChr(1)
-    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), m_lCommandTimeout) Then
         StatusText = m_oConnector.GetLastError()
         GetDeviceStatus = ucsFscStaFailed
         GoTo QH
@@ -529,14 +529,14 @@ Private Function pvPrintLine(vText As Variant) As Boolean
     If IsArray(vText) Then
         DebugLog FUNC_NAME, "vText=" & Join(vText, vbCrLf)
         For Each vElem In vText
-            If Not m_oConnector.WriteData(ToAscii(C_Str(vElem) & vbLf, m_lCodePage), m_lCommandTimeout) Then
+            If Not m_oConnector.WriteData(ToMultiByte(C_Str(vElem) & vbLf, m_lCodePage), m_lCommandTimeout) Then
                 m_uPrintData.LastError = m_oConnector.GetLastError()
                 GoTo QH
             End If
         Next
     Else
         DebugLog FUNC_NAME, "vText=" & vText
-        If Not m_oConnector.WriteData(ToAscii(C_Str(vText) & vbLf, m_lCodePage), m_lCommandTimeout) Then
+        If Not m_oConnector.WriteData(ToMultiByte(C_Str(vText) & vbLf, m_lCodePage), m_lCommandTimeout) Then
             m_uPrintData.LastError = m_oConnector.GetLastError()
             GoTo QH
         End If
@@ -552,7 +552,7 @@ Private Function pvSendPaperFeed(Optional ByVal Lines As Long = 1) As Boolean
     
     DebugLog FUNC_NAME, "Lines=" & Lines
     sCmd = STR_ESC & "d" & pvChr(Lines)
-    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -570,7 +570,7 @@ Private Function pvSendPaperCut(Optional ByVal Full As Boolean = True, Optional 
     If Lines > 0 Then
         sCmd = sCmd & STR_ESC & "d" & pvChr(Lines)
     End If
-    If Not m_oConnector.WriteData(ToAscii(sCmd, m_lCodePage), m_lCommandTimeout) Then
+    If Not m_oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), m_lCommandTimeout) Then
         m_uPrintData.LastError = m_oConnector.GetLastError()
         GoTo QH
     End If
@@ -901,11 +901,11 @@ Private Sub pvSetLastError(sError As String)
 End Sub
 
 Private Function pvChr(ByVal lChar As Long) As String
-    pvChr = FromAsciiChar(lChar, m_lCodePage)
+    pvChr = FromMultiByteChar(lChar, m_lCodePage)
 End Function
 
 'Private Function pvAsc(sText As String) As Long
-'    pvAsc = ToAsciiChar(sText, m_lCodePage)
+'    pvAsc = ToMultiByteChar(sText, m_lCodePage)
 'End Function
 
 '=========================================================================

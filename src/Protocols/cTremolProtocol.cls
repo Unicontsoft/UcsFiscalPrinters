@@ -520,7 +520,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If UBound(vPorts) < 0 Then
         GoTo QH
     End If
-    baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_TREMOL, "ProbeText", pvChr(ucsZekCmdFastIsReady)), m_uConfig.CodePage)
+    baProbe = ToMultiByte(GetConfigValue(STR_PROTOCOL_TREMOL, "ProbeText", pvChr(ucsZekCmdFastIsReady)), m_uConfig.CodePage)
     sReplyText = GetConfigValue(STR_PROTOCOL_TREMOL, "ReplyText", pvChr(ucsZekCmdFastIsReady))
     lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
@@ -1697,7 +1697,7 @@ RetrySend:
     End If
     '--- send request
     DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sText
-    baText = ToAscii(sText, m_uConfig.CodePage)
+    baText = ToMultiByte(sText, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
         DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
@@ -1715,7 +1715,7 @@ RetrySend:
             DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
             GoTo QH
         End If
-        sBuffer = FromAscii(baText, m_uConfig.CodePage)
+        sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
         sText = sText & sBuffer
         '--- restart timeout timer
@@ -2533,7 +2533,7 @@ Private Function pvCheckSum(sText As String) As String
     Dim lSum            As Long
     
     On Error GoTo EH
-    baText = ToAscii(sText, m_uConfig.CodePage)
+    baText = ToMultiByte(sText, m_uConfig.CodePage)
     For lIdx = 1 To Len(sText) - 1
         lSum = lSum Xor baText(lIdx)
     Next
@@ -2544,11 +2544,11 @@ EH:
 End Function
 
 Private Function pvChr(ByVal lChar As Long) As String
-    pvChr = FromAsciiChar(lChar, m_uConfig.CodePage)
+    pvChr = FromMultiByteChar(lChar, m_uConfig.CodePage)
 End Function
 
 Private Function pvAsc(sText As String) As Long
-    pvAsc = ToAsciiChar(sText, m_uConfig.CodePage)
+    pvAsc = ToMultiByteChar(sText, m_uConfig.CodePage)
 End Function
 
 '=========================================================================

@@ -1148,7 +1148,7 @@ Public Function ParseSum(sValue As String) As Double
     End If
 End Function
 
-Public Function ToAscii(sSend As String, Optional ByVal CodePage As Long) As Byte()
+Public Function ToMultiByte(sSend As String, Optional ByVal CodePage As Long) As Byte()
     Dim lSize           As Long
     Dim baText()        As Byte
     
@@ -1159,28 +1159,28 @@ Public Function ToAscii(sSend As String, Optional ByVal CodePage As Long) As Byt
     Else
         baText = " "
     End If
-    ToAscii = baText
+    ToMultiByte = baText
 End Function
 
-Public Function FromAscii(baRecv() As Byte, Optional ByVal CodePage As Long) As String
+Public Function FromMultiByte(baRecv() As Byte, Optional ByVal CodePage As Long) As String
     Dim lSize           As Long
     
     If UBound(baRecv) >= 0 Then
         lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, 0, 0)
         If lSize > 0 Then
-            FromAscii = String$(lSize, 0)
-            lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromAscii), lSize)
+            FromMultiByte = String$(lSize, 0)
+            lSize = MultiByteToWideChar(CodePage, 0, baRecv(0), UBound(baRecv) + 1, StrPtr(FromMultiByte), lSize)
         End If
     End If
 End Function
 
-Public Function ToAsciiChar(sText As String, Optional ByVal CodePage As Long) As Long
-    Call WideCharToMultiByte(CodePage, 0, StrPtr(sText), 1, ToAsciiChar, 1, 0, 0)
+Public Function ToMultiByteChar(sText As String, Optional ByVal CodePage As Long) As Long
+    Call WideCharToMultiByte(CodePage, 0, StrPtr(sText), 1, ToMultiByteChar, 1, 0, 0)
 End Function
 
-Public Function FromAsciiChar(ByVal lChar As Long, Optional ByVal CodePage As Long) As String
-    FromAsciiChar = vbNullChar
-    Call MultiByteToWideChar(CodePage, 0, lChar, 1, StrPtr(FromAsciiChar), 1)
+Public Function FromMultiByteChar(ByVal lChar As Long, Optional ByVal CodePage As Long) As String
+    FromMultiByteChar = vbNullChar
+    Call MultiByteToWideChar(CodePage, 0, lChar, 1, StrPtr(FromMultiByteChar), 1)
 End Function
 
 Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant

@@ -500,7 +500,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         GoTo QH
     End If
     sDefProbe = pvChr(SYM_PREAMBLE) & pvChr(&H30) & pvChr(&H30) & pvChr(&H32) & pvChr(&H3A) & pvChr(&H21) & pvChr(&H30) & pvChr(&H30) & pvChr(&H34) & pvChr(&H3A) & pvChr(SYM_POSTAMBLE) & pvChr(&H30) & pvChr(&H31) & pvChr(&H3C) & pvChr(&H30) & pvChr(SYM_TERMINATOR)
-    baProbe = ToAscii(GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sDefProbe), m_uConfig.CodePage)
+    baProbe = ToMultiByte(GetConfigValue(STR_PROTOCOL_DATECS_X, "ProbeText", sDefProbe), m_uConfig.CodePage)
     sReplyText = GetConfigValue(STR_PROTOCOL_DATECS_X, "ReplyText", pvChr(SYM_PREAMBLE)) ' PREAMBLE (&H1)
     lTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     lDeviceInfoTimeout = GetConfigNumber(STR_PROTOCOL_DATECS_X, "DeviceInfoTimeout", DEF_DEVICEINFOTIMEOUT)
@@ -1562,7 +1562,7 @@ RetrySend:
         GoTo QH
     End If
     DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sSend
-    baText = ToAscii(sSend, m_uConfig.CodePage)
+    baText = ToMultiByte(sSend, m_uConfig.CodePage)
     If Not oConnector.WriteData(baText, lTimeout) Then
         Error = oConnector.GetLastError()
         DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
@@ -1580,7 +1580,7 @@ RetrySend:
             DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
             GoTo QH
         End If
-        sBuffer = FromAscii(baText, m_uConfig.CodePage)
+        sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
         '--- check for NAK (&H15)
         If InStr(sBuffer, pvChr(SYM_NAK)) > 0 Then
@@ -1653,7 +1653,7 @@ Private Function pvCheckSum(sText As String) As String
     Dim lIdx            As Long
     Dim lSum            As Long
     
-    baText = ToAscii(sText, m_uConfig.CodePage)
+    baText = ToMultiByte(sText, m_uConfig.CodePage)
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
@@ -1676,7 +1676,7 @@ Private Sub pvSetStatus(sStatus As String)
     Dim lIdx            As Long
     
     On Error GoTo EH
-    baStatus = ToAscii(sStatus, m_uConfig.CodePage)
+    baStatus = ToMultiByte(sStatus, m_uConfig.CodePage)
     For lIdx = 0 To UBound(baStatus)
         If (baStatus(lIdx) And &H80) = 0 Then
             baStatus(lIdx) = 0
@@ -2341,11 +2341,11 @@ EH:
 End Function
 
 Private Function pvChr(ByVal lChar As Long) As String
-    pvChr = FromAsciiChar(lChar, m_uConfig.CodePage)
+    pvChr = FromMultiByteChar(lChar, m_uConfig.CodePage)
 End Function
 
 'Private Function pvAsc(sText As String) As Long
-'    pvAsc = ToAsciiChar(sText, m_uConfig.CodePage)
+'    pvAsc = ToMultiByteChar(sText, m_uConfig.CodePage)
 'End Function
 
 '=========================================================================
