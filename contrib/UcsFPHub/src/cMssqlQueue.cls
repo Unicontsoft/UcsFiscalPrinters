@@ -401,6 +401,8 @@ NextLine:
     On Error Resume Next
     If Not pvIsConnAlive(m_oRecvConn, lSqlProcessID) Then
         lSqlProcessID = 0
+    ElseIf Not pvIsConnAlive(m_oCtrlConn) Then
+        lSqlProcessID = 0
     End If
     Select Case True
     Case vErr(2) Like ERR_CONNECTION_FAILURE, _
