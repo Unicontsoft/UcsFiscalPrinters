@@ -142,6 +142,8 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInfoLastReceipt = 113
     ucsIslCmdInfoFiscalRecord = 114
     ucsIslCmdInfoQRCode = 116
+    ucsIslCmdInfoEcTape = 124
+    ucsIslCmdInfoEcTapeByDocNo = 125
     ucsIslCmdExtendedInfoConsts = 128              '-- command above &H7F
     ucsIslCmdExtendedInfoDepartment = 131          '-- command above &H7F
     ucsIslCmdExtendedInfoTotalsByPayments = 173    '-- command above &H7F
@@ -1703,14 +1705,7 @@ Public Function GetTotalsStats() As Variant
             lReceipts = lReceipts + C_Lng(At(vSplit, lIndex))
         Next
     End If
-    pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
-    dLastDate = ParseExtendedDate(SendCommand(eCmd, sParam, LogName:=FUNC_NAME))
-    If dLastDate = 0 Then
-        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
-            "Index", lIndex, -1
-        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-        dLastDate = pvParseDdmmyyDate(At(vSplit, lIndex))
-    End If
+    dLastDate = GetLastZReportDate
     GetTotalsStats = Array(lReceipts, IIf(dLastDate = 0, Empty, dLastDate))
     Exit Function
 EH:
@@ -1862,6 +1857,49 @@ Public Function GetTaxRates() As Variant
     '--- success
     GetTaxRates = vRetVal
 QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetLastZReportDate() As Date
+    Const FUNC_NAME     As String = "GetLastZReportDate"
+    Const CONF_NAME     As String = FUNC_NAME
+    Dim eCmd            As UcsIslCommandsEnum
+    Dim sParam          As String
+    Dim vSplit          As Variant
+    Dim lClosure        As Long
+    Dim lIndex          As Long
+    
+    On Error GoTo EH
+    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+        "Index", lIndex, -2
+    vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    If UBound(vSplit) >= 1 Then
+        lClosure = C_Lng(At(vSplit, lIndex))
+        pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1", _
+            "Index", lIndex, 1
+        sParam = Printf(sParam, lClosure)
+        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+        If UBound(vSplit) >= 1 Then
+            lClosure = C_Lng(At(vSplit, lIndex))        '--- Z-report DocNo
+            pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, "0" & DEF_SEP & "%1" & DEF_SEP & "2", _
+                "Index", lIndex, 2
+            sParam = Printf(sParam, lClosure)
+            vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+            If UBound(vSplit) >= 1 Then
+                GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
+            End If
+        End If
+    End If
+    If GetLastZReportDate = 0 Then
+        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
+            "Index", lIndex, -1
+        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+        If UBound(vSplit) >= 1 Then
+            GetLastZReportDate = pvParseDdmmyyDate(At(vSplit, lIndex))
+        End If
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -2189,13 +2227,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             '--- for eltrade: if linked receipt in current Z-report -> print service withdraw for cash payment
             If LenB(.InitRevData(ucsRevReceiptNo)) <> 0 And .InitRevData(ucsRevType) = ucsFscRevOperatorError Then
                 If .InitRevData(ucsRevFiscalMemoryNo) = GetFiscalMemoryNo() Then
-                    pvGetCommandConfig CONF_NAME, "InfoLastFiscalDateTime", eCmd, ucsIslCmdInfoLastFiscalDateTime, sParam, "T"
-                    dLastDate = ParseExtendedDate(SendCommand(eCmd, sParam, LogName:=FUNC_NAME))
+                    dLastDate = GetLastZReportDate()
                     If dLastDate = 0 Then
-                        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
-                            "Index", lIndex, -1
-                        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-                        dLastDate = pvParseDdmmyyDate(At(vSplit, lIndex))
+                        dLastDate = GetCurrentDate()
                     End If
                 Else
                     dLastDate = .InitRevData(ucsRevReceiptDate)
