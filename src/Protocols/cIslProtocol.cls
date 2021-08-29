@@ -2679,15 +2679,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 '--- check if anything left for payment
                 If ParseSum(At(vSplit, lAmountIndex)) > ParseSum(At(vSplit, lPaidIndex)) _
                         Or LenB(At(vSplit, lAmountIndex)) = 0 _
-                        Or Not uCtx.PmtPrinted Then
+                        Or (Not uCtx.PmtPrinted And SumArray(uCtx.GrpTotal) > DBL_EPSILON) Then
+                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
                     If Not pvCommitReceipt(uCtx, At(vSplit, lAmountIndex), .PrintRowType) Then
                         GoTo QH
                     End If
-                    pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
-                    If LenB(m_uPrintData.LastError) = 0 Then
-                        uCtx.PmtPrinted = True
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
                     End If
+                    uCtx.PmtPrinted = True
                 End If
                 If Not IsIncotex Then
                     If Not pvPrintCgDetails(uRow(0)) Then
@@ -2704,7 +2705,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 Then
+            If LenB(m_uPrintData.LastError) <> 0 And eCmd <> ucsIslCmdFiscalCancel Then
                 GoTo QH
             End If
             If eCmd <> ucsIslCmdNoop Then

@@ -1806,9 +1806,6 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sCodeType       As String
     Dim sCodeData       As String
     Dim dLastDate       As Date
-    Dim bNeedCommit     As Boolean
-    Dim oCtx            As Object
-    Dim bCancel         As Boolean
     Dim sSettingBeg     As String
     Dim sSettingEnd     As String
     
@@ -2088,20 +2085,26 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                     sParam = Printf(sParam, lIndex, SafeFormat(.PmtAmount, IIf(Abs(.PmtAmount) < DBL_EPSILON, sFormatZero, sFormatAmount)))
-                    bNeedCommit = True
+                    If Not pvCommitReceipt(uCtx, At(vSplit, lNumberIndex), C_Dbl(At(vSplit, lAmountIndex)), C_Lng(At(vSplit, lIndex))) Then
+                        GoTo QH
+                    End If
                 End If
             Else
                 '--- check if anything left for payment
                 If C_Dbl(At(vSplit, lAmountIndex)) > C_Dbl(At(vSplit, lPaidIndex)) _
                         Or LenB(At(vSplit, lAmountIndex)) = 0 _
-                        Or Not uCtx.PmtPrinted Then
+                        Or (Not uCtx.PmtPrinted And SumArray(uCtx.GrpTotal) > DBL_EPSILON) Then
                     sParam = DEF_SEP & DEF_SEP & DEF_SEP
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam
                     sParam = Printf(sParam, pvToDevicePmtIndex(ucsFscPmtCash))
-                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
-                    If LenB(m_uPrintData.LastError) = 0 Then
-                        uCtx.PmtPrinted = True
+                    If Not pvCommitReceipt(uCtx, At(vSplit, lNumberIndex), C_Dbl(At(vSplit, lAmountIndex)), C_Lng(At(vSplit, lIndex))) Then
+                        GoTo QH
                     End If
+                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
+                    End If
+                    uCtx.PmtPrinted = True
                 End If
                 Select Case .PrintRowType
                 Case ucsFscRcpInvoice, ucsFscRcpCreditNote
@@ -2128,32 +2131,12 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Else
                     pvGetCommandConfig CONF_NAME, "FiscalCancel" & .PrintRowType, eCmd, ucsDcsCmdFiscalCancel, sParam, vbNullString
                 End If
-                bNeedCommit = True
-            End If
-            If Not uCtx.CommitSent And bNeedCommit Then
-                uCtx.ReceiptNo = At(vSplit, lNumberIndex)
-                uCtx.ReceiptDate = GetClock()
-                uCtx.ReceiptAmount = C_Dbl(At(vSplit, lAmountIndex))
-                '--- reversal type: 2 - operator error, 3 - refund, 4 - tax base reduction
-                If C_Lng(At(vSplit, lIndex)) >= 2 And C_Lng(At(vSplit, lIndex)) <= 4 Then
-                    uCtx.ReceiptAmount = -uCtx.ReceiptAmount
+                If Not pvCommitReceipt(uCtx, At(vSplit, lNumberIndex), C_Dbl(At(vSplit, lAmountIndex)), C_Lng(At(vSplit, lIndex))) Then
+                    GoTo QH
                 End If
-                If m_lEventSinkPtr <> 0 Then
-                    Set oCtx = Nothing
-                    JsonItem(oCtx, "ReceiptNo") = uCtx.ReceiptNo
-                    JsonItem(oCtx, "ReceiptDate") = uCtx.ReceiptDate
-                    JsonItem(oCtx, "ReceiptAmount") = uCtx.ReceiptAmount
-                    JsonItem(oCtx, "InvoiceNo") = uCtx.InvoiceNo
-                    pvEventSink.OnBeforeCommitReceipt oCtx, bCancel
-                    If bCancel Then
-                        pvSetLastError pvInternal(ucsErrCommitReceiptCancelled)
-                        GoTo QH
-                    End If
-                End If
-                uCtx.CommitSent = True
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 Then
+            If LenB(m_uPrintData.LastError) <> 0 And eCmd <> ucsDcsCmdFiscalCancel Then
                 GoTo QH
             End If
             If eCmd <> ucsDcsCmdNoop Then
@@ -2181,6 +2164,39 @@ QH:
 EH:
     RaiseError FUNC_NAME
 End Function
+
+Private Function pvCommitReceipt(uCtx As UcsPpdExecuteContext, sReceiptNo As String, dblAmount As Double, ByVal lRevType As Long) As Boolean
+    Dim oCtx            As Object
+    Dim bCancel         As Boolean
+    
+    If Not uCtx.CommitSent Then
+        uCtx.ReceiptNo = sReceiptNo
+        uCtx.ReceiptDate = GetClock()
+        uCtx.ReceiptAmount = dblAmount
+        '--- reversal type: 2 - operator error, 3 - refund, 4 - tax base reduction
+        If lRevType >= 2 And lRevType <= 4 Then
+            uCtx.ReceiptAmount = -uCtx.ReceiptAmount
+        End If
+        If m_lEventSinkPtr <> 0 Then
+            Set oCtx = Nothing
+            JsonItem(oCtx, "ReceiptNo") = uCtx.ReceiptNo
+            JsonItem(oCtx, "ReceiptDate") = uCtx.ReceiptDate
+            JsonItem(oCtx, "ReceiptAmount") = uCtx.ReceiptAmount
+            JsonItem(oCtx, "InvoiceNo") = uCtx.InvoiceNo
+            pvEventSink.OnBeforeCommitReceipt oCtx, bCancel
+            If bCancel Then
+                pvSetLastError pvInternal(ucsErrCommitReceiptCancelled)
+                GoTo QH
+            End If
+        End If
+        uCtx.CommitSent = True
+    End If
+    '--- success
+    pvCommitReceipt = True
+QH:
+End Function
+
+
 
 Private Function pvRawGetDeviceInfo( _
             oConnector As IDeviceConnector, _
