@@ -2446,114 +2446,99 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 dblDisc = 0
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
-            If .PluDepartmentNo <> 0 And (IsDaisy Or IsIncotex) Then
-                '--- Daisy: {[Sign]Dept}{@Price}[*{QTY}][,Percent][$Netto]
-                '--- Incotex: <[Sign]Dept>[*<QTY>][,<Percent>][@Price]
-                pvGetCommandConfig CONF_NAME, "ExtendedFiscalDepartmentSell" & .PrintRowType, eCmd, ucsIslCmdExtendedFiscalDepartmentSell, sParam, "%1", _
-                    "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
-                    "FormatQty", sFormatQty, FORMAT_BASE_3, _
-                    "FormatDisc", sFormatDisc, FORMAT_BASE_2
-                sData = IIf(.PluPrice < 0, "-", vbNullString) & .PluDepartmentNo
-                If IsDaisy Then
-                    sData = sData & "@" & SafeFormat(Abs(.PluPrice), sFormatPrice)
-                End If
-                If Abs(.PluQuantity - 1) > DBL_EPSILON Then
-                    sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
-                End If
-                Select Case .DiscType
-                Case ucsFscDscPlu
-                    If Abs(.PluPrice) > DBL_EPSILON Then
-                        sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
+            Select Case .PrintRowType
+            Case ucsFscRcpNonfiscal
+                '--- do nothing
+            Case Else
+                If .PluDepartmentNo <> 0 And (IsDaisy Or IsIncotex) Then
+                    '--- Daisy: {[Sign]Dept}{@Price}[*{QTY}][,Percent][$Netto]
+                    '--- Incotex: <[Sign]Dept>[*<QTY>][,<Percent>][@Price]
+                    pvGetCommandConfig CONF_NAME, "ExtendedFiscalDepartmentSell" & .PrintRowType, eCmd, ucsIslCmdExtendedFiscalDepartmentSell, sParam, "%1", _
+                        "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                        "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2
+                    sData = IIf(.PluPrice < 0, "-", vbNullString) & .PluDepartmentNo
+                    If IsDaisy Then
+                        sData = sData & "@" & SafeFormat(Abs(.PluPrice), sFormatPrice)
                     End If
-                Case ucsFscDscPluAbs
-                    sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
-                End Select
-                If IsIncotex Then
-                    sData = sData & "@" & SafeFormat(Abs(.PluPrice), sFormatPrice)
-                End If
-                sParam = Printf(sParam, sData)
-            Else
-                '--- FP: [<L1>][<Lf><L2>]<Tab><TaxCd><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
-                '--- FP: [<L1>][<Lf><L2>]<Tab><Dept><Tab><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
-                '--- Daisy: [{Text1}][{CR}{Text2}]{Tab}{TaxGr}{[Sign]Price}[*{QTY}][,Percent][$Netto]
-                '--- Incotex: [<Text1>][<LF><Text2>]<Tabulator><TaxGr><[Sign]Price>[*<QTY>][,<Percent>|;<Abs>][@MUnitString]
-                pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsIslCmdFiscalSell, sParam, "%1", _
-                    "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
-                    "FormatQty", sFormatQty, FORMAT_BASE_3, _
-                    "FormatDisc", sFormatDisc, FORMAT_BASE_2
-                sUnit = IIf(Not IsFP And Not IsIncotex, .PluUnitOfMeasure, vbNullString)
-                vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
-                    Clamp(pvCommentChars, , pvItemChars))
-                If m_uPrintData.Config.MaxItemLines > 0 Then
-                    If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
-                        ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+                    If Abs(.PluQuantity - 1) > DBL_EPSILON Then
+                        sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
                     End If
-                Else
-                    For lIdx = 0 To UBound(vSplit) - 2
-                        If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
-                            GoTo QH
+                    Select Case .DiscType
+                    Case ucsFscDscPlu
+                        If Abs(.PluPrice) > DBL_EPSILON Then
+                            sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
                         End If
-                    Next
-                    If UBound(vSplit) >= 2 Then
-                        vSplit(0) = vSplit(UBound(vSplit) - 1)
-                        vSplit(1) = vSplit(UBound(vSplit))
-                        ReDim Preserve vSplit(0 To 1) As Variant
+                    Case ucsFscDscPluAbs
+                        sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
+                    End Select
+                    If IsIncotex Then
+                        sData = sData & "@" & SafeFormat(Abs(.PluPrice), sFormatPrice)
                     End If
-                End If
-                sData = Join(vSplit, vbLf)
-                If .PluDepartmentNo <> 0 Then
-                    sData = sData & vbTab & .PluDepartmentNo & vbTab
+                    sParam = Printf(sParam, sData)
                 Else
-                    sData = sData & vbTab & pvChr(191 + .PluTaxGroup)
-                End If
-                sData = sData & SafeFormat(.PluPrice, sFormatPrice)
-                sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
-                If Abs(.PluQuantity - 1) > DBL_EPSILON Or LenB(sUnit) <> 0 Then
-                    sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & _
-                        IIf(LenB(sUnit) <> 0, "#" & Left$(sUnit, MAX_UNIT_OF_MEASURE), vbNullString)
-                End If
-                Select Case .DiscType
-                Case ucsFscDscPlu
-                    If Abs(.PluPrice) > DBL_EPSILON Then
-                        sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
+                    '--- FP: [<L1>][<Lf><L2>]<Tab><TaxCd><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
+                    '--- FP: [<L1>][<Lf><L2>]<Tab><Dept><Tab><[Sign]Price>[*<Qwan>[#UN]][,Perc|;Abs]
+                    '--- Daisy: [{Text1}][{CR}{Text2}]{Tab}{TaxGr}{[Sign]Price}[*{QTY}][,Percent][$Netto]
+                    '--- Incotex: [<Text1>][<LF><Text2>]<Tabulator><TaxGr><[Sign]Price>[*<QTY>][,<Percent>|;<Abs>][@MUnitString]
+                    pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsIslCmdFiscalSell, sParam, "%1", _
+                        "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                        "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                        "FormatDisc", sFormatDisc, FORMAT_BASE_2
+                    sUnit = IIf(Not IsFP And Not IsIncotex, .PluUnitOfMeasure, vbNullString)
+                    vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
+                        Clamp(pvCommentChars, , pvItemChars))
+                    If m_uPrintData.Config.MaxItemLines > 0 Then
+                        If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
+                            ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+                        End If
+                    Else
+                        For lIdx = 0 To UBound(vSplit) - 2
+                            If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
+                                GoTo QH
+                            End If
+                        Next
+                        If UBound(vSplit) >= 2 Then
+                            vSplit(0) = vSplit(UBound(vSplit) - 1)
+                            vSplit(1) = vSplit(UBound(vSplit))
+                            ReDim Preserve vSplit(0 To 1) As Variant
+                        End If
                     End If
-                Case ucsFscDscPluAbs
-                    sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
-                End Select
-                sUnit = IIf(IsIncotex, .PluUnitOfMeasure, vbNullString)
-                If LenB(sUnit) <> 0 Then
-                    sData = sData & "@" & Left$(sUnit, MAX_UNIT_OF_MEASURE)
+                    sData = Join(vSplit, vbLf)
+                    If .PluDepartmentNo <> 0 Then
+                        sData = sData & vbTab & .PluDepartmentNo & vbTab
+                    Else
+                        sData = sData & vbTab & pvChr(191 + .PluTaxGroup)
+                    End If
+                    sData = sData & SafeFormat(.PluPrice, sFormatPrice)
+                    sUnit = IIf(IsFP, .PluUnitOfMeasure, vbNullString)
+                    If Abs(.PluQuantity - 1) > DBL_EPSILON Or LenB(sUnit) <> 0 Then
+                        sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & _
+                            IIf(LenB(sUnit) <> 0, "#" & Left$(sUnit, MAX_UNIT_OF_MEASURE), vbNullString)
+                    End If
+                    Select Case .DiscType
+                    Case ucsFscDscPlu
+                        If Abs(.PluPrice) > DBL_EPSILON Then
+                            sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
+                        End If
+                    Case ucsFscDscPluAbs
+                        sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
+                    End Select
+                    sUnit = IIf(IsIncotex, .PluUnitOfMeasure, vbNullString)
+                    If LenB(sUnit) <> 0 Then
+                        sData = sData & "@" & Left$(sUnit, MAX_UNIT_OF_MEASURE)
+                    End If
+                    sParam = Printf(sParam, sData)
                 End If
-                sParam = Printf(sParam, sData)
-            End If
-            SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 Then
-                GoTo QH
-            End If
+                SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
+                End If
+            End Select
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
-                Select Case .DiscType
-                Case ucsFscDscSubtotal
-                    pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
-                        "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
-                        "FormatAmount", sFormatAmount, FORMAT_BASE_2
-                    If Not pvPrintLine(AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)) Then
-                        GoTo QH
-                    End If
-                    For lIdx = 1 To UBound(uCtx.GrpTotal)
-                        If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                            dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & pvChr(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                                    SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
-                                GoTo QH
-                            End If
-                        End If
-                    Next
-                Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
-                    GoTo QH
-                End Select
+                '--- do nothing
             Case Else
                 Select Case .DiscType
                 Case ucsFscDscSubtotal, ucsFscDscSubtotalAbs

@@ -1918,67 +1918,52 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 dblDisc = 0
             End If
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
-            vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
-            If m_uPrintData.Config.MaxItemLines > 0 Then
-                If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
-                    ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+            Select Case .PrintRowType
+            Case ucsFscRcpNonfiscal
+                '--- do nothing
+            Case Else
+                vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
+                If m_uPrintData.Config.MaxItemLines > 0 Then
+                    If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
+                        ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
+                    End If
                 End If
-            End If
-            For lIdx = 0 To UBound(vSplit) - 1
-                If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
+                For lIdx = 0 To UBound(vSplit) - 1
+                    If Not pvPrintLine(C_Str(vSplit(lIdx))) Then
+                        GoTo QH
+                    End If
+                Next
+                sData = At(vSplit, UBound(vSplit))
+                sDiscType = vbNullString
+                Select Case .DiscType
+                Case ucsFscDscPlu
+                    If Abs(.PluPrice) > DBL_EPSILON Then
+                        sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
+                    End If
+                Case ucsFscDscPluAbs
+                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
+                End Select
+                '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
+                sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8"
+                pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsDcsCmdFiscalSell, sParam, sParam, _
+                    "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
+                    "FormatQty", sFormatQty, FORMAT_BASE_3, _
+                    "FormatDisc", sFormatDisc, FORMAT_BASE_2
+                sParam = Printf(sParam, sData, .PluTaxGroup, SafeFormat(.PluPrice, sFormatPrice), _
+                    IIf(Abs(.PluQuantity - 1) > DBL_EPSILON, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
+                    sDiscType, _
+                    IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(.DiscValue), sFormatDisc), vbNullString), _
+                    .PluDepartmentNo, _
+                    IIf(LenB(.PluUnitOfMeasure) <> 0, Left$(.PluUnitOfMeasure, MAX_UNIT_OF_MEASURE) & DEF_SEP, vbNullString))
+                SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                If LenB(m_uPrintData.LastError) <> 0 Then
                     GoTo QH
                 End If
-            Next
-            sData = At(vSplit, UBound(vSplit))
-            sDiscType = vbNullString
-            Select Case .DiscType
-            Case ucsFscDscPlu
-                If Abs(.PluPrice) > DBL_EPSILON Then
-                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
-                End If
-            Case ucsFscDscPluAbs
-                sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
             End Select
-            '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
-            sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8"
-            pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsDcsCmdFiscalSell, sParam, sParam, _
-                "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
-                "FormatQty", sFormatQty, FORMAT_BASE_3, _
-                "FormatDisc", sFormatDisc, FORMAT_BASE_2
-            sParam = Printf(sParam, sData, .PluTaxGroup, SafeFormat(.PluPrice, sFormatPrice), _
-                IIf(Abs(.PluQuantity - 1) > DBL_EPSILON, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
-                sDiscType, _
-                IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(.DiscValue), sFormatDisc), vbNullString), _
-                .PluDepartmentNo, _
-                IIf(LenB(.PluUnitOfMeasure) <> 0, Left$(.PluUnitOfMeasure, MAX_UNIT_OF_MEASURE) & DEF_SEP, vbNullString))
-            SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 Then
-                GoTo QH
-            End If
         Case ucsRowDiscount
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
-                Select Case .DiscType
-                Case ucsFscDscSubtotal
-                    pvGetCommandConfig CONF_NAME, "NonFiscalSubtotal" & .DiscType, 0, 0, vbNullString, vbNullString, _
-                        "FormatDisc", sFormatDisc, FORMAT_BASE_2, _
-                        "FormatAmount", sFormatAmount, FORMAT_BASE_2
-                    If Not pvPrintLine(AlignText(pvText(ucsTxtSubTotal), SafeFormat(SumArray(uCtx.GrpTotal), sFormatAmount), pvCommentChars)) Then
-                        GoTo QH
-                    End If
-                    For lIdx = 1 To UBound(uCtx.GrpTotal)
-                        If Abs(uCtx.GrpTotal(lIdx)) > DBL_EPSILON Then
-                            dblTotal = Round(uCtx.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE)
-                            If Not pvPrintLine(AlignText(Printf(IIf(dblTotal > DBL_EPSILON, pvText(ucsTxtSurcharge), pvText(ucsTxtDiscount)), "*" & pvChr(191 + lIdx) & "  " & SafeFormat(Abs(.DiscValue), sFormatDisc) & "%"), _
-                                    SafeFormat(dblTotal, sFormatAmount), pvCommentChars)) Then
-                                GoTo QH
-                            End If
-                        End If
-                    Next
-                Case Else
-                    pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
-                    GoTo QH
-                End Select
+                '--- do nothing
             Case Else
                 sDiscType = vbNullString
                 Select Case .DiscType
