@@ -112,6 +112,7 @@ Public Type UcsPpdRowData
     PmtName             As String
     PmtAmount           As Double
     PrintRowType        As UcsFiscalReceiptTypeEnum
+    PrintBottomLine     As Long
 End Type
 
 Public Type UcsPpdExecuteContext
@@ -136,7 +137,7 @@ Public Type UcsPpdConfigValues
     NegativePrices      As Boolean
     MinDiscount         As Double
     MaxDiscount         As Double
-    MaxReceiptRows      As Long
+    MaxReceiptLines     As Long
     MaxItemLines        As Long
     EmptyUniqueSaleNo   As String
 End Type
@@ -440,7 +441,7 @@ Public Function PpdEndReceipt( _
         .ReceiptAmount = C_Dbl(JsonItem(oToken, "ReceiptAmount"))
         .InvoiceNo = C_Str(JsonItem(oToken, "InvoiceNo"))
     End With
-    '--- fix fiscal receipts with for more than uData.MaxReceiptRows PLUs
+    '--- fix fiscal receipts with for more than uData.MaxReceiptLines PLUs
     pvConvertExtraRows uData
     '--- append final payment (total)
     With uData.Row(pvAddRow(uData))
@@ -573,13 +574,14 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
     Dim dblDiscTotal    As Double
     Dim dblPrice        As Double
     Dim vSplit          As Variant
+    Dim lMaxChars       As Long
+    Dim lItemLines      As Long
 
     On Error GoTo EH
     '--- convert out-of-range discounts to PLU rows
     '--- note: uData.RowCount may change in loop on PpdAddPLU
     Do While lRow < uData.RowCount
-        '--- note: 'With' locks uData.Row array and fails if auto-grow needed in PpdAddPLU
-'        With uData.Row(lRow)
+        '--- note: 'With uData.Row(lRow)' locks uData.Row array and fails if auto-grow needed in PpdAddPLU
         If uData.Row(lRow).RowType = ucsRowPlu Then
             dblPrice = uData.Row(lRow).PluPrice
             dblTotal = Round(uData.Row(lRow).PluQuantity * dblPrice, DEF_PRICE_SCALE)
@@ -650,20 +652,34 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
                 End If
             End If
         End If
-'        End With
         lRow = lRow + 1
     Loop
     '--- count PLU rows and mark different VAT groups
+    lMaxChars = Clamp(uData.Config.CommentChars, , uData.Config.ItemChars)
     lCount = 0
     For lRow = 0 To uData.RowCount - 1
         With uData.Row(lRow)
-            If .RowType = ucsRowPlu Then
-                lCount = lCount + 1
+            Select Case .RowType
+            Case ucsRowPlu
+                lItemLines = UBound(WrapText(.PluItemName, lMaxChars)) + 1
+                If uData.Config.MaxItemLines > 0 And lItemLines > uData.Config.MaxItemLines Then
+                    lItemLines = uData.Config.MaxItemLines
+                End If
+                lCount = lCount + lItemLines
                 uCtx.GrpTotal(.PluTaxGroup) = 1
-            End If
+            Case ucsRowDiscount
+                lCount = lCount + 2
+            Case ucsRowLine
+                If .LineWordWrap Then
+                    lCount = lCount + UBound(WrapText(.LineText, uData.Config.CommentChars)) + 1
+                Else
+                    lCount = lCount + 1
+                End If
+            End Select
+            .PrintBottomLine = lCount
         End With
     Next
-    If lCount > uData.Config.MaxReceiptRows Then
+    If lCount > uData.Config.MaxReceiptLines Then
         '--- count different VAT groups in PLUs
         For lRow = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
             If Abs(uCtx.GrpTotal(lRow)) > DBL_EPSILON Then
@@ -672,31 +688,39 @@ Private Sub pvConvertExtraRows(uData As UcsProtocolPrintData)
             End If
         Next
         '--- set extra rows to nonfiscal printing and calc GrpTotal by VAT groups
-        lCount = 0
         For lRow = 0 To uData.RowCount - 1
             With uData.Row(lRow)
-                If .RowType = ucsRowPlu Then
-                    lCount = lCount + 1
-                    If lCount > uData.Config.MaxReceiptRows - lTotal Then
+                If .PrintBottomLine > uData.Config.MaxReceiptLines - lTotal Then
+                    Select Case .RowType
+                    Case ucsRowPlu
                         .PrintRowType = ucsFscRcpNonfiscal
                         dblTotal = Round(.PluQuantity * .PluPrice, DEF_PRICE_SCALE)
-                        If .DiscType = ucsFscDscPlu Then
+                        Select Case .DiscType
+                        Case ucsFscDscPlu
                             dblTotal = Round(dblTotal + Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
-                        ElseIf .DiscType = ucsFscDscPluAbs Then
+                        Case ucsFscDscPluAbs
                             dblTotal = Round(dblTotal + .DiscValue, DEF_PRICE_SCALE)
-                        End If
+                        End Select
                         If .PluTaxGroup > 0 Then
                             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal, DEF_PRICE_SCALE)
                         End If
-                    End If
-                ElseIf .RowType = ucsRowDiscount And .DiscType = ucsFscDscSubtotal Then
-                    If lCount > uData.Config.MaxReceiptRows - lTotal Then
+                    Case ucsRowDiscount
                         .PrintRowType = ucsFscRcpNonfiscal
                         pvGetSubtotals uData.Row, lRow, uSum
-                        For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
-                            uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
-                        Next
-                    End If
+                        Select Case .DiscType
+                        Case ucsFscDscSubtotal
+                            For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
+                                uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(uSum.GrpTotal(lIdx) * .DiscValue / 100#, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
+                            Next
+                        Case ucsFscDscSubtotalAbs
+                            dblTotal = Zndbl(SumArray(uSum.GrpTotal), 1)
+                            For lIdx = LBound(uCtx.GrpTotal) To UBound(uCtx.GrpTotal)
+                                uCtx.GrpTotal(lIdx) = Round(uCtx.GrpTotal(lIdx) + Round(.DiscValue * uSum.GrpTotal(lIdx) / dblTotal, DEF_PRICE_SCALE), DEF_PRICE_SCALE)
+                            Next
+                        End Select
+                    Case ucsRowLine
+                        .PrintRowType = ucsFscRcpNonfiscal
+                    End Select
                 End If
             End With
         Next

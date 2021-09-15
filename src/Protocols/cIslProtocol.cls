@@ -250,9 +250,9 @@ Private Const DEF_SOCKET_PORT           As Long = 4999
 Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
 Private Const DEF_MAX_DISCOUNT          As Double = 99
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
-Private Const DEF_MAX_ECR_RECEIPT_ROWS  As Long = 50
-Private Const DEF_MAX_DAISY_RECEIPT_ROWS As Long = 70
+Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
+Private Const DEF_MAX_ECR_RECEIPT_LINES  As Long = 118                      '-- e.g. Datecs DP-25
+Private Const DEF_MAX_DAISY_RECEIPT_LINES As Long = 150                     '-- unconfirmed
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "14|25|25|25|14|31|36"  '-- see UcsMaxCgInfoEnum below
@@ -567,9 +567,9 @@ Private Property Get pvRowChars() As Long
                 m_uPrintData.Config.ItemChars = C_Lng(At(vSplit, lIndex + 2))
             End If
             If C_Lng(At(vSplit, lIndex + 15)) > 0 Then
-                If m_uPrintData.Config.MaxReceiptRows = DEF_MAX_RECEIPT_ROWS And Not bIsDaisy _
-                        Or m_uPrintData.Config.MaxReceiptRows = DEF_MAX_DAISY_RECEIPT_ROWS And bIsDaisy Then
-                    m_uPrintData.Config.MaxReceiptRows = (C_Lng(At(vSplit, lIndex + 15)) - 20) / Znl(m_uPrintData.Config.MaxItemLines, 2)
+                If m_uPrintData.Config.MaxReceiptLines = DEF_MAX_RECEIPT_LINES And Not bIsDaisy _
+                        Or m_uPrintData.Config.MaxReceiptLines = DEF_MAX_DAISY_RECEIPT_LINES And bIsDaisy Then
+                    m_uPrintData.Config.MaxReceiptLines = C_Lng(At(vSplit, lIndex + 15))
                 End If
             End If
         ElseIf Left$(GetDeviceSerialNo(), Len(sEltradePrefix)) = sEltradePrefix And LenB(sEltradePrefix) <> 0 Then
@@ -821,7 +821,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
     End With
     '--- more dependant on m_uConfig being populated
     With m_uPrintData.Config
-        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), IIf(IsEcr, DEF_MAX_ECR_RECEIPT_ROWS, IIf(IsDaisy, DEF_MAX_DAISY_RECEIPT_ROWS, DEF_MAX_RECEIPT_ROWS))))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), IIf(IsEcr, DEF_MAX_ECR_RECEIPT_LINES, IIf(IsDaisy, DEF_MAX_DAISY_RECEIPT_LINES, DEF_MAX_RECEIPT_LINES))))
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP And Not IsIncotex)))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), IIf(IsEltrade, 0, DEF_MAX_ITEM_LINES)))
     End With
@@ -2438,13 +2438,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
-            If .DiscType = ucsFscDscPlu Then
+            Select Case .DiscType
+            Case ucsFscDscPlu
                 dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
-            ElseIf .DiscType = ucsFscDscPluAbs Then
+            Case ucsFscDscPluAbs
                 dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
-            Else
+            Case Else
                 dblDisc = 0
-            End If
+            End Select
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
@@ -2485,9 +2486,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         "FormatPrice", sFormatPrice, FORMAT_BASE_2, _
                         "FormatQty", sFormatQty, FORMAT_BASE_3, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
-                    sUnit = IIf(Not IsFP And Not IsIncotex, .PluUnitOfMeasure, vbNullString)
-                    vSplit = WrapText(.PluItemName & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
-                        Clamp(pvCommentChars, , pvItemChars))
+                    vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
                     If m_uPrintData.Config.MaxItemLines > 0 Then
                         If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
                             ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
@@ -2573,14 +2572,19 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Next
             End Select
         Case ucsRowLine
-            If .LineWordWrap Then
-                vSplit = WrapText(.LineText, pvCommentChars)
-            Else
-                vSplit = Array(Left$(.LineText, pvCommentChars))
-            End If
-            If Not pvPrintLine(vSplit) Then
-                GoTo QH
-            End If
+            Select Case .PrintRowType
+            Case ucsFscRcpNonfiscal
+                '--- do nothing
+            Case Else
+                If .LineWordWrap Then
+                    vSplit = WrapText(.LineText, pvCommentChars)
+                Else
+                    vSplit = Array(Left$(.LineText, pvCommentChars))
+                End If
+                If Not pvPrintLine(vSplit) Then
+                    GoTo QH
+                End If
+            End Select
         Case ucsRowBarcode
             If .BarcodeHeight > 0 And Not IsDaisy Then
                 pvGetCommandConfig CONF_NAME, "InitHeaderFooter", eCmd, ucsIslCmdInitHeaderFooter, sParam, "B" & DEF_SEP & "%1"
@@ -3244,7 +3248,11 @@ Private Function IDeviceProtocol_AddPayment(ByVal PmtType As UcsFiscalPaymentTyp
 End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, Optional ByVal Quantity As Double = 1, Optional ByVal TaxGroup As Long = 2, Optional UnitOfMeasure As String, Optional ByVal DepartmentNo As Long) As Boolean
-    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure, DepartmentNo)
+    Dim sUnit           As String
+    
+    sUnit = IIf(Not IsFP And Not IsIncotex, UnitOfMeasure, vbNullString)
+    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name & IIf(LenB(sUnit) <> 0, " (" & sUnit & ")", vbNullString), _
+        Price, Quantity, TaxGroup, IIf(LenB(sUnit) = 0, UnitOfMeasure, vbNullString), DepartmentNo)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant

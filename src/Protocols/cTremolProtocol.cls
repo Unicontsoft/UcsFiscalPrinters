@@ -158,7 +158,7 @@ Private Const DEF_FP_PASSWORD           As String = "0000"
 Private Const DEF_SOCKET_PORT           As Long = 8000
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_PING_TIMEOUT          As Long = 400
@@ -636,7 +636,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", True)))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
     End With
@@ -2031,13 +2031,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
-            If .DiscType = ucsFscDscPlu Then
+            Select Case .DiscType
+            Case ucsFscDscPlu
                 dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
-            ElseIf .DiscType = ucsFscDscPluAbs Then
+            Case ucsFscDscPluAbs
                 dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
-            Else
+            Case Else
                 dblDisc = 0
-            End If
+            End Select
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
@@ -2054,8 +2055,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         "FormatQty", sFormatQty, FORMAT_BASE_3, _
                         "FormatDisc", sFormatDisc, FORMAT_BASE_2
                 End If
-                vSplit = WrapText(.PluItemName & IIf(LenB(.PluUnitOfMeasure) <> 0, " (" & .PluUnitOfMeasure & ")", vbNullString), _
-                    Clamp(pvCommentChars, , pvItemChars))
+                vSplit = WrapText(.PluItemName, Clamp(pvCommentChars, , pvItemChars))
                 If m_uPrintData.Config.MaxItemLines > 0 Then
                     If UBound(vSplit) >= m_uPrintData.Config.MaxItemLines Then
                         ReDim Preserve vSplit(0 To m_uPrintData.Config.MaxItemLines - 1) As Variant
@@ -2132,14 +2132,19 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Next
             End Select
         Case ucsRowLine
-            If .LineWordWrap Then
-                vSplit = WrapText(.LineText, pvCommentChars)
-            Else
-                vSplit = Array(Left$(.LineText, pvCommentChars))
-            End If
-            If Not pvPrintLine(vSplit) Then
-                GoTo QH
-            End If
+            Select Case .PrintRowType
+            Case ucsFscRcpNonfiscal
+                '--- do nothing
+            Case Else
+                If .LineWordWrap Then
+                    vSplit = WrapText(.LineText, pvCommentChars)
+                Else
+                    vSplit = Array(Left$(.LineText, pvCommentChars))
+                End If
+                If Not pvPrintLine(vSplit) Then
+                    GoTo QH
+                End If
+            End Select
         Case ucsRowBarcode
             '--- do nothing
         Case ucsRowPayment
@@ -2572,7 +2577,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal PmtType As UcsFiscalPaymentTyp
 End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, Optional ByVal Quantity As Double = 1, Optional ByVal TaxGroup As Long = 2, Optional UnitOfMeasure As String, Optional ByVal DepartmentNo As Long) As Boolean
-    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure, DepartmentNo)
+    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name & IIf(LenB(UnitOfMeasure) <> 0, " (" & UnitOfMeasure & ")", vbNullString), _
+        Price, Quantity, TaxGroup, vbNullString, DepartmentNo)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant

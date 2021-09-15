@@ -72,7 +72,7 @@ Private Const DEF_CODEPAGE              As Long = 866
 Private Const DEF_ROW_CHARS             As Long = 48
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const STR_GS                    As String = "" ' Chr$(29)
 Private Const STR_ESC                   As String = "" ' Chr$(27)
@@ -382,7 +382,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .NegativePrices = True
         .MinDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT)
         .MaxDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT)
-        .MaxReceiptRows = Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS)
+        .MaxReceiptLines = Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES)
         .MaxItemLines = Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES)
     End With
     '--- success
@@ -628,13 +628,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
-            If .DiscType = ucsFscDscPlu Then
+            Select Case .DiscType
+            Case ucsFscDscPlu
                 dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
-            ElseIf .DiscType = ucsFscDscPluAbs Then
+            Case ucsFscDscPluAbs
                 dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
-            Else
+            Case Else
                 dblDisc = 0
-            End If
+            End Select
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             Select Case .PrintRowType
             Case ucsFscRcpOrderList
@@ -941,7 +942,8 @@ Private Function IDeviceProtocol_AddPayment(ByVal PmtType As UcsFiscalPaymentTyp
 End Function
 
 Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, Optional ByVal Quantity As Double = 1, Optional ByVal TaxGroup As Long = 2, Optional UnitOfMeasure As String, Optional ByVal DepartmentNo As Long) As Boolean
-    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name, Price, Quantity, TaxGroup, UnitOfMeasure, DepartmentNo)
+    IDeviceProtocol_AddPLU = PpdAddPLU(m_uPrintData, Name & IIf(LenB(UnitOfMeasure) <> 0, " (" & UnitOfMeasure & ")", vbNullString), _
+        Price, Quantity, TaxGroup, vbNullString, DepartmentNo)
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant

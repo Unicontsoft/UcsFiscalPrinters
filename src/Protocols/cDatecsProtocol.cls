@@ -200,7 +200,7 @@ Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_ITEM_CHARS            As Long = 72
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
@@ -618,7 +618,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", True)))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
     End With
@@ -1910,13 +1910,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
             dblTotal = Round(.PluPrice * .PluQuantity, DEF_PRICE_SCALE)
-            If .DiscType = ucsFscDscPlu Then
+            Select Case .DiscType
+            Case ucsFscDscPlu
                 dblDisc = Round(dblTotal * .DiscValue / 100#, DEF_PRICE_SCALE)
-            ElseIf .DiscType = ucsFscDscPluAbs Then
+            Case ucsFscDscPluAbs
                 dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
-            Else
+            Case Else
                 dblDisc = 0
-            End If
+            End Select
             uCtx.GrpTotal(.PluTaxGroup) = Round(uCtx.GrpTotal(.PluTaxGroup) + dblTotal + dblDisc, DEF_PRICE_SCALE)
             Select Case .PrintRowType
             Case ucsFscRcpNonfiscal
@@ -2005,14 +2006,19 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Next
             End Select
         Case ucsRowLine
-            If .LineWordWrap Then
-                vSplit = WrapText(.LineText, pvCommentChars)
-            Else
-                vSplit = Array(Left$(.LineText, pvCommentChars))
-            End If
-            If Not pvPrintLine(vSplit) Then
-                GoTo QH
-            End If
+            Select Case .PrintRowType
+            Case ucsFscRcpNonfiscal
+                '--- do nothing
+            Case Else
+                If .LineWordWrap Then
+                    vSplit = WrapText(.LineText, pvCommentChars)
+                Else
+                    vSplit = Array(Left$(.LineText, pvCommentChars))
+                End If
+                If Not pvPrintLine(vSplit) Then
+                    GoTo QH
+                End If
+            End Select
         Case ucsRowBarcode
             If .BarcodeHeight > 0 Then
                 pvGetCommandConfig CONF_NAME, "InfoSettingsBarCodeHeight", 0, 0, sParam, "BarCodeHeight"

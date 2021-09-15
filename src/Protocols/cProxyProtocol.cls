@@ -35,7 +35,7 @@ Private Const DEF_ROW_CHARS             As Long = 32
 Private Const DEF_ITEM_CHARS            As Long = 72
 Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
-Private Const DEF_MAX_RECEIPT_ROWS      As Long = 1000
+Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_HEADERS               As String = "Наименование на задълженото лице|Адрес на задълженото лице|Наименование на обект|Адрес на обект"
 Private Const DEF_FOOTERS               As String = "Заповядайте отново!"
@@ -174,7 +174,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", True))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptRows = GetConfigNumber(sDeviceSerialNo, "MaxReceiptRows", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptRows")), DEF_MAX_RECEIPT_ROWS))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
         '--- from response
@@ -599,14 +599,15 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             JsonItem(oRequest, "Rows/-1") = Array(.PluItemName, .PluPrice, .PluTaxGroup, .PluQuantity, .DiscValue, .PluUnitOfMeasure, .PluDepartmentNo)
         Case ucsRowDiscount
             Set oItem = Nothing
-            If .DiscType = ucsFscDscSubtotal Then
+            Select Case .DiscType
+            Case ucsFscDscSubtotal
                 JsonItem(oItem, "DiscountPercent") = .DiscValue
-            ElseIf .DiscType = ucsFscDscSubtotalAbs Then
+            Case ucsFscDscSubtotalAbs
                 JsonItem(oItem, "DiscountAmount") = .DiscValue
-            Else
+            Case Else
                 pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                 GoTo QH
-            End If
+            End Select
             JsonItem(oRequest, "Rows/-1") = oItem
         Case ucsRowLine
             JsonItem(oRequest, "Rows/-1") = Array(.LineText)
