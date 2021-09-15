@@ -1870,13 +1870,18 @@ Public Function GetLastZReportDate() As Date
     Dim vSplit          As Variant
     Dim lClosure        As Long
     Dim lIndex          As Long
+    Dim lDateIndex      As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
-        "Index", lIndex, -2
+    pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
+        "Index", lIndex, 1, _
+        "DateIndex", lDateIndex, -1
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
     If UBound(vSplit) >= 1 Then
+        GetLastZReportDate = pvParseDdmmyyDate(At(vSplit, lDateIndex))
         lClosure = C_Lng(At(vSplit, lIndex))
+    End If
+    If lClosure > 0 Then
         pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1", _
             "Index", lIndex, 1
         sParam = Printf(sParam, lClosure)
@@ -1890,14 +1895,6 @@ Public Function GetLastZReportDate() As Date
             If UBound(vSplit) >= 1 Then
                 GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
             End If
-        End If
-    End If
-    If GetLastZReportDate = 0 Then
-        pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
-            "Index", lIndex, -1
-        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-        If UBound(vSplit) >= 1 Then
-            GetLastZReportDate = pvParseDdmmyyDate(At(vSplit, lIndex))
         End If
     End If
     Exit Function
