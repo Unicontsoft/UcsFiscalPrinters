@@ -5,7 +5,7 @@
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/Default?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build?definitionId=4)
-[![Download stable UcsFPHub-0.1.49.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.49.zip-brightgreen)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.49/UcsFPHub-0.1.49.zip)
+[![Download stable UcsFPHub-0.1.50.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.50.zip-brightgreen)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.50/UcsFPHub-0.1.50.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/Unicontsoft/UcsFiscalPrinters/blob/master/LICENSE)
 </div>
@@ -118,9 +118,10 @@ Key              | Type   | Protocol | Description
 `ItemChars`      | number |          | Maximum number of characters available for product name (default to auto-detected)
 `MinDiscount`    | number |          | Minimum percent discount (default `-100`)
 `MaxDiscount`    | number |          | Maximum percent discount (default `100`)
-`MaxReceiptRows` | number |          | Max number of rows on the receipt supported
+`MaxReceiptLines`| number |          | Total number of lines in a receipt supported by the device
+`MaxItemLines`   | number |          | Maximum number of lines to print for a PLU row (default `2`)
 `CodePage`       | number | ESC/POS  | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
-`MaxPaymentLen`  | number | Datecs   | Max number of symbols in a payment name (default `16`)
+`MaxPaymentLen`  | number | Datecs   | Maximum number of symbols in a payment name (default `16`)
 `PingTimeout`    | number | Tremol   | Timeout for replay from fast online check (default `200` ms)
 `DetailedReceipt`| bool   | Tremol   | For each PLU print quantity, price and  total on separate lines like on invoices (default `Off`)
 `PrintVat`       | bool   | Tremol   | Include total VAT by tax groups in footer like on invoices (default `Off`)
