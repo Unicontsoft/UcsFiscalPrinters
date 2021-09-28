@@ -431,10 +431,15 @@ Property Get StatusText() As String
 End Property
 
 Property Get ErrorText() As String
+    Dim eModelGroup     As UcsModelGroupEnum
+    
     ErrorText = pvGetFlagsText(m_eStatus, pvLocalizedTextArray(ucsFscLciPrinterErrors))
-    If (IsDaisy Or IsIncotex) And (m_eDip And &H7F) <> 0 Then
-        ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
-            Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
+    If (m_eDip And &H7F) <> 0 Then
+        eModelGroup = C_Lng(Zn(At(Split(C_Str(m_vDeviceNumbers), "|"), 2), -1))
+        If (eModelGroup = ucsModDaisy Or eModelGroup = ucsModIncotex) Then
+            ErrorText = IIf(LenB(ErrorText) <> 0, ErrorText & vbCrLf, vbNullString) & _
+                Zn(At(pvLocalizedTextArray(ucsFscLciExtendedErrors), m_eDip And &H7F), Printf(pvInternal(ucsErrUnknownError), m_eDip And &H7F))
+        End If
     End If
 End Property
 
@@ -1882,18 +1887,28 @@ Public Function GetLastZReportDate() As Date
         lClosure = C_Lng(At(vSplit, lIndex))
     End If
     If lClosure > 0 Then
-        pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1", _
-            "Index", lIndex, 1
-        sParam = Printf(sParam, lClosure)
-        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-        If UBound(vSplit) >= 1 Then
-            lClosure = C_Lng(At(vSplit, lIndex))        '--- Z-report DocNo
-            pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, "0" & DEF_SEP & "%1" & DEF_SEP & "2", _
+        If IsFP Then
+            pvGetCommandConfig CONF_NAME, "InitEcTape", eCmd, ucsIslCmdInitEcTape, sParam, "C" & DEF_SEP & "R%1", _
                 "Index", lIndex, 2
             sParam = Printf(sParam, lClosure)
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
             If UBound(vSplit) >= 1 Then
                 GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
+            End If
+        Else
+            pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1", _
+                "Index", lIndex, 1
+            sParam = Printf(sParam, lClosure)
+            vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+            If UBound(vSplit) >= 1 Then
+                lClosure = C_Lng(At(vSplit, lIndex))        '--- Z-report DocNo
+                pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, "0" & DEF_SEP & "%1" & DEF_SEP & "2", _
+                    "Index", lIndex, 2
+                sParam = Printf(sParam, lClosure)
+                vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+                If UBound(vSplit) >= 1 Then
+                    GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
+                End If
             End If
         End If
     End If
