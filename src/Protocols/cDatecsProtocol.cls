@@ -226,6 +226,7 @@ Private m_eMemory                   As UcsDatecsFiscalMemoryEnum
 Private m_vDeviceNumbers            As Variant
 Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
+Private m_lLastErrCode              As Long
 
 Private Enum UcsInternalErrors
     [__ucsErrTimeoutWaitingForResponse]
@@ -678,6 +679,7 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
     Const FUNC_NAME     As String = "SendCommand"
     Dim sError          As String
     Dim lPos            As Long
+    Dim lErrCode        As Long
     
     On Error GoTo EH
     pvSetLastError vbNullString
@@ -689,6 +691,20 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
         pvSetLastError sError
         GoTo QH
     End If
+    lPos = InStr(SendCommand, DEF_SEP)
+    If lPos > 1 Then
+        lErrCode = C_Lng(Left$(SendCommand, lPos - 1))
+        Select Case lErrCode
+        Case 0
+            '--- do nothing
+        Case ERR_OPER_WRONG_PASSWORD
+            pvSetLastError pvToErrorCode(sError), ucsFerInvalidPassword, ErrCode:=lErrCode
+            GoTo QH
+        Case Else
+            pvSetLastError pvToErrorCode(sError), ErrCode:=lErrCode
+            GoTo QH
+        End Select
+    End If
     If Status(ucsDcsStbGeneralError) Then
         pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
         GoTo QH
@@ -696,18 +712,6 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
     If Memory(ucsDcsFmeMemoryError) Then
         pvSetLastError Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
         GoTo QH
-    End If
-    lPos = InStr(SendCommand, DEF_SEP)
-    If lPos > 1 Then
-        sError = Left$(SendCommand, lPos - 1)
-        Select Case C_Lng(sError)
-        Case 0
-            '--- do nothing
-        Case ERR_OPER_WRONG_PASSWORD
-            pvSetLastError pvToErrorCode(sError), ucsFerInvalidPassword
-        Case Else
-            pvSetLastError pvToErrorCode(sError)
-        End Select
     End If
 QH:
     Exit Function
@@ -2092,7 +2096,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
-                    If LenB(m_uPrintData.LastError) <> 0 Then
+                    If m_lLastErrCode <> 0 Then
                         GoTo QH
                     End If
                     uCtx.PmtPrinted = True
@@ -2113,7 +2117,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             Left$(.InitInvData(ucsInvCgVatNo), m_uConfig.MaxCgInfo(ucsMciCgVatNo)))
                     End With
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
-                    If LenB(m_uPrintData.LastError) <> 0 Then
+                    If m_lLastErrCode <> 0 Then
                         GoTo QH
                     End If
                 End Select
@@ -2127,7 +2131,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 And eCmd <> ucsDcsCmdFiscalCancel Then
+            If m_lLastErrCode <> 0 And eCmd <> ucsDcsCmdFiscalCancel Then
                 GoTo QH
             End If
             If eCmd <> ucsDcsCmdNoop Then
@@ -2301,7 +2305,7 @@ EH:
     RaiseError FUNC_NAME
 End Sub
 
-Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
+Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1, Optional ByVal ErrCode As Long)
     Const FUNC_NAME     As String = "pvSetLastError"
     
     On Error GoTo EH
@@ -2311,6 +2315,7 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
+    m_lLastErrCode = ErrCode
     If LenB(sError) = 0 Then
         m_eStatus = 0
         m_eMemory = 0
