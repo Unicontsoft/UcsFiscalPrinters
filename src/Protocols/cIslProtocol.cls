@@ -24,6 +24,7 @@ Attribute VB_Exposed = True
 '
 ' Implementation of ISL protocol for Datecs (legacy) A and B models, Daisy and Incotex
 '
+'
 '=========================================================================
 Option Explicit
 DefObj A-Z
@@ -2527,14 +2528,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty) & _
                             IIf(LenB(sUnit) <> 0, "#" & Left$(sUnit, MAX_UNIT_OF_MEASURE), vbNullString)
                     End If
-                    Select Case .DiscType
-                    Case ucsFscDscPlu
-                        If Abs(.PluPrice) > DBL_EPSILON Then
-                            sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
-                        End If
-                    Case ucsFscDscPluAbs
-                        sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
-                    End Select
+                    If Abs(Round(.DiscValue, DEF_PRICE_SCALE)) > DBL_EPSILON Then
+                        Select Case .DiscType
+                        Case ucsFscDscPlu
+                            If Abs(.PluPrice) > DBL_EPSILON Then
+                                sData = sData & DEF_SEP & SafeFormat(.DiscValue, sFormatDisc)
+                            End If
+                        Case ucsFscDscPluAbs
+                            sData = sData & IIf(IsDaisy, "$", ";") & SafeFormat(.DiscValue, sFormatPrice)
+                        End Select
+                    End If
                     sUnit = IIf(IsIncotex, .PluUnitOfMeasure, vbNullString)
                     If LenB(sUnit) <> 0 Then
                         sData = sData & "@" & Left$(sUnit, MAX_UNIT_OF_MEASURE)

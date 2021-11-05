@@ -1940,13 +1940,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Next
                 sData = At(vSplit, UBound(vSplit))
                 sDiscType = vbNullString
+                dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
                 Select Case .DiscType
                 Case ucsFscDscPlu
                     If Abs(.PluPrice) > DBL_EPSILON Then
-                        sDiscType = Switch(.DiscValue > DBL_EPSILON, "1", .DiscValue < -DBL_EPSILON, "2", True, vbNullString)
+                        sDiscType = Switch(dblDisc > DBL_EPSILON, "1", dblDisc < -DBL_EPSILON, "2", True, vbNullString)
                     End If
                 Case ucsFscDscPluAbs
-                    sDiscType = Switch(.DiscValue > DBL_EPSILON, "3", .DiscValue < -DBL_EPSILON, "4", True, vbNullString)
+                    sDiscType = Switch(dblDisc > DBL_EPSILON, "3", dblDisc < -DBL_EPSILON, "4", True, vbNullString)
                 End Select
                 '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8"

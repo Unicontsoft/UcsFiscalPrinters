@@ -2077,14 +2077,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If Abs(.PluQuantity - 1) > DBL_EPSILON Then
                         sData = sData & "*" & SafeFormat(.PluQuantity, sFormatQty)
                     End If
-                    Select Case .DiscType
-                    Case ucsFscDscPlu
-                        If Abs(.PluPrice) > DBL_EPSILON Then
-                            sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
-                        End If
-                    Case ucsFscDscPluAbs
-                        sData = sData & ":" & SafeFormat(.DiscValue, sFormatDisc)
-                    End Select
+                    If Abs(Round(.DiscValue, DEF_PRICE_SCALE)) > DBL_EPSILON Then
+                        Select Case .DiscType
+                        Case ucsFscDscPlu
+                            If Abs(.PluPrice) > DBL_EPSILON Then
+                                sData = sData & "," & SafeFormat(.DiscValue, sFormatDisc)
+                            End If
+                        Case ucsFscDscPluAbs
+                            sData = sData & ":" & SafeFormat(.DiscValue, sFormatDisc)
+                        End Select
+                    End If
                 Else
                     sData = sData & SafeFormat(0, sFormatPrice)
                 End If
