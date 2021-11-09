@@ -28,7 +28,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   12
+      TabIndex        =   13
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -37,19 +37,27 @@ Begin VB.Form frmSettings
          Caption         =   "Тест"
          Height          =   432
          Left            =   8484
-         TabIndex        =   8
+         TabIndex        =   9
          Tag             =   "FONT"
          Top             =   2436
          Width           =   1104
       End
       Begin VB.Frame fraQuickSetup 
          Caption         =   "Бързи настройки"
-         Height          =   4380
+         Height          =   4884
          Left            =   0
-         TabIndex        =   15
+         TabIndex        =   16
          Tag             =   "FONT"
          Top             =   0
          Width           =   4464
+         Begin VB.TextBox txtLogFile 
+            Height          =   288
+            Left            =   2772
+            TabIndex        =   6
+            Tag             =   "FONT"
+            Top             =   3528
+            Width           =   1440
+         End
          Begin VB.TextBox txtSerialNo 
             Height          =   288
             Left            =   2772
@@ -71,9 +79,9 @@ Begin VB.Form frmSettings
             Caption         =   "Прилагане"
             Height          =   432
             Left            =   2772
-            TabIndex        =   6
+            TabIndex        =   7
             Tag             =   "FONT"
-            Top             =   3612
+            Top             =   4116
             Width           =   1440
          End
          Begin VB.TextBox txtDefPass 
@@ -108,56 +116,73 @@ Begin VB.Form frmSettings
             Top             =   1512
             Width           =   1440
          End
-         Begin VB.Label Label5 
+         Begin VB.Label labLabel 
+            AutoSize        =   -1  'True
+            Caption         =   "Журнален файл:"
+            Height          =   192
+            Index           =   5
+            Left            =   252
+            TabIndex        =   22
+            Tag             =   "FONT"
+            Top             =   3528
+            UseMnemonic     =   0   'False
+            Width           =   1200
+         End
+         Begin VB.Label labLabel 
             AutoSize        =   -1  'True
             Caption         =   "Сериен номер на ФУ:"
             Height          =   192
+            Index           =   4
             Left            =   252
-            TabIndex        =   20
+            TabIndex        =   21
             Tag             =   "FONT"
             Top             =   3024
             UseMnemonic     =   0   'False
             Width           =   1524
          End
-         Begin VB.Label Label4 
+         Begin VB.Label labLabel 
             AutoSize        =   -1  'True
             Caption         =   "Парола по подразбиране:"
             Height          =   192
+            Index           =   3
             Left            =   252
-            TabIndex        =   19
+            TabIndex        =   20
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
             Width           =   1836
          End
-         Begin VB.Label Label3 
+         Begin VB.Label labLabel 
             AutoSize        =   -1  'True
             Caption         =   "Протокол за комуникация:"
             Height          =   192
+            Index           =   0
             Left            =   252
-            TabIndex        =   18
+            TabIndex        =   19
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
             Width           =   1872
          End
-         Begin VB.Label Label2 
+         Begin VB.Label labLabel 
             AutoSize        =   -1  'True
             Caption         =   "Скорост на комуникация:"
             Height          =   192
+            Index           =   2
             Left            =   252
-            TabIndex        =   17
+            TabIndex        =   18
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
             Width           =   1788
          End
-         Begin VB.Label Label1 
+         Begin VB.Label labLabel 
             AutoSize        =   -1  'True
             Caption         =   "Комуникационен порт:"
             Height          =   192
+            Index           =   1
             Left            =   252
-            TabIndex        =   16
+            TabIndex        =   17
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
@@ -170,7 +195,7 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         TabIndex        =   9
+         TabIndex        =   10
          Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
@@ -179,7 +204,7 @@ Begin VB.Form frmSettings
          Height          =   2928
          IntegralHeight  =   0   'False
          Left            =   4620
-         TabIndex        =   7
+         TabIndex        =   8
          Tag             =   "MONO"
          Top             =   84
          Width           =   5052
@@ -193,7 +218,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   14
+      TabIndex        =   15
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -205,7 +230,7 @@ Begin VB.Form frmSettings
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   11
+         TabIndex        =   12
          Tag             =   "MONO"
          Top             =   0
          Width           =   9252
@@ -219,7 +244,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   13
+      TabIndex        =   14
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -230,7 +255,7 @@ Begin VB.Form frmSettings
          Left            =   0
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   10
+         TabIndex        =   11
          Tag             =   "MONO"
          Top             =   0
          Width           =   6396
@@ -432,7 +457,7 @@ Private Const MSG_NO_UPDATE             As String = "Не е намерена по-нова верси
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000
-Private Const DEF_MIN_HEIGHT            As Single = 6000
+Private Const DEF_MIN_HEIGHT            As Single = 6200
 
 Private m_sConfFile                 As String
 Private m_sPrinterID                As String
@@ -569,6 +594,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         pvLoadItemData cobSpeed, Split(STR_SPEEDS, "|")
         txtSerialNo.Height = cobSpeed.Height
         txtDefPass.Height = cobSpeed.Height
+        txtLogFile.Height = cobSpeed.Height
         '--- delay-load UI
         m_sPrinterID = vbNullString
         lstPrinters.Clear
@@ -672,6 +698,7 @@ Private Function pvLoadPrinters() As Boolean
     cobSpeed.Text = JsonItem(oDevice, "Speed")
     txtSerialNo.Text = JsonItem(oDevice, "DeviceSerialNo")
     txtDefPass.Text = JsonItem(oDevice, "DefaultPassword")
+    txtLogFile.Text = JsonItem(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG")
     m_bInSet = False
     '--- printers list
     Set oForm = MainForm
@@ -953,6 +980,10 @@ RetryRestart:
     JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     If UBound(JsonKeys(oConfig, "Printers/" & m_sPrinterID)) < 0 Then
         JsonItem(oConfig, "Printers/" & m_sPrinterID) = Empty
+    End If
+    JsonItem(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG") = Zn(Trim$(txtLogFile.Text), Empty)
+    If UBound(JsonKeys(oConfig, "Environment")) < 0 Then
+        JsonItem(oConfig, "Environment") = Empty
     End If
     pvConfigText = JsonDump(oConfig)
     If pvSaveConfig(m_sConfFile) Then
