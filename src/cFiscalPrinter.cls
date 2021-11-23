@@ -319,14 +319,6 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         GoTo QH
     End If
     pvCommonIncludesMiddleware oFP, oJson, oRetVal
-    sResumeToken = JsonItem(oJson, "ResumeToken")
-    If LenB(sResumeToken) = 0 Then
-        If Not oFP.CancelReceipt() Then
-            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
-            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
-            GoTo QH
-        End If
-    End If
     sPrevReceiptNo = JsonItem(oJson, "PrevReceiptNo")
     If LenB(sPrevReceiptNo) <> 0 Then
         JsonItem(oRetVal, "PrevReceiptNo") = StripZeros(oFP.GetLastQRCodeInfo())
@@ -341,6 +333,14 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
                     GoTo ReturnReceiptInfo
                 End If
             End If
+        End If
+    End If
+    sResumeToken = JsonItem(oJson, "ResumeToken")
+    If LenB(sResumeToken) = 0 Then
+        If Not oFP.CancelReceipt() Then
+            sLastErr = Zn(oFP.GetLastError(eLastNo), pvInternal(ucsErrNotImplemented))
+            DebugLog FUNC_NAME, "Not oFP.CancelReceipt(), sLastErr=" & sLastErr & ", eLastNo=" & eLastNo
+            GoTo QH
         End If
     End If
     If IsObject(JsonItem(oJson, "Rows")) Then
