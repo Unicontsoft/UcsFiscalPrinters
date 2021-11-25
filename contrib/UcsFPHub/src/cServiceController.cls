@@ -47,6 +47,7 @@ Private m_sLastError                As String
 Private m_oPrinters                 As Object
 Private m_oRequestsCache            As Object
 Private WithEvents m_oFP            As cFiscalPrinter
+Attribute m_oFP.VB_VarHelpID = -1
 
 '=========================================================================
 ' Error handling
@@ -124,6 +125,14 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
                 Exit Function
             End If
         End If
+    End If
+    If preg_match("/^/autoupdate$/i", sPath) Then
+        Set oEntry = Nothing
+        JsonItem(oEntry, "UpdateStarted") = MainForm.DelayStartAutoUpdate()
+        sResponse = JsonDump(oEntry, Minimize:=True)
+        '--- success
+        ServiceRequest = True
+        GoTo QH
     End If
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals|drawer))?$/i", sPath, vMatches) = 0 Then
         m_lLastCode = 404

@@ -89,6 +89,7 @@ Private m_oPrinters                 As Object
 Private m_sConfFile                 As String
 Private m_sExeAutoUpdate            As String
 Private m_pUpdateTimer              As IUnknown
+Private m_pAutoUpdateTimer          As IUnknown
 Private WithEvents m_oSysTray       As cSysTray
 Attribute m_oSysTray.VB_VarHelpID = -1
 Private m_hDevNotify                As Long
@@ -253,6 +254,34 @@ Attribute AutoUpdateTimerProc.VB_MemberFlags = "40"
     On Error GoTo EH
     Set m_pUpdateTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.AutoUpdateTimerProc, LNG_AUTO_UPDATE_DELAY * 1000)
     StartAutoUpdate
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function DelayStartAutoUpdate(Optional ByVal Delay As Long = 1000) As Boolean
+    Const FUNC_NAME     As String = "DelayStartAutoUpdate"
+    
+    On Error GoTo EH
+    If StartAutoUpdate(vbTrue) Then
+        Set m_pAutoUpdateTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.StartAutoUpdateTimerProc, Delay:=Delay)
+        '--- success
+        DelayStartAutoUpdate = True
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function StartAutoUpdateTimerProc() As Long
+Attribute StartAutoUpdateTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "StartAutoUpdateTimerProc"
+    
+    On Error GoTo EH
+    Set m_pAutoUpdateTimer = Nothing
+    If StartAutoUpdate(vbFalse) Then
+        '--- success
+    End If
     Exit Function
 EH:
     PrintError FUNC_NAME
