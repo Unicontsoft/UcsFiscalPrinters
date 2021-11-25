@@ -487,7 +487,13 @@ Public Function PrintReport(sRequest As String, sResponse As String) As Boolean
     Case ucsFscRptMonthlyByReceiptNo
         '--- ToDo: impl
     Case ucsFscRptMonthlyByDate
-        eReportType = IIf(JsonBoolItem(oJson, "IsDetailed"), ucsFscRstMonthlyDetailed, ucsFscRstMonthlyShort)
+        If JsonBoolItem(oJson, "IsEJ") Then
+            eReportType = ucsFscRstMonthlyEJ
+        ElseIf JsonBoolItem(oJson, "IsDetailed") Then
+            eReportType = ucsFscRstMonthlyDetailed
+        Else
+            eReportType = ucsFscRstMonthlyShort
+        End If
         If C_Date(JsonItem(oJson, "FromDate")) <> 0 And C_Date(JsonItem(oJson, "ToDate")) <> 0 Then
             bResult = oFP.PrintMonthlyReport(eReportType, C_Date(JsonItem(oJson, "FromDate")), C_Date(JsonItem(oJson, "ToDate")), sReceiptNo, dReceiptDate)
         End If

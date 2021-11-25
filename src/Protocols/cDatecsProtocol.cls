@@ -118,8 +118,8 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdPrintDiagnostics = 71
     ucsDcsCmdPrintBarcode = 84
     ucsDcsCmdPrintSeparator = 92
-    ucsDcsCmdPrintReportByDateDetailed = 94
-    ucsDcsCmdPrintReportByNumberShort = 95
+    ucsDcsCmdPrintReportByDate = 94
+    ucsDcsCmdPrintReportByNumber = 95
     ucsDcsCmdPrintReportByOperators = 105
     ucsDcsCmdPrintDuplicate = 109
     ucsDcsCmdPrintReportByItems = 111
@@ -880,11 +880,11 @@ Public Function PrintMonthlyReport( _
     Case ucsFscRstMonthlyShort
         '--- {Type}<SEP>{Start}<SEP>{End}<SEP>
         sParam = "0" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP
-        pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsDcsCmdPrintReportByDateDetailed, sParam, sParam, _
+        pvGetCommandConfig CONF_NAME, "PrintReportByDateShort", eCmd, ucsDcsCmdPrintReportByDate, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case ucsFscRstMonthlyDetailed
         sParam = "1" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP
-        pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsDcsCmdPrintReportByDateDetailed, sParam, sParam, _
+        pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsDcsCmdPrintReportByDate, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)

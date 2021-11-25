@@ -335,6 +335,8 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     JsonItem(oRequest, "EndDate") = EndDate
     If ReportType = ucsFscRstMonthlyDetailed Then
         JsonItem(oRequest, "IsDetailed") = True
+    ElseIf ReportType = ucsFscRstMonthlyEJ Then
+        JsonItem(oRequest, "IsEJ") = True
     End If
     If Not pvSendRequest("POST", "/report", oRequest, oResponse) Then
         GoTo QH

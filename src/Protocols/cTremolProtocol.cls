@@ -915,6 +915,9 @@ Public Function PrintMonthlyReport( _
     Case ucsFscRstMonthlyDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsZekCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
             "Format", sFormat, FORMAT_DATE_REPORT
+    Case ucsFscRstMonthlyEJ
+        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1" & DEF_SEP & "D" & DEF_SEP & "%1" & DEF_SEP & "%2", _
+            "Format", sFormat, FORMAT_DATE_REPORT
     Case Else
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), GetReportTypeName(ReportType))
         GoTo QH

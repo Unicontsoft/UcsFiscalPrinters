@@ -24,7 +24,6 @@ Attribute VB_Exposed = True
 '
 ' Implementation of ISL protocol for Datecs (legacy) A and B models, Daisy and Incotex
 '
-'
 '=========================================================================
 Option Explicit
 DefObj A-Z
@@ -96,7 +95,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInitItem = 107
     ucsIslCmdInitLogo = 115
     ucsIslCmdInitOpenDrawer = 106
-    ucsIslCmdInitEcTape = 119
+    ucsIslCmdInitEJ = 119
     ucsIslCmdExtendedInitText = 149                '-- command above &H7F
     ucsIslCmdExtendedInitSetting = 150             '-- command above &H7F
     ucsIslCmdExtendedInitPayment = 151             '-- command above &H7F
@@ -922,7 +921,7 @@ Public Function PrintDuplicate( _
             pvGetCommandConfig CONF_NAME, "ExtendedInitEJ" & sParam, eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
         Else
             sParam = "P" & DEF_SEP & "%1"
-            pvGetCommandConfig CONF_NAME, "InitEcTape" & sParam, eCmd, ucsIslCmdInitEcTape, sParam, sParam
+            pvGetCommandConfig CONF_NAME, "InitEJ" & sParam, eCmd, ucsIslCmdInitEJ, sParam, sParam
         End If
         sParam = Printf(sParam, DuplicateNo)
     End If
@@ -1093,6 +1092,10 @@ Public Function PrintMonthlyReport( _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case ucsFscRstMonthlyDetailed
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsIslCmdPrintReportByDateDetailed, sParam, "%1" & DEF_SEP & "%2", _
+            "Format", sFormat, FORMAT_DATE_REPORT
+    Case ucsFscRstMonthlyEJ
+        sParam = "P" & DEF_SEP & IIf(IsFP, "<", vbNullString) & "A" & DEF_SEP & "%1" & DEF_SEP & "%2"
+        pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT
     Case Else
         pvSetLastError Printf(pvInternal(ucsErrInvalidReportType), GetReportTypeName(ReportType))
@@ -1889,7 +1892,7 @@ Public Function GetLastZReportDate() As Date
     End If
     If lClosure > 0 Then
         If IsFP Then
-            pvGetCommandConfig CONF_NAME, "InitEcTape", eCmd, ucsIslCmdInitEcTape, sParam, "C" & DEF_SEP & "R%1", _
+            pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, "C" & DEF_SEP & "R%1", _
                 "Index", lIndex, 2
             sParam = Printf(sParam, lClosure)
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)

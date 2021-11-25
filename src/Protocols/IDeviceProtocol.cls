@@ -107,6 +107,7 @@ Public Enum UcsFiscalReportsTypeEnum
     ucsFscRstDailyByOperators
     ucsFscRstMonthlyShort
     ucsFscRstMonthlyDetailed
+    ucsFscRstMonthlyEJ
 End Enum
 
 Public Enum UcsFiscalErrorsEnum
@@ -402,7 +403,7 @@ End Function
 ''
 ' Used to print monthly fiscal report by date range
 '
-' @param `ReportType`       [input] type of report to print: short or details
+' @param `ReportType`       [input] type of report to print: short, detailed, EJ
 ' @param `StartDate`        [input] start of date range
 ' @param `EndDate`          [input] end of date range
 ' @param `ReceiptNo`        [out, optional] receipt number of the receipt just printed
