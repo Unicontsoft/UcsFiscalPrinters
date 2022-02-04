@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2021 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -538,7 +538,7 @@ End Function
 
 #If Not ImplUseShared Then
 
-Public Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
+Private Function SplitOrReindex(Expression As String, Delimiter As String) As Variant
     SplitOrReindex = Split(Expression, Delimiter)
 End Function
 
