@@ -4,6 +4,7 @@
 ## Unicontsoft Fiscal Printers Component 2.0
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/Default?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build?definitionId=4)
+[![GitHub watchers](https://img.shields.io/github/watchers/Unicontsoft/UcsFiscalPrinters)](https://github.com/Unicontsoft/UcsFiscalPrinters/watchers)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/Unicontsoft/UcsFiscalPrinters/blob/master/LICENSE)
 </div>
 
