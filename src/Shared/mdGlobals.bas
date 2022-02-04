@@ -733,8 +733,8 @@ Public Function FileExists(sFile As String) As Boolean
 End Function
 
 Public Function ReadTextFile(sFile As String) As String
-    Dim BOM_UTF8      As String: BOM_UTF8 = Chr$(&HEF) & Chr$(&HBB) & Chr$(&HBF)
-    Dim BOM_UNICODE   As String: BOM_UNICODE = Chr$(&HFF) & Chr$(&HFE)
+    Dim BOM_UTF8        As String: BOM_UTF8 = Chr$(&HEF) & Chr$(&HBB) & Chr$(&HBF)
+    Dim BOM_UNICODE     As String: BOM_UNICODE = Chr$(&HFF) & Chr$(&HFE)
     Const ForReading    As Long = 1
     Dim lSize           As Long
     Dim sPrefix         As String

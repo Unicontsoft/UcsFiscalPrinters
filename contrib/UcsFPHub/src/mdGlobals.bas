@@ -238,8 +238,8 @@ End Function
 Public Function ReadTextFile(sFile As String) As String
     Const FUNC_NAME     As String = "ReadTextFile"
     Const ForReading    As Long = 1
-    Const BOM_UTF       As String = "ï»¿"   '--- "\xEF\xBB\xBF"
-    Const BOM_UNICODE   As String = "ÿþ"    '--- "\xFF\xFE"
+    Dim BOM_UTF8        As String: BOM_UTF8 = Chr$(&HEF) & Chr$(&HBB) & Chr$(&HBF)
+    Dim BOM_UNICODE     As String: BOM_UNICODE = Chr$(&HFF) & Chr$(&HFE)
     Dim lSize           As Long
     Dim sPrefix         As String
     Dim nFile           As Integer
@@ -261,7 +261,7 @@ Public Function ReadTextFile(sFile As String) As String
     Get nFile, , sPrefix
     Close nFile
     '--- figure out charset
-    If Left$(sPrefix, 3) = BOM_UTF Then
+    If Left$(sPrefix, 3) = BOM_UTF8 Then
         sCharset = "UTF-8"
     ElseIf Left$(sPrefix, 2) = BOM_UNICODE Or IsTextUnicode(ByVal sPrefix, Len(sPrefix), &HFFFF& - 2) <> 0 Then
         sCharset = "Unicode"
