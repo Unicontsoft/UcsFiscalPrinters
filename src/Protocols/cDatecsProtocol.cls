@@ -165,7 +165,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available|Invalid Tax No. %1 for invoice printing|Invalid VAT No. %1 for invoice printing|"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -211,6 +211,8 @@ Private Const LNG_OPEN_IMPULSE          As Long = 250
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
+Private Const ERR_FP_BAD_PARAM_7        As Long = -112207
+Private Const ERR_FP_BAD_PARAM_8        As Long = -112208
 Private Const MAX_HEADER_LINES          As Long = 10
 Private Const MAX_FOOTER_LINES          As Long = 10
 Private Const MAX_UNIT_OF_MEASURE       As Long = 6
@@ -247,6 +249,8 @@ Private Enum UcsInternalErrors
     ucsErrUnsupportedDiscType
     ucsErrCommitReceiptCancelled
     ucsErrInsufficientSum
+    ucsErrInvalidTaxNo
+    ucsErrInvalidVatNo
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -2119,6 +2123,13 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     End With
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     If m_lLastErrCode <> 0 Then
+                        Select Case m_lLastErrCode
+                        Case ERR_FP_BAD_PARAM_7
+                            pvSetLastError Printf(pvInternal(ucsErrInvalidTaxNo), .InitInvData(ucsInvCgTaxNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
+                        Case ERR_FP_BAD_PARAM_8
+                            pvSetLastError Printf(pvInternal(ucsErrInvalidVatNo), .InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
+                        End Select
+                        uCtx.PmtPrinted = False
                         GoTo QH
                     End If
                 End Select
