@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdProtocolPrintData"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2021 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -429,17 +429,17 @@ Public Function PpdEndReceipt( _
     Set oToken = JsonParseObject(sResumeToken)
     With uData.ExecCtx
         For lIdx = LBound(.GrpTotal) To UBound(.GrpTotal)
-            .GrpTotal(lIdx) = C_Dbl(JsonItem(oToken, "GrpTotal/" & lIdx - LBound(.GrpTotal)))
+            .GrpTotal(lIdx) = C_Dbl(JsonValue(oToken, "GrpTotal/" & lIdx - LBound(.GrpTotal)))
         Next
-        .Paid = C_Dbl(JsonItem(oToken, "Paid"))
-        .PluCount = C_Lng(JsonItem(oToken, "Paid"))
-        .PmtPrinted = C_Bool(JsonItem(oToken, "PmtPrinted"))
-        .ChangePrinted = C_Bool(JsonItem(oToken, "ChangePrinted"))
-        .Row = C_Lng(JsonItem(oToken, "Row"))
-        .ReceiptNo = C_Str(JsonItem(oToken, "ReceiptNo"))
-        .ReceiptDate = C_Date(JsonItem(oToken, "ReceiptDate"))
-        .ReceiptAmount = C_Dbl(JsonItem(oToken, "ReceiptAmount"))
-        .InvoiceNo = C_Str(JsonItem(oToken, "InvoiceNo"))
+        .Paid = C_Dbl(JsonValue(oToken, "Paid"))
+        .PluCount = C_Lng(JsonValue(oToken, "Paid"))
+        .PmtPrinted = C_Bool(JsonValue(oToken, "PmtPrinted"))
+        .ChangePrinted = C_Bool(JsonValue(oToken, "ChangePrinted"))
+        .Row = C_Lng(JsonValue(oToken, "Row"))
+        .ReceiptNo = C_Str(JsonValue(oToken, "ReceiptNo"))
+        .ReceiptDate = C_Date(JsonValue(oToken, "ReceiptDate"))
+        .ReceiptAmount = C_Dbl(JsonValue(oToken, "ReceiptAmount"))
+        .InvoiceNo = C_Str(JsonValue(oToken, "InvoiceNo"))
     End With
     '--- fix fiscal receipts with for more than uData.MaxReceiptLines PLUs
     pvConvertExtraRows uData
@@ -469,20 +469,20 @@ Public Function PpdGetResumeToken(uData As UcsProtocolPrintData) As String
     '--- need resume token only if payment processed
     With uData.ExecCtx
         If .PmtPrinted Then
-            JsonItem(oToken, "GrpTotal/*") = .GrpTotal
-            JsonItem(oToken, "Paid") = .Paid
-            JsonItem(oToken, "PluCount") = .PluCount
+            JsonValue(oToken, "GrpTotal/*") = .GrpTotal
+            JsonValue(oToken, "Paid") = .Paid
+            JsonValue(oToken, "PluCount") = .PluCount
             If .PmtPrinted Then
-                JsonItem(oToken, "PmtPrinted") = True
+                JsonValue(oToken, "PmtPrinted") = True
             End If
             If .ChangePrinted Then
-                JsonItem(oToken, "ChangePrinted") = True
+                JsonValue(oToken, "ChangePrinted") = True
             End If
-            JsonItem(oToken, "Row") = .Row
-            JsonItem(oToken, "ReceiptNo") = Zn(.ReceiptNo, Empty)
-            JsonItem(oToken, "ReceiptDate") = IIf(.ReceiptDate <> 0, .ReceiptDate, Empty)
-            JsonItem(oToken, "ReceiptAmount") = IIf(Abs(.ReceiptAmount) > DBL_EPSILON, .ReceiptAmount, Empty)
-            JsonItem(oToken, "InvoiceNo") = Zn(.InvoiceNo, Empty)
+            JsonValue(oToken, "Row") = .Row
+            JsonValue(oToken, "ReceiptNo") = Zn(.ReceiptNo, Empty)
+            JsonValue(oToken, "ReceiptDate") = IIf(.ReceiptDate <> 0, .ReceiptDate, Empty)
+            JsonValue(oToken, "ReceiptAmount") = IIf(Abs(.ReceiptAmount) > DBL_EPSILON, .ReceiptAmount, Empty)
+            JsonValue(oToken, "InvoiceNo") = Zn(.InvoiceNo, Empty)
             PpdGetResumeToken = JsonDump(oToken, Minimize:=True)
         End If
     End With

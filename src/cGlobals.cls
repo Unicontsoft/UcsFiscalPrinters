@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2020 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -45,12 +45,12 @@ Public Function JsonKeys(oJson As Object, Optional sKey As String) As Variant
     JsonKeys = mdJson.JsonKeys(oJson, sKey)
 End Function
 
-Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
-    AssignVariant JsonItem, mdJson.JsonItem(oJson, sKey)
+Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
+    AssignVariant JsonValue, mdJson.JsonValue(oJson, sKey)
 End Property
 
-Public Property Let JsonItem(oJson As Object, ByVal sKey As String, vValue As Variant)
-    mdJson.JsonItem(oJson, sKey) = vValue
+Public Property Let JsonValue(oJson As Object, ByVal sKey As String, vValue As Variant)
+    mdJson.JsonValue(oJson, sKey) = vValue
 End Property
 
 Public Function JsonToXmlDocument(vJson As Variant, Optional Root As Object, Optional Doc As Object) As Object

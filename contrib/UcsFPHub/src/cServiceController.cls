@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -113,13 +113,13 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     m_sLastError = vbNullString
     Set oParams = ParseQueryString(sQueryString)
     If Not m_oRequestsCache Is Nothing Then
-        sRequestId = JsonItem(oParams, "request_id")
+        sRequestId = JsonValue(oParams, "request_id")
     End If
     If LenB(sRequestId) <> 0 Then
-        Set oEntry = C_Obj(JsonItem(m_oRequestsCache, sRequestId))
+        Set oEntry = C_Obj(JsonValue(m_oRequestsCache, sRequestId))
         If Not oEntry Is Nothing Then
-            If JsonItem(oEntry, "Path") = sPath And JsonItem(oEntry, "Request") = sRequest Then
-                sResponse = JsonItem(oEntry, "Response")
+            If JsonValue(oEntry, "Path") = sPath And JsonValue(oEntry, "Request") = sRequest Then
+                sResponse = JsonValue(oEntry, "Response")
                 '--- success
                 ServiceRequest = True
                 Exit Function
@@ -128,7 +128,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     End If
     If preg_match("/^/autoupdate$/i", sPath) Then
         Set oEntry = Nothing
-        JsonItem(oEntry, "UpdateStarted") = MainForm.DelayStartAutoUpdate()
+        JsonValue(oEntry, "UpdateStarted") = MainForm.DelayStartAutoUpdate()
         sResponse = JsonDump(oEntry, Minimize:=True)
         '--- success
         ServiceRequest = True
@@ -168,9 +168,9 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         If oRequest Is Nothing Then
             Select Case LCase$(At(vMatches, 1))
             Case vbNullString
-                JsonItem(oRequest, "IncludeAll") = True
+                JsonValue(oRequest, "IncludeAll") = True
             Case "totals"
-                JsonItem(oRequest, "IncludeAllTotals") = True
+                JsonValue(oRequest, "IncludeAllTotals") = True
             Case "status", "datetime", "deposit"
                 '--- do nothing
             Case Else
@@ -180,13 +180,13 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
                 GoTo QH
             End Select
         End If
-        JsonItem(oRequest, "DeviceString") = JsonItem(oInfo, "DeviceString")
+        JsonValue(oRequest, "DeviceString") = JsonValue(oInfo, "DeviceString")
         Select Case LCase$(At(vMatches, 1))
         Case vbNullString
             If UBound(JsonKeys(oRequest)) = 0 Then
-                JsonItem(oInfo, "Ok") = True
+                JsonValue(oInfo, "Ok") = True
                 sResponse = JsonDump(oInfo, Minimize:=True)
-                JsonItem(oInfo, "Ok") = Empty
+                JsonValue(oInfo, "Ok") = Empty
             ElseIf Not m_oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) Then
                 GoTo QH
             End If
@@ -215,7 +215,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
                 GoTo QH
             End If
         Case "drawer"
-            If Not C_Bool(JsonItem(oRequest, "IsOpen")) Then
+            If Not C_Bool(JsonValue(oRequest, "IsOpen")) Then
                 m_lLastCode = 400
                 m_sLastError = Printf(ERR_MISSING_PARAMETER, "IsOpen")
                 sResponse = pvEncodeErrorText(m_sLastError)
@@ -230,7 +230,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     ServiceRequest = True
 QH:
     If LenB(sResponse) <> 0 Then
-        Select Case LCase$(JsonItem(oParams, "format"))
+        Select Case LCase$(JsonValue(oParams, "format"))
         Case "xml"
             If JsonParse(sResponse, vJson) Then
                 sResponse = JsonToXmlDocument(vJson).Xml
@@ -243,12 +243,12 @@ QH:
     End If
     If ServiceRequest And LenB(sRequestId) <> 0 And InStr(sResponse, """Ok"":true") <> 0 Then
         Set oEntry = Nothing
-        JsonItem(oEntry, "Path") = sPath
-        JsonItem(oEntry, "QueryString") = sQueryString
-        JsonItem(oEntry, "Request") = sRequest
-        JsonItem(oEntry, "Response") = sResponse
-        JsonItem(oEntry, "DateTime") = GetCurrentNow
-        JsonItem(m_oRequestsCache, sRequestId) = oEntry
+        JsonValue(oEntry, "Path") = sPath
+        JsonValue(oEntry, "QueryString") = sQueryString
+        JsonValue(oEntry, "Request") = sRequest
+        JsonValue(oEntry, "Response") = sResponse
+        JsonValue(oEntry, "DateTime") = GetCurrentNow
+        JsonValue(m_oRequestsCache, sRequestId) = oEntry
     End If
     Exit Function
 EH:
@@ -259,17 +259,17 @@ End Function
 Private Function pvGetPrinterInfo(sPrinterID As String) As Object
     Dim sKey            As String
     
-    sKey = Zn(JsonItem(m_oPrinters, "Aliases/" & sPrinterID), sPrinterID)
+    sKey = Zn(JsonValue(m_oPrinters, "Aliases/" & sPrinterID), sPrinterID)
     If LenB(sKey) <> 0 Then
-        Set pvGetPrinterInfo = C_Obj(JsonItem(m_oPrinters, sKey))
+        Set pvGetPrinterInfo = C_Obj(JsonValue(m_oPrinters, sKey))
     End If
 End Function
 
 Private Function pvEncodeErrorText(sErrorText As String) As String
     Dim oResponse       As Object
     
-    JsonItem(oResponse, "Ok") = False
-    JsonItem(oResponse, "ErrorText") = sErrorText
+    JsonValue(oResponse, "Ok") = False
+    JsonValue(oResponse, "ErrorText") = sErrorText
     pvEncodeErrorText = JsonDump(oResponse, Minimize:=True)
 End Function
 

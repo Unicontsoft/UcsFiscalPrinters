@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2019 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -782,12 +782,12 @@ Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefa
     
     On Error GoTo EH
     If LenB(sSerial) <> 0 Then
-        Set oItem = C_Obj(JsonItem(m_oProtocolConfig, sSerial))
+        Set oItem = C_Obj(JsonValue(m_oProtocolConfig, sSerial))
         If oItem Is Nothing Then
-            Set oItem = C_Obj(JsonItem(m_oConfig, sSerial))
+            Set oItem = C_Obj(JsonValue(m_oConfig, sSerial))
         End If
-        If Not IsEmpty(JsonItem(oItem, sKey)) Then
-            AssignVariant GetConfigValue, JsonItem(oItem, sKey)
+        If Not IsEmpty(JsonValue(oItem, sKey)) Then
+            AssignVariant GetConfigValue, JsonValue(oItem, sKey)
             Exit Function
         End If
     End If
@@ -1289,7 +1289,7 @@ Public Function ParseDeviceString(ByVal sDeviceString As String, Optional Separa
                 End Select
             End If
         End If
-        JsonItem(oRetVal, sKey) = sValue
+        JsonValue(oRetVal, sKey) = sValue
     Loop
     Set ParseDeviceString = oRetVal
 End Function
@@ -1301,7 +1301,7 @@ Public Function ToDeviceString(oMap As Object, Optional Separator As String = ";
     
     For Each vKey In JsonKeys(oMap)
         '--- try to escape value
-        sValue = C_Str(JsonItem(oMap, vKey))
+        sValue = C_Str(JsonValue(oMap, vKey))
         Select Case True
         Case InStr(sValue, Separator) > 0, InStr(sValue, """") > 0, InStr(sValue, "'") > 0
             sValue = """" & Replace(sValue, """", """""") & """"
@@ -1356,7 +1356,7 @@ End Function
 Public Function JsonBoolItem(oJson As Object, sKey As String, Optional ByVal Default As Boolean) As Boolean
     Dim vValue          As Variant
     
-    AssignVariant vValue, JsonItem(oJson, sKey)
+    AssignVariant vValue, JsonValue(oJson, sKey)
     If VarType(vValue) = vbString Then
         Select Case LCase$(vValue)
         Case "y", "yes", "true", "on", "д", "да"
@@ -1388,44 +1388,44 @@ Public Function ToConnectorDevice( _
     Dim vPorts          As Variant
     Dim vElem           As Variant
     
-    If LenB(JsonItem(oOptions, "IP")) <> 0 Then
-        ToConnectorDevice = Trim$(JsonItem(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonItem(oOptions, "Port")), DefSocketPort)
+    If LenB(JsonValue(oOptions, "IP")) <> 0 Then
+        ToConnectorDevice = Trim$(JsonValue(oOptions, "IP")) & _
+            ":" & Znl(C_Lng(JsonValue(oOptions, "Port")), DefSocketPort)
     Else
         If Not oProtocol Is Nothing Then
-            If LenB(JsonItem(oOptions, "Port")) = 0 Then
+            If LenB(JsonValue(oOptions, "Port")) = 0 Then
                 vPorts = EnumSerialPorts
-            ElseIf LenB(JsonItem(oOptions, "Speed")) = 0 Then
-                vPorts = Array(JsonItem(oOptions, "Port"))
+            ElseIf LenB(JsonValue(oOptions, "Speed")) = 0 Then
+                vPorts = Array(JsonValue(oOptions, "Port"))
             End If
             If IsArray(vPorts) Then
                 vPorts = oProtocol.AutodetectDevices(vPorts)
                 For Each vElem In vPorts
                     If IsArray(vElem) Then
-                        If JsonItem(oOptions, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty) Then
-                            If LenB(JsonItem(oOptions, "Port")) = 0 Then
-                                JsonItem(oOptions, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
+                        If JsonValue(oOptions, "Protocol") = Zn(Trim$(At(vElem, 2)), Empty) Then
+                            If LenB(JsonValue(oOptions, "Port")) = 0 Then
+                                JsonValue(oOptions, "Port") = Zn(Trim$(At(vElem, 0)), Empty)
                             End If
-                            If LenB(JsonItem(oOptions, "Speed")) = 0 Then
-                                JsonItem(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
+                            If LenB(JsonValue(oOptions, "Speed")) = 0 Then
+                                JsonValue(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
                             End If
-                            JsonItem(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
-                            JsonItem(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
+                            JsonValue(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
+                            JsonValue(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
                             Exit For
                         End If
                     End If
                 Next
-                If LenB(JsonItem(oOptions, "Speed")) = 0 Then
+                If LenB(JsonValue(oOptions, "Speed")) = 0 Then
                     GoTo QH
                 End If
             End If
         End If
-        ToConnectorDevice = Zn(Trim$(JsonItem(oOptions, "Port")), DEF_SERIAL_PORT) & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
+        ToConnectorDevice = Zn(Trim$(JsonValue(oOptions, "Port")), DEF_SERIAL_PORT) & _
+            "," & Znl(C_Lng(JsonValue(oOptions, "Speed")), DEF_SERIAL_SPEED) & _
             "," & JsonBoolItem(oOptions, "Persistent") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "BaudRate")), 8) & _
+            "," & Znl(C_Lng(JsonValue(oOptions, "BaudRate")), 8) & _
             "," & IIf(JsonBoolItem(oOptions, "Parity"), "Y", "N") & _
-            "," & Znl(C_Lng(JsonItem(oOptions, "StopBits")), 1)
+            "," & Znl(C_Lng(JsonValue(oOptions, "StopBits")), 1)
     End If
 QH:
 End Function

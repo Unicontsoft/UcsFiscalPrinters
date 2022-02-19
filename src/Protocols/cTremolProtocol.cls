@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2021 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -467,10 +467,10 @@ Private Property Get pvPaymentTypes() As String
         If Abs(Val(At(vSplit, IDX_EURO_RATE))) < DBL_EPSILON Then
             For lIdx = 0 To UBound(vSplit) - IDX_CODE_PAYM1 - 1
                 lTagNo = C_Lng(At(vSplit, IDX_CODE_PAYM1 + lIdx))
-                Do While Not IsEmpty(JsonItem(oRetVal, "#" & lTagNo))
+                Do While Not IsEmpty(JsonValue(oRetVal, "#" & lTagNo))
                     lTagNo = lTagNo + PMT_STEP
                 Loop
-                JsonItem(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, lIdx))
+                JsonValue(oRetVal, "#" & lTagNo) = Array(lIdx, At(vSplit, lIdx))
             Next
             Set m_uConfig.PmtMapping = oRetVal
         End If
@@ -595,11 +595,11 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
     pvSetLastError vbNullString
     m_lEventSinkPtr = ObjPtr(EventSink)
     Set oOptions = ParseDeviceString(sDeviceString)
-    m_lConnectionTimeout = C_Lng(JsonItem(oOptions, "ConnectionTimeout"))
+    m_lConnectionTimeout = C_Lng(JsonValue(oOptions, "ConnectionTimeout"))
     If m_lConnectionTimeout <= 0 Then
         m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
     End If
-    m_lCommandTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    m_lCommandTimeout = C_Lng(JsonValue(oOptions, "Timeout"))
     If m_lCommandTimeout <= 0 Then
         m_lCommandTimeout = DEF_TIMEOUT
     End If
@@ -607,7 +607,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
     If Not Connect() Then
         GoTo QH
     End If
-    sDeviceSerialNo = ToDeviceSerialNo(JsonItem(oOptions, "DeviceSerialNo"))
+    sDeviceSerialNo = ToDeviceSerialNo(JsonValue(oOptions, "DeviceSerialNo"))
     If LenB(sDeviceSerialNo) = 0 Then
         If Not pvRawIsDeviceReady(m_oConnector, m_lConnectionTimeout, Error:=sError) Then
             pvSetLastError sError
@@ -618,52 +618,52 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
                 pvSetLastError .Error
                 GoTo QH
             End If
-            JsonItem(oOptions, "DeviceSerialNo") = .DeviceSerialNo
-            JsonItem(oOptions, "FiscalMemoryNo") = .FiscalMemoryNo
-            JsonItem(oOptions, "ModelGroup") = .ModelGroup
+            JsonValue(oOptions, "DeviceSerialNo") = .DeviceSerialNo
+            JsonValue(oOptions, "FiscalMemoryNo") = .FiscalMemoryNo
+            JsonValue(oOptions, "ModelGroup") = .ModelGroup
             sDeviceSerialNo = .DeviceSerialNo
         End With
     Else
-        m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonItem(oOptions, "FiscalMemoryNo")) & "|" & Trim$(JsonItem(oOptions, "ModelGroup"))
+        m_vDeviceNumbers = sDeviceSerialNo & "|" & Trim$(JsonValue(oOptions, "FiscalMemoryNo")) & "|" & Trim$(JsonValue(oOptions, "ModelGroup"))
     End If
     sDeviceString = ToDeviceString(oOptions)
     '--- load config values
     With m_uPrintData.Config
-        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
-        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
+        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonValue(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonValue(oOptions, "CommentChars")))
+        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonValue(oOptions, "ItemChars")))
         .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", True)))
-        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
-        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
-        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
-        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
+        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonValue(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonValue(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
+        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonItem(oOptions, "DefaultPassword")))
-        .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE))
-        .PingTimeout = GetConfigNumber(sDeviceSerialNo, "PingTimeout", C_Lng(JsonItem(oOptions, "PingTimeout")))
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))
+        .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE))
+        .PingTimeout = GetConfigNumber(sDeviceSerialNo, "PingTimeout", C_Lng(JsonValue(oOptions, "PingTimeout")))
         .DetailedReceipt = C_Bool(GetConfigValue(sDeviceSerialNo, "DetailedReceipt", JsonBoolItem(oOptions, "DetailedReceipt")))
         .PrintVat = C_Bool(GetConfigValue(sDeviceSerialNo, "PrintVat", JsonBoolItem(oOptions, "PrintVat")))
         .DelayPrint = C_Bool(GetConfigValue(sDeviceSerialNo, "DelayPrint", JsonBoolItem(oOptions, "DelayPrint", Default:=True)))
         .BufferPrint = C_Bool(GetConfigValue(sDeviceSerialNo, "BufferPrint", JsonBoolItem(oOptions, "BufferPrint")))
-        .MaxOperCode = GetConfigNumber(sDeviceSerialNo, "MaxOperCode", Znl(C_Lng(JsonItem(oOptions, "MaxOperCode")), DEF_MAX_OPERCODE))
-        .MaxOperName = GetConfigNumber(sDeviceSerialNo, "MaxOperName", Znl(C_Lng(JsonItem(oOptions, "MaxOperName")), DEF_MAX_OPERNAME))
-        .MaxOperPassword = GetConfigNumber(sDeviceSerialNo, "MaxOperPassword", Znl(C_Lng(JsonItem(oOptions, "MaxOperPassword")), DEF_MAX_OPERPASSWORD))
-        .MaxCompany = GetConfigNumber(sDeviceSerialNo, "MaxCompany", Znl(C_Lng(JsonItem(oOptions, "MaxCompany")), DEF_MAX_COMPANY))
-        .MaxPrsReceive = GetConfigNumber(sDeviceSerialNo, "MaxPrsReceive", Znl(C_Lng(JsonItem(oOptions, "MaxPrsReceive")), DEF_MAX_PRSRECEIVE))
-        .MaxVatNo = GetConfigNumber(sDeviceSerialNo, "MaxVatNo", Znl(C_Lng(JsonItem(oOptions, "MaxVatNo")), DEF_MAX_VATNO))
-        .MaxTaxNo = GetConfigNumber(sDeviceSerialNo, "MaxTaxNo", Znl(C_Lng(JsonItem(oOptions, "MaxTaxNo")), DEF_MAX_TAXNO))
-        .MaxCity = GetConfigNumber(sDeviceSerialNo, "MaxCity", Znl(C_Lng(JsonItem(oOptions, "MaxCity")), DEF_MAX_CITY))
-        .MaxInvoiceNo = GetConfigNumber(sDeviceSerialNo, "MaxInvoiceNo", Znl(C_Lng(JsonItem(oOptions, "MaxInvoiceNo")), DEF_MAX_INVOICENO))
-        .MaxPluName = GetConfigNumber(sDeviceSerialNo, "MaxPluName", Znl(C_Lng(JsonItem(oOptions, "MaxPluName")), DEF_MAX_PLUNAME))
-        .MaxComment = GetConfigNumber(sDeviceSerialNo, "MaxComment", Znl(C_Lng(JsonItem(oOptions, "MaxComment")), DEF_MAX_COMMENT))
-        .MaxFiscalMemoryNo = GetConfigNumber(sDeviceSerialNo, "MaxFiscalMemoryNo", Znl(C_Lng(JsonItem(oOptions, "MaxFiscalMemoryNo")), DEF_MAX_FISCALMEMORYNO))
-        .MaxUniqueSaleNo = GetConfigNumber(sDeviceSerialNo, "MaxUniqueSaleNo", Znl(C_Lng(JsonItem(oOptions, "MaxUniqueSaleNo")), DEF_MAX_UNIQUESALENO))
-        .MaxDepartmentCode = GetConfigNumber(sDeviceSerialNo, "MaxDepartmentCode", Znl(C_Lng(JsonItem(oOptions, "MaxDepartmentCode")), DEF_MAX_DEPARTMENTCODE))
-        .MaxReceiptNo = GetConfigNumber(sDeviceSerialNo, "MaxReceiptNo", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptNo")), DEF_MAX_RECEIPTNO))
-        If Not IsEmpty(JsonItem(oOptions, "ExtendedPmtTypes")) Then
+        .MaxOperCode = GetConfigNumber(sDeviceSerialNo, "MaxOperCode", Znl(C_Lng(JsonValue(oOptions, "MaxOperCode")), DEF_MAX_OPERCODE))
+        .MaxOperName = GetConfigNumber(sDeviceSerialNo, "MaxOperName", Znl(C_Lng(JsonValue(oOptions, "MaxOperName")), DEF_MAX_OPERNAME))
+        .MaxOperPassword = GetConfigNumber(sDeviceSerialNo, "MaxOperPassword", Znl(C_Lng(JsonValue(oOptions, "MaxOperPassword")), DEF_MAX_OPERPASSWORD))
+        .MaxCompany = GetConfigNumber(sDeviceSerialNo, "MaxCompany", Znl(C_Lng(JsonValue(oOptions, "MaxCompany")), DEF_MAX_COMPANY))
+        .MaxPrsReceive = GetConfigNumber(sDeviceSerialNo, "MaxPrsReceive", Znl(C_Lng(JsonValue(oOptions, "MaxPrsReceive")), DEF_MAX_PRSRECEIVE))
+        .MaxVatNo = GetConfigNumber(sDeviceSerialNo, "MaxVatNo", Znl(C_Lng(JsonValue(oOptions, "MaxVatNo")), DEF_MAX_VATNO))
+        .MaxTaxNo = GetConfigNumber(sDeviceSerialNo, "MaxTaxNo", Znl(C_Lng(JsonValue(oOptions, "MaxTaxNo")), DEF_MAX_TAXNO))
+        .MaxCity = GetConfigNumber(sDeviceSerialNo, "MaxCity", Znl(C_Lng(JsonValue(oOptions, "MaxCity")), DEF_MAX_CITY))
+        .MaxInvoiceNo = GetConfigNumber(sDeviceSerialNo, "MaxInvoiceNo", Znl(C_Lng(JsonValue(oOptions, "MaxInvoiceNo")), DEF_MAX_INVOICENO))
+        .MaxPluName = GetConfigNumber(sDeviceSerialNo, "MaxPluName", Znl(C_Lng(JsonValue(oOptions, "MaxPluName")), DEF_MAX_PLUNAME))
+        .MaxComment = GetConfigNumber(sDeviceSerialNo, "MaxComment", Znl(C_Lng(JsonValue(oOptions, "MaxComment")), DEF_MAX_COMMENT))
+        .MaxFiscalMemoryNo = GetConfigNumber(sDeviceSerialNo, "MaxFiscalMemoryNo", Znl(C_Lng(JsonValue(oOptions, "MaxFiscalMemoryNo")), DEF_MAX_FISCALMEMORYNO))
+        .MaxUniqueSaleNo = GetConfigNumber(sDeviceSerialNo, "MaxUniqueSaleNo", Znl(C_Lng(JsonValue(oOptions, "MaxUniqueSaleNo")), DEF_MAX_UNIQUESALENO))
+        .MaxDepartmentCode = GetConfigNumber(sDeviceSerialNo, "MaxDepartmentCode", Znl(C_Lng(JsonValue(oOptions, "MaxDepartmentCode")), DEF_MAX_DEPARTMENTCODE))
+        .MaxReceiptNo = GetConfigNumber(sDeviceSerialNo, "MaxReceiptNo", Znl(C_Lng(JsonValue(oOptions, "MaxReceiptNo")), DEF_MAX_RECEIPTNO))
+        If Not IsEmpty(JsonValue(oOptions, "ExtendedPmtTypes")) Then
             .ExtendedPmtTypes = JsonBoolItem(oOptions, "ExtendedPmtTypes")
         Else
             .ExtendedPmtTypes = GetConfigNumber(sDeviceSerialNo, "ExtendedPmtTypes", vbUseDefault)
@@ -2203,10 +2203,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 uCtx.ReceiptAmount = dblTotal
                 If m_lEventSinkPtr <> 0 Then
                     Set oCtx = Nothing
-                    JsonItem(oCtx, "ReceiptNo") = uCtx.ReceiptNo
-                    JsonItem(oCtx, "ReceiptDate") = uCtx.ReceiptDate
-                    JsonItem(oCtx, "ReceiptAmount") = uCtx.ReceiptAmount
-                    JsonItem(oCtx, "InvoiceNo") = uCtx.InvoiceNo
+                    JsonValue(oCtx, "ReceiptNo") = uCtx.ReceiptNo
+                    JsonValue(oCtx, "ReceiptDate") = uCtx.ReceiptDate
+                    JsonValue(oCtx, "ReceiptAmount") = uCtx.ReceiptAmount
+                    JsonValue(oCtx, "InvoiceNo") = uCtx.InvoiceNo
                     pvEventSink.OnBeforeCommitReceipt oCtx, bCancel
                     If bCancel Then
                         pvSetLastError pvInternal(ucsErrCommitReceiptCancelled)
@@ -2426,9 +2426,9 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 11     ' 0=SCash (Евро)
         End Select
     ElseIf Not m_uConfig.PmtMapping Is Nothing Then
-        AssignVariant vInfo, JsonItem(C_Obj(m_uConfig.PmtMapping), "#" & (PmtType - ucsFscPmtCash))
+        AssignVariant vInfo, JsonValue(C_Obj(m_uConfig.PmtMapping), "#" & (PmtType - ucsFscPmtCash))
         If IsObject(vInfo) Then
-            pvToDevicePmtIndex = C_Lng(JsonItem(C_Obj(vInfo), 0))
+            pvToDevicePmtIndex = C_Lng(JsonValue(C_Obj(vInfo), 0))
         End If
     Else
         Select Case PmtType

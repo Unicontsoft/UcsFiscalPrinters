@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2020 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -360,11 +360,11 @@ Public Function Init(sDeviceString As String) As Boolean
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
     Set oOptions = ParseDeviceString(sDeviceString)
-    m_lConnectionTimeout = C_Lng(JsonItem(oOptions, "ConnectionTimeout"))
+    m_lConnectionTimeout = C_Lng(JsonValue(oOptions, "ConnectionTimeout"))
     If m_lConnectionTimeout <= 0 Then
         m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
     End If
-    m_lCommandTimeout = C_Lng(JsonItem(oOptions, "Timeout"))
+    m_lCommandTimeout = C_Lng(JsonValue(oOptions, "Timeout"))
     If m_lCommandTimeout <= 0 Then
         m_lCommandTimeout = DEF_TIMEOUT
     End If
@@ -373,17 +373,17 @@ Public Function Init(sDeviceString As String) As Boolean
         GoTo QH
     End If
     sDeviceString = ToDeviceString(oOptions)
-    m_lCodePage = Znl(C_Lng(JsonItem(oOptions, "CodePage")), DEF_CODEPAGE)
+    m_lCodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
     With m_uPrintData.Config
-        .RowChars = C_Lng(JsonItem(oOptions, "RowChars"))
-        .CommentChars = C_Lng(JsonItem(oOptions, "CommentChars"))
-        .ItemChars = C_Lng(JsonItem(oOptions, "ItemChars"))
+        .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
+        .CommentChars = C_Lng(JsonValue(oOptions, "CommentChars"))
+        .ItemChars = C_Lng(JsonValue(oOptions, "ItemChars"))
         .AbsoluteDiscount = True
         .NegativePrices = True
-        .MinDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT)
-        .MaxDiscount = Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT)
-        .MaxReceiptLines = Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES)
-        .MaxItemLines = Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES)
+        .MinDiscount = Zndbl(C_Dbl(JsonValue(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT)
+        .MaxDiscount = Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT)
+        .MaxReceiptLines = Znl(C_Lng(JsonValue(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES)
+        .MaxItemLines = Znl(C_Lng(JsonValue(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES)
     End With
     '--- success
     Init = True

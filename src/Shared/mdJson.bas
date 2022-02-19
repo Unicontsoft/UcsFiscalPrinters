@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2020 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -43,13 +43,16 @@ Private Const MODULE_NAME As String = "mdJson"
 Private Const VARIANT_ALPHABOOL             As Long = 2
 
 #If HasPtrSafe Then
-    Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
-    Private Declare PtrSafe Function ArrPtr Lib "vbe7" Alias "VarPtr" (Ptr() As Any) As LongPtr
-    Private Declare PtrSafe Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
+Private Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+Private Declare PtrSafe Function ArrPtr Lib "vbe7" Alias "VarPtr" (Ptr() As Any) As LongPtr
+Private Declare PtrSafe Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
 #Else
-    Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
-    Private Declare Function ArrPtr Lib "msvbvm60" Alias "VarPtr" (Ptr() As Any) As Long
-    Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
+Private Enum LongPtr
+    [_]
+End Enum
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+Private Declare Function ArrPtr Lib "msvbvm60" Alias "VarPtr" (Ptr() As Any) As LongPtr
+Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src As Variant, ByVal wFlags As Integer, ByVal vt As VbVarType) As Long
 #End If
 
 Private Const STR_PREFIX            As String = "__json__"
@@ -69,6 +72,7 @@ Private Const ERR_INVALID_ESCAPE    As String = "Invalid escape at position %1"
 Private Const ERR_MISSING_KEY       As String = "Missing key at position %1"
 Private Const ERR_EXPECTED_SYMBOL   As String = "Expected '%1' at position %2"
 Private Const ERR_EXPECTED_TWO      As String = "Expected '%1' or '%2' at position %3"
+Private Const ERR_INVALID_JSONPATH  As String = "Invalid JSON path %1"
 Private Const DEF_IGNORE_CASE       As Boolean = True
 #If ImplScripting Then
     Private Const IDX_OFFSET        As Long = 0
@@ -81,11 +85,7 @@ Private Type SAFEARRAY1D
     fFeatures           As Integer
     cbElements          As Long
     cLocks              As Long
-    #If HasPtrSafe Then
-        pvData          As LongPtr
-    #Else
-        pvData          As Long
-    #End If
+    pvData              As LongPtr
     cElements           As Long
     lLbound             As Long
 End Type
@@ -124,6 +124,8 @@ End Type
         o_pLeftBranch = &H28
     End Enum
 #End If
+
+Private m_oJsonPathRegExp           As Object
 
 '=========================================================================
 ' Error management
@@ -590,6 +592,11 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
                 #Else
                     vKeys = CollectionAllKeys(oJson)
                 #End If
+                If UBound(vKeys) >= 0 Then
+                    If LenB(vKeys(0)) = 0 Then
+                        lCompareMode = vbTextCompare
+                    End If
+                End If
             End If
             For lIdx = 0 To lCount - 1
                 If lCompareMode = vbBinaryCompare Then
@@ -645,7 +652,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Case Else
         If IsArray(vJson) Then
             For Each vKeys In vJson
-                JsonItem(oJson, -1) = vKeys
+                JsonValue(oJson, -1) = vKeys
             Next
             JsonDump = JsonDump(oJson)
         ElseIf IsNumeric(vJson) Then
@@ -656,8 +663,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     End Select
 End Function
 
-Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
-    Const FUNC_NAME     As String = "JsonItem [get]"
+Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
+    Const FUNC_NAME     As String = "JsonValue [get]"
     Dim vSplit          As Variant
     Dim lIdx            As Long
     Dim lJdx            As Long
@@ -676,13 +683,13 @@ Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
     If LenB(sKey) = 0 Then
         vSplit = Array(vbNullString)
     Else
-        vSplit = Split(sKey, "/")
+        vSplit = pvSplitKey(sKey)
     End If
     Set oParam = oJson
     For lIdx = 0 To UBound(vSplit)
         vKey = vSplit(lIdx)
         If C_Str(vKey) = "-1" Then
-            JsonItem = oParam.Count
+            JsonValue = oParam.Count
             GoTo QH
         ElseIf IsOnlyDigits(vKey) Then
             If pvJsonCompareMode(oParam) <> vbBinaryCompare Then
@@ -697,13 +704,13 @@ Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
                 End If
                 Set oParam = vItem
             Else
-                AssignVariant JsonItem, vItem
+                AssignVariant JsonValue, vItem
             End If
         ElseIf C_Str(vKey) = "0" Then
             '--- do nothing & continue
         Else
             If LenB(vKey) = 0 Then
-                Set JsonItem = oParam
+                Set JsonValue = oParam
             ElseIf C_Str(vKey) = "*" Then
                 vKey = vbNullString
                 For lJdx = lIdx + 1 To UBound(vSplit)
@@ -716,27 +723,27 @@ Public Property Get JsonItem(oJson As Object, ByVal sKey As String) As Variant
                 End If
                 lJdx = 0
                 For Each vSplit In JsonKeys(oParam)
-                    If IsObject(JsonItem(oParam, vSplit)) Or LenB(vKey) = 0 Then
-                        AssignVariant vItem(lJdx), JsonItem(oParam, vSplit & vKey)
+                    If IsObject(JsonValue(oParam, vSplit)) Or LenB(vKey) = 0 Then
+                        AssignVariant vItem(lJdx), JsonValue(oParam, vSplit & vKey)
                         lJdx = lJdx + 1
                     End If
                 Next
                 If lJdx = 0 Then
-                    JsonItem = Array()
+                    JsonValue = Array()
                 Else
                     If lJdx - 1 <> UBound(vItem) Then
                         ReDim Preserve vItem(0 To lJdx - 1) As Variant
                     End If
-                    JsonItem = vItem
+                    JsonValue = vItem
                 End If
             Else
 ReturnEmpty:
                 If Right$(sKey, 1) = "/" Then
-                    Set JsonItem = pvJsonCreateObject(vbBinaryCompare)
+                    Set JsonValue = pvJsonCreateObject(vbBinaryCompare)
                 ElseIf Right$(sKey, 3) = "/-1" Then
-                    JsonItem = 0&
+                    JsonValue = 0&
                 ElseIf InStr(sKey, "*") > 0 Then
-                    JsonItem = Array()
+                    JsonValue = Array()
                 End If
             End If
             GoTo QH
@@ -750,8 +757,8 @@ EH:
     End If
 End Property
 
-Public Property Let JsonItem(oJson As Object, ByVal sKey As String, vValue As Variant)
-    Const FUNC_NAME     As String = "JsonItem [let]"
+Public Property Let JsonValue(oJson As Object, ByVal sKey As String, vValue As Variant)
+    Const FUNC_NAME     As String = "JsonValue [let]"
     Dim vSplit          As Variant
     Dim lIdx            As Long
     Dim lJdx            As Long
@@ -768,7 +775,7 @@ Public Property Let JsonItem(oJson As Object, ByVal sKey As String, vValue As Va
     If LenB(sKey) = 0 Then
         vSplit = Array(vbNullString)
     Else
-        vSplit = Split(sKey, "/")
+        vSplit = pvSplitKey(sKey)
     End If
     If oJson Is Nothing Then
         If UBound(vSplit) < 0 Then
@@ -795,12 +802,12 @@ HandleArray:
             Next
             If IsEmpty(vValue) Then
                 For Each vItem In JsonKeys(oParam)
-                    JsonItem(oParam, vItem & vKey) = Empty
+                    JsonValue(oParam, vItem & vKey) = Empty
                 Next
             Else
                 lKey = 0
                 For Each vItem In vValue
-                    JsonItem(oParam, lKey & vKey) = vItem
+                    JsonValue(oParam, lKey & vKey) = vItem
                     lKey = lKey + 1
                 Next
             End If
@@ -860,7 +867,7 @@ Public Function JsonKeys(oJson As Object, Optional ByVal Key As String) As Varia
         JsonKeys = Array()
         Exit Function
     End If
-    vSplit = Split(Key, "/")
+    vSplit = pvSplitKey(Key)
     Set oParam = oJson
     For lIdx = 0 To UBound(vSplit)
         vKey = vSplit(lIdx)
@@ -918,7 +925,7 @@ Public Function JsonObjectType(oJson As Object, Optional ByVal Key As String) As
     If oJson Is Nothing Then
         Exit Function
     End If
-    vSplit = Split(Key, "/")
+    vSplit = pvSplitKey(Key)
     Set oParam = oJson
     For lIdx = 0 To UBound(vSplit)
         vKey = vSplit(lIdx)
@@ -958,7 +965,7 @@ Public Function JsonToXmlDocument(vJson As Variant, Optional Root As Object, Opt
     
     On Error GoTo EH
     If Doc Is Nothing Then
-        Set Doc = CreateObject("MSXML2.DOMDocument")
+        Set Doc = VBA.CreateObject("MSXML2.DOMDocument")
         Doc.appendChild Doc.createProcessingInstruction("xml", "version=""1.0"" encoding=""UTF-16""")
     End If
     If Root Is Nothing Then
@@ -1060,7 +1067,7 @@ Public Function JsonFromXmlDocument(vXml As Variant) As Variant
     If IsObject(vXml) Then
         Set oRoot = vXml
     Else
-        With CreateObject("MSXML2.DOMDocument")
+        With VBA.CreateObject("MSXML2.DOMDocument")
             .LoadXml C_Str(vXml)
             Set oRoot = .documentElement
         End With
@@ -1182,11 +1189,11 @@ End Function
         If oJson Is Nothing Then
             Exit Function
         End If
-        Set oRetVal = CreateObject("Scripting.Dictionary")
+        Set oRetVal = VBA.CreateObject("Scripting.Dictionary")
         vKeys = JsonKeys(oJson)
         If UBound(vKeys) < 0 And oJson.Count > 0 Then
             For lKey = 0 To oJson.Count - 1
-                AssignVariant vElem, JsonItem(oJson, lKey)
+                AssignVariant vElem, JsonValue(oJson, lKey)
                 If IsObject(vElem) Then
                     Set oRetVal.Item(lKey) = JsonToDictionary(C_Obj(vElem))
                 Else
@@ -1195,7 +1202,7 @@ End Function
             Next
         Else
             For Each vKey In vKeys
-                AssignVariant vElem, JsonItem(oJson, vKey)
+                AssignVariant vElem, JsonValue(oJson, vKey)
                 If IsObject(vElem) Then
                     Set oRetVal.Item(vKey) = JsonToDictionary(C_Obj(vElem))
                 Else
@@ -1297,6 +1304,9 @@ EH:
             If lKey > 0 And lKey <= oParam.Count Then
                 oParam.Add vValue, Before:=lKey
             Else
+                Do While lKey - 1 > oParam.Count
+                    oParam.Add Empty
+                Loop
                 oParam.Add vValue
             End If
         Else
@@ -1318,6 +1328,28 @@ EH:
         End If
     End Property
 #End If
+
+Private Function pvSplitKey(sKey As String) As Variant
+    Const STR_PATTERN_PATH As String = "(?:^\s*(\$))|(?:\s*\.\s*([^.[ ]+))|(?:\s*\[\s*(-?\d+|\*)\s*\])|(?:\s*\[\s*'([^']*)'\s*\])"
+    Dim sPath           As String
+    
+    Select Case Left$(sKey, 1)
+    Case "$"
+        If m_oJsonPathRegExp Is Nothing Then
+            Set m_oJsonPathRegExp = VBA.CreateObject("VBScript.RegExp")
+            m_oJsonPathRegExp.Pattern = STR_PATTERN_PATH
+            m_oJsonPathRegExp.Global = True
+        End If
+        sPath = m_oJsonPathRegExp.Replace(sKey, "/$1$2$3$4")
+        If Left$(sPath, 3) <> "/$/" Then
+            Err.Raise vbObjectError, , Printf(ERR_INVALID_JSONPATH, sKey)
+        End If
+        sKey = Mid$(sPath, 4)
+    Case "/"
+        sKey = Mid$(sKey, 2)
+    End Select
+    pvSplitKey = Split(sKey, "/")
+End Function
 
 #If Not ImplUseShared Then
 Private Function IsOnlyDigits(ByVal sText As String) As Boolean
@@ -1397,11 +1429,7 @@ Private Function Printf(ByVal sText As String, ParamArray A() As Variant) As Str
 End Function
 
 Private Function CollectionAllKeys(oCol As VBA.Collection, Optional ByVal StartIndex As Long) As String()
-    #If HasPtrSafe Then
-        Dim lPtr        As LongPtr
-    #Else
-        Dim lPtr        As Long
-    #End If
+    Dim lPtr            As LongPtr
     Dim aRetVal()       As String
     Dim lIdx            As Long
     Dim sTemp           As String
@@ -1427,15 +1455,9 @@ Private Function CollectionAllKeys(oCol As VBA.Collection, Optional ByVal StartI
 End Function
 
 Private Function CollectionIndexByKey(oCol As VBA.Collection, ByVal sKey As String, Optional ByVal IgnoreCase As Boolean = True) As Long
-    #If HasPtrSafe Then
-        Dim lItemPtr    As LongPtr
-        Dim lEofPtr     As LongPtr
-        Dim lPtr        As LongPtr
-    #Else
-        Dim lItemPtr    As Long
-        Dim lEofPtr     As Long
-        Dim lPtr        As Long
-    #End If
+    Dim lItemPtr        As LongPtr
+    Dim lEofPtr         As LongPtr
+    Dim lPtr            As LongPtr
     Dim sTemp           As String
     Dim eMethod         As VbCompareMethod
     

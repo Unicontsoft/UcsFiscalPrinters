@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -85,7 +85,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
-    JsonItem(m_oRequestsCache, vbNullString) = Empty
+    JsonValue(m_oRequestsCache, vbNullString) = Empty
     '--- init service controller
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters, m_oRequestsCache) Then
@@ -95,7 +95,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         GoTo QH
     End If
     '--- init listen socket
-    vSplit = Split(C_Str(JsonItem(oConfig, "Address")), ":")
+    vSplit = Split(C_Str(JsonValue(oConfig, "Address")), ":")
     lListenPort = Znl(C_Lng(At(vSplit, 1)), DEF_LISTEN_PORT)
     Set m_oSocket = New cAsyncSocket
     If Not m_oSocket.Create(SocketPort:=lListenPort, SocketAddress:=At(vSplit, 0)) Then

@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -709,7 +709,7 @@ Public Function ParseQueryString(ByVal sQueryString As String) As Object
         End If
         lSize = Len(sBuffer)
         Call UrlUnescapeW(StrPtr(pvParseTokenByRegExp(sQueryString, VALUE_PATTERN)), StrPtr(sBuffer), lSize, URL_UNESCAPE_AS_UTF8)
-        JsonItem(oRetVal, sKey) = Left$(sBuffer, lSize)
+        JsonValue(oRetVal, sKey) = Left$(sBuffer, lSize)
     Loop
     Set ParseQueryString = oRetVal
 End Function
@@ -875,15 +875,15 @@ Public Sub JsonExpandEnviron(ByVal oJson As Object)
     Dim sExpand         As String
     
     For Each vKey In JsonKeys(oJson)
-        If IsObject(JsonItem(oJson, vKey)) Then
-            JsonExpandEnviron JsonItem(oJson, vKey)
+        If IsObject(JsonValue(oJson, vKey)) Then
+            JsonExpandEnviron JsonValue(oJson, vKey)
         Else
-            sText = C_Str(JsonItem(oJson, vKey))
+            sText = C_Str(JsonValue(oJson, vKey))
             sExpand = String$(ExpandEnvironmentStrings(sText, vbNullString, 0), 0)
             If ExpandEnvironmentStrings(sText, sExpand, Len(sExpand)) > 0 Then
                 sExpand = Left$(sExpand, InStr(sExpand, vbNullChar) - 1)
                 If sExpand <> sText Then
-                    JsonItem(oJson, vKey) = sExpand
+                    JsonValue(oJson, vKey) = sExpand
                 End If
             End If
         End If

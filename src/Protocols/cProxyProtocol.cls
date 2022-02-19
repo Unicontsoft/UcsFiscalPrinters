@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2021 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -158,53 +158,53 @@ Public Function Init(sDeviceString As String) As Boolean
     On Error GoTo EH
     DebugLog FUNC_NAME, "sDeviceString=" & sDeviceString
     Set oOptions = ParseDeviceString(sDeviceString)
-    If ParseUrl(C_Str(JsonItem(oOptions, "Url")), m_uRemote) Then
+    If ParseUrl(C_Str(JsonValue(oOptions, "Url")), m_uRemote) Then
         pvSendRequest "GET", vbNullString, Nothing, oResponse
     End If
-    sDeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
+    sDeviceSerialNo = Zn(C_Str(JsonValue(oResponse, "DeviceSerialNo")), C_Str(JsonValue(oOptions, "DeviceSerialNo")))
     If LenB(sDeviceSerialNo) = 0 Then
         pvSetLastError pvInternal(ucsErrDeviceNotFound)
         GoTo QH
     End If
     With m_uPrintData.Config
-        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonItem(oOptions, "RowChars")))
-        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonItem(oOptions, "CommentChars")))
-        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonItem(oOptions, "ItemChars")))
+        .RowChars = GetConfigNumber(sDeviceSerialNo, "RowChars", C_Lng(JsonValue(oOptions, "RowChars")))
+        .CommentChars = GetConfigNumber(sDeviceSerialNo, "CommentChars", C_Lng(JsonValue(oOptions, "CommentChars")))
+        .ItemChars = GetConfigNumber(sDeviceSerialNo, "ItemChars", C_Lng(JsonValue(oOptions, "ItemChars")))
         .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", True))
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", True))
-        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
-        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonItem(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonItem(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
-        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonItem(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
-        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonItem(oOptions, "EmptyUniqueSaleNo")))
+        .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
+        .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
+        .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonValue(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
+        .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonValue(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
+        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
         '--- from response
-        .RowChars = Znl(C_Lng(JsonItem(oResponse, "CharsPerLine")), .RowChars)
-        .CommentChars = Znl(C_Lng(JsonItem(oResponse, "CommentTextMaxLength")), .CommentChars)
-        .ItemChars = Znl(C_Lng(JsonItem(oResponse, "ItemNameMaxLength")), .ItemChars)
+        .RowChars = Znl(C_Lng(JsonValue(oResponse, "CharsPerLine")), .RowChars)
+        .CommentChars = Znl(C_Lng(JsonValue(oResponse, "CommentTextMaxLength")), .CommentChars)
+        .ItemChars = Znl(C_Lng(JsonValue(oResponse, "ItemNameMaxLength")), .ItemChars)
     End With
     With m_uConfig
-        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonItem(oOptions, "DefaultPassword")))
-        .DeviceSerialNo = Zn(C_Str(JsonItem(oResponse, "DeviceSerialNo")), C_Str(JsonItem(oOptions, "DeviceSerialNo")))
-        .FiscalMemoryNo = Zn(C_Str(JsonItem(oResponse, "FiscalMemoryNo")), C_Str(JsonItem(oOptions, "FiscalMemoryNo")))
-        .DeviceModel = Zn(C_Str(JsonItem(oResponse, "DeviceModel")), "Proxy")
-        .FirmwareVersion = Zn(C_Str(JsonItem(oResponse, "FirmwareVersion")), "N/A")
-        .TaxNo = Zn(C_Str(JsonItem(oResponse, "TaxNo")), Zn(C_Str(JsonItem(oOptions, "TaxNo")), DEF_TAXNO))
-        .TaxCaption = Zn(C_Str(JsonItem(oResponse, "TaxCaption")), Zn(C_Str(JsonItem(oOptions, "TaxCaption")), DEF_TAXCAPTION))
-        .Headers = JsonItem(oResponse, "Headers/*")
+        .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))
+        .DeviceSerialNo = Zn(C_Str(JsonValue(oResponse, "DeviceSerialNo")), C_Str(JsonValue(oOptions, "DeviceSerialNo")))
+        .FiscalMemoryNo = Zn(C_Str(JsonValue(oResponse, "FiscalMemoryNo")), C_Str(JsonValue(oOptions, "FiscalMemoryNo")))
+        .DeviceModel = Zn(C_Str(JsonValue(oResponse, "DeviceModel")), "Proxy")
+        .FirmwareVersion = Zn(C_Str(JsonValue(oResponse, "FirmwareVersion")), "N/A")
+        .TaxNo = Zn(C_Str(JsonValue(oResponse, "TaxNo")), Zn(C_Str(JsonValue(oOptions, "TaxNo")), DEF_TAXNO))
+        .TaxCaption = Zn(C_Str(JsonValue(oResponse, "TaxCaption")), Zn(C_Str(JsonValue(oOptions, "TaxCaption")), DEF_TAXCAPTION))
+        .Headers = JsonValue(oResponse, "Headers/*")
         If IsMissing(.Headers) Or Not IsArray(.Headers) Then
-            .Headers = Split(Zn(C_Str(JsonItem(oOptions, "Headers")), DEF_HEADERS), "|")
+            .Headers = Split(Zn(C_Str(JsonValue(oOptions, "Headers")), DEF_HEADERS), "|")
         End If
-        .Footers = JsonItem(oResponse, "Footers/*")
+        .Footers = JsonValue(oResponse, "Footers/*")
         If IsMissing(.Footers) Or Not IsArray(.Footers) Then
-            .Footers = Split(Zn(C_Str(JsonItem(oOptions, "Footers")), DEF_FOOTERS), "|")
+            .Footers = Split(Zn(C_Str(JsonValue(oOptions, "Footers")), DEF_FOOTERS), "|")
         End If
-        .PaymentNames = JsonItem(oResponse, "PaymentNames/*")
+        .PaymentNames = JsonValue(oResponse, "PaymentNames/*")
         If IsMissing(.PaymentNames) Or Not IsArray(.PaymentNames) Then
-            .PaymentNames = Split(Zn(C_Str(JsonItem(oOptions, "PaymentNames")), DEF_PMTNAMES), "|")
+            .PaymentNames = Split(Zn(C_Str(JsonValue(oOptions, "PaymentNames")), DEF_PMTNAMES), "|")
         End If
-        .TaxRates = JsonItem(oResponse, "TaxRates/*")
+        .TaxRates = JsonValue(oResponse, "TaxRates/*")
         If IsMissing(.TaxRates) Or Not IsArray(.TaxRates) Then
-            .TaxRates = Split(Zn(C_Str(JsonItem(oOptions, "TaxRates")), DEF_TAXRATES), "|")
+            .TaxRates = Split(Zn(C_Str(JsonValue(oOptions, "TaxRates")), DEF_TAXRATES), "|")
         End If
     End With
     '--- success
@@ -239,7 +239,7 @@ Public Function CancelReceipt() As Boolean
         CancelReceipt = True
         GoTo QH
     End If
-    JsonItem(oRequest, vbNullString) = Empty
+    JsonValue(oRequest, vbNullString) = Empty
     If Not pvSendRequest("POST", "/receipt", oRequest, Nothing) Then
          GoTo QH
     End If
@@ -270,28 +270,28 @@ Public Function PrintServiceDeposit( _
         GoTo QH
     End If
     If LenB(OperatorCode) <> 0 Then
-        JsonItem(oRequest, "Operator/Code") = OperatorCode
+        JsonValue(oRequest, "Operator/Code") = OperatorCode
     End If
     If LenB(OperatorPassword) <> 0 Then
-        JsonItem(oRequest, "Operator/Password") = OperatorPassword
+        JsonValue(oRequest, "Operator/Password") = OperatorPassword
     End If
     If Abs(Amount) > DBL_EPSILON Then
-        JsonItem(oRequest, "Amount") = Amount
+        JsonValue(oRequest, "Amount") = Amount
     End If
     If Not pvSendRequest(IIf(oRequest Is Nothing, "GET", "POST"), "/deposit", oRequest, oResponse) Then
         GoTo QH
     End If
-    If Not IsEmpty(JsonItem(oResponse, "ReceiptNo")) Then
-        m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-        m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-        m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    If Not IsEmpty(JsonValue(oResponse, "ReceiptNo")) Then
+        m_sLastReceiptNo = C_Str(JsonValue(oResponse, "ReceiptNo"))
+        m_dLastReceiptDate = C_Date(JsonValue(oResponse, "ReceiptDateTime"))
+        m_dblLastReceiptAmount = C_Dbl(JsonValue(oResponse, "ReceiptAmount"))
         ReceiptNo = m_sLastReceiptNo
         ReceiptDate = m_dLastReceiptDate
         ReceiptAmount = m_dblLastReceiptAmount
     End If
-    vRetVal(0) = C_Dbl(JsonItem(oResponse, "TotalAvailable"))
-    vRetVal(1) = C_Dbl(JsonItem(oResponse, "TotalDeposits"))
-    vRetVal(2) = C_Dbl(JsonItem(oResponse, "TotalWithdraws"))
+    vRetVal(0) = C_Dbl(JsonValue(oResponse, "TotalAvailable"))
+    vRetVal(1) = C_Dbl(JsonValue(oResponse, "TotalDeposits"))
+    vRetVal(2) = C_Dbl(JsonValue(oResponse, "TotalWithdraws"))
     '--- success
     PrintServiceDeposit = vRetVal
 QH:
@@ -306,16 +306,16 @@ Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
     Dim oResponse       As Object
     
     On Error GoTo EH
-    JsonItem(oRequest, "PrintDuplicate") = True
+    JsonValue(oRequest, "PrintDuplicate") = True
     If LenB(DuplicateNo) <> 0 Then
-        JsonItem(oRequest, "Invoice/DocNo") = DuplicateNo
+        JsonValue(oRequest, "Invoice/DocNo") = DuplicateNo
     End If
     If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
         GoTo QH
     End If
-    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    m_sLastReceiptNo = C_Str(JsonValue(oResponse, "ReceiptNo"))
+    m_dLastReceiptDate = C_Date(JsonValue(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonValue(oResponse, "ReceiptAmount"))
     '--- success
     PrintDuplicate = True
 QH:
@@ -330,20 +330,20 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     Dim oResponse       As Object
     
     On Error GoTo EH
-    JsonItem(oRequest, "ReportType") = ucsFscRptMonthlyByDate
-    JsonItem(oRequest, "StartDate") = StartDate
-    JsonItem(oRequest, "EndDate") = EndDate
+    JsonValue(oRequest, "ReportType") = ucsFscRptMonthlyByDate
+    JsonValue(oRequest, "StartDate") = StartDate
+    JsonValue(oRequest, "EndDate") = EndDate
     If ReportType = ucsFscRstMonthlyDetailed Then
-        JsonItem(oRequest, "IsDetailed") = True
+        JsonValue(oRequest, "IsDetailed") = True
     ElseIf ReportType = ucsFscRstMonthlyEJ Then
-        JsonItem(oRequest, "IsEJ") = True
+        JsonValue(oRequest, "IsEJ") = True
     End If
     If Not pvSendRequest("POST", "/report", oRequest, oResponse) Then
         GoTo QH
     End If
-    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    m_sLastReceiptNo = C_Str(JsonValue(oResponse, "ReceiptNo"))
+    m_dLastReceiptDate = C_Date(JsonValue(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonValue(oResponse, "ReceiptAmount"))
     '--- success
     PrintMonthlyReport = True
 QH:
@@ -358,20 +358,20 @@ Public Function PrintDailyReport(ByVal IsClear As Boolean, ByVal ReportType As U
     Dim oResponse       As Object
     
     On Error GoTo EH
-    JsonItem(oRequest, "ReportType") = IIf(ReportType = ucsFscRstDailyByOperators, ucsFscRptDailyByOperators, ucsFscRptDaily)
-    JsonItem(oRequest, "IsClear") = IsClear
+    JsonValue(oRequest, "ReportType") = IIf(ReportType = ucsFscRstDailyByOperators, ucsFscRptDailyByOperators, ucsFscRptDaily)
+    JsonValue(oRequest, "IsClear") = IsClear
     If ReportType = ucsFscRstDailyByItems Or ReportType = ucsFscRstDailyByItemsAndDepartments Then
-        JsonItem(oRequest, "IsItems") = True
+        JsonValue(oRequest, "IsItems") = True
     End If
     If ReportType = ucsFscRstDailyByDepartments Or ReportType = ucsFscRstDailyByItemsAndDepartments Then
-        JsonItem(oRequest, "IsDepartments") = True
+        JsonValue(oRequest, "IsDepartments") = True
     End If
     If Not pvSendRequest("POST", "/report", oRequest, oResponse) Then
         GoTo QH
     End If
-    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
+    m_sLastReceiptNo = C_Str(JsonValue(oResponse, "ReceiptNo"))
+    m_dLastReceiptDate = C_Date(JsonValue(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonValue(oResponse, "ReceiptAmount"))
     '--- success
     PrintDailyReport = True
 QH:
@@ -394,11 +394,11 @@ Public Function GetDefaultPassword(OperatorCode As String) As String
         End If
         GoTo QH
     End If
-    JsonItem(oRequest, "Operator/Code") = OperatorCode
+    JsonValue(oRequest, "Operator/Code") = OperatorCode
     If Not pvSendRequest("POST", vbNullString, oRequest, oResponse) Then
         GoTo QH
     End If
-    GetDefaultPassword = C_Str(JsonItem(oResponse, "Operator/DefaultPassword"))
+    GetDefaultPassword = C_Str(JsonValue(oResponse, "Operator/DefaultPassword"))
 QH:
     Exit Function
 EH:
@@ -417,7 +417,7 @@ Public Function GetClock() As Date
     If Not pvSendRequest("GET", "/datetime", Nothing, oResponse) Then
         GoTo QH
     End If
-    GetClock = C_Date(JsonItem(oResponse, "DeviceDateTime"))
+    GetClock = C_Date(JsonValue(oResponse, "DeviceDateTime"))
 QH:
     Exit Function
 EH:
@@ -434,7 +434,7 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
         SetClock = True
         GoTo QH
     End If
-    JsonItem(oRequest, "DeviceDateTime") = NewDate
+    JsonValue(oRequest, "DeviceDateTime") = NewDate
     If Not pvSendRequest("POST", "/datetime", oRequest, oResponse) Then
         GoTo QH
     End If
@@ -459,8 +459,8 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
         GetDeviceStatus = ucsFscStaFailed
         GoTo QH
     End If
-    StatusText = C_Str(JsonItem(oResponse, "DeviceStatus"))
-    GetDeviceStatus = JsonEnumValue(JsonItem(oResponse, "DeviceStatusCode"), STR_ENUM_STATUS_CODE)
+    StatusText = C_Str(JsonValue(oResponse, "DeviceStatus"))
+    GetDeviceStatus = JsonEnumValue(JsonValue(oResponse, "DeviceStatusCode"), STR_ENUM_STATUS_CODE)
 QH:
     Exit Function
 EH:
@@ -478,16 +478,16 @@ Public Function GetTotalsByPaymentTypes() As Variant
     If LenB(m_uRemote.Host) = 0 Then
         GoTo QH
     End If
-    JsonItem(oRequest, "IncludePaymentTypes") = True
+    JsonValue(oRequest, "IncludePaymentTypes") = True
     If Not pvSendRequest("POST", "/totals", oRequest, oResponse) Then
         GoTo QH
     End If
-    ReDim vRetVal(0 To JsonItem(oResponse, -1) - 1) As Variant
+    ReDim vRetVal(0 To JsonValue(oResponse, -1) - 1) As Variant
     For lIdx = 0 To UBound(vRetVal)
-        If IsEmpty(JsonItem(oResponse, lIdx & "/Reversal")) Then
-            vRetVal(lIdx) = Array(JsonItem(oResponse, lIdx & "/PaymentName"), C_Dbl(JsonItem(oResponse, lIdx & "/Amount")))
+        If IsEmpty(JsonValue(oResponse, lIdx & "/Reversal")) Then
+            vRetVal(lIdx) = Array(JsonValue(oResponse, lIdx & "/PaymentName"), C_Dbl(JsonValue(oResponse, lIdx & "/Amount")))
         Else
-            vRetVal(lIdx) = Array(JsonItem(oResponse, lIdx & "/PaymentName"), C_Dbl(JsonItem(oResponse, lIdx & "/Amount")), C_Dbl(JsonItem(oResponse, lIdx & "/Reversal")))
+            vRetVal(lIdx) = Array(JsonValue(oResponse, lIdx & "/PaymentName"), C_Dbl(JsonValue(oResponse, lIdx & "/Amount")), C_Dbl(JsonValue(oResponse, lIdx & "/Reversal")))
         End If
     Next
     GetTotalsByPaymentTypes = vRetVal
@@ -508,16 +508,16 @@ Public Function GetTotalsByTaxGroups() As Variant
     If LenB(m_uRemote.Host) = 0 Then
         GoTo QH
     End If
-    JsonItem(oRequest, "IncludeTaxGroups") = True
+    JsonValue(oRequest, "IncludeTaxGroups") = True
     If Not pvSendRequest("POST", "/totals", oRequest, oResponse) Then
         GoTo QH
     End If
-    ReDim vRetVal(0 To JsonItem(oResponse, -1) - 1) As Variant
+    ReDim vRetVal(0 To JsonValue(oResponse, -1) - 1) As Variant
     For lIdx = 0 To UBound(vRetVal)
-        If IsEmpty(JsonItem(oResponse, lIdx & "/Reversal")) Then
-            vRetVal(lIdx) = Array(C_Dbl(JsonItem(oResponse, lIdx & "/VatRate")), C_Dbl(JsonItem(oResponse, lIdx & "/Amount")))
+        If IsEmpty(JsonValue(oResponse, lIdx & "/Reversal")) Then
+            vRetVal(lIdx) = Array(C_Dbl(JsonValue(oResponse, lIdx & "/VatRate")), C_Dbl(JsonValue(oResponse, lIdx & "/Amount")))
         Else
-            vRetVal(lIdx) = Array(C_Dbl(JsonItem(oResponse, lIdx & "/VatRate")), C_Dbl(JsonItem(oResponse, lIdx & "/Amount")), C_Dbl(JsonItem(oResponse, lIdx & "/Reversal")))
+            vRetVal(lIdx) = Array(C_Dbl(JsonValue(oResponse, lIdx & "/VatRate")), C_Dbl(JsonValue(oResponse, lIdx & "/Amount")), C_Dbl(JsonValue(oResponse, lIdx & "/Reversal")))
         End If
     Next
     GetTotalsByTaxGroups = vRetVal
@@ -536,11 +536,11 @@ Public Function GetTotalsStats() As Variant
     If LenB(m_uRemote.Host) = 0 Then
         GoTo QH
     End If
-    JsonItem(oRequest, "IncludeStats") = True
+    JsonValue(oRequest, "IncludeStats") = True
     If Not pvSendRequest("POST", "/totals", oRequest, oResponse) Then
         GoTo QH
     End If
-    GetTotalsStats = Array(C_Lng(JsonItem(oResponse, "NumReceipts")), C_Date(JsonItem(oResponse, "LastZReportDateTime")))
+    GetTotalsStats = Array(C_Lng(JsonValue(oResponse, "NumReceipts")), C_Date(JsonValue(oResponse, "LastZReportDateTime")))
 QH:
     Exit Function
 EH:
@@ -565,79 +565,79 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         With uRow(uCtx.Row)
         Select Case .RowType
         Case ucsRowInit
-            JsonItem(oRequest, "ReceiptType") = .InitReceiptType
-            JsonItem(oRequest, "Operator/Code") = .InitOperatorCode
-            JsonItem(oRequest, "Operator/Name") = .InitOperatorName
-            JsonItem(oRequest, "Operator/Password") = .InitOperatorPassword
+            JsonValue(oRequest, "ReceiptType") = .InitReceiptType
+            JsonValue(oRequest, "Operator/Code") = .InitOperatorCode
+            JsonValue(oRequest, "Operator/Name") = .InitOperatorName
+            JsonValue(oRequest, "Operator/Password") = .InitOperatorPassword
             Select Case .InitReceiptType
             Case ucsFscRcpInvoice
-                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
-                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
-                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
-                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
-                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
-                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
+                JsonValue(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
+                JsonValue(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
+                JsonValue(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
+                JsonValue(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
+                JsonValue(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
+                JsonValue(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
             Case ucsFscRcpReversal
-                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
-                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
-                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
-                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
+                JsonValue(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
+                JsonValue(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
+                JsonValue(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
+                JsonValue(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
             Case ucsFscRcpCreditNote
-                JsonItem(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
-                JsonItem(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
-                JsonItem(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
-                JsonItem(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
-                JsonItem(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
-                JsonItem(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
-                JsonItem(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
-                JsonItem(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
-                JsonItem(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
-                JsonItem(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
-                JsonItem(oRequest, "Reversal/InvoiceNo") = .InitRevData(ucsRevInvoiceNo)
-                JsonItem(oRequest, "Reversal/Reason") = .InitRevData(ucsRevReason)
+                JsonValue(oRequest, "Invoice/DocNo") = .InitInvData(ucsInvDocNo)
+                JsonValue(oRequest, "Invoice/CgTaxNo") = .InitInvData(ucsInvCgTaxNo)
+                JsonValue(oRequest, "Invoice/CgVatNo") = .InitInvData(ucsInvCgVatNo)
+                JsonValue(oRequest, "Invoice/CgName") = .InitInvData(ucsInvCgName)
+                JsonValue(oRequest, "Invoice/CgAddress") = .InitInvData(ucsInvCgAddress)
+                JsonValue(oRequest, "Invoice/CgPrsReceive") = .InitInvData(ucsInvCgPrsReceive)
+                JsonValue(oRequest, "Reversal/ReversalType") = .InitRevData(ucsRevType)
+                JsonValue(oRequest, "Reversal/ReceiptNo") = .InitRevData(ucsRevReceiptNo)
+                JsonValue(oRequest, "Reversal/ReceiptDateTime") = .InitRevData(ucsRevReceiptDate)
+                JsonValue(oRequest, "Reversal/FiscalMemoryNo") = .InitRevData(ucsRevFiscalMemoryNo)
+                JsonValue(oRequest, "Reversal/InvoiceNo") = .InitRevData(ucsRevInvoiceNo)
+                JsonValue(oRequest, "Reversal/Reason") = .InitRevData(ucsRevReason)
             End Select
-            JsonItem(oRequest, "UniqueSaleNo") = .InitUniqueSaleNo
+            JsonValue(oRequest, "UniqueSaleNo") = .InitUniqueSaleNo
         Case ucsRowPlu
-            JsonItem(oRequest, "Rows/-1") = Array(.PluItemName, .PluPrice, .PluTaxGroup, .PluQuantity, .DiscValue, .PluUnitOfMeasure, .PluDepartmentNo)
+            JsonValue(oRequest, "Rows/-1") = Array(.PluItemName, .PluPrice, .PluTaxGroup, .PluQuantity, .DiscValue, .PluUnitOfMeasure, .PluDepartmentNo)
         Case ucsRowDiscount
             Set oItem = Nothing
             Select Case .DiscType
             Case ucsFscDscSubtotal
-                JsonItem(oItem, "DiscountPercent") = .DiscValue
+                JsonValue(oItem, "DiscountPercent") = .DiscValue
             Case ucsFscDscSubtotalAbs
-                JsonItem(oItem, "DiscountAmount") = .DiscValue
+                JsonValue(oItem, "DiscountAmount") = .DiscValue
             Case Else
                 pvSetLastError Printf(pvInternal(ucsErrUnsupportedDiscType), GetDiscTypeName(.DiscType))
                 GoTo QH
             End Select
-            JsonItem(oRequest, "Rows/-1") = oItem
+            JsonValue(oRequest, "Rows/-1") = oItem
         Case ucsRowLine
-            JsonItem(oRequest, "Rows/-1") = Array(.LineText)
+            JsonValue(oRequest, "Rows/-1") = Array(.LineText)
         Case ucsRowBarcode
             Set oItem = Nothing
-            JsonItem(oItem, "Text") = .BarcodeText
-            JsonItem(oItem, "BarcodeType") = .BarcodeType
-            JsonItem(oItem, "Height") = .BarcodeHeight
-            JsonItem(oRequest, "Rows/-1") = oItem
+            JsonValue(oItem, "Text") = .BarcodeText
+            JsonValue(oItem, "BarcodeType") = .BarcodeType
+            JsonValue(oItem, "Height") = .BarcodeHeight
+            JsonValue(oRequest, "Rows/-1") = oItem
         Case ucsRowPayment
             If .PmtType > 0 Then
-                JsonItem(oRequest, "Rows/-1") = Array(.PmtName, .PmtType, .PmtAmount)
+                JsonValue(oRequest, "Rows/-1") = Array(.PmtName, .PmtType, .PmtAmount)
             End If
         End Select
         End With
         uCtx.Row = uCtx.Row + 1
     Loop
     If Not pvSendRequest("POST", "/receipt", oRequest, oResponse) Then
-        If JsonItem(oResponse, "ErrorCode") = "InvalidPassword" Then
+        If JsonValue(oResponse, "ErrorCode") = "InvalidPassword" Then
             m_uPrintData.LastErrNo = ucsFerInvalidPassword
         End If
         GoTo QH
     End If
-    m_sLastReceiptNo = C_Str(JsonItem(oResponse, "ReceiptNo"))
-    m_dLastReceiptDate = C_Date(JsonItem(oResponse, "ReceiptDateTime"))
-    m_dblLastReceiptAmount = C_Dbl(JsonItem(oResponse, "ReceiptAmount"))
-    m_sLastInvoiceNo = C_Str(JsonItem(oResponse, "LastInvoiceNo"))
-    m_sResumeToken = C_Str(JsonItem(oResponse, "ResumeToken"))
+    m_sLastReceiptNo = C_Str(JsonValue(oResponse, "ReceiptNo"))
+    m_dLastReceiptDate = C_Date(JsonValue(oResponse, "ReceiptDateTime"))
+    m_dblLastReceiptAmount = C_Dbl(JsonValue(oResponse, "ReceiptAmount"))
+    m_sLastInvoiceNo = C_Str(JsonValue(oResponse, "LastInvoiceNo"))
+    m_sResumeToken = C_Str(JsonValue(oResponse, "ResumeToken"))
     '--- success
     pvPrintReceipt = True
 QH:
@@ -695,17 +695,17 @@ Private Function pvSendRequest( _
         End If
     End With
     Set oResponse = C_Obj(vJson)
-    If Not C_Bool(JsonItem(oResponse, "Ok")) Then
+    If Not C_Bool(JsonValue(oResponse, "Ok")) Then
         DebugLog FUNC_NAME, "Request failed, vJson=" & JsonDump(vJson, Minimize:=True)
-        Error = C_Str(JsonItem(oResponse, "ErrorText"))
+        Error = C_Str(JsonValue(oResponse, "ErrorText"))
         GoTo QH
     End If
     Error = vbNullString
     '--- success
     pvSendRequest = True
 QH:
-    If LenB(Error) <> 0 Or LenB(JsonItem(oResponse, "ErrorCode")) <> 0 Then
-        pvSetLastError Error, JsonItem(oResponse, "ErrorCode")
+    If LenB(Error) <> 0 Or LenB(JsonValue(oResponse, "ErrorCode")) <> 0 Then
+        pvSetLastError Error, JsonValue(oResponse, "ErrorCode")
     End If
     DebugLog FUNC_NAME, "RetVal=" & pvSendRequest & ", Error=" & Error & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
     Exit Function

@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -273,21 +273,21 @@ Private Sub m_oSocket_OnReceive()
                 Else
                     lPos = InStr(vElem, ":")
                     If lPos > 1 Then
-                        JsonItem(m_oHeaders, Trim$(Left$(vElem, lPos - 1))) = Trim$(Mid$(vElem, lPos + 1))
+                        JsonValue(m_oHeaders, Trim$(Left$(vElem, lPos - 1))) = Trim$(Mid$(vElem, lPos + 1))
                     End If
                 End If
                 lIdx = lIdx + 1
             Next
             m_lHdrSize = m_lHdrSize + 3
-            If LCase$(JsonItem(m_oHeaders, HDR_EXPECT)) = "100-continue" Then
+            If LCase$(JsonValue(m_oHeaders, HDR_EXPECT)) = "100-continue" Then
                 m_oSocket.SendText "HTTP/1.1 100 Continue" & vbCrLf & vbCrLf
             End If
         End If
     End If
     If Not m_oHeaders Is Nothing Then
         lSize = UBound(m_baBuffer) + 1 - m_lHdrSize
-        If Not IsEmpty(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
-            If lSize < C_Lng(JsonItem(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+        If Not IsEmpty(JsonValue(m_oHeaders, HDR_CONTENT_LENGTH)) Then
+            If lSize < C_Lng(JsonValue(m_oHeaders, HDR_CONTENT_LENGTH)) Then
                 GoTo QH
             End If
         End If

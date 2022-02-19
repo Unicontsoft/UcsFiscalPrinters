@@ -17,7 +17,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -105,7 +105,7 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     #If oConfig Then '--- touch args
     #End If
-    JsonItem(oRequestsCache, vbNullString) = Empty
+    JsonValue(oRequestsCache, vbNullString) = Empty
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters, oRequestsCache) Then
         m_sLastError = m_oController.LastError
@@ -259,7 +259,7 @@ Public Function Autodetect(Optional ByVal Async As Boolean, Optional ByVal Delay
     Dim vElem           As Variant
     
     On Error GoTo EH
-    For Each vElem In JsonItem(m_oController.Printers, "*/Autodetected")
+    For Each vElem In JsonValue(m_oController.Printers, "*/Autodetected")
         If C_Bool(vElem) Then
             '--- success
             Autodetect = True

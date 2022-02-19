@@ -382,7 +382,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -680,12 +680,12 @@ Private Function pvLoadPrinters() As Boolean
         pvLoadConfig m_sConfFile
     End If
     Set oConfig = JsonParseObject(pvConfigText)
-    chkAutoDetect.Value = IIf(C_Bool(JsonItem(oConfig, "Printers/Autodetect")), vbChecked, vbUnchecked)
+    chkAutoDetect.Value = IIf(C_Bool(JsonValue(oConfig, "Printers/Autodetect")), vbChecked, vbUnchecked)
     m_sPrinterID = "DefaultPrinter"
-    Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
+    Set oDevice = ParseDeviceString(C_Str(JsonValue(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
     If oDevice Is Nothing Then
         For Each vKey In JsonKeys(oConfig, "Printers")
-            Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & vKey & "/DeviceString")))
+            Set oDevice = ParseDeviceString(C_Str(JsonValue(oConfig, "Printers/" & vKey & "/DeviceString")))
             If Not oDevice Is Nothing Then
                 m_sPrinterID = vKey
                 Exit For
@@ -693,12 +693,12 @@ Private Function pvLoadPrinters() As Boolean
         Next
     End If
     m_bInSet = True
-    cobProtocol.Text = JsonItem(oDevice, "Protocol")
-    cobPort.Text = JsonItem(oDevice, "Port")
-    cobSpeed.Text = JsonItem(oDevice, "Speed")
-    txtSerialNo.Text = JsonItem(oDevice, "DeviceSerialNo")
-    txtDefPass.Text = JsonItem(oDevice, "DefaultPassword")
-    txtLogFile.Text = JsonItem(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG")
+    cobProtocol.Text = JsonValue(oDevice, "Protocol")
+    cobPort.Text = JsonValue(oDevice, "Port")
+    cobSpeed.Text = JsonValue(oDevice, "Speed")
+    txtSerialNo.Text = JsonValue(oDevice, "DeviceSerialNo")
+    txtDefPass.Text = JsonValue(oDevice, "DefaultPassword")
+    txtLogFile.Text = JsonValue(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG")
     m_bInSet = False
     '--- printers list
     Set oForm = MainForm
@@ -706,13 +706,13 @@ Private Function pvLoadPrinters() As Boolean
     lstPrinters.Clear
     lstPrinters.AddItem Pad(At(vSplit, 0), 15) & vbTab & Pad(At(vSplit, 1), 15) & vbTab & Pad(At(vSplit, 2), 15) & vbTab & _
         Pad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
-    For Each vKey In JsonItem(oForm.Printers, "*/DeviceSerialNo")
+    For Each vKey In JsonValue(oForm.Printers, "*/DeviceSerialNo")
         If LenB(vKey) <> 0 Then
             lstPrinters.AddItem Pad(vKey, 15) & vbTab & _
-                Pad(JsonItem(oForm.Printers, vKey & "/DevicePort"), 15) & vbTab & _
-                Pad(JsonItem(oForm.Printers, vKey & "/DeviceHost"), 15) & vbTab & _
-                Pad(JsonItem(oForm.Printers, vKey & "/DeviceModel"), 23) & vbTab & _
-                JsonItem(oForm.Printers, vKey & "/FirmwareVersion")
+                Pad(JsonValue(oForm.Printers, vKey & "/DevicePort"), 15) & vbTab & _
+                Pad(JsonValue(oForm.Printers, vKey & "/DeviceHost"), 15) & vbTab & _
+                Pad(JsonValue(oForm.Printers, vKey & "/DeviceModel"), 23) & vbTab & _
+                JsonValue(oForm.Printers, vKey & "/FirmwareVersion")
         End If
     Next
     If lstPrinters.ListCount > 1 Then
@@ -766,9 +766,9 @@ Private Function pvLoadConfig(sConfFile As String) As Boolean
     Else
 LoadDefaultConfig:
         mnuFile(ucsMnuFileRestart).Enabled = False
-        JsonItem(oConfig, "Printers/Autodetect") = True
-        JsonItem(oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
+        JsonValue(oConfig, "Printers/Autodetect") = True
+        JsonValue(oConfig, "Endpoints/0/Binding") = "RestHttp"
+        JsonValue(oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
         pvConfigText = JsonDump(oConfig)
     End If
     txtConfig.SelStart = m_lConfigPosition
@@ -970,34 +970,34 @@ RetryRestart:
         pvLoadConfig m_sConfFile
     End If
     Set oConfig = JsonParseObject(pvConfigText)
-    JsonItem(oConfig, "Printers/Autodetect") = (chkAutoDetect.Value = vbChecked)
-    Set oDevice = ParseDeviceString(C_Str(JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
-    JsonItem(oDevice, "Protocol") = Zn(Trim$(cobProtocol.Text), Empty)
-    JsonItem(oDevice, "Port") = Zn(Trim$(cobPort.Text), Empty)
-    JsonItem(oDevice, "Speed") = Zn(Trim$(cobSpeed.Text), Empty)
-    JsonItem(oDevice, "DeviceSerialNo") = Zn(Trim$(txtSerialNo.Text), Empty)
-    JsonItem(oDevice, "DefaultPassword") = Zn(Trim$(txtDefPass.Text), Empty)
-    JsonItem(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
+    JsonValue(oConfig, "Printers/Autodetect") = (chkAutoDetect.Value = vbChecked)
+    Set oDevice = ParseDeviceString(C_Str(JsonValue(oConfig, "Printers/" & m_sPrinterID & "/DeviceString")))
+    JsonValue(oDevice, "Protocol") = Zn(Trim$(cobProtocol.Text), Empty)
+    JsonValue(oDevice, "Port") = Zn(Trim$(cobPort.Text), Empty)
+    JsonValue(oDevice, "Speed") = Zn(Trim$(cobSpeed.Text), Empty)
+    JsonValue(oDevice, "DeviceSerialNo") = Zn(Trim$(txtSerialNo.Text), Empty)
+    JsonValue(oDevice, "DefaultPassword") = Zn(Trim$(txtDefPass.Text), Empty)
+    JsonValue(oConfig, "Printers/" & m_sPrinterID & "/DeviceString") = Zn(ToDeviceString(oDevice), Empty)
     If UBound(JsonKeys(oConfig, "Printers/" & m_sPrinterID)) < 0 Then
-        JsonItem(oConfig, "Printers/" & m_sPrinterID) = Empty
+        JsonValue(oConfig, "Printers/" & m_sPrinterID) = Empty
     End If
-    JsonItem(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG") = Zn(Trim$(txtLogFile.Text), Empty)
+    JsonValue(oConfig, "Environment/_UCS_FISCAL_PRINTER_LOG") = Zn(Trim$(txtLogFile.Text), Empty)
     If UBound(JsonKeys(oConfig, "Environment")) < 0 Then
-        JsonItem(oConfig, "Environment") = Empty
+        JsonValue(oConfig, "Environment") = Empty
     End If
     pvConfigText = JsonDump(oConfig)
     If pvSaveConfig(m_sConfFile) Then
         frRestart
         pvLoadPrinters
-        sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
+        sDeviceSerialNo = C_Str(JsonValue(MainForm.Printers, "Aliases/" & m_sPrinterID & "/DeviceSerialNo"))
         If LenB(sDeviceSerialNo) <> 0 Then
-            sDeviceSerialNo = C_Str(JsonItem(MainForm.Printers, sDeviceSerialNo & "/DeviceSerialNo"))
+            sDeviceSerialNo = C_Str(JsonValue(MainForm.Printers, sDeviceSerialNo & "/DeviceSerialNo"))
         End If
     End If
     cmdApply.Caption = STR_CAPTION_APPLY
     cmdApply.Enabled = True
     cmdApply.SetFocus
-    If LenB(JsonItem(oDevice, "Protocol")) <> 0 Then
+    If LenB(JsonValue(oDevice, "Protocol")) <> 0 Then
         If LenB(sDeviceSerialNo) <> 0 Then
             MsgBox Printf(MSG_SUCCESS_FOUND, sDeviceSerialNo), vbExclamation
         ElseIf MsgBox(MSG_PRINTER_NOT_FOUND, vbQuestion Or vbYesNo) = vbYes Then
@@ -1258,7 +1258,7 @@ Private Sub lstPrinters_Click()
     
     On Error GoTo EH
     sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
-    txtInfo.Text = JsonDump(JsonItem(MainForm.Printers, sPrinterID))
+    txtInfo.Text = JsonDump(JsonValue(MainForm.Printers, sPrinterID))
     cmdTest.Enabled = (lstPrinters.ListIndex > 0)
     Exit Sub
 EH:
@@ -1299,7 +1299,7 @@ Private Sub cobProtocol_Change()
     If Not m_bInSet Then
         If LenB(cobProtocol.Text) <> 0 Then
             Set oConfig = JsonParseObject(pvConfigText)
-            If Not IsObject(JsonItem(oConfig, "Printers/" & m_sPrinterID)) Then
+            If Not IsObject(JsonValue(oConfig, "Printers/" & m_sPrinterID)) Then
                 chkAutoDetect.Value = vbUnchecked
             End If
         End If

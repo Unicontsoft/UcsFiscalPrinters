@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -162,7 +162,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
     On Error GoTo EH
     Set m_oConfig = oConfig
     Set m_oPrinters = oPrinters
-    JsonItem(oRequestsCache, vbNullString) = Empty
+    JsonValue(oRequestsCache, vbNullString) = Empty
     '--- init service controller
     Set m_oController = New cServiceController
     If Not m_oController.Init(oPrinters, oRequestsCache) Then
@@ -176,26 +176,26 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         GoTo QH
     End If
     '--- sync devices date/time if needed
-    If Not IsEmpty(JsonItem(oConfig, "SyncDateTimeAdjustTolerance")) Then
+    If Not IsEmpty(JsonValue(oConfig, "SyncDateTimeAdjustTolerance")) Then
         dClock = m_oConn.Execute("SELECT GETDATE()", Options:=adCmdText).Fields(0).Value
-        pvSyncDateTime dClock, C_Lng(JsonItem(oConfig, "SyncDateTimeAdjustTolerance"))
+        pvSyncDateTime dClock, C_Lng(JsonValue(oConfig, "SyncDateTimeAdjustTolerance"))
     End If
     '--- init Service Broker queue
-    sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonItem(oConfig, "QueueName")), "{COMPUTER_NAME}/{MAC_ADDRESS}/{PROCESS_ID}/{SQL_DB}")
+    sQueueName = STR_QUEUE_PREFIX & "/" & Zn(C_Str(JsonValue(oConfig, "QueueName")), "{COMPUTER_NAME}/{MAC_ADDRESS}/{PROCESS_ID}/{SQL_DB}")
     sQueueName = Replace(Replace(Replace(Replace(Replace(sQueueName, _
         "{COMPUTER_NAME}", GetErrorComputerName()), _
         "{MAC_ADDRESS}", Right$(Replace(GetMacAddress(), ":", vbNullString), 6)), _
         "{PROCESS_ID}", GetCurrentProcessId), _
         "{SQL_INSTANCE}", m_sSqlInstance), _
         "{SQL_DB}", m_sSqlDatabase)
-    Select Case LCase$(JsonItem(oConfig, "Binding"))
+    Select Case LCase$(JsonValue(oConfig, "Binding"))
     Case "mssqlservicebroker"
-        lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_MSSQL_TIMEOUT)
+        lQueueTimeout = Znl(C_Lng(JsonValue(oConfig, "QueueTimeout")), DEF_MSSQL_TIMEOUT)
         If pvInitMssqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
             GoTo QH
         End If
     Case "mysqlmessagequeue"
-        lQueueTimeout = Znl(C_Lng(JsonItem(oConfig, "QueueTimeout")), DEF_MYSQL_TIMEOUT)
+        lQueueTimeout = Znl(C_Lng(JsonValue(oConfig, "QueueTimeout")), DEF_MYSQL_TIMEOUT)
         If pvInitMysqlQueue(sQueueName, lQueueTimeout, RetVal:=m_oQueue) Is Nothing Then
             GoTo QH
         End If
@@ -214,7 +214,7 @@ End Function
 
 Private Function pvInitMssqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMssqlQueue) As cMssqlQueue
     Set RetVal = New cMssqlQueue
-    If RetVal.Init(m_oConn, m_oRecvConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oRecvConn, JsonValue(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMssqlQueue = RetVal
     End If
@@ -222,7 +222,7 @@ End Function
 
 Private Function pvInitMysqlQueue(sQueueName As String, ByVal lQueueTimeout As Long, Optional RetVal As cMysqlQueue) As cMysqlQueue
     Set RetVal = New cMysqlQueue
-    If RetVal.Init(m_oConn, m_oRecvConn, JsonItem(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
+    If RetVal.Init(m_oConn, m_oRecvConn, JsonValue(m_oPrinters, "*/DeviceSerialNo"), sQueueName, lQueueTimeout, Me) Then
         m_sLastError = RetVal.LastError
         Set pvInitMysqlQueue = RetVal
     End If
@@ -276,7 +276,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         sResponse = sError
         GoTo QH
     End If
-    sRawUrl = JsonItem(C_Obj(vJson), "Url")
+    sRawUrl = JsonValue(C_Obj(vJson), "Url")
     If Left$(sRawUrl, 1) <> "/" Then
         lErrorCode = 400
         sResponse = Printf(ERR_INVALID_URL, sRawUrl)
@@ -333,20 +333,20 @@ Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) 
     Dim vJson           As Variant
     
     On Error GoTo EH
-    JsonItem(oRequest, "DeviceDateTime") = dClock
+    JsonValue(oRequest, "DeviceDateTime") = dClock
     If lTolerance > 0 Then
-        JsonItem(oRequest, "AdjustTolerance") = lTolerance
+        JsonValue(oRequest, "AdjustTolerance") = lTolerance
     End If
-    For Each vElem In JsonItem(m_oPrinters, "*/DeviceSerialNo")
+    For Each vElem In JsonValue(m_oPrinters, "*/DeviceSerialNo")
         If LenB(C_Str(vElem)) <> 0 Then
             If m_oController.ServiceRequest(Printf(URL_DATETIME, vElem), vbNullString, JsonDump(oRequest, Minimize:=True), sResponse) Then
                 If JsonParse(sResponse, vJson) Then
-                    If JsonItem(C_Obj(vJson), "Ok") Then
-                        If Not IsEmpty(JsonItem(C_Obj(vJson), "PreviousDateTime")) Then
-                            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_SETUP, vElem, JsonItem(C_Obj(vJson), "DeviceDateTime"), JsonItem(C_Obj(vJson), "PreviousDateTime"))
+                    If JsonValue(C_Obj(vJson), "Ok") Then
+                        If Not IsEmpty(JsonValue(C_Obj(vJson), "PreviousDateTime")) Then
+                            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_SETUP, vElem, JsonValue(C_Obj(vJson), "DeviceDateTime"), JsonValue(C_Obj(vJson), "PreviousDateTime"))
                         End If
                     Else
-                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_ERROR, vElem, JsonItem(C_Obj(vJson), "ErrorText")), vbLogEventTypeError
+                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_ERROR, vElem, JsonValue(C_Obj(vJson), "ErrorText")), vbLogEventTypeError
                     End If
                 End If
             End If
@@ -380,19 +380,19 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     
     On Error GoTo EH
     bReopen = Not m_oConn Is Nothing
-    sLocalConnStr = JsonItem(oConfig, "ConnectString")
-    Set oSshSettings = ParseConnectString(JsonItem(oConfig, "SshSettings"))
-    sDbUser = C_Str(JsonItem(oConfig, "User"))
+    sLocalConnStr = JsonValue(oConfig, "ConnectString")
+    Set oSshSettings = ParseConnectString(JsonValue(oConfig, "SshSettings"))
+    sDbUser = C_Str(JsonValue(oConfig, "User"))
     If LenB(sDbUser) <> 0 Then
-        sDbPass = C_Str(JsonItem(oConfig, "Password"))
+        sDbPass = C_Str(JsonValue(oConfig, "Password"))
         If LenB(pvFromHexDump(sDbPass)) <> 0 Then
-            sSqlServer = Zn(C_Str(JsonItem(oConfig, "Server")), "(local)")
+            sSqlServer = Zn(C_Str(JsonValue(oConfig, "Server")), "(local)")
             sDbPass = CryptRC4(pvFromHexDump(sDbPass), LCase$(sSqlServer) & STR_RC4_SALT & LCase$(sDbUser))
         End If
         sLocalConnStr = pvSetConnProp(sLocalConnStr, "User ID", sDbUser)
         sLocalConnStr = pvSetConnProp(sLocalConnStr, "Password", sDbPass)
     End If
-    sIniFile = C_Str(JsonItem(oConfig, "IniFile"))
+    sIniFile = C_Str(JsonValue(oConfig, "IniFile"))
     If LenB(sIniFile) <> 0 Then
         If LenB(sLocalConnStr) = 0 Then
             sLocalConnStr = pvGetProfileString(sIniFile, DEF_SECTION, PRM_CONNSTR, vbNullString)
@@ -409,13 +409,13 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         If oSshSettings Is Nothing Then
             vSplit = Split(pvGetProfileString(sIniFile, DEF_SECTION, PRM_SSHSETTINGS, vbNullString), ",")
             If C_Lng(At(vSplit, ucsSixTunnel)) <> 0 Then
-                JsonItem(oSshSettings, "Host") = At(vSplit, ucsSixHost)
-                JsonItem(oSshSettings, "Port") = At(vSplit, ucsSixPort)
-                JsonItem(oSshSettings, "User ID") = At(vSplit, ucsSixUser)
-                JsonItem(oSshSettings, "Password") = CryptRC4(pvFromHexDump(At(vSplit, ucsSixPass)), LCase$(At(vSplit, ucsSixHost)) & STR_RC4_SALT & LCase$(At(vSplit, ucsSixUser)))
-                JsonItem(oSshSettings, "Key File") = At(vSplit, ucsSixKeyFile)
-                JsonItem(oSshSettings, "Local Port") = At(vSplit, ucsSixLocalPort)
-                JsonItem(oSshSettings, "Extra Params") = At(vSplit, ucsSixExtraParams)
+                JsonValue(oSshSettings, "Host") = At(vSplit, ucsSixHost)
+                JsonValue(oSshSettings, "Port") = At(vSplit, ucsSixPort)
+                JsonValue(oSshSettings, "User ID") = At(vSplit, ucsSixUser)
+                JsonValue(oSshSettings, "Password") = CryptRC4(pvFromHexDump(At(vSplit, ucsSixPass)), LCase$(At(vSplit, ucsSixHost)) & STR_RC4_SALT & LCase$(At(vSplit, ucsSixUser)))
+                JsonValue(oSshSettings, "Key File") = At(vSplit, ucsSixKeyFile)
+                JsonValue(oSshSettings, "Local Port") = At(vSplit, ucsSixLocalPort)
+                JsonValue(oSshSettings, "Extra Params") = At(vSplit, ucsSixExtraParams)
             End If
         End If
         If LenB(pvGetConnProp(sLocalConnStr, "Data Source")) <> 0 Then
@@ -442,18 +442,18 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         End If
         vSqlServer = Split(pvGetConnProp(sLocalConnStr, STR_DATA_SOURCE), ",")
         vMirrorServer = Split(pvGetConnProp(sLocalConnStr, STR_FAILOVER_PARTNER), ",")
-        lLocalPort = C_Lng(JsonItem(oSshSettings, "Local Port"))
+        lLocalPort = C_Lng(JsonValue(oSshSettings, "Local Port"))
         If Not pvMakeSshTunnel( _
-                JsonItem(oSshSettings, "Host"), _
-                C_Lng(JsonItem(oSshSettings, "Port")), _
-                JsonItem(oSshSettings, "User ID"), _
-                JsonItem(oSshSettings, "Password"), _
-                JsonItem(oSshSettings, "Key File"), _
+                JsonValue(oSshSettings, "Host"), _
+                C_Lng(JsonValue(oSshSettings, "Port")), _
+                JsonValue(oSshSettings, "User ID"), _
+                JsonValue(oSshSettings, "Password"), _
+                JsonValue(oSshSettings, "Key File"), _
                 At(vSqlServer, 0), _
                 C_Lng(At(vSqlServer, 1, 1433)), _
                 At(vMirrorServer, 0), _
                 C_Lng(At(vMirrorServer, 1, 1433)), _
-                JsonItem(oSshSettings, "Extra Params"), _
+                JsonValue(oSshSettings, "Extra Params"), _
                 sSshError, oTunnel, lLocalPort) Then
             vSplit = Split(sSshError, vbCrLf)
             m_sLastError = Printf(STR_SSH_TUNNEL_ERROR, At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
@@ -481,12 +481,12 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oConn = New ADODB.Connection
     m_oConn.CursorLocation = adUseClient
     m_oConn.Open sLocalConnStr
-    If Not IsEmpty(JsonItem(oConfig, "CommandTimeout")) Then
-        m_oConn.CommandTimeout = C_Lng(JsonItem(oConfig, "CommandTimeout"))
+    If Not IsEmpty(JsonValue(oConfig, "CommandTimeout")) Then
+        m_oConn.CommandTimeout = C_Lng(JsonValue(oConfig, "CommandTimeout"))
     Else
         m_oConn.CommandTimeout = m_oConn.ConnectionTimeout * 2
     End If
-    Select Case LCase$(JsonItem(oConfig, "Binding"))
+    Select Case LCase$(JsonValue(oConfig, "Binding"))
     Case "mssqlservicebroker"
         With m_oConn.Execute("SELECT @@SERVERNAME, DB_NAME()", Options:=adCmdText)
             m_sSqlInstance = .Fields.Item(0).Value
@@ -501,8 +501,8 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Set m_oRecvConn = New ADODB.Connection
     m_oRecvConn.CursorLocation = adUseClient
     m_oRecvConn.Open sLocalConnStr
-    If Not IsEmpty(JsonItem(oConfig, "AsyncCommandTimeout")) Then
-        m_oRecvConn.CommandTimeout = C_Lng(JsonItem(oConfig, "AsyncCommandTimeout"))
+    If Not IsEmpty(JsonValue(oConfig, "AsyncCommandTimeout")) Then
+        m_oRecvConn.CommandTimeout = C_Lng(JsonValue(oConfig, "AsyncCommandTimeout"))
     Else
         m_oRecvConn.CommandTimeout = DEF_ASYNC_COMMAND_TIMEOUT
     End If
@@ -765,14 +765,14 @@ EH:
 End Function
 
 Private Function pvGetConnProp(ByVal sConnStr As String, sProp As String) As String
-    pvGetConnProp = C_Str(JsonItem(ParseConnectString(sConnStr), sProp))
+    pvGetConnProp = C_Str(JsonValue(ParseConnectString(sConnStr), sProp))
 End Function
 
 Private Function pvSetConnProp(ByVal sConnStr As String, sProp As String, sValue As String) As String
     Dim oMap            As Object
     
     Set oMap = ParseConnectString(sConnStr)
-    JsonItem(oMap, sProp) = Zn(sValue, Empty)
+    JsonValue(oMap, sProp) = Zn(sValue, Empty)
     pvSetConnProp = ToConnectString(oMap)
 End Function
 

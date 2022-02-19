@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdStartup"
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2020 by Unicontsoft
+' UcsFPHub (c) 2019-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -302,18 +302,18 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_LOADING_CONFIG, sConfFile)
     Else
 LoadDefaultConfig:
-        JsonItem(m_oConfig, "Printers/Autodetect") = True
-        JsonItem(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
-        JsonItem(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
+        JsonValue(m_oConfig, "Printers/Autodetect") = True
+        JsonValue(m_oConfig, "Endpoints/0/Binding") = "RestHttp"
+        JsonValue(m_oConfig, "Endpoints/0/Address") = "127.0.0.1:" & DEF_LISTEN_PORT
     End If
     '--- setup environment and procotol configuration
-    lIdx = JsonItem(m_oConfig, -1)
+    lIdx = JsonValue(m_oConfig, -1)
     If lIdx > 0 Then
         DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_ENVIRON_VARS_FOUND, lIdx)
         sLogFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
         sLogDataDump = GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")
         For Each vKey In JsonKeys(m_oConfig, "Environment")
-            Call SetEnvironmentVariable(vKey, C_Str(JsonItem(m_oConfig, "Environment/" & vKey)))
+            Call SetEnvironmentVariable(vKey, C_Str(JsonValue(m_oConfig, "Environment/" & vKey)))
         Next
         If sLogFile <> GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG") _
                 Or sLogDataDump <> GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP") Then
@@ -322,11 +322,11 @@ LoadDefaultConfig:
         End If
         JsonExpandEnviron m_oConfig
     End If
-    Set ProtocolConfig = C_Obj(JsonItem(m_oConfig, "ProtocolConfig"))
+    Set ProtocolConfig = C_Obj(JsonValue(m_oConfig, "ProtocolConfig"))
     '-- clear printers collection
-    JsonItem(m_oPrinters, vbNullString) = Empty
+    JsonValue(m_oPrinters, vbNullString) = Empty
     For Each vKey In JsonKeys(m_oPrinters)
-        JsonItem(m_oPrinters, vKey) = Empty
+        JsonValue(m_oPrinters, vKey) = Empty
     Next
     '--- first register local endpoints
     If Not pvCreateEndpoints(m_oPrinters, "local", m_cEndpoints) Then
@@ -336,7 +336,7 @@ LoadDefaultConfig:
     If Not pvCollectPrinters(m_oPrinters) Then
         GoTo QH
     End If
-    lIdx = C_Lng(JsonItem(m_oPrinters, "Count"))
+    lIdx = C_Lng(JsonValue(m_oPrinters, "Count"))
     DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(lIdx = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), lIdx)
     '--- then register http/mssql endpoints
     If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker mysqlmessagequeue", m_cEndpoints) Then
@@ -388,34 +388,34 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
-    JsonItem(oRetVal, "Ok") = True
-    JsonItem(oRetVal, "Count") = 0
-    If JsonItem(m_oConfig, "Printers/Autodetect") Then
+    JsonValue(oRetVal, "Ok") = True
+    JsonValue(oRetVal, "Count") = 0
+    If JsonValue(m_oConfig, "Printers/Autodetect") Then
         DebugLog MODULE_NAME, FUNC_NAME, STR_AUTODETECTING_PRINTERS
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
-            If Not JsonItem(oJson, "Ok") Then
-                DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_ENUM_PORTS, vKey, JsonItem(oJson, "ErrorText")), vbLogEventTypeError
+            If Not JsonValue(oJson, "Ok") Then
+                DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_ENUM_PORTS, vKey, JsonValue(oJson, "ErrorText")), vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
-                    If LenB(C_Str(JsonItem(oJson, "SerialPorts/" & vKey & "/Protocol"))) <> 0 Then
-                        Set oInfo = JsonParseObject(JsonDump(JsonItem(oJson, "SerialPorts/" & vKey), Minimize:=True))
-                        JsonItem(oInfo, "Model") = Empty
-                        JsonItem(oInfo, "Firmware") = Empty
+                    If LenB(C_Str(JsonValue(oJson, "SerialPorts/" & vKey & "/Protocol"))) <> 0 Then
+                        Set oInfo = JsonParseObject(JsonDump(JsonValue(oJson, "SerialPorts/" & vKey), Minimize:=True))
+                        JsonValue(oInfo, "Model") = Empty
+                        JsonValue(oInfo, "Firmware") = Empty
                         sDeviceString = ToDeviceString(oInfo)
                         Set oRequest = Nothing
-                        JsonItem(oRequest, "DeviceString") = sDeviceString
-                        JsonItem(oRequest, "IncludeTaxNo") = True
+                        JsonValue(oRequest, "DeviceString") = sDeviceString
+                        JsonValue(oRequest, "IncludeTaxNo") = True
                         If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
-                            sDeviceString = Zn(JsonItem(oInfo, "DeviceString"), sDeviceString)
-                            sKey = JsonItem(oInfo, "DeviceSerialNo")
+                            sDeviceString = Zn(JsonValue(oInfo, "DeviceString"), sDeviceString)
+                            sKey = JsonValue(oInfo, "DeviceSerialNo")
                             If LenB(sKey) <> 0 Then
-                                JsonItem(oInfo, "Ok") = Empty
-                                JsonItem(oInfo, "DeviceString") = sDeviceString
-                                JsonItem(oInfo, "DeviceHost") = GetErrorComputerName()
-                                JsonItem(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
-                                JsonItem(oInfo, "Autodetected") = True
-                                JsonItem(oRetVal, sKey) = oInfo
-                                JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+                                JsonValue(oInfo, "Ok") = Empty
+                                JsonValue(oInfo, "DeviceString") = sDeviceString
+                                JsonValue(oInfo, "DeviceHost") = GetErrorComputerName()
+                                JsonValue(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
+                                JsonValue(oInfo, "Autodetected") = True
+                                JsonValue(oRetVal, sKey) = oInfo
+                                JsonValue(oRetVal, "Count") = JsonValue(oRetVal, "Count") + 1
                             End If
                         End If
                     End If
@@ -424,38 +424,38 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
         End If
     End If
     For Each vKey In JsonKeys(m_oConfig, "Printers")
-        sDeviceString = C_Str(JsonItem(m_oConfig, "Printers/" & vKey & "/DeviceString"))
+        sDeviceString = C_Str(JsonValue(m_oConfig, "Printers/" & vKey & "/DeviceString"))
         If LenB(sDeviceString) <> 0 Then
             Set oRequest = Nothing
-            JsonItem(oRequest, "DeviceString") = sDeviceString
-            JsonItem(oRequest, "IncludeTaxNo") = True
+            JsonValue(oRequest, "DeviceString") = sDeviceString
+            JsonValue(oRequest, "IncludeTaxNo") = True
             If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
-                If Not JsonItem(oInfo, "Ok") Then
-                    DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_WARN_ACCESS, vKey, JsonItem(oInfo, "ErrorText")), vbLogEventTypeWarning
+                If Not JsonValue(oInfo, "Ok") Then
+                    DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_WARN_ACCESS, vKey, JsonValue(oInfo, "ErrorText")), vbLogEventTypeWarning
                 Else
-                    sDeviceString = Zn(JsonItem(oInfo, "DeviceString"), sDeviceString)
-                    sKey = Zn(JsonItem(oInfo, "DeviceSerialNo"), vKey)
+                    sDeviceString = Zn(JsonValue(oInfo, "DeviceString"), sDeviceString)
+                    sKey = Zn(JsonValue(oInfo, "DeviceSerialNo"), vKey)
                     If LenB(sKey) <> 0 Then
-                        JsonItem(oInfo, "Ok") = Empty
-                        JsonItem(oInfo, "DeviceString") = sDeviceString
-                        JsonItem(oInfo, "DeviceHost") = GetErrorComputerName()
-                        JsonItem(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
-                        JsonItem(oInfo, "Description") = JsonItem(m_oConfig, "Printers/" & vKey & "/Description")
-                        If IsEmpty(JsonItem(oRetVal, sKey)) Then
-                            JsonItem(oRetVal, "Count") = JsonItem(oRetVal, "Count") + 1
+                        JsonValue(oInfo, "Ok") = Empty
+                        JsonValue(oInfo, "DeviceString") = sDeviceString
+                        JsonValue(oInfo, "DeviceHost") = GetErrorComputerName()
+                        JsonValue(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
+                        JsonValue(oInfo, "Description") = JsonValue(m_oConfig, "Printers/" & vKey & "/Description")
+                        If IsEmpty(JsonValue(oRetVal, sKey)) Then
+                            JsonValue(oRetVal, "Count") = JsonValue(oRetVal, "Count") + 1
                         End If
-                        JsonItem(oRetVal, sKey) = oInfo
-                        If IsEmpty(JsonItem(oAliases, vKey)) Then
-                            JsonItem(oAliases, "Count") = JsonItem(oAliases, "Count") + 1
+                        JsonValue(oRetVal, sKey) = oInfo
+                        If IsEmpty(JsonValue(oAliases, vKey)) Then
+                            JsonValue(oAliases, "Count") = JsonValue(oAliases, "Count") + 1
                         End If
-                        JsonItem(oAliases, vKey & "/DeviceSerialNo") = sKey
+                        JsonValue(oAliases, vKey & "/DeviceSerialNo") = sKey
                     End If
                 End If
             End If
         End If
     Next
     If Not oAliases Is Nothing Then
-        JsonItem(oRetVal, "Aliases") = oAliases
+        JsonValue(oRetVal, "Aliases") = oAliases
     End If
     '--- success
     pvCollectPrinters = True
@@ -478,21 +478,21 @@ Private Function pvCreateEndpoints(oPrinters As Object, sBindings As String, cRe
     End If
     '--- first local endpoint (faster registration)
     For Each vKey In JsonKeys(m_oConfig, "Endpoints")
-        If InStr(sBindings, LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))) > 0 Then
-            Select Case LCase$(JsonItem(m_oConfig, "Endpoints/" & vKey & "/Binding"))
+        If InStr(sBindings, LCase$(JsonValue(m_oConfig, "Endpoints/" & vKey & "/Binding"))) > 0 Then
+            Select Case LCase$(JsonValue(m_oConfig, "Endpoints/" & vKey & "/Binding"))
             Case "local"
                 Set oLocalEndpoint = New frmLocalEndpoint
-                If oLocalEndpoint.frInit(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                If oLocalEndpoint.frInit(JsonValue(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                     cRetVal.Add oLocalEndpoint
                 End If
             Case "resthttp"
                 Set oRestEndpoint = New cRestEndpoint
-                If oRestEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                If oRestEndpoint.Init(JsonValue(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                     cRetVal.Add oRestEndpoint
                 End If
             Case "mssqlservicebroker", "mysqlmessagequeue"
                 Set oQueueEndpoint = New cQueueEndpoint
-                If oQueueEndpoint.Init(JsonItem(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
+                If oQueueEndpoint.Init(JsonValue(m_oConfig, "Endpoints/" & vKey), oPrinters) Then
                     cRetVal.Add oQueueEndpoint
                 End If
             End Select
@@ -610,21 +610,21 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
     Dim lPos            As Long
     
     Set oJson = ParseDeviceString(sDeviceString)
-    If Not IsEmpty(JsonItem(oJson, "Url")) Then
-        sRetVal = JsonItem(oJson, "Url")
+    If Not IsEmpty(JsonValue(oJson, "Url")) Then
+        sRetVal = JsonValue(oJson, "Url")
         lPos = InStr(sRetVal, "://") + 3
         If lPos > 3 And InStr(lPos, sRetVal, "/") > 0 Then
             sRetVal = Left$(sRetVal, InStr(lPos, sRetVal, "/") - 1)
         End If
-    ElseIf Not IsEmpty(JsonItem(oJson, "IP")) Then
-        sRetVal = JsonItem(oJson, "Port")
-        sRetVal = JsonItem(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
+    ElseIf Not IsEmpty(JsonValue(oJson, "IP")) Then
+        sRetVal = JsonValue(oJson, "Port")
+        sRetVal = JsonValue(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
     Else
-        sRetVal = JsonItem(oJson, "Speed")
+        sRetVal = JsonValue(oJson, "Speed")
         If sRetVal = "115200" Then
             sRetVal = vbNullString
         End If
-        sRetVal = JsonItem(oJson, "Port") & IIf(LenB(sRetVal) <> 0, "," & sRetVal, vbNullString)
+        sRetVal = JsonValue(oJson, "Port") & IIf(LenB(sRetVal) <> 0, "," & sRetVal, vbNullString)
     End If
     pvGetDevicePort = sRetVal
 End Function
