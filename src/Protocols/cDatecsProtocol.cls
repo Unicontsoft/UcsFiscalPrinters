@@ -152,6 +152,7 @@ Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function vbaObjSetAddref Lib "msvbvm60" Alias "__vbaObjSetAddref" (oDest As Any, ByVal lSrcPtr As Long) As Long
+Private Declare Function GetTimeZoneInformation Lib "kernel32" (lpTimeZoneInformation As Any) As Long
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -208,7 +209,7 @@ Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const LNG_OPEN_IMPULSE          As Long = 250
-Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
+Private Const FORMAT_DATE_DST           As String = "dd\-mm\-yy hh\:nn\:ss \D\S\T"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
 Private Const ERR_FP_BAD_PARAM_7        As Long = -112207
@@ -1007,8 +1008,8 @@ Public Function SetClock(ByVal NewDate As Date) As Boolean
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InitDateTime", eCmd, ucsDcsCmdInitDateTime, sParam, "%1" & DEF_SEP, _
-        "Format", sFormat, FORMAT_DATE_EXTENDED
-    sParam = Printf(sParam, Format$(NewDate, sFormat))
+        "Format", sFormat, FORMAT_DATE_DST
+    sParam = Printf(sParam, pvFormatDstDate(NewDate, sFormat))
     SendCommand eCmd, sParam, LogName:=FUNC_NAME
     '--- success
     SetClock = True
@@ -1889,9 +1890,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & DEF_SEP & "%7" & DEF_SEP & "%8", DEF_SEP & DEF_SEP & DEF_SEP) & _
                     DEF_SEP & "%9" & DEF_SEP
                 pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsDcsCmdFiscalReversal, sParam, sParam, _
-                    "FormatDate", sFormatDate, FORMAT_DATE_EXTENDED
+                    "FormatDate", sFormatDate, FORMAT_DATE_DST
                 sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, .InitRevData(ucsRevType), _
-                    .InitRevData(ucsRevReceiptNo), Format$(.InitRevData(ucsRevReceiptDate), sFormatDate), .InitRevData(ucsRevFiscalMemoryNo), _
+                    .InitRevData(ucsRevReceiptNo), pvFormatDstDate(.InitRevData(ucsRevReceiptDate), sFormatDate), .InitRevData(ucsRevFiscalMemoryNo), _
                     .InitRevData(ucsRevInvoiceNo), .InitRevData(ucsRevReason), .InitUniqueSaleNo)
             Case Else
                 '--- %1={OpCode}<SEP>%2={OpPwd}%3=(<SEP>{NSale})<SEP>{TillNmb}<SEP>{Invoice}<SEP>
@@ -2371,6 +2372,16 @@ End Function
 'Private Function pvAsc(sText As String) As Long
 '    pvAsc = ToMultiByteChar(sText, m_uConfig.CodePage)
 'End Function
+
+Private Function pvFormatDstDate(ByVal dDate As Date, sFormat As String) As String
+    Const TIME_ZONE_ID_DAYLIGHT As Long = 2
+    Dim baBuffer(0 To 1000) As Byte
+    
+    pvFormatDstDate = Format$(dDate, sFormat)
+    If GetTimeZoneInformation(baBuffer(0)) <> TIME_ZONE_ID_DAYLIGHT Then
+        pvFormatDstDate = Replace(pvFormatDstDate, " DST", vbNullString)
+    End If
+End Function
 
 '=========================================================================
 ' Base class events
