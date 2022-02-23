@@ -808,6 +808,7 @@ Public Function PrintDuplicate( _
     Dim eCmd            As UcsTremolCommandsEnum
     Dim sParam          As String
     Dim sPrevReceiptNo  As String
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -816,8 +817,9 @@ Public Function PrintDuplicate( _
     If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsZekCmdPrintDuplicate, sParam, vbNullString
     Else
-        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1" & DEF_SEP & "N" & DEF_SEP & "%1" & DEF_SEP & "%1"
-        sParam = Printf(sParam, Pad(DuplicateNo, -m_uConfig.MaxReceiptNo))
+        pvGetCommandConfig CONF_NAME, "PrintReportDaily", eCmd, ucsZekCmdPrintReportDaily, sParam, "J1" & DEF_SEP & "N" & DEF_SEP & "%1" & DEF_SEP & "%2"
+        vSplit = Split(DuplicateNo, "-")
+        sParam = Printf(sParam, Pad(At(vSplit, 0), -m_uConfig.MaxReceiptNo), Pad(At(vSplit, 1, At(vSplit, 0)), -m_uConfig.MaxReceiptNo))
     End If
     sPrevReceiptNo = pvRawGetLastReceiptNo()
     ReceiptDate = pvRawGetClock()

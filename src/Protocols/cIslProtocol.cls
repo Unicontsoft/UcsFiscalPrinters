@@ -907,6 +907,7 @@ Public Function PrintDuplicate( _
     Dim eCmd            As UcsIslCommandsEnum
     Dim sParam          As String
     Dim sPrevReceiptNo  As String
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -916,14 +917,15 @@ Public Function PrintDuplicate( _
     If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsIslCmdPrintDuplicate, sParam, "1"
     Else
+        vSplit = Split(DuplicateNo, "-")
         If IsDaisy Then
-            sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%1"
+            sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%2"
             pvGetCommandConfig CONF_NAME, "ExtendedInitEJ" & sParam, eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
         Else
-            sParam = "P" & DEF_SEP & "%1"
+            sParam = "P" & DEF_SEP & "%1" & IIf(UBound(vSplit) >= 1, DEF_SEP & "%2", vbNullString)
             pvGetCommandConfig CONF_NAME, "InitEJ" & sParam, eCmd, ucsIslCmdInitEJ, sParam, sParam
         End If
-        sParam = Printf(sParam, DuplicateNo)
+        sParam = Printf(sParam, At(vSplit, 0), At(vSplit, 1, At(vSplit, 0)))
     End If
     sPrevReceiptNo = GetLastReceiptNo()
     ReceiptDate = GetClock()

@@ -110,6 +110,7 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdInfoOperator = 112
     ucsDcsCmdInfoMemoryDump = 116
     ucsDcsCmdInfoDevice = 123
+    ucsDcsCmdInfoDocByPeriod = 124
     ucsDcsCmdInfoEJ = 125
     ucsDcsCmdInfoProgramming = 255                 '-- command above &H7F
     '--- print
@@ -733,6 +734,8 @@ Public Function PrintDuplicate( _
     Dim eCmd            As UcsDatecsCommandsEnum
     Dim sParam          As String
     Dim sPrevReceiptNo  As String
+    Dim vSplit          As Variant
+    Dim lIdx            As Long
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -742,17 +745,26 @@ Public Function PrintDuplicate( _
     If LenB(DuplicateNo) = 0 Then
         pvGetCommandConfig CONF_NAME, "PrintDuplicate", eCmd, ucsDcsCmdPrintDuplicate, sParam, vbNullString
     Else
-        pvGetCommandConfig CONF_NAME, "InfoEJ" & sParam, eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
-        sParam = Printf(sParam, DuplicateNo)
+        pvGetCommandConfig CONF_NAME, "InfoEJ", eCmd, ucsDcsCmdInfoEJ, sParam, "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
     End If
     sPrevReceiptNo = GetLastReceiptNo()
     ReceiptDate = GetClock()
     If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
     End If
-    SendCommand eCmd, sParam, LogName:=FUNC_NAME
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
+    vSplit = Split(DuplicateNo, "-")
+    If UBound(vSplit) >= 1 And C_Lng(At(vSplit, 0)) < C_Lng(At(vSplit, 1)) Then
+        For lIdx = C_Lng(At(vSplit, 0)) To C_Lng(At(vSplit, 1))
+            SendCommand eCmd, Printf(sParam, lIdx), LogName:=FUNC_NAME
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
+        Next
+    Else
+        SendCommand eCmd, Printf(sParam, At(vSplit, 0)), LogName:=FUNC_NAME
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
     End If
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
@@ -1102,7 +1114,7 @@ Public Function GetLastQRCodeInfo(Optional LastReceiptDate As Date) As String
         "Index", lIndex, 5, _
         "DateIndex", lDateIndex, 6
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
-    If UBound(vSplit) <= 0 Then
+    If UBound(vSplit) <= 0 Or LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
     End If
     LastReceiptDate = ParseExtendedDate(At(vSplit, lDateIndex))
