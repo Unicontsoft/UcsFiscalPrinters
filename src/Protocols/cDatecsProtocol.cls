@@ -875,6 +875,10 @@ Public Function PrintMonthlyReport( _
     Dim sFormat         As String
     Dim sParam          As String
     Dim sPrevReceiptNo  As String
+    Dim vSplit          As Variant
+    Dim lFirstIdx       As Long
+    Dim lLastIdx        As Long
+    Dim lIdx            As Long
     
     On Error GoTo EH
     If Not CancelReceipt() Then
@@ -891,6 +895,22 @@ Public Function PrintMonthlyReport( _
         sParam = "1" & DEF_SEP & "%1" & DEF_SEP & "%2" & DEF_SEP
         pvGetCommandConfig CONF_NAME, "PrintReportByDateDetailed", eCmd, ucsDcsCmdPrintReportByDate, sParam, sParam, _
             "Format", sFormat, FORMAT_DATE_REPORT
+    Case ucsFscRstMonthlyEJ
+        '--- {StartDate}<SEP>{EndDate}<SEP>{DocType}<SEP>
+        sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "0" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "InfoDocByPeriod", eCmd, ucsDcsCmdInfoDocByPeriod, sParam, _
+            "Format", sFormat, FORMAT_DATE_DST, _
+            "FirstIndex", lFirstIdx, 3, _
+            "LastIndex", lLastIdx, 4
+        sParam = Printf(sParam, pvFormatDstDate(StartDate, sFormat), pvFormatDstDate(EndDate, sFormat))
+        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+        '--- Answer: {ErrorCode}<SEP>{StartDate}<SEP>{EndDate}<SEP>{FirstDoc}<SEP>{LastDoc}<SEP>
+        If UBound(vSplit) <= 0 Or LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
+        '--- {Option}<SEP>{DocNum}<SEP>{RecType}<SEP>
+        sParam = "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP
+        pvGetCommandConfig CONF_NAME, "InfoEJ", eCmd, ucsDcsCmdInfoEJ, sParam, sParam
     Case Else
         pvSetLastError pvInternal(ucsErrInvalidReportType)
         GoTo QH
@@ -900,10 +920,19 @@ Public Function PrintMonthlyReport( _
     If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
     End If
-    sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
-    SendCommand eCmd, sParam, LogName:=FUNC_NAME
-    If LenB(m_uPrintData.LastError) <> 0 Then
-        GoTo QH
+    If ReportType = ucsFscRstMonthlyEJ Then
+        For lIdx = C_Lng(At(vSplit, lFirstIdx)) To C_Lng(At(vSplit, lLastIdx))
+            SendCommand eCmd, Printf(sParam, lIdx), LogName:=FUNC_NAME
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
+        Next
+    Else
+        sParam = Printf(sParam, Format$(StartDate, sFormat), Format$(EndDate, sFormat))
+        SendCommand eCmd, sParam, LogName:=FUNC_NAME
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
     End If
     ReceiptNo = GetLastReceiptNo()
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
