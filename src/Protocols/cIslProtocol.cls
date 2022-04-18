@@ -922,7 +922,7 @@ Public Function PrintDuplicate( _
             sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%2"
             pvGetCommandConfig CONF_NAME, "ExtendedInitEJ" & sParam, eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
         Else
-            sParam = "P" & DEF_SEP & "%1" & IIf(UBound(vSplit) >= 1, DEF_SEP & "%2", vbNullString)
+            sParam = "P" & DEF_SEP & "%1" & DEF_SEP & "%2"
             pvGetCommandConfig CONF_NAME, "InitEJ" & sParam, eCmd, ucsIslCmdInitEJ, sParam, sParam
         End If
         sParam = Printf(sParam, At(vSplit, 0), At(vSplit, 1, At(vSplit, 0)))
