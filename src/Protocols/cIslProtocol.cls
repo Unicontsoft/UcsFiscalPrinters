@@ -96,6 +96,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdInitLogo = 115
     ucsIslCmdInitOpenDrawer = 106
     ucsIslCmdInitEJ = 119
+    ucsIslCmdExtendedInitDisablePrinting = 133     '-- command above &H7F
     ucsIslCmdExtendedInitText = 149                '-- command above &H7F
     ucsIslCmdExtendedInitSetting = 150             '-- command above &H7F
     ucsIslCmdExtendedInitPayment = 151             '-- command above &H7F
@@ -2217,6 +2218,13 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
         With uRow(uCtx.Row)
         Select Case .RowType
         Case ucsRowInit
+            If IsFP And .InitDisablePrinting Then
+                pvGetCommandConfig CONF_NAME, "ExtendedInitDisablePrinting", eCmd, ucsIslCmdExtendedInitDisablePrinting, sParam, "1"
+                SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                If LenB(m_uPrintData.LastError) <> 0 Then
+                    GoTo QH
+                End If
+            End If
             pvGetCommandConfig CONF_NAME, "InfoOperator", eCmd, ucsIslCmdInfoOperator, sParam, "%1", _
                 "Index", lIndex, 5
             sParam = Printf(sParam, .InitOperatorCode)
@@ -2727,6 +2735,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     '--- success
     pvPrintReceipt = True
 QH:
+    If IsFP And uRow(0).InitDisablePrinting Then
+        pvGetCommandConfig CONF_NAME, "ExtendedInitDisablePrinting", eCmd, ucsIslCmdExtendedInitDisablePrinting, sParam, "0"
+        '--- use pvRawSendCommand to preserve LastError
+        pvRawSendCommand m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME
+    End If
     If bInLogin Then
         pvSetLastError m_uPrintData.LastError & pvInternal(ucsErrInvalidOperatorPassword), ucsFerInvalidPassword
     End If
