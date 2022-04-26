@@ -1,9 +1,9 @@
 Type=Exe
 Form=Form1.frm
 Reference=*\G{00020430-0000-0000-C000-000000000046}#2.0#0#..\..\..\..\Windows\SysWOW64\stdole2.tlb#OLE Automation
-Class=cSerialPortConnector; ..\..\src\Connectors\cSerialPortConnector.cls
-Class=cPortWrapper; ..\..\src\Connectors\cPortWrapper.cls
-Class=IDeviceConnector; ..\..\src\Connectors\IDeviceConnector.cls
+Class=cSerialPortConnector; ..\..\src\UcsFP20\Connectors\cSerialPortConnector.cls
+Class=cPortWrapper; ..\..\src\UcsFP20\Connectors\cPortWrapper.cls
+Class=IDeviceConnector; ..\..\src\UcsFP20\Connectors\IDeviceConnector.cls
 IconForm="Form1"
 Startup="Form1"
 HelpFile=""

@@ -7,14 +7,14 @@ pr:
 pool: Default
 
 steps:
-  - script: 'call $(Build.SourcesDirectory)\scripts\build.bat'
+  - script: 'call $(Build.SourcesDirectory)\scripts\UcsFP20\build.bat'
     displayName: 'Build UcsFP20.dll'
-    workingDirectory:  '$(Build.SourcesDirectory)\scripts'
+    workingDirectory:  '$(Build.SourcesDirectory)\scripts\UcsFP20'
     failOnStderr: true
   
-  - script: 'call $(Build.SourcesDirectory)\contrib\UcsFPHub\scripts\build.bat'
+  - script: 'call $(Build.SourcesDirectory)\scripts\UcsFPHub\build.bat'
     displayName: 'Build UcsFPHub.exe'
-    workingDirectory: '$(Build.SourcesDirectory)\contrib\UcsFPHub\scripts'
+    workingDirectory: '$(Build.SourcesDirectory)\scripts\UcsFPHub'
     failOnStderr: true
   
   - task: CopyFiles@2

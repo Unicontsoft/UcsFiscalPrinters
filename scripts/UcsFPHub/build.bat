@@ -1,8 +1,8 @@
 @echo off
 setlocal
 for %%i in ("%~dp0.") do set "file_dir=%%~dpnxi"
-for %%i in ("%file_dir%\..\src\.") do set "src_dir=%%~dpnxi"
-for %%i in ("%file_dir%\..\..\..\bin\.") do set "bin_dir=%%~dpnxi"
+for %%i in ("%file_dir%\..\..\src\UcsFPHub\.") do set "src_dir=%%~dpnxi"
+for %%i in ("%file_dir%\..\..\bin\.") do set "bin_dir=%%~dpnxi"
 set "output_exe=%bin_dir%\UcsFPHub.exe"
 set "VbCodeLines=%bin_dir%\VbCodeLines.exe"
 set "Ummm=%bin_dir%\UMMM.exe"
@@ -44,7 +44,5 @@ echo Embedding manifest in %output_exe%...
 
 echo Code-signing %output_exe%...
 %codesign% /d "Unicontsoft Fiscal Printers Hub" %output_exe%
-
-git checkout -- "%bin_dir%\..\src\Shared\mdJson.bas"
 
 echo Done.

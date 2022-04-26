@@ -462,31 +462,33 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
         lApiError = Err.LastDllError
         Error = Printf(pvInternal(ucsErrApiCallFailed), "CreateFile", GetErrorDescription(lApiError))
         PortWrapper.CloseComPort hComm, ClearPersistent:=True
-        If lApiError = ERROR_ACCESS_DENIED Then
-            sExeFile = GetEnvironmentVar("_UCS_NT_HANDLE")
-            If LenB(sExeFile) = 0 Then
-                sExeFile = LocateFile(PathCombine(App.Path, "handle.exe"))
-            End If
-            '--- check handle.exe exists
-            If FileExists(sExeFile) Then
-                With New cExec
-                    sExeFile = .ArgvQuote(sExeFile)
-                End With
-            Else
-                sExeFile = vbNullString
-            End If
-        End If
-        If LenB(sExeFile) <> 0 Then
-            For Each vElem In RegEnumValues(HKEY_LOCAL_MACHINE, KEY_PORTS)
-                If LCase$(RegReadString(HKEY_LOCAL_MACHINE, KEY_PORTS, C_Str(vElem))) = LCase$(At(vSplit, 0)) Then
-                    With New cExec
-                        .Run vbNullString, sExeFile & " -accepteula -a " & .ArgvQuote(C_Str(vElem)), StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-                        vElem = Split(preg_replace("/(\r*\n)*$/m", .ReadAllOutput), vbCrLf)
-                    End With
-                    Error = Error & " (" & At(vElem, -1) & ")"
+        #If ImplUseShared Then
+            If lApiError = ERROR_ACCESS_DENIED Then
+                sExeFile = GetEnvironmentVar("_UCS_NT_HANDLE")
+                If LenB(sExeFile) = 0 Then
+                    sExeFile = LocateFile(PathCombine(App.Path, "handle.exe"))
                 End If
-            Next
-        End If
+                '--- check handle.exe exists
+                If FileExists(sExeFile) Then
+                    With New cExec
+                        sExeFile = .ArgvQuote(sExeFile)
+                    End With
+                Else
+                    sExeFile = vbNullString
+                End If
+            End If
+            If LenB(sExeFile) <> 0 Then
+                For Each vElem In RegEnumValues(HKEY_LOCAL_MACHINE, KEY_PORTS)
+                    If LCase$(RegReadString(HKEY_LOCAL_MACHINE, KEY_PORTS, C_Str(vElem))) = LCase$(At(vSplit, 0)) Then
+                        With New cExec
+                            .Run vbNullString, sExeFile & " -accepteula -a " & .ArgvQuote(C_Str(vElem)), StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                            vElem = Split(preg_replace("/(\r*\n)*$/m", .ReadAllOutput), vbCrLf)
+                        End With
+                        Error = Error & " (" & At(vElem, -1) & ")"
+                    End If
+                Next
+            End If
+        #End If
         GoTo QH
     End If
     With uTimeout

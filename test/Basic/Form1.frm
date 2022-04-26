@@ -93,8 +93,8 @@ Private Sub Command4_Click()
         If .EnumPorts(sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
         End If
-        JsonItem(oRequest, "DeviceString") = STR_DEVICE_STRING
-        JsonItem(oRequest, "Operator/Code") = "1"
+        JsonValue(oRequest, "DeviceString") = STR_DEVICE_STRING
+        JsonValue(oRequest, "Operator/Code") = "1"
         If .GetDeviceInfo(JsonDump(oRequest), sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
         End If
@@ -111,18 +111,18 @@ Private Sub Command5_Click()
     Set m_oFP = Nothing
     Set m_oDP = m_oFP
     With New cFiscalPrinter
-        JsonItem(oRequest, "DeviceString") = STR_DEVICE_STRING
-        JsonItem(oRequest, "Operator/Code") = "1"
-        JsonItem(oRequest, "ReceiptType") = ucsFscRcpSale
-        JsonItem(oRow, "ItemName") = "Продукт 1"
-        JsonItem(oRow, "Price") = 5.23
-        JsonItem(oRequest, "Rows/-1") = oRow
-        JsonItem(oRequest, "Rows/-1") = Array("Продукт 2", 2, "Б", 1.345)
+        JsonValue(oRequest, "DeviceString") = STR_DEVICE_STRING
+        JsonValue(oRequest, "Operator/Code") = "1"
+        JsonValue(oRequest, "ReceiptType") = ucsFscRcpSale
+        JsonValue(oRow, "ItemName") = "Продукт 1"
+        JsonValue(oRow, "Price") = 5.23
+        JsonValue(oRequest, "Rows/-1") = oRow
+        JsonValue(oRequest, "Rows/-1") = Array("Продукт 2", 2, "Б", 1.345)
         Set oRow = Nothing
-        JsonItem(oRow, "Amount") = 1.23
-        JsonItem(oRow, "PaymentType") = 2
-        JsonItem(oRequest, "Rows/-1") = oRow
-        JsonItem(oRequest, "Rows/-1") = Array("С карта", 2, 1.5)
+        JsonValue(oRow, "Amount") = 1.23
+        JsonValue(oRow, "PaymentType") = 2
+        JsonValue(oRequest, "Rows/-1") = oRow
+        JsonValue(oRequest, "Rows/-1") = Array("С карта", 2, 1.5)
         Debug.Print JsonDump(oRequest)
         If .PrintReceipt(JsonDump(oRequest), sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
@@ -139,7 +139,7 @@ Private Sub Command6_Click()
     Set m_oFP = Nothing
     Set m_oDP = m_oFP
     With New cFiscalPrinter
-        JsonItem(oRequest, "DeviceString") = STR_DEVICE_STRING
+        JsonValue(oRequest, "DeviceString") = STR_DEVICE_STRING
         If .GetDailyTotals(JsonDump(oRequest), sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
         End If
@@ -155,9 +155,9 @@ Private Sub Command7_Click()
     Set m_oFP = Nothing
     Set m_oDP = m_oFP
     With New cFiscalPrinter
-        JsonItem(oRequest, "DeviceString") = STR_DEVICE_STRING
-        JsonItem(oRequest, "Operator/Code") = "1"
-        JsonItem(oRequest, "Amount") = 123
+        JsonValue(oRequest, "DeviceString") = STR_DEVICE_STRING
+        JsonValue(oRequest, "Operator/Code") = "1"
+        JsonValue(oRequest, "Amount") = 123
         If .PrintServiceDeposit(JsonDump(oRequest), sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
         End If
