@@ -35,12 +35,12 @@ Event BeforeCommitReceipt(oCtx As Object, Cancel As Boolean)
 ' Constants and member variables
 '=========================================================================
 
-Private Const ERR_INVALID_JSON      As String = "Невалидна JSON заявка: %1"
-Private Const ERR_INVALID_XML       As String = "Невалидна XML заявка"
-Private Const ERR_PRINTER_NOT_FOUND As String = "Принтер %1 не е намерен"
-Private Const ERR_MISSING_PAYLOAD   As String = "Празна заявка"
-Private Const ERR_INVALID_URL       As String = "Неизвестен адрес"
-Private Const ERR_MISSING_PARAMETER As String = "Липсва параметър %1"
+Private Const LANG_INVALID_JSON      As Long = 48 ' Невалидна JSON заявка: %1
+Private Const LANG_INVALID_XML       As Long = 49 ' Невалидна XML заявка
+Private Const LANG_PRINTER_NOT_FOUND As Long = 54 ' Принтер %1 не е намерен
+Private Const LANG_MISSING_PAYLOAD   As Long = 50 ' Празна заявка
+Private Const LANG_INVALID_URL       As Long = 51 ' Неизвестен адрес
+Private Const LANG_MISSING_PARAMETER As Long = 52 ' Липсва параметър %1
 
 Private m_lLastCode                 As Long
 Private m_sLastError                As String
@@ -136,7 +136,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
     End If
     If preg_match("/^/printers(?:/([^/]+))?(?:/(status|receipt|deposit|report|datetime|totals|drawer))?$/i", sPath, vMatches) = 0 Then
         m_lLastCode = 404
-        m_sLastError = ERR_INVALID_URL
+        m_sLastError = T(LANG_INVALID_URL)
         sResponse = pvEncodeErrorText(m_sLastError)
         GoTo QH
     End If
@@ -146,7 +146,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         Set oInfo = pvGetPrinterInfo(At(vMatches, 0))
         If oInfo Is Nothing Then
             m_lLastCode = 404
-            m_sLastError = Printf(ERR_PRINTER_NOT_FOUND, At(vMatches, 0))
+            m_sLastError = Printf(T(LANG_PRINTER_NOT_FOUND), At(vMatches, 0))
             sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
@@ -154,13 +154,13 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             AssignVariant vJson, JsonFromXmlDocument(sRequest)
             If IsEmpty(vJson) Then
                 m_lLastCode = 400
-                m_sLastError = ERR_INVALID_XML
+                m_sLastError = T(LANG_INVALID_XML)
                 sResponse = pvEncodeErrorText(m_sLastError)
                 GoTo QH
             End If
         ElseIf Not JsonParse(sRequest, vJson, Error:=m_sLastError) Then
             m_lLastCode = 400
-            m_sLastError = Printf(ERR_INVALID_JSON, m_sLastError)
+            m_sLastError = Printf(T(LANG_INVALID_JSON), m_sLastError)
             sResponse = pvEncodeErrorText(m_sLastError)
             GoTo QH
         End If
@@ -175,7 +175,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
                 '--- do nothing
             Case Else
                 m_lLastCode = 400
-                m_sLastError = ERR_MISSING_PAYLOAD
+                m_sLastError = T(LANG_MISSING_PAYLOAD)
                 sResponse = pvEncodeErrorText(m_sLastError)
                 GoTo QH
             End Select
@@ -217,7 +217,7 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
         Case "drawer"
             If Not C_Bool(JsonValue(oRequest, "IsOpen")) Then
                 m_lLastCode = 400
-                m_sLastError = Printf(ERR_MISSING_PARAMETER, "IsOpen")
+                m_sLastError = Printf(T(LANG_MISSING_PARAMETER), "IsOpen")
                 sResponse = pvEncodeErrorText(m_sLastError)
                 GoTo QH
             End If

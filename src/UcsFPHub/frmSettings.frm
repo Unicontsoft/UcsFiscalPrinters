@@ -437,23 +437,37 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_CAPTION               As String = "Настройки на %1"
-Private Const STR_CAPTION_PRINTERS      As String = "Устройства"
-Private Const STR_CAPTION_CONFIG        As String = "Конфигурация"
-Private Const STR_CAPTION_LOG           As String = "Журнал"
-Private Const STR_HEADER_PRINTERS       As String = "Сериен No.|Порт|Хост|Модел|Версия"
 Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
-Private Const STR_CAPTION_APPLY         As String = "Прилагане"
-Private Const STR_CAPTION_DISCOVERY     As String = "Търсене"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
-'--- messages
-Private Const MSG_SAVE_CHANGES          As String = "Желаете ли да запазите модификациите на %1?"
-Private Const MSG_SAVE_SUCCESS          As String = "Успешен запис на %1!" & vbCrLf & vbCrLf & "Желаете ли да рестартирате %2 за да активирате промените?"
-Private Const MSG_PRINTER_NOT_FOUND     As String = "Не е открито фискалното устройство с тези настройки." & vbCrLf & vbCrLf & "Желаете ли повторно прилагане?"
-Private Const MSG_SUCCESS_FOUND         As String = "Успешно конфигуриране на фискално устройство %1!"
-Private Const MSG_UPDATE_FOUND          As String = "Желаете ли да обновите %1 до последна версия след рестартиране?"
-Private Const MSG_NO_UPDATE             As String = "Не е намерена по-нова версия на %1"
+'--- i18n ids
+Private Const LANG_CAPTION_FORM         As Long = 1001 ' Настройки на %1
+Private Const LANG_CAPTION_PRINTERS     As Long = 1002 ' Устройства
+Private Const LANG_CAPTION_CONFIG       As Long = 1003 ' Конфигурация
+Private Const LANG_CAPTION_LOG          As Long = 1004 ' Журнал
+Private Const LANG_HEADER_PRINTERS      As Long = 1005 ' Сериен No.|Порт|Хост|Модел|Версия
+Private Const LANG_CAPTION_APPLY        As Long = 1006 ' Прилагане
+Private Const LANG_CAPTION_DISCOVERY    As Long = 1007 ' Търсене
+Private Const LANG_SAVE_CHANGES         As Long = 1008 ' Желаете ли да запазите модификациите на %1?
+Private Const LANG_SAVE_SUCCESS         As Long = 1009 ' Успешен запис на %1! vbCrLf & vbCrLf Желаете ли да рестартирате %2 за да активирате промените?
+Private Const LANG_PRINTER_NOT_FOUND    As Long = 1010 ' Не е открито фискалното устройство с тези настройки. vbCrLf & vbCrLf Желаете ли повторно прилагане?
+Private Const LANG_SUCCESS_FOUND        As Long = 1011 ' Успешно конфигуриране на фискално устройство %1!
+Private Const LANG_UPDATE_FOUND         As Long = 1012 ' Желаете ли да обновите %1 до последна версия след рестартиране?
+Private Const LANG_NO_UPDATE            As Long = 1013 ' Не е намерена по-нова версия на %1
+Private Const LANG_MENU_MAIN            As Long = 1014 ' Файл|Редакция|Помощ
+Private Const LANG_MENU_FILE            As Long = 1015 ' Запис|-|Рестарт|-|Изход
+Private Const LANG_MENU_EDIT            As Long = 1016 ' Върни|-|Изрежи|Копирай|Постави|Изтрий|-|Избери всичко|-|Обнови
+Private Const LANG_MENU_HELP            As Long = 1017 ' Проверка нова версия|-|Относно
+Private Const LANG_LAYOUT_TABS          As Long = 1018 ' Устройства|Конфигурация|Журнал
+Private Const LANG_CAPTION_TEST         As Long = 1019 ' Тест
+Private Const LANG_CAPTION_QUICK_SETUP  As Long = 1020 ' Бързи настройки
+Private Const LANG_CAPTION_AUTO_DETECT  As Long = 1021 ' Автоматично откриване на устройства
+Private Const LANG_LABEL_PROTOCOL       As Long = 1022 ' Протокол за комуникация
+Private Const LANG_LABEL_PORT           As Long = 1023 ' Комуникационен порт
+Private Const LANG_LABEL_SPEED          As Long = 1024 ' Скорост на комуникация
+Private Const LANG_LABEL_DEF_PASSWORD   As Long = 1025 ' Парола по подразбиране
+Private Const LANG_LABEL_SERIAL_NO      As Long = 1026 ' Сериен номер на ФУ
+Private Const LANG_LABEL_LOG_FILE       As Long = 1027 ' Журнален файл
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000
@@ -519,7 +533,7 @@ End Property
 
 Private Property Let pvQuickSettingsChanged(ByVal bValue As Boolean)
     m_bQuickSettingsChanged = bValue
-    tabMain.TabCaption(ucsTabPrinters) = STR_CAPTION_PRINTERS & IIf(bValue, "*", vbNullString)
+    tabMain.TabCaption(ucsTabPrinters) = T(LANG_CAPTION_PRINTERS) & IIf(bValue, "*", vbNullString)
 End Property
 
 Private Property Get pvConfigChanged() As Boolean
@@ -528,7 +542,7 @@ End Property
 
 Private Property Let pvConfigChanged(ByVal bValue As Boolean)
     m_bConfigChanged = bValue
-    tabMain.TabCaption(ucsTabConfig) = STR_CAPTION_CONFIG & IIf(bValue, "*", vbNullString)
+    tabMain.TabCaption(ucsTabConfig) = T(LANG_CAPTION_CONFIG) & IIf(bValue, "*", vbNullString)
 End Property
 
 Private Property Get pvLogChanged() As Boolean
@@ -537,7 +551,7 @@ End Property
 
 Private Property Let pvLogChanged(ByVal bValue As Boolean)
     m_bLogChanged = bValue
-    tabMain.TabCaption(ucsTabLog) = STR_CAPTION_LOG & IIf(bValue, "*", vbNullString)
+    tabMain.TabCaption(ucsTabLog) = T(LANG_CAPTION_LOG) & IIf(bValue, "*", vbNullString)
 End Property
 
 Private Property Get pvAddressOfSubclassProc() As frmSettings
@@ -587,7 +601,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         '--- setup caption
         sConfFile = MainForm.ConfFile
         m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
-        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(STR_CAPTION, App.ProductName & " v" & STR_VERSION)
+        Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(T(LANG_CAPTION_FORM), App.ProductName & " v" & STR_VERSION)
         '--- load combos
         pvLoadItemData cobProtocol, Split(STR_PROTOCOLS, "|")
         pvLoadItemData cobPort, EnumSerialPorts
@@ -702,7 +716,7 @@ Private Function pvLoadPrinters() As Boolean
     m_bInSet = False
     '--- printers list
     Set oForm = MainForm
-    vSplit = Split(STR_HEADER_PRINTERS, "|")
+    vSplit = Split(T(LANG_HEADER_PRINTERS), "|")
     lstPrinters.Clear
     lstPrinters.AddItem Pad(At(vSplit, 0), 15) & vbTab & Pad(At(vSplit, 1), 15) & vbTab & Pad(At(vSplit, 2), 15) & vbTab & _
         Pad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
@@ -812,7 +826,7 @@ Private Function pvQuerySaveConfig(sConfFile As String) As Boolean
     
     On Error GoTo EH
     If pvConfigChanged Then
-        Select Case MsgBox(Printf(MSG_SAVE_CHANGES, sConfFile), vbQuestion Or vbYesNoCancel)
+        Select Case MsgBox(Printf(T(LANG_SAVE_CHANGES), sConfFile), vbQuestion Or vbYesNoCancel)
         Case vbYes
             If Not pvSaveConfig(sConfFile) Then
                 GoTo QH
@@ -952,6 +966,16 @@ Private Sub pvAppendLogText(sValue As String)
     Call SendMessage(txtLog.hWnd, WM_VSCROLL, SB_BOTTOM, ByVal 0)
 End Sub
 
+Private Sub pvLocalizeMenu(oMenu As Object, sText As String)
+    Dim vSplit          As Variant
+    Dim lIdx            As Long
+    
+    vSplit = Split(sText, "|")
+    For lIdx = 0 To oMenu.UBound
+        oMenu(lIdx).Caption = At(vSplit, lIdx, "#" & lIdx)
+    Next
+End Sub
+
 '=========================================================================
 ' Events
 '=========================================================================
@@ -965,7 +989,7 @@ Private Sub cmdApply_Click()
     On Error GoTo EH
 RetryRestart:
     cmdApply.Enabled = False
-    cmdApply.Caption = STR_CAPTION_DISCOVERY
+    cmdApply.Caption = T(LANG_CAPTION_DISCOVERY)
     If LenB(pvConfigText) = 0 Then
         pvLoadConfig m_sConfFile
     End If
@@ -994,13 +1018,13 @@ RetryRestart:
             sDeviceSerialNo = C_Str(JsonValue(MainForm.Printers, sDeviceSerialNo & "/DeviceSerialNo"))
         End If
     End If
-    cmdApply.Caption = STR_CAPTION_APPLY
+    cmdApply.Caption = T(LANG_CAPTION_APPLY)
     cmdApply.Enabled = True
     cmdApply.SetFocus
     If LenB(JsonValue(oDevice, "Protocol")) <> 0 Then
         If LenB(sDeviceSerialNo) <> 0 Then
-            MsgBox Printf(MSG_SUCCESS_FOUND, sDeviceSerialNo), vbExclamation
-        ElseIf MsgBox(MSG_PRINTER_NOT_FOUND, vbQuestion Or vbYesNo) = vbYes Then
+            MsgBox Printf(T(LANG_SUCCESS_FOUND), sDeviceSerialNo), vbExclamation
+        ElseIf MsgBox(T(LANG_PRINTER_NOT_FOUND), vbQuestion Or vbYesNo) = vbYes Then
             GoTo RetryRestart
         End If
     End If
@@ -1030,6 +1054,32 @@ EH:
     Resume QH
 End Sub
 
+Private Sub Form_Load()
+    Const FUNC_NAME     As String = "Form_Load"
+    
+    On Error GoTo EH
+    Caption = Printf(T(LANG_CAPTION_FORM), App.ProductName & " v" & STR_VERSION)
+    pvLocalizeMenu mnuMain, T(LANG_MENU_MAIN)
+    pvLocalizeMenu mnuFile, T(LANG_MENU_FILE)
+    pvLocalizeMenu mnuEdit, T(LANG_MENU_EDIT)
+    pvLocalizeMenu mnuHelp, T(LANG_MENU_HELP)
+    tabMain.Layout = T(LANG_LAYOUT_TABS)
+    cmdTest.Caption = T(LANG_CAPTION_TEST)
+    fraQuickSetup.Caption = T(LANG_CAPTION_QUICK_SETUP)
+    chkAutoDetect.Caption = T(LANG_CAPTION_AUTO_DETECT)
+    labLabel(0).Caption = T(LANG_LABEL_PROTOCOL) & ":"
+    labLabel(1).Caption = T(LANG_LABEL_PORT) & ":"
+    labLabel(2).Caption = T(LANG_LABEL_SPEED) & ":"
+    labLabel(3).Caption = T(LANG_LABEL_DEF_PASSWORD) & ":"
+    labLabel(4).Caption = T(LANG_LABEL_SERIAL_NO) & ":"
+    labLabel(5).Caption = T(LANG_LABEL_LOG_FILE) & ":"
+    cmdApply.Caption = T(LANG_CAPTION_APPLY)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
 Private Sub mnuFile_Click(Index As Integer)
     Const FUNC_NAME     As String = "mnuFile_Click"
     
@@ -1041,7 +1091,7 @@ Private Sub mnuFile_Click(Index As Integer)
             If Not pvSaveConfig(m_sConfFile) Then
                 GoTo QH
             End If
-            If MsgBox(Printf(MSG_SAVE_SUCCESS, m_sConfFile, App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
+            If MsgBox(Printf(T(LANG_SAVE_SUCCESS), m_sConfFile, App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
                 frRestart
             End If
         End If
@@ -1111,12 +1161,12 @@ Private Sub mnuHelp_Click(Index As Integer)
         bResult = MainForm.StartAutoUpdate(vbTrue)
         Screen.MousePointer = vbDefault
         If bResult Then
-            If MsgBox(Printf(MSG_UPDATE_FOUND, App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
+            If MsgBox(Printf(T(LANG_UPDATE_FOUND), App.ProductName & " v" & STR_VERSION), vbQuestion Or vbYesNo) = vbYes Then
                 Screen.MousePointer = vbHourglass
                 MainForm.StartAutoUpdate vbFalse
             End If
         Else
-            MsgBox Printf(MSG_NO_UPDATE, App.ProductName & " v" & STR_VERSION), vbInformation
+            MsgBox Printf(T(LANG_NO_UPDATE), App.ProductName & " v" & STR_VERSION), vbInformation
         End If
     Case ucsMnuHelpAbout
         MsgBox App.ProductName & " v" & STR_VERSION & vbCrLf & App.LegalCopyright, vbInformation

@@ -61,17 +61,26 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_CONN_OPEN             As String = "Връзка с %2 на %1 е отворена"
-Private Const STR_CONN_REOPEN           As String = "Връзка с %2 на %1 е възстановена"
-Private Const STR_HANDLER_ELAPSED       As String = "Принтер %1 изпълни заявка %2 за %3 сек."
-Private Const STR_HANDLER_ERROR         As String = "Принтер %1 върна грешка %2"
-Private Const STR_CROSS_PRINTER_REQUEST As String = "Заявка %1 не е към принтер на услуга %2"
-Private Const STR_DATETIME_SETUP        As String = "Принтер %1 е с установен час %2 (предишен час %3)"
-Private Const STR_DATETIME_ERROR        As String = "Принтер %1 върна грешка %2"
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
+'--- i18n ids
+Private Const LANG_CONN_OPEN            As Long = 25 ' Връзка с %2 на %1 е отворена
+Private Const LANG_CONN_REOPEN          As Long = 26 ' Връзка с %2 на %1 е възстановена
+Private Const LANG_HANDLER_ELAPSED      As Long = 27 ' Принтер %1 изпълни заявка %2 за %3 сек.
+Private Const LANG_HANDLER_ERROR        As Long = 28 ' Принтер %1 върна грешка %2
+Private Const LANG_CROSS_PRINTER_REQUEST As Long = 29 ' Заявка %1 не е към принтер на услуга %2
+Private Const LANG_DATETIME_SETUP       As Long = 30 ' Принтер %1 е с установен час %2 (предишен час %3)
+Private Const LANG_DATETIME_ERROR       As Long = 31 ' Принтер %1 върна грешка %2
 '--- errors
-Private Const ERR_INVALID_URL           As String = "Невалиден адрес: %1"
-Private Const ERR_INVALID_XML           As String = "Невалиден XML"
+Private Const LANG_INVALID_URL          As Long = 32 ' Невалиден адрес: %1
+Private Const LANG_INVALID_XML          As Long = 33 ' Невалиден XML
+'--- SSH consts
+Private Const LANG_SSH_TUNNEL_ERROR              As Long = 34 ' Грешка при отваряне на SSH тунел: %1
+Private Const LANG_SSH_TUNNEL_NO_PORT_AVAILABLE  As Long = 35 ' Невъзможно отваряне на локален порт
+Private Const LANG_SSH_TUNNEL_PORT_UNACCESSIBLE  As Long = 36 ' Тунелът е отворен, но локалния порт е недостъпен
+Private Const LANG_SSH_TUNNEL_MISSING_FILE       As Long = 53 ' Липсва файл %1
+Private Const LANG_SSH_TUNNEL_TIMEOUT            As Long = 37 ' Отваряне на SSH тунел отне прекалено много време
+Private Const LANG_SSH_TUNNEL_UNKNOWN_SERVER_KEY As Long = 38 ' SSH сървърът използва неоторизиран ключ
+Private Const LANG_SSH_TUNNEL_MISSING_PASSPHRASE As Long = 39 ' Клиентският ключ изисква парола
 '--- defaults
 Private Const DEF_MSSQL_TIMEOUT         As Long = 15000
 Private Const DEF_MYSQL_TIMEOUT         As Long = 5000
@@ -82,14 +91,6 @@ Private Const PRM_DBUSER                As String = "DbUser"
 Private Const PRM_DBPASS                As String = "DbPass"
 Private Const PRM_CONNSTR               As String = "ConnStr"
 Private Const PRM_SSHSETTINGS           As String = "SshSettings"
-'--- SSH consts
-Private Const STR_SSH_TUNNEL_ERROR              As String = "Грешка при отваряне на SSH тунел" & vbCrLf & vbCrLf & "%1"
-Private Const STR_SSH_TUNNEL_NO_PORT_AVAILABLE  As String = "Невъзможно отваряне на локален порт"
-Private Const STR_SSH_TUNNEL_PORT_UNACCESSIBLE  As String = "Тунелът е отворен, но локалния порт е недостъпен"
-Private Const STR_SSH_TUNNEL_MISSING_FILE       As String = "Липсва файл %1"
-Private Const STR_SSH_TUNNEL_TIMEOUT            As String = "Отваряне на SSH тунел отне прекалено много време"
-Private Const STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY As String = "SSH сървърът използва неоторизиран ключ"
-Private Const STR_SSH_TUNNEL_MISSING_PASSPHRASE As String = "Клиентският ключ изисква парола"
 
 Private m_sLastError                As String
 Private m_oConfig                   As Object
@@ -268,7 +269,7 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         AssignVariant vJson, JsonFromXmlDocument(sRequest)
         If IsEmpty(vJson) Then
             lErrorCode = 400
-            sResponse = ERR_INVALID_XML
+            sResponse = T(LANG_INVALID_XML)
             GoTo QH
         End If
     ElseIf Not JsonParse(sRequest, vJson, Error:=sError) Then
@@ -279,11 +280,11 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
     sRawUrl = JsonValue(C_Obj(vJson), "Url")
     If Left$(sRawUrl, 1) <> "/" Then
         lErrorCode = 400
-        sResponse = Printf(ERR_INVALID_URL, sRawUrl)
+        sResponse = Printf(T(LANG_INVALID_URL), sRawUrl)
         GoTo QH
     End If
     If LenB(sPrinterID) <> 0 And LCase$("/printers/" & sPrinterID) <> LCase$(Left$(sRawUrl, Len("/printers/" & sPrinterID))) Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CROSS_PRINTER_REQUEST, sRawUrl, sSvcName)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_CROSS_PRINTER_REQUEST), sRawUrl, sSvcName)
     End If
     vSplit = Split(sRawUrl, "?", Limit:=2)
     If Not m_oController.ServiceRequest(At(vSplit, 0), At(vSplit, 1), sRequest, sResponse) Then
@@ -291,12 +292,12 @@ Friend Function frHandleRequest(sSvcName As String, sRequest As String, sRespons
         sResponse = m_oController.LastError
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ELAPSED, Zn(sPrinterID, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3))
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_HANDLER_ELAPSED), Zn(sPrinterID, "N/A"), sRawUrl, Format(TimerEx - dblStartTimerEx, FORMAT_BASE_3))
     '--- success
     frHandleRequest = True
 QH:
     If Not frHandleRequest Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_HANDLER_ERROR, sPrinterID, sResponse)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_HANDLER_ERROR), sPrinterID, sResponse)
     End If
     If IsLogDebugEnabled Then
         DebugLog MODULE_NAME, FUNC_NAME, "sResponse=" & Replace(sResponse, vbCrLf, "^p") & IIf(lErrorCode <> 0, ", lErrorCode=" & lErrorCode, vbNullString), vbLogEventTypeDebug
@@ -343,10 +344,10 @@ Private Function pvSyncDateTime(ByVal dClock As Date, ByVal lTolerance As Long) 
                 If JsonParse(sResponse, vJson) Then
                     If JsonValue(C_Obj(vJson), "Ok") Then
                         If Not IsEmpty(JsonValue(C_Obj(vJson), "PreviousDateTime")) Then
-                            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_SETUP, vElem, JsonValue(C_Obj(vJson), "DeviceDateTime"), JsonValue(C_Obj(vJson), "PreviousDateTime"))
+                            DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_DATETIME_SETUP), vElem, JsonValue(C_Obj(vJson), "DeviceDateTime"), JsonValue(C_Obj(vJson), "PreviousDateTime"))
                         End If
                     Else
-                        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_DATETIME_ERROR, vElem, JsonValue(C_Obj(vJson), "ErrorText")), vbLogEventTypeError
+                        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_DATETIME_ERROR), vElem, JsonValue(C_Obj(vJson), "ErrorText")), vbLogEventTypeError
                     End If
                 End If
             End If
@@ -456,7 +457,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
                 JsonValue(oSshSettings, "Extra Params"), _
                 sSshError, oTunnel, lLocalPort) Then
             vSplit = Split(sSshError, vbCrLf)
-            m_sLastError = Printf(STR_SSH_TUNNEL_ERROR, At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
+            m_sLastError = Printf(T(LANG_SSH_TUNNEL_ERROR), At(vSplit, 0) & IIf(UBound(vSplit) > 0, ". " & At(vSplit, UBound(vSplit)), vbNullString))
             GoTo QH
         End If
         If Not oTunnel Is Nothing Then
@@ -506,7 +507,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
     Else
         m_oRecvConn.CommandTimeout = DEF_ASYNC_COMMAND_TIMEOUT
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, STR_CONN_REOPEN, STR_CONN_OPEN), m_sSqlInstance, m_sSqlDatabase)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(bReopen, T(LANG_CONN_REOPEN), T(LANG_CONN_OPEN)), m_sSqlInstance, m_sSqlDatabase)
     '--- success
     pvOpenConn = True
 QH:
@@ -599,7 +600,7 @@ Private Function pvMakeSshTunnel( _
     If FileExists(sExeFile) Then
         sExeFile = ArgvQuote(sExeFile)
     ElseIf LenB(sExeFile) = 0 Then
-        sError = Printf(STR_SSH_TUNNEL_MISSING_FILE, "plink.exe")
+        sError = Printf(T(LANG_SSH_TUNNEL_MISSING_FILE), "plink.exe")
         GoTo QH
     End If
     '--- figure out free local port
@@ -628,7 +629,7 @@ Private Function pvMakeSshTunnel( _
         Next
     End If
     If lAttempt > lMaxAttempts Then
-        sError = STR_SSH_TUNNEL_NO_PORT_AVAILABLE
+        sError = T(LANG_SSH_TUNNEL_NO_PORT_AVAILABLE)
         GoTo QH
     End If
     '--- plink.exe options:
@@ -660,7 +661,7 @@ Private Function pvMakeSshTunnel( _
         dblTimerEx = TimerEx
         Do While Not .AtEndOfError Or Not .AtEndOfOutput
             If TimerEx > dblTimerEx + lTimeout + lExtraTimeout Then
-                sError = STR_SSH_TUNNEL_TIMEOUT & vbCrLf & sInput
+                sError = T(LANG_SSH_TUNNEL_TIMEOUT) & vbCrLf & sInput
                 If .KillProcess() Then
                     Call Sleep(100)
                 End If
@@ -696,7 +697,7 @@ Private Function pvMakeSshTunnel( _
                     .WriteInput "y" & vbCrLf
                     sInput = Replace(sInput, "y/n", "{y}/n")
                 Else
-                    sError = STR_SSH_TUNNEL_UNKNOWN_SERVER_KEY & vbCrLf & sError
+                    sError = T(LANG_SSH_TUNNEL_UNKNOWN_SERVER_KEY) & vbCrLf & sError
                     GoTo QH
                 End If
             ElseIf InStr(sInput, "Press Return to begin session") > 0 Then
@@ -707,14 +708,14 @@ Private Function pvMakeSshTunnel( _
                     .WriteInput sPass & vbCrLf
                     sInput = Replace(sInput, "Passphrase for", "{P}assphrase for")
                 Else
-                    sError = STR_SSH_TUNNEL_MISSING_PASSPHRASE
+                    sError = T(LANG_SSH_TUNNEL_MISSING_PASSPHRASE)
                     GoTo QH
                 End If
             ElseIf InStr(sInput, "Local port " & lLocalPort & " forwarding") > 0 Then
                 If Not pvTestListen(lLocalPort) Then
                     pvMakeSshTunnel = True
                 Else
-                    sError = STR_SSH_TUNNEL_PORT_UNACCESSIBLE
+                    sError = T(LANG_SSH_TUNNEL_PORT_UNACCESSIBLE)
                 End If
                 GoTo QH
             End If

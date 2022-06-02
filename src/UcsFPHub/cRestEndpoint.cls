@@ -30,9 +30,11 @@ Implements IEndpoint
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_SOCKET_LISTEN         As String = "Слуша на %1 порт %2"
-Private Const STR_CONN_ESTABLISHED      As String = "%1 установена (%2 отворени)"
-Private Const STR_CONN_ERROR            As String = "Грешка в %1: %2"
+'--- i18n ids
+Private Const LANG_SOCKET_LISTEN        As Long = 45 ' Слуша на %1 порт %2
+Private Const LANG_CONN_ESTABLISHED     As Long = 46 ' %1 установена (%2 отворени)
+Private Const LANG_CONN_ERROR           As Long = 47 ' Грешка в %1: %2
+'--- numeric
 Private Const MAX_CONN_QUEUE            As Long = 120
 
 Private m_sLastError                As String
@@ -110,7 +112,7 @@ Public Function Init(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_SOCKET_LISTEN, Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_SOCKET_LISTEN), Zn(At(vSplit, 0), "127.0.0.1"), lListenPort)
     '--- success
     Init = True
 QH:
@@ -139,7 +141,7 @@ Public Sub ClientError(sKey As String)
     
     On Error GoTo EH
     If SearchCollection(m_cClients, sKey, RetVal:=oClient) Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ERROR, sKey, oClient.LastError), vbLogEventTypeError
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_CONN_ERROR), sKey, oClient.LastError), vbLogEventTypeError
     End If
     Exit Sub
 EH:
@@ -175,7 +177,7 @@ Private Sub m_oSocket_OnAccept()
         GoTo QH
     End If
     m_cClients.Add oClient, sKey
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ESTABLISHED, sKey, m_cClients.Count)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_CONN_ESTABLISHED), sKey, m_cClients.Count)
 QH:
     Exit Sub
 EH:

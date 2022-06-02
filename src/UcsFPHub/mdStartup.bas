@@ -38,33 +38,34 @@ Private Declare Function InitCommonControls Lib "comctl32" () As Long
 Private Const STR_LATEST_COMMIT         As String = ""
 Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
-Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
-Private Const STR_SVC_INSTALL           As String = "Инсталира NT услуга %1..."
-Private Const STR_SVC_UNINSTALL         As String = "Деинсталира NT услуга %1..."
-Private Const STR_SUCCESS               As String = "Успех"
-Private Const STR_FAILURE               As String = "Грешка: "
-Private Const STR_WARN                  As String = "Предупреждение: "
-Private Const STR_AUTODETECTING_PRINTERS As String = "Автоматично търсене на принтери"
-Private Const STR_ENVIRON_VARS_FOUND    As String = "Конфигурирани %1 променливи на средата"
-Private Const STR_ONE_PRINTER_FOUND     As String = "Намерен 1 принтер"
-Private Const STR_PRINTERS_FOUND        As String = "Намерени %1 принтера"
-Private Const STR_PRESS_CTRLC           As String = "Натиснете Ctrl+C за изход"
-Private Const STR_LOADING_CONFIG        As String = "Зарежда конфигурация от %1"
 Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
-Private Const STR_REGISTER_APPID_FAILED As String = "Неуспешна регистрация на AppID. %1"
-Private Const MSG_ALREADY_RUNNING       As String = "COM сървър с моникер %1 вече е стартиран"
-Private Const MSG_OPEN_PREVIOUS         As String = "Желаете ли да отворите предишната инстанция?"
-Private Const MSG_RUNNING_NO_MONIKER    As String = "%1 вече е стартиран"
-Private Const MSG_USE_PREVIOUS          As String = "Желаете ли да използвате предишната инстанция?"
-Private Const STR_PREFIX_ERROR          As String = "[Грешка] "
-Private Const STR_PREFIX_WARNING        As String = "[Внимание] "
-Private Const STR_PREFIX_DEBUG          As String = "[Debug] "
-Private Const STR_NEW_INSTANCE_CONFIRM  As String = "Потвърдено стартиране на втора инстанция"
+Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
+'--- i18n ids
+Private Const LANG_SVC_INSTALL          As Long = 1   ' Инсталира NT услуга %1...
+Private Const LANG_SVC_UNINSTALL        As Long = 2   ' Деинсталира NT услуга %1...
+Private Const LANG_SUCCESS              As Long = 3   ' Успех
+Private Const LANG_FAILURE              As Long = 4   ' Грешка
+Private Const LANG_WARN                 As Long = 5   ' Предупреждение
+Private Const LANG_AUTODETECTING_PRINTERS As Long = 6 ' Автоматично търсене на принтери
+Private Const LANG_ENVIRON_VARS_FOUND   As Long = 7   ' Конфигурирани %1 променливи на средата
+Private Const LANG_ONE_PRINTER_FOUND    As Long = 8   ' Намерен 1 принтер
+Private Const LANG_PRINTERS_FOUND       As Long = 9   ' Намерени %1 принтера
+Private Const LANG_PRESS_CTRLC          As Long = 10  ' Натиснете Ctrl+C за изход
+Private Const LANG_LOADING_CONFIG       As Long = 11  ' Зарежда конфигурация от %1
+Private Const LANG_REGISTER_APPID_FAILED As Long = 12 ' Неуспешна регистрация на AppID. %1
+Private Const LANG_ALREADY_RUNNING      As Long = 13  ' COM сървър с моникер %1 вече е стартиран
+Private Const LANG_OPEN_PREVIOUS        As Long = 14  ' Желаете ли да отворите предишната инстанция?
+Private Const LANG_RUNNING_NO_MONIKER   As Long = 15  ' %1 вече е стартиран
+Private Const LANG_USE_PREVIOUS         As Long = 16  ' Желаете ли да използвате предишната инстанция?
+Private Const LANG_PREFIX_ERROR         As Long = 17  ' [Грешка]
+Private Const LANG_PREFIX_WARNING       As Long = 18  ' [Внимание]
+Private Const LANG_PREFIX_DEBUG         As Long = 19  ' [Debug]
+Private Const LANG_NEW_INSTANCE_CONFIRM As Long = 20  ' Потвърдено стартиране на втора инстанция
 '--- errors
-Private Const ERR_CONFIG_NOT_FOUND      As String = "Конфигурационен файл %1 не е намерен"
-Private Const ERR_PARSING_CONFIG        As String = "Невалиден %1: %2"
-Private Const ERR_ENUM_PORTS            As String = "Енумериране на серийни портове: %1"
-Private Const ERR_WARN_ACCESS           As String = "Принтер %1 е недостъпен: %2"
+Private Const LANG_CONFIG_NOT_FOUND     As Long = 21  ' Конфигурационен файл %1 не е намерен
+Private Const LANG_PARSING_CONFIG       As Long = 22  ' Невалиден %1: %2
+Private Const LANG_ENUM_PORTS           As Long = 23  ' Енумериране на серийни портове: %1
+Private Const LANG_WARN_ACCESS          As Long = 24  ' Принтер %1 е недостъпен: %2
 '--- formats
 Public Const FORMAT_TIME_ONLY           As String = "hh:nn:ss"
 Public Const FORMAT_DATETIME_LOG        As String = "yyyy.MM.dd hh:nn:ss"
@@ -98,15 +99,15 @@ End Sub
 ' Properties
 '=========================================================================
 
-Property Get IsRunningAsService() As Boolean
+Public Property Get IsRunningAsService() As Boolean
     IsRunningAsService = m_bIsService
 End Property
 
-Property Get IsRunningHidden() As Boolean
+Public Property Get IsRunningHidden() As Boolean
     IsRunningHidden = m_bIsHidden
 End Property
 
-Property Get MainForm() As frmMain
+Public Property Get MainForm() As frmMain
     Dim oForm       As Object
     
     For Each oForm In Forms
@@ -117,7 +118,7 @@ Property Get MainForm() As frmMain
     Next
 End Property
 
-Property Get LocalEndpointForm() As frmLocalEndpoint
+Public Property Get LocalEndpointForm() As frmLocalEndpoint
     Dim oForm       As Object
     
     For Each oForm In m_cEndpoints
@@ -128,8 +129,12 @@ Property Get LocalEndpointForm() As frmLocalEndpoint
     Next
 End Property
 
-Property Get STR_VERSION() As String
+Public Property Get STR_VERSION() As String
     STR_VERSION = App.Major & "." & App.Minor & "." & App.Revision & STR_LATEST_COMMIT
+End Property
+
+Public Property Get T(ByVal ID As Long) As String
+    T = LoadResString(ID)
 End Property
 
 '=========================================================================
@@ -218,30 +223,30 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     End If
     m_bIsHidden = C_Bool(m_oOpt.Item("--hidden"))
     If C_Bool(m_oOpt.Item("--install")) Then
-        ConsolePrint Printf(STR_SVC_INSTALL, STR_SERVICE_NAME) & vbCrLf
+        ConsolePrint Printf(T(LANG_SVC_INSTALL), STR_SERVICE_NAME) & vbCrLf
         If LenB(sConfFile) <> 0 Then
             sConfFile = " --config " & ArgvQuote(sConfFile)
         End If
         If Not pvRegisterServiceAppID(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
-            ConsoleError STR_WARN & sError & vbCrLf
+            ConsoleError T(LANG_WARN) & ": " & sError & vbCrLf
         End If
         If Not NtServiceInstall(STR_SERVICE_NAME, App.ProductName & " (" & STR_VERSION & ")", GetProcessName() & sConfFile, Error:=sError) Then
-            ConsoleError STR_FAILURE
+            ConsoleError T(LANG_FAILURE) & ": "
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
-            ConsolePrint STR_SUCCESS & vbCrLf
+            ConsolePrint T(LANG_SUCCESS) & vbCrLf
         End If
         GoTo QH
     ElseIf C_Bool(m_oOpt.Item("--uninstall")) Then
-        ConsolePrint Printf(STR_SVC_UNINSTALL, STR_SERVICE_NAME) & vbCrLf
+        ConsolePrint Printf(T(LANG_SVC_UNINSTALL), STR_SERVICE_NAME) & vbCrLf
         If Not pvUnregisterServiceAppID(App.EXEName & ".exe", STR_APPID_GUID, Error:=sError) Then
-            ConsoleError STR_WARN & sError & vbCrLf
+            ConsoleError T(LANG_WARN) & ": " & sError & vbCrLf
         End If
         If Not NtServiceUninstall(STR_SERVICE_NAME, Error:=sError) Then
-            ConsoleError STR_FAILURE
+            ConsoleError T(LANG_FAILURE) & ": "
             ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sError & vbCrLf
         Else
-            ConsolePrint STR_SUCCESS & vbCrLf
+            ConsolePrint T(LANG_SUCCESS) & vbCrLf
         End If
         GoTo QH
     End If
@@ -249,28 +254,28 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) And Not C_Bool(m_oOpt.Item("--console")) Then
         If IsObjectRunning(STR_MONIKER) Then
             If Not C_Bool(m_oOpt.Item("--multi-instance")) Then
-                MsgBox Printf(MSG_ALREADY_RUNNING, STR_MONIKER), vbExclamation
+                MsgBox Printf(T(LANG_ALREADY_RUNNING), STR_MONIKER), vbExclamation
                 GoTo QH
             End If
-            Select Case MsgBox(Printf(MSG_ALREADY_RUNNING & vbCrLf & vbCrLf & MSG_OPEN_PREVIOUS, STR_MONIKER), vbQuestion Or vbYesNoCancel)
+            Select Case MsgBox(Printf(T(LANG_ALREADY_RUNNING) & vbCrLf & vbCrLf & T(LANG_OPEN_PREVIOUS), STR_MONIKER), vbQuestion Or vbYesNoCancel)
             Case vbYes
                 GetObject(STR_MONIKER).ShowConfig
                 GoTo QH
             Case vbNo
-                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM
+                DebugLog MODULE_NAME, FUNC_NAME, T(LANG_NEW_INSTANCE_CONFIRM)
             Case vbCancel
                 GoTo QH
             End Select
         ElseIf App.PrevInstance Then
             If Not C_Bool(m_oOpt.Item("--multi-instance")) Then
-                MsgBox Printf(MSG_RUNNING_NO_MONIKER, App.ProductName), vbExclamation
+                MsgBox Printf(T(LANG_RUNNING_NO_MONIKER), App.ProductName), vbExclamation
                 GoTo QH
             End If
-            Select Case MsgBox(Printf(MSG_RUNNING_NO_MONIKER & vbCrLf & vbCrLf & MSG_USE_PREVIOUS, App.ProductName), vbQuestion Or vbYesNoCancel)
+            Select Case MsgBox(Printf(T(LANG_RUNNING_NO_MONIKER) & vbCrLf & vbCrLf & T(LANG_USE_PREVIOUS), App.ProductName), vbQuestion Or vbYesNoCancel)
             Case vbYes
                 GoTo QH
             Case vbNo
-                DebugLog MODULE_NAME, FUNC_NAME, STR_NEW_INSTANCE_CONFIRM & " (App.PrevInstance=" & App.PrevInstance & ")"
+                DebugLog MODULE_NAME, FUNC_NAME, T(LANG_NEW_INSTANCE_CONFIRM) & " (App.PrevInstance=" & App.PrevInstance & ")"
             Case vbCancel
                 GoTo QH
             End Select
@@ -287,7 +292,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     '--- read config file
     If LenB(sConfFile) <> 0 Then
         If Not FileExists(sConfFile) Then
-            DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_CONFIG_NOT_FOUND, sConfFile), vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_CONFIG_NOT_FOUND), sConfFile), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
@@ -295,11 +300,11 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
             GoTo LoadDefaultConfig
         End If
         If Not JsonParse(ReadTextFile(sConfFile), m_oConfig, Error:=sError) Then
-            DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_PARSING_CONFIG, sConfFile, sError), vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_PARSING_CONFIG), sConfFile, sError), vbLogEventTypeError
             Process = 1
             GoTo QH
         End If
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_LOADING_CONFIG, sConfFile)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_LOADING_CONFIG), sConfFile)
     Else
 LoadDefaultConfig:
         JsonValue(m_oConfig, "Printers/Autodetect") = True
@@ -309,7 +314,7 @@ LoadDefaultConfig:
     '--- setup environment and procotol configuration
     lIdx = JsonValue(m_oConfig, -1)
     If lIdx > 0 Then
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_ENVIRON_VARS_FOUND, lIdx)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_ENVIRON_VARS_FOUND), lIdx)
         sLogFile = GetEnvironmentVar("_UCS_FISCAL_PRINTER_LOG")
         sLogDataDump = GetEnvironmentVar("_UCS_FISCAL_PRINTER_DATA_DUMP")
         For Each vKey In JsonKeys(m_oConfig, "Environment")
@@ -337,7 +342,7 @@ LoadDefaultConfig:
         GoTo QH
     End If
     lIdx = C_Lng(JsonValue(m_oPrinters, "Count"))
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(lIdx = 1, STR_ONE_PRINTER_FOUND, STR_PRINTERS_FOUND), lIdx)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(IIf(lIdx = 1, T(LANG_ONE_PRINTER_FOUND), T(LANG_PRINTERS_FOUND)), lIdx)
     '--- then register http/mssql endpoints
     If Not pvCreateEndpoints(m_oPrinters, "resthttp mssqlservicebroker mysqlmessagequeue", m_cEndpoints) Then
         GoTo QH
@@ -351,7 +356,7 @@ LoadDefaultConfig:
         FlushDebugLog
     ElseIf C_Bool(m_oOpt.Item("--console")) Then
         Screen.MousePointer = vbDefault
-        ConsolePrint STR_PRESS_CTRLC & vbCrLf
+        ConsolePrint T(LANG_PRESS_CTRLC) & vbCrLf
         Do
             ConsoleRead
             DoEvents
@@ -391,10 +396,10 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     JsonValue(oRetVal, "Ok") = True
     JsonValue(oRetVal, "Count") = 0
     If JsonValue(m_oConfig, "Printers/Autodetect") Then
-        DebugLog MODULE_NAME, FUNC_NAME, STR_AUTODETECTING_PRINTERS
+        DebugLog MODULE_NAME, FUNC_NAME, T(LANG_AUTODETECTING_PRINTERS)
         If oFP.EnumPorts(sResponse) And JsonParse(sResponse, oJson) Then
             If Not JsonValue(oJson, "Ok") Then
-                DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_ENUM_PORTS, vKey, JsonValue(oJson, "ErrorText")), vbLogEventTypeError
+                DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_ENUM_PORTS), vKey, JsonValue(oJson, "ErrorText")), vbLogEventTypeError
             Else
                 For Each vKey In JsonKeys(oJson, "SerialPorts")
                     If LenB(C_Str(JsonValue(oJson, "SerialPorts/" & vKey & "/Protocol"))) <> 0 Then
@@ -431,7 +436,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
             JsonValue(oRequest, "IncludeTaxNo") = True
             If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
                 If Not JsonValue(oInfo, "Ok") Then
-                    DebugLog MODULE_NAME, FUNC_NAME, Printf(ERR_WARN_ACCESS, vKey, JsonValue(oInfo, "ErrorText")), vbLogEventTypeWarning
+                    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_WARN_ACCESS), vKey, JsonValue(oInfo, "ErrorText")), vbLogEventTypeWarning
                 Else
                     sDeviceString = Zn(JsonValue(oInfo, "DeviceString"), sDeviceString)
                     sKey = Zn(JsonValue(oInfo, "DeviceSerialNo"), vKey)
@@ -523,11 +528,11 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
         sPrefix = Format$(GetCurrentNow, FORMAT_TIME_ONLY) & Right$(Format$(GetCurrentTimer, FORMAT_BASE_3), 4) & ": "
         Select Case eType
         Case vbLogEventTypeError
-            sPrefix = sPrefix & STR_PREFIX_ERROR
+            sPrefix = sPrefix & "[" & T(LANG_PREFIX_ERROR) & "] "
         Case vbLogEventTypeWarning
-            sPrefix = sPrefix & STR_PREFIX_WARNING
+            sPrefix = sPrefix & "[" & T(LANG_PREFIX_WARNING) & "] "
         Case vbLogEventTypeDebug
-            sPrefix = sPrefix & STR_PREFIX_DEBUG
+            sPrefix = sPrefix & "[" & T(LANG_PREFIX_DEBUG) & "] "
         End Select
         sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
         If eType = vbLogEventTypeError Then
@@ -571,7 +576,7 @@ Private Function pvRegisterServiceAppID(sServiceName As String, sDisplayName As 
     pvRegisterServiceAppID = True
 QH:
     If Not pvRegisterServiceAppID Then
-        Error = Printf(STR_REGISTER_APPID_FAILED, GetErrorDescription(Err.LastDllError))
+        Error = Printf(T(LANG_REGISTER_APPID_FAILED), GetErrorDescription(Err.LastDllError))
     End If
 End Function
 
@@ -628,3 +633,4 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
     End If
     pvGetDevicePort = sRetVal
 End Function
+

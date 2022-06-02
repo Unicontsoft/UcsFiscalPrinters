@@ -21,7 +21,7 @@ rd /s /q "%file_dir%\Shared" 2>&1
 mkdir "%file_dir%\Shared"
 
 echo Copy sources from %src_dir%...
-for %%i in ("%src_dir%\*.bas";"%src_dir%\*.cls";"%src_dir%\*.frm";"%src_dir%\*.frx";"%src_dir%\*.vbp") do (copy "%%i" "%file_dir%" > nul)
+for %%i in ("%src_dir%\*.bas";"%src_dir%\*.cls";"%src_dir%\*.frm";"%src_dir%\*.frx";"%src_dir%\*.res";"%src_dir%\*.vbp") do (copy "%%i" "%file_dir%" > nul)
 for %%i in ("%src_dir%\Shared\*.bas";"%src_dir%\Shared\*.cls";"%src_dir%\Shared\*.ctl") do (copy "%%i" "%file_dir%\Shared" > nul)
 
 echo Put lines to sources in %file_dir%...

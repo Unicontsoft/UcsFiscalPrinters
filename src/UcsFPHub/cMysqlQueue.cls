@@ -31,12 +31,7 @@ Implements IQueue
 '=========================================================================
 
 Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
-Private Const STR_QUEUE_SETUP           As String = "Опашка %1 слуша за %2 услуги"
-Private Const STR_QUEUE_TERMINATE       As String = "Oпашка %1 е терминирана"
-Private Const STR_QUEUE_HEARTBEAT       As String = "Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)"
-Private Const STR_QUEUE_ERROR           As String = "Опашка %1 за принтер %2 върна грешка %3"
 Private Const STR_QUEUE_LOOP            As String = "CALL        `usp_umq_wait_request`('%1', %2, @handle, @request, @svc_name, @error_text, @result)"
-Private Const LNG_QUEUE_FIELDS          As Long = 5
 Private Const STR_SEND_ON_CONV          As String = "INSERT      `umq_messages`(`conversation_id`, `service_id`, `queue_id`, `message_type`, `message_body`, `created_at`)" & vbCrLf & _
                                                     "SELECT      %1 AS `conversation_id`" & vbCrLf & _
                                                     "            , (SELECT `service_id` FROM umq_conversations WHERE `id` = %1) AS `service_id`" & vbCrLf & _
@@ -51,9 +46,15 @@ Private Const STR_END_CONV_WITH_ERROR   As String = "INSERT      `umq_messages`(
                                                     "            , 'ERROR' AS `message_type`" & vbCrLf & _
                                                     "            , '%3' AS `message_body`" & vbCrLf & _
                                                     "            , CURRENT_TIMESTAMP(3)  AS `created_at`;"
-Private Const ERR_UNKNOWN               As String = "Неизвестна грешка %1"
+'--- i18n ids
+Private Const LANG_QUEUE_SETUP          As Long = 40 ' Опашка %1 слуша за %2 услуги
+Private Const LANG_QUEUE_TERMINATE      As Long = 41 ' Oпашка %1 е терминирана
+Private Const LANG_QUEUE_HEARTBEAT      As Long = 42 ' Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)
+Private Const LANG_QUEUE_ERROR          As Long = 43 ' Опашка %1 за принтер %2 върна грешка %3
+Private Const LANG_UNKNOWN_ERROR        As Long = 44 ' Неизвестна грешка %1
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
+Private Const LNG_QUEUE_FIELDS          As Long = 5
 
 Private m_pTimeoutTimer             As IUnknown
 Private m_pCompleteTimer            As IUnknown
@@ -135,7 +136,7 @@ Private Function pvQueueSetup() As Boolean
             lIdx = lIdx + 1
         End If
     Next
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_SETUP, m_sQueueName, lIdx)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_QUEUE_SETUP), m_sQueueName, lIdx)
     '--- success
     pvQueueSetup = True
     Exit Function
@@ -163,7 +164,7 @@ Private Function pvQueueTerminate() As Boolean
     If pvIsConnAlive(m_oConn) Then
         DebugLog MODULE_NAME, FUNC_NAME, "Will call usp_umq_setup_service", vbLogEventTypeDebug
         m_oConn.usp_umq_setup_service m_sQueueName, STR_SVC_PREFIX & "/" & m_lSqlProcessID, "DROP_ONLY"
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_TERMINATE, m_sQueueName)
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_QUEUE_TERMINATE), m_sQueueName)
     End If
     m_oCallback.frReleaseConn
     Set m_oConn = Nothing
@@ -214,7 +215,7 @@ Attribute TimeoutTimerProc.VB_MemberFlags = "40"
     
     On Error GoTo EH
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_HEARTBEAT, m_sQueueName, (m_lQueueTimeout + 3000) / 1000)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_QUEUE_HEARTBEAT), m_sQueueName, (m_lQueueTimeout + 3000) / 1000)
     pvQueueTerminate
     If m_oCallback.frReopenConn(oConn, oRecvConn) Then
         Set m_oConn = oConn
@@ -251,13 +252,13 @@ Attribute CompleteTimerProc.VB_MemberFlags = "40"
         Else
             lErrorCode = Znl(lErrorCode, 500)
             m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                Quote(Zn(sResponse, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
+                Quote(Zn(sResponse, Printf(T(LANG_UNKNOWN_ERROR), lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
         End If
     ElseIf C_Lng(pRecordset!Result.Value) <> 99 Then
         sResponse = C_Str(pRecordset!ErrorText.Value)
         If LenB(sResponse) <> 0 Then
             sPrinterID = At(Split(C_Str(pRecordset!SvcName.Value), "/"), 1)
-            DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_QUEUE_ERROR, m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
+            DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_QUEUE_ERROR), m_sQueueName, sPrinterID, sResponse), vbLogEventTypeError
         End If
     End If
     pvRestartTimer
@@ -312,7 +313,7 @@ NextLine:
         If LenB(sHandle) <> 0 Then
             lErrorCode = 500
             m_oConn.Execute Printf(STR_END_CONV_WITH_ERROR, Quote(sHandle), lErrorCode, _
-                Quote(Zn(m_sLastError, Printf(ERR_UNKNOWN, lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
+                Quote(Zn(m_sLastError, Printf(T(LANG_UNKNOWN_ERROR), lErrorCode)))), Options:=adCmdText Or adExecuteNoRecords
         End If
         pvQueueLoopAsync
     Else
