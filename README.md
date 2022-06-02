@@ -5,7 +5,7 @@
 Unicontsoft Fiscal Printers Hub -- a REST service to provide remote access to locally attached fiscal devices
 
 [![Build Status](https://dev.azure.com/wqweto0976/UcsFP20/_apis/build/status/Default?branchName=master)](https://dev.azure.com/wqweto0976/UcsFP20/_build?definitionId=4)
-[![Download stable UcsFPHub-0.1.50.zip](https://img.shields.io/badge/stable-UcsFPHub--0.1.50.zip-brightgreen)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-0.1.50/UcsFPHub-0.1.50.zip)
+[![Download stable UcsFPHub-2.0.41.zip](https://img.shields.io/badge/stable-UcsFPHub--2.0.41.zip-brightgreen)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-2.0.41/UcsFPHub-2.0.41.zip)
 [![Download beta UcsFPHub-latest.zip](https://img.shields.io/badge/beta-UcsFPHub--latest.zip-blue)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases/download/UcsFPHub-latest/UcsFPHub-latest.zip)
 [![MIT license](https://img.shields.io/:license-mit-blue.svg)](https://github.com/Unicontsoft/UcsFiscalPrinters/blob/master/LICENSE)
 [![Releases](https://img.shields.io/github/downloads/Unicontsoft/UcsFiscalPrinters/total.svg)](https://github.com/Unicontsoft/UcsFiscalPrinters/releases)
