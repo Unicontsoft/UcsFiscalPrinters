@@ -966,16 +966,6 @@ Private Sub pvAppendLogText(sValue As String)
     Call SendMessage(txtLog.hWnd, WM_VSCROLL, SB_BOTTOM, ByVal 0)
 End Sub
 
-Private Sub pvLocalizeMenu(oMenu As Object, sText As String)
-    Dim vSplit          As Variant
-    Dim lIdx            As Long
-    
-    vSplit = Split(sText, "|")
-    For lIdx = 0 To oMenu.UBound
-        oMenu(lIdx).Caption = At(vSplit, lIdx, "#" & lIdx)
-    Next
-End Sub
-
 '=========================================================================
 ' Events
 '=========================================================================
@@ -1059,10 +1049,10 @@ Private Sub Form_Load()
     
     On Error GoTo EH
     Caption = Printf(T(LANG_CAPTION_FORM), App.ProductName & " v" & STR_VERSION)
-    pvLocalizeMenu mnuMain, T(LANG_MENU_MAIN)
-    pvLocalizeMenu mnuFile, T(LANG_MENU_FILE)
-    pvLocalizeMenu mnuEdit, T(LANG_MENU_EDIT)
-    pvLocalizeMenu mnuHelp, T(LANG_MENU_HELP)
+    LocalizeMenu mnuMain, T(LANG_MENU_MAIN)
+    LocalizeMenu mnuFile, T(LANG_MENU_FILE)
+    LocalizeMenu mnuEdit, T(LANG_MENU_EDIT)
+    LocalizeMenu mnuHelp, T(LANG_MENU_HELP)
     tabMain.Layout = T(LANG_LAYOUT_TABS)
     cmdTest.Caption = T(LANG_CAPTION_TEST)
     fraQuickSetup.Caption = T(LANG_CAPTION_QUICK_SETUP)

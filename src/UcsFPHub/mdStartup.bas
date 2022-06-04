@@ -634,3 +634,12 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
     pvGetDevicePort = sRetVal
 End Function
 
+Public Sub LocalizeMenu(oMenu As Object, sText As String)
+    Dim vSplit          As Variant
+    Dim lIdx            As Long
+    
+    vSplit = Split(sText, "|")
+    For lIdx = 0 To oMenu.UBound
+        oMenu(lIdx).Caption = At(vSplit, lIdx, "#" & lIdx)
+    Next
+End Sub

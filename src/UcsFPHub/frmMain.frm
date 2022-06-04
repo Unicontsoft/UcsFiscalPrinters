@@ -83,6 +83,9 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
+'--- i18n ids
+Private Const LANG_POPUP_MENU           As Long = 2003
+'--- numeric
 Private Const LNG_AUTO_UPDATE_DELAY     As Long = 24& * 60 * 60  '--- 24h
 
 Private m_oPrinters                 As Object
@@ -348,6 +351,17 @@ EH:
     PrintError FUNC_NAME
 End Sub
 
+Private Sub Form_Load()
+    Const FUNC_NAME     As String = "Form_Load"
+    
+    On Error GoTo EH
+    LocalizeMenu mnuPopup, T(LANG_POPUP_MENU)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Sub
+
 Private Sub Form_Unload(Cancel As Integer)
     Const FUNC_NAME     As String = "Form_Unload"
     
@@ -365,4 +379,3 @@ Private Sub Form_Unload(Cancel As Integer)
 EH:
     PrintError FUNC_NAME
 End Sub
-
