@@ -35,11 +35,11 @@ Private Declare Function InitCommonControls Lib "comctl32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_LATEST_COMMIT         As String = ""
-Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
 Public Const DEF_LISTEN_PORT            As Long = 8192
-Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
+Public Const STR_SERVICE_NAME           As String = "UcsFPHub"
+Public Const STR_SERVICE_MONIKER        As String = STR_SERVICE_NAME & ".LocalEndpoint"
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
+Private Const STR_LATEST_COMMIT         As String = ""
 '--- i18n ids
 Private Const LANG_SVC_INSTALL          As Long = 1   ' Инсталира NT услуга %1...
 Private Const LANG_SVC_UNINSTALL        As Long = 2   ' Деинсталира NT услуга %1...
@@ -205,7 +205,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     If LenB(sConfFile) = 0 Then
         sConfFile = LocateFile(PathCombine(App.Path, App.EXEName & ".conf"))
         If LenB(sConfFile) = 0 Then
-            sConfFile = PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf")
+            sConfFile = PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\" & STR_SERVICE_NAME, App.EXEName & ".conf")
             If Not FileExists(sConfFile) Then
                 sConfFile = vbNullString
             End If
@@ -252,14 +252,14 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
     End If
     '--- check for previous instance
     If Not bStarted And Not C_Bool(m_oOpt.Item("--hidden")) And Not C_Bool(m_oOpt.Item("--console")) Then
-        If IsObjectRunning(STR_MONIKER) Then
+        If IsObjectRunning(STR_SERVICE_MONIKER) Then
             If Not C_Bool(m_oOpt.Item("--multi-instance")) Then
-                MsgBox Printf(T(LANG_ALREADY_RUNNING), STR_MONIKER), vbExclamation
+                MsgBox Printf(T(LANG_ALREADY_RUNNING), STR_SERVICE_MONIKER), vbExclamation
                 GoTo QH
             End If
-            Select Case MsgBox(Printf(T(LANG_ALREADY_RUNNING) & vbCrLf & vbCrLf & T(LANG_OPEN_PREVIOUS), STR_MONIKER), vbQuestion Or vbYesNoCancel)
+            Select Case MsgBox(Printf(T(LANG_ALREADY_RUNNING) & vbCrLf & vbCrLf & T(LANG_OPEN_PREVIOUS), STR_SERVICE_MONIKER), vbQuestion Or vbYesNoCancel)
             Case vbYes
-                GetObject(STR_MONIKER).ShowConfig
+                GetObject(STR_SERVICE_MONIKER).ShowConfig
                 GoTo QH
             Case vbNo
                 DebugLog MODULE_NAME, FUNC_NAME, T(LANG_NEW_INSTANCE_CONFIRM)

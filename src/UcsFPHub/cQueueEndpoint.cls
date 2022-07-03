@@ -471,7 +471,7 @@ Private Function pvOpenConn(oConfig As Object) As Boolean
         m_dSshLastAccess = GetCurrentNow
     End If
     If InStr(sLocalConnStr, "{APP_NAME}") > 0 Then
-        sAppName = App.Title & " " & STR_VERSION & _
+        sAppName = STR_SERVICE_NAME & " " & STR_VERSION & _
             " [" & GetCurrentProcessUser(False) & "@" & LCase$(GetErrorComputerName()) & "] " & _
             Format$(GetErrorProcessCreationTime(), FORMAT_DATETIME_LOG)
         sLocalConnStr = Replace(sLocalConnStr, "{APP_NAME}", sAppName)

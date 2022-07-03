@@ -40,7 +40,6 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 '--- i18n ids
 Private Const LANG_COM_SETUP            As Long = 2001 ' Слуша на COM сървър с моникер %1
 Private Const LANG_REGISTATION_FAILED   As Long = 2002 ' Невъзможна COM регистрация на моникер %1
@@ -72,7 +71,7 @@ Property Get LastError() As String
 End Property
 
 Property Get Moniker() As String
-    Moniker = STR_MONIKER
+    Moniker = STR_SERVICE_MONIKER
 End Property
 
 Property Get ProcessID() As String
@@ -113,13 +112,13 @@ Friend Function frInit(oConfig As Object, oPrinters As Object) As Boolean
         Set m_oController = Nothing
         GoTo QH
     End If
-    m_lCookie = PutObject(Me, STR_MONIKER, IIf(IsRunningAsService, ROTFLAGS_ALLOWANYCLIENT, 0))
+    m_lCookie = PutObject(Me, STR_SERVICE_MONIKER, IIf(IsRunningAsService, ROTFLAGS_ALLOWANYCLIENT, 0))
     If m_lCookie = 0 Then
-        m_sLastError = Printf(T(LANG_REGISTATION_FAILED), STR_MONIKER)
+        m_sLastError = Printf(T(LANG_REGISTATION_FAILED), STR_SERVICE_MONIKER)
         Set m_oController = Nothing
         GoTo QH
     End If
-    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_COM_SETUP), STR_MONIKER)
+    DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_COM_SETUP), STR_SERVICE_MONIKER)
     '--- success
     frInit = True
 QH:

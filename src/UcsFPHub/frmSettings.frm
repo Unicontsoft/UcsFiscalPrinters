@@ -439,7 +439,6 @@ End Type
 
 Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
-Private Const STR_MONIKER               As String = "UcsFPHub.LocalEndpoint"
 '--- i18n ids
 Private Const LANG_CAPTION_FORM         As Long = 1001 ' Настройки на %1
 Private Const LANG_CAPTION_PRINTERS     As Long = 1002 ' Устройства
@@ -600,7 +599,7 @@ Public Function Init(Optional OwnerForm As Object) As Boolean
         Next
         '--- setup caption
         sConfFile = MainForm.ConfFile
-        m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\UcsFPHub", App.EXEName & ".conf"))
+        m_sConfFile = Zn(sConfFile, PathCombine(GetSpecialFolder(ucsOdtLocalAppData) & "\Unicontsoft\" & STR_SERVICE_NAME, App.EXEName & ".conf"))
         Caption = IIf(LenB(sConfFile), sConfFile & " - ", vbNullString) & Printf(T(LANG_CAPTION_FORM), App.ProductName & " v" & STR_VERSION)
         '--- load combos
         pvLoadItemData cobProtocol, Split(STR_PROTOCOLS, "|")
@@ -1032,7 +1031,7 @@ Private Sub cmdTest_Click()
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
     sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
-    If Not GetObject(STR_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), vbNullString, sResponse) Then
+    If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), vbNullString, sResponse) Then
         GoTo QH
     End If
     txtInfo.Text = sResponse
