@@ -213,6 +213,7 @@ Private Const LNG_OPEN_IMPULSE          As Long = 250
 Private Const FORMAT_DATE_DST           As String = "dd\-mm\-yy hh\:nn\:ss \D\S\T"
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
+Private Const ERR_R_PAY_NOCASH          As Long = -111017
 Private Const ERR_FP_BAD_PARAM_7        As Long = -112207
 Private Const ERR_FP_BAD_PARAM_8        As Long = -112208
 Private Const MAX_HEADER_LINES          As Long = 10
@@ -706,6 +707,9 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
         Case ERR_OPER_WRONG_PASSWORD
             pvSetLastError pvToErrorCode(sError), ucsFerInvalidPassword, ErrCode:=lErrCode
             GoTo QH
+        Case ERR_R_PAY_NOCASH
+            pvSetLastError pvInternal(ucsErrInsufficientSum), ErrCode:=lErrCode
+            GoTo QH
         Case Else
             pvSetLastError pvToErrorCode(sError), ErrCode:=lErrCode
             GoTo QH
@@ -998,9 +1002,6 @@ Public Function PrintServiceDeposit( _
         GoTo QH
     End If
     If LenB(m_uPrintData.LastError) <> 0 Then
-        If m_uPrintData.LastError = "ERR_R_PAY_NOCASH" Then
-            pvSetLastError pvInternal(ucsErrInsufficientSum)
-        End If
         GoTo QH
     End If
     If bPrint Then
