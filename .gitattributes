@@ -15,3 +15,4 @@
 *.cmp binary
 *.png binary
 *.res binary
+*.ctl linguist-language=vba

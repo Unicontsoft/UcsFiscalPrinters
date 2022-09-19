@@ -656,7 +656,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             Next
             JsonDump = JsonDump(oJson)
         ElseIf IsNumeric(vJson) Then
-            JsonDump = Trim$(Str$(vJson))
+            JsonDump = Trim$(Replace(Replace(Str$(vJson), " .", "0."), "-.", "-0."))
         Else
             JsonDump = vJson & vbNullString
         End If
