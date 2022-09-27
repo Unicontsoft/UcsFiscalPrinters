@@ -306,6 +306,11 @@ Public Function PrintDuplicate(Optional DuplicateNo As String) As Boolean
     Dim oResponse       As Object
     
     On Error GoTo EH
+    If LenB(m_uRemote.Host) = 0 Then
+        m_dLastReceiptDate = GetCurrentNow
+        PrintDuplicate = True
+        GoTo QH
+    End If
     JsonValue(oRequest, "PrintDuplicate") = True
     If LenB(DuplicateNo) <> 0 Then
         JsonValue(oRequest, "Invoice/DocNo") = DuplicateNo
@@ -330,6 +335,11 @@ Public Function PrintMonthlyReport(ByVal ReportType As UcsFiscalReportsTypeEnum,
     Dim oResponse       As Object
     
     On Error GoTo EH
+    If LenB(m_uRemote.Host) = 0 Then
+        m_dLastReceiptDate = GetCurrentNow
+        PrintMonthlyReport = True
+        GoTo QH
+    End If
     JsonValue(oRequest, "ReportType") = ucsFscRptMonthlyByDate
     JsonValue(oRequest, "StartDate") = StartDate
     JsonValue(oRequest, "EndDate") = EndDate
@@ -358,6 +368,11 @@ Public Function PrintDailyReport(ByVal IsClear As Boolean, ByVal ReportType As U
     Dim oResponse       As Object
     
     On Error GoTo EH
+    If LenB(m_uRemote.Host) = 0 Then
+        m_dLastReceiptDate = GetCurrentNow
+        PrintDailyReport = True
+        GoTo QH
+    End If
     JsonValue(oRequest, "ReportType") = IIf(ReportType = ucsFscRstDailyByOperators, ucsFscRptDailyByOperators, ucsFscRptDaily)
     JsonValue(oRequest, "IsClear") = IsClear
     If ReportType = ucsFscRstDailyByItems Or ReportType = ucsFscRstDailyByItemsAndDepartments Then
