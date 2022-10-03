@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2020 by Unicontsoft
+' UcsFP20 (c) 2008-2022 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -44,7 +44,7 @@ Private Const STATUS_PENDING                As Long = &H103
 '--- for SetInformationJobObject
 Private Const JobObjectExtendedLimitInformation As Long = 9
 
-Private Declare Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, ByVal lpProcessAttributes As Long, ByVal lpThreadAttributes As Long, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, ByVal lpEnvironment As Long, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
+Private Declare Function CreateProcess Lib "kernel32" Alias "CreateProcessW" (ByVal lpApplicationName As Long, ByVal lpCommandLine As Long, ByVal lpProcessAttributes As Long, ByVal lpThreadAttributes As Long, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, ByVal lpEnvironment As Long, ByVal lpCurrentDirectory As Long, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
 Private Declare Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function GetExitCodeProcess Lib "kernel32" (ByVal hProcess As Long, lpExitCode As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
@@ -56,7 +56,7 @@ Private Declare Function TerminateProcess Lib "kernel32" (ByVal hProcess As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
 Private Declare Function FlushFileBuffers Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Function PeekNamedPipe Lib "kernel32" (ByVal hNamedPipe As Long, lpBuffer As Any, ByVal nBufferSize As Long, lpBytesRead As Long, lpTotalBytesAvail As Long, lpBytesLeftThisMessage As Long) As Long
-Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectA" (ByVal lpJobAttributes As Long, ByVal lpName As String) As Long
+Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectW" (ByVal lpJobAttributes As Long, ByVal lpName As Long) As Long
 Private Declare Function SetInformationJobObject Lib "kernel32" (ByVal hJob As Long, ByVal JobObjectInformationClass As Long, lpJobObjectInformation As Any, ByVal cbJobObjectInformationLength As Long) As Long
 Private Declare Function AssignProcessToJobObject Lib "kernel32" (ByVal hJob As Long, ByVal hProcess As Long) As Long
 
@@ -124,10 +124,10 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private m_hProcess          As Long
-Private m_hReadOutput       As Long
-Private m_hReadError        As Long
-Private m_hWriteInput       As Long
+Private m_hProcess              As Long
+Private m_hReadOutput           As Long
+Private m_hReadError            As Long
+Private m_hWriteInput           As Long
 
 '=========================================================================
 ' Error handling
@@ -150,7 +150,8 @@ Public Function Run( _
             sParams As String, _
             Optional ByVal StartHidden As Boolean, _
             Optional ByVal StartMinimized As Boolean, _
-            Optional ByVal LimitFlags As Long) As Boolean
+            Optional ByVal LimitFlags As Long, _
+            Optional CurrentDir As String) As Boolean
     Const FUNC_NAME     As String = "Run"
     Dim uProcInfo       As PROCESS_INFORMATION
     Dim uStart          As STARTUPINFO
@@ -214,11 +215,11 @@ Public Function Run( _
     End If
     '-- init job object
     If LimitFlags <> 0 Then
-        hJob = CreateJobObject(0, vbNullString)
+        hJob = CreateJobObject(0, 0)
         uInfo.LimitFlags = LimitFlags
         Call SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, uInfo, LenB(uInfo))
     End If
-    If CreateProcessA(vbNullString, sCommandLine, 0, 0, 1, NORMAL_PRIORITY_CLASS, 0, vbNullString, uStart, uProcInfo) <> 0 Then
+    If CreateProcess(0, StrPtr(sCommandLine), 0, 0, 1, NORMAL_PRIORITY_CLASS, 0, StrPtr(CurrentDir), uStart, uProcInfo) <> 0 Then
         Call CloseHandle(uProcInfo.hThread)
         m_hProcess = uProcInfo.hProcess
         If hJob <> 0 Then
@@ -431,7 +432,7 @@ Public Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As St
     If Not Force And LenB(sArg) <> 0 And Not sArg Like WHITESPACE Then
         ArgvQuote = sArg
     Else
-        With CreateObject("VBScript.RegExp")
+        With VBA.CreateObject("VBScript.RegExp")
             .Global = True
             .Pattern = "(\\+)($|"")|(\\+)"
             ArgvQuote = """" & Replace(.Replace(sArg, "$1$1$2$3"), """", "\""") & """"
