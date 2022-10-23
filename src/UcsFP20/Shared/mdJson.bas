@@ -909,6 +909,41 @@ EH:
     End If
 End Function
 
+Public Function JsonAllKeys(oJson As Object, Optional ByVal Key As String) As Variant
+    Const FUNC_NAME     As String = "JsonAllKeys"
+    Dim oArray          As Object
+    Dim lIdx            As Long
+    Dim sSubKey         As String
+    Dim vElem           As Variant
+    Dim bPath           As Boolean
+
+    On Error GoTo EH
+    JsonValue(oArray, -1) = Key
+    bPath = (Left$(Key, 1) = "$")
+    Do While lIdx < JsonValue(oArray, -1)
+        sSubKey = JsonValue(oArray, lIdx)
+        For Each vElem In JsonKeys(oJson, sSubKey)
+            If bPath And IsOnlyDigits(vElem) Then
+                JsonValue(oArray, -1) = sSubKey & "[" & vElem & "]"
+            ElseIf bPath Then
+                JsonValue(oArray, -1) = sSubKey & "." & vElem
+            ElseIf LenB(sSubKey) <> 0 Then
+                JsonValue(oArray, -1) = sSubKey & "/" & vElem
+            Else
+                JsonValue(oArray, -1) = vElem
+            End If
+        Next
+        lIdx = lIdx + 1
+    Loop
+    JsonValue(oArray, 0) = Empty
+    JsonAllKeys = JsonValue(oArray, "*")
+    Exit Function
+EH:
+    If RaiseError(FUNC_NAME & "(Key=" & Key & ")") = vbRetry Then
+        Resume
+    End If
+End Function
+
 Public Function JsonObjectType(oJson As Object, Optional ByVal Key As String) As String
     Const FUNC_NAME     As String = "JsonObjectType"
     Dim vSplit          As Variant
