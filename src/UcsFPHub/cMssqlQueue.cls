@@ -38,11 +38,11 @@ Private Const STR_SEND_ON_CONV          As String = "SEND ON CONVERSATION '%1' (
 Private Const STR_END_CONV_WITH_ERROR   As String = "END CONVERSATION '%1' WITH ERROR = %2 DESCRIPTION = '%3'"
 Private Const STR_SVC_PREFIX            As String = "UcsFpTargetService"
 '--- i18n ids
-Private Const LANG_QUEUE_SETUP          As Long = 40 ' Опашка %1 слуша за %2 услуги
-Private Const LANG_QUEUE_TERMINATE      As Long = 41 ' Oпашка %1 е терминирана
-Private Const LANG_QUEUE_HEARTBEAT      As Long = 42 ' Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)
-Private Const LANG_QUEUE_ERROR          As Long = 43 ' Опашка %1 за принтер %2 върна грешка %3
-Private Const LANG_UNKNOWN_ERROR        As Long = 44 ' Неизвестна грешка %1
+Private Const LANG_QUEUE_SETUP          As Long = 40 ' РћРїР°С€РєР° %1 СЃР»СѓС€Р° Р·Р° %2 СѓСЃР»СѓРіРё
+Private Const LANG_QUEUE_TERMINATE      As Long = 41 ' OРїР°С€РєР° %1 Рµ С‚РµСЂРјРёРЅРёСЂР°РЅР°
+Private Const LANG_QUEUE_HEARTBEAT      As Long = 42 ' OРїР°С€РєР° %1 С‰Рµ Р±СЉРґРµ СЂРµСЃС‚Р°СЂС‚РёСЂР°РЅР° (РЅРµ РѕС‚РіРѕРІРѕСЂРё РІ СЂР°РјРєРёС‚Рµ РЅР° %2 СЃРµРє.)
+Private Const LANG_QUEUE_ERROR          As Long = 43 ' РћРїР°С€РєР° %1 Р·Р° РїСЂРёРЅС‚РµСЂ %2 РІСЉСЂРЅР° РіСЂРµС€РєР° %3
+Private Const LANG_UNKNOWN_ERROR        As Long = 44 ' РќРµРёР·РІРµСЃС‚РЅР° РіСЂРµС€РєР° %1
 '--- errors
 Private Const ERR_CONNECTION_FAILURE    As String = "*Connection failure*"
 Private Const ERR_TERMINATED_BY_SERVER  As String = "*Connection may have been terminated by the server*"

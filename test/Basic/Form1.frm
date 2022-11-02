@@ -114,15 +114,15 @@ Private Sub Command5_Click()
         JsonValue(oRequest, "DeviceString") = STR_DEVICE_STRING
         JsonValue(oRequest, "Operator/Code") = "1"
         JsonValue(oRequest, "ReceiptType") = ucsFscRcpSale
-        JsonValue(oRow, "ItemName") = "Продукт 1"
+        JsonValue(oRow, "ItemName") = "РџСЂРѕРґСѓРєС‚ 1"
         JsonValue(oRow, "Price") = 5.23
         JsonValue(oRequest, "Rows/-1") = oRow
-        JsonValue(oRequest, "Rows/-1") = Array("Продукт 2", 2, "Б", 1.345)
+        JsonValue(oRequest, "Rows/-1") = Array("РџСЂРѕРґСѓРєС‚ 2", 2, "Р‘", 1.345)
         Set oRow = Nothing
         JsonValue(oRow, "Amount") = 1.23
         JsonValue(oRow, "PaymentType") = 2
         JsonValue(oRequest, "Rows/-1") = oRow
-        JsonValue(oRequest, "Rows/-1") = Array("С карта", 2, 1.5)
+        JsonValue(oRequest, "Rows/-1") = Array("РЎ РєР°СЂС‚Р°", 2, 1.5)
         Debug.Print JsonDump(oRequest)
         If .PrintReceipt(JsonDump(oRequest), sResponse) And JsonParse(sResponse, vJson, sError) Then
             Debug.Print JsonDump(vJson)
@@ -184,8 +184,8 @@ End Sub
 Private Sub Command1_Click()
     On Error GoTo EH
     m_oDP.CancelReceipt
-    m_oDP.StartReceipt ucsFscRcpSale, "1", "Оператор 1", "1", "ZK140945-0001-0000123"
-    m_oDP.AddPLU "Продукт 1", 5.12
+    m_oDP.StartReceipt ucsFscRcpSale, "1", "РћРїРµСЂР°С‚РѕСЂ 1", "1", "ZK140945-0001-0000123"
+    m_oDP.AddPLU "РџСЂРѕРґСѓРєС‚ 1", 5.12
     m_oDP.PrintReceipt
     Exit Sub
 EH:
@@ -195,9 +195,9 @@ End Sub
 Private Sub Command2_Click()
     On Error GoTo EH
     m_oDP.CancelReceipt
-    m_oDP.StartReceipt ucsFscRcpReversal, "1", "Оператор 1", "1", "ZK140945-0001-0000123", _
+    m_oDP.StartReceipt ucsFscRcpReversal, "1", "РћРїРµСЂР°С‚РѕСЂ 1", "1", "ZK140945-0001-0000123", _
         RevType:=ucsFscRevRefund, RevReceiptNo:="51", RevReceiptDate:=Now, RevFiscalMemoryNo:="50178759"
-    m_oDP.AddPLU "Продукт 1", 5, -1
+    m_oDP.AddPLU "РџСЂРѕРґСѓРєС‚ 1", 5, -1
     m_oDP.PrintReceipt
     Exit Sub
 EH:
@@ -208,10 +208,10 @@ End Sub
 Private Sub Command3_Click()
     On Error GoTo EH
     m_oDP.CancelReceipt
-    m_oDP.StartReceipt ucsFscRcpCreditNote, "1", "Оператор 1", "1", "ZK140945-0001-0000124", _
-        InvDocNo:="137", InvCgTaxNo:="130395814", InvCgVatNo:="BG130395814", InvCgName:="Униконт Софт ООД", InvCgCity:="София", InvCgAddress:="бул. Тотлебен 85-87", InvCgPrsReceive:="В. Висулчев", _
-        RevInvoiceNo:="345", RevReceiptNo:="51", RevReceiptDate:=Now, RevFiscalMemoryNo:="50178759", RevReason:="Корекция на количества"
-    m_oDP.AddPLU "Продукт 1", 5, -1
+    m_oDP.StartReceipt ucsFscRcpCreditNote, "1", "РћРїРµСЂР°С‚РѕСЂ 1", "1", "ZK140945-0001-0000124", _
+        InvDocNo:="137", InvCgTaxNo:="130395814", InvCgVatNo:="BG130395814", InvCgName:="РЈРЅРёРєРѕРЅС‚ РЎРѕС„С‚ РћРћР”", InvCgCity:="РЎРѕС„РёСЏ", InvCgAddress:="Р±СѓР». РўРѕС‚Р»РµР±РµРЅ 85-87", InvCgPrsReceive:="Р’. Р’РёСЃСѓР»С‡РµРІ", _
+        RevInvoiceNo:="345", RevReceiptNo:="51", RevReceiptDate:=Now, RevFiscalMemoryNo:="50178759", RevReason:="РљРѕСЂРµРєС†РёСЏ РЅР° РєРѕР»РёС‡РµСЃС‚РІР°"
+    m_oDP.AddPLU "РџСЂРѕРґСѓРєС‚ 1", 5, -1
     m_oDP.PrintReceipt
     Exit Sub
 EH:

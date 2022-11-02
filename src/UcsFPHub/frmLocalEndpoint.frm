@@ -41,8 +41,8 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 '=========================================================================
 
 '--- i18n ids
-Private Const LANG_COM_SETUP            As Long = 2001 ' Слуша на COM сървър с моникер %1
-Private Const LANG_REGISTATION_FAILED   As Long = 2002 ' Невъзможна COM регистрация на моникер %1
+Private Const LANG_COM_SETUP            As Long = 2001 ' РЎР»СѓС€Р° РЅР° COM СЃСЉСЂРІСЉСЂ СЃ РјРѕРЅРёРєРµСЂ %1
+Private Const LANG_REGISTATION_FAILED   As Long = 2002 ' РќРµРІСЉР·РјРѕР¶РЅР° COM СЂРµРіРёСЃС‚СЂР°С†РёСЏ РЅР° РјРѕРЅРёРєРµСЂ %1
 
 Private m_sLastError                As String
 Private m_oController               As cServiceController

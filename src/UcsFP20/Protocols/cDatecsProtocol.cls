@@ -2303,17 +2303,17 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     pvToDevicePmtIndex = -1         ' unsupported
     Select Case PmtType
     Case ucsFscPmtCash
-        pvToDevicePmtIndex = 0      ' 0=SCash (¬ ¡–Œ…)
+        pvToDevicePmtIndex = 0      ' 0=SCash (–í –ë–†–û–ô)
     Case ucsFscPmtCheque
-        pvToDevicePmtIndex = 3      ' 1=SChecks (◊≈ )
+        pvToDevicePmtIndex = 3      ' 1=SChecks (–ß–ï–ö)
     Case ucsFscPmtCoupon
-        pvToDevicePmtIndex = 4      ' 2=ST ( ”œŒÕ)
+        pvToDevicePmtIndex = 4      ' 2=ST (–ö–£–ü–û–ù)
     Case ucsFscPmtVoucher
-        pvToDevicePmtIndex = 5      ' 3=SOT (¬¿”◊≈–)
+        pvToDevicePmtIndex = 5      ' 3=SOT (–í–ê–£–ß–ï–†)
     Case ucsFscPmtCard
-        pvToDevicePmtIndex = 2      ' 7=SCards (ƒ≈¡. ¿–“¿)
+        pvToDevicePmtIndex = 2      ' 7=SCards (–î–ï–ë.–ö–ê–†–¢–ê)
     Case ucsFscPmtCard + PMT_STEP
-        pvToDevicePmtIndex = 1      ' 7=SCards ( –≈ƒ»“)
+        pvToDevicePmtIndex = 1      ' 7=SCards (–ö–†–ï–î–ò–¢)
     End Select
     Exit Function
 EH:

@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin VB.Form frmMain 
-   Caption         =   "Настройки"
+   Caption         =   "РќР°СЃС‚СЂРѕР№РєРё"
    ClientHeight    =   1776
    ClientLeft      =   192
    ClientTop       =   240
@@ -14,7 +14,7 @@ Begin VB.Form frmMain
       Caption         =   "UcsFPHub"
       Visible         =   0   'False
       Begin VB.Menu mnuPopup 
-         Caption         =   "Настройки..."
+         Caption         =   "РќР°СЃС‚СЂРѕР№РєРё..."
          Index           =   0
       End
       Begin VB.Menu mnuPopup 
@@ -22,7 +22,7 @@ Begin VB.Form frmMain
          Index           =   1
       End
       Begin VB.Menu mnuPopup 
-         Caption         =   "Рестарт"
+         Caption         =   "Р РµСЃС‚Р°СЂС‚"
          Index           =   2
       End
       Begin VB.Menu mnuPopup 
@@ -30,7 +30,7 @@ Begin VB.Form frmMain
          Index           =   3
       End
       Begin VB.Menu mnuPopup 
-         Caption         =   "Изход"
+         Caption         =   "РР·С…РѕРґ"
          Index           =   4
       End
    End

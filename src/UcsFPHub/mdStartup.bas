@@ -41,31 +41,31 @@ Public Const STR_SERVICE_MONIKER        As String = STR_SERVICE_NAME & ".LocalEn
 Private Const STR_APPID_GUID            As String = "{6E78E71A-35B2-4D23-A88C-4C2858430329}"
 Private Const STR_LATEST_COMMIT         As String = ""
 '--- i18n ids
-Private Const LANG_SVC_INSTALL          As Long = 1   ' Инсталира NT услуга %1...
-Private Const LANG_SVC_UNINSTALL        As Long = 2   ' Деинсталира NT услуга %1...
-Private Const LANG_SUCCESS              As Long = 3   ' Успех
-Private Const LANG_FAILURE              As Long = 4   ' Грешка
-Private Const LANG_WARN                 As Long = 5   ' Предупреждение
-Private Const LANG_AUTODETECTING_PRINTERS As Long = 6 ' Автоматично търсене на принтери
-Private Const LANG_ENVIRON_VARS_FOUND   As Long = 7   ' Конфигурирани %1 променливи на средата
-Private Const LANG_ONE_PRINTER_FOUND    As Long = 8   ' Намерен 1 принтер
-Private Const LANG_PRINTERS_FOUND       As Long = 9   ' Намерени %1 принтера
-Private Const LANG_PRESS_CTRLC          As Long = 10  ' Натиснете Ctrl+C за изход
-Private Const LANG_LOADING_CONFIG       As Long = 11  ' Зарежда конфигурация от %1
-Private Const LANG_REGISTER_APPID_FAILED As Long = 12 ' Неуспешна регистрация на AppID. %1
-Private Const LANG_ALREADY_RUNNING      As Long = 13  ' COM сървър с моникер %1 вече е стартиран
-Private Const LANG_OPEN_PREVIOUS        As Long = 14  ' Желаете ли да отворите предишната инстанция?
-Private Const LANG_RUNNING_NO_MONIKER   As Long = 15  ' %1 вече е стартиран
-Private Const LANG_USE_PREVIOUS         As Long = 16  ' Желаете ли да използвате предишната инстанция?
-Private Const LANG_PREFIX_ERROR         As Long = 17  ' [Грешка]
-Private Const LANG_PREFIX_WARNING       As Long = 18  ' [Внимание]
+Private Const LANG_SVC_INSTALL          As Long = 1   ' РРЅСЃС‚Р°Р»РёСЂР° NT СѓСЃР»СѓРіР° %1...
+Private Const LANG_SVC_UNINSTALL        As Long = 2   ' Р”РµРёРЅСЃС‚Р°Р»РёСЂР° NT СѓСЃР»СѓРіР° %1...
+Private Const LANG_SUCCESS              As Long = 3   ' РЈСЃРїРµС…
+Private Const LANG_FAILURE              As Long = 4   ' Р“СЂРµС€РєР°
+Private Const LANG_WARN                 As Long = 5   ' РџСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ
+Private Const LANG_AUTODETECTING_PRINTERS As Long = 6 ' РђРІС‚РѕРјР°С‚РёС‡РЅРѕ С‚СЉСЂСЃРµРЅРµ РЅР° РїСЂРёРЅС‚РµСЂРё
+Private Const LANG_ENVIRON_VARS_FOUND   As Long = 7   ' РљРѕРЅС„РёРіСѓСЂРёСЂР°РЅРё %1 РїСЂРѕРјРµРЅР»РёРІРё РЅР° СЃСЂРµРґР°С‚Р°
+Private Const LANG_ONE_PRINTER_FOUND    As Long = 8   ' РќР°РјРµСЂРµРЅ 1 РїСЂРёРЅС‚РµСЂ
+Private Const LANG_PRINTERS_FOUND       As Long = 9   ' РќР°РјРµСЂРµРЅРё %1 РїСЂРёРЅС‚РµСЂР°
+Private Const LANG_PRESS_CTRLC          As Long = 10  ' РќР°С‚РёСЃРЅРµС‚Рµ Ctrl+C Р·Р° РёР·С…РѕРґ
+Private Const LANG_LOADING_CONFIG       As Long = 11  ' Р—Р°СЂРµР¶РґР° РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ РѕС‚ %1
+Private Const LANG_REGISTER_APPID_FAILED As Long = 12 ' РќРµСѓСЃРїРµС€РЅР° СЂРµРіРёСЃС‚СЂР°С†РёСЏ РЅР° AppID. %1
+Private Const LANG_ALREADY_RUNNING      As Long = 13  ' COM СЃСЉСЂРІСЉСЂ СЃ РјРѕРЅРёРєРµСЂ %1 РІРµС‡Рµ Рµ СЃС‚Р°СЂС‚РёСЂР°РЅ
+Private Const LANG_OPEN_PREVIOUS        As Long = 14  ' Р–РµР»Р°РµС‚Рµ Р»Рё РґР° РѕС‚РІРѕСЂРёС‚Рµ РїСЂРµРґРёС€РЅР°С‚Р° РёРЅСЃС‚Р°РЅС†РёСЏ?
+Private Const LANG_RUNNING_NO_MONIKER   As Long = 15  ' %1 РІРµС‡Рµ Рµ СЃС‚Р°СЂС‚РёСЂР°РЅ
+Private Const LANG_USE_PREVIOUS         As Long = 16  ' Р–РµР»Р°РµС‚Рµ Р»Рё РґР° РёР·РїРѕР»Р·РІР°С‚Рµ РїСЂРµРґРёС€РЅР°С‚Р° РёРЅСЃС‚Р°РЅС†РёСЏ?
+Private Const LANG_PREFIX_ERROR         As Long = 17  ' [Р“СЂРµС€РєР°]
+Private Const LANG_PREFIX_WARNING       As Long = 18  ' [Р’РЅРёРјР°РЅРёРµ]
 Private Const LANG_PREFIX_DEBUG         As Long = 19  ' [Debug]
-Private Const LANG_NEW_INSTANCE_CONFIRM As Long = 20  ' Потвърдено стартиране на втора инстанция
+Private Const LANG_NEW_INSTANCE_CONFIRM As Long = 20  ' РџРѕС‚РІСЉСЂРґРµРЅРѕ СЃС‚Р°СЂС‚РёСЂР°РЅРµ РЅР° РІС‚РѕСЂР° РёРЅСЃС‚Р°РЅС†РёСЏ
 '--- errors
-Private Const LANG_CONFIG_NOT_FOUND     As Long = 21  ' Конфигурационен файл %1 не е намерен
-Private Const LANG_PARSING_CONFIG       As Long = 22  ' Невалиден %1: %2
-Private Const LANG_ENUM_PORTS           As Long = 23  ' Енумериране на серийни портове: %1
-Private Const LANG_WARN_ACCESS          As Long = 24  ' Принтер %1 е недостъпен: %2
+Private Const LANG_CONFIG_NOT_FOUND     As Long = 21  ' РљРѕРЅС„РёРіСѓСЂР°С†РёРѕРЅРµРЅ С„Р°Р№Р» %1 РЅРµ Рµ РЅР°РјРµСЂРµРЅ
+Private Const LANG_PARSING_CONFIG       As Long = 22  ' РќРµРІР°Р»РёРґРµРЅ %1: %2
+Private Const LANG_ENUM_PORTS           As Long = 23  ' Р•РЅСѓРјРµСЂРёСЂР°РЅРµ РЅР° СЃРµСЂРёР№РЅРё РїРѕСЂС‚РѕРІРµ: %1
+Private Const LANG_WARN_ACCESS          As Long = 24  ' РџСЂРёРЅС‚РµСЂ %1 Рµ РЅРµРґРѕСЃС‚СЉРїРµРЅ: %2
 '--- formats
 Public Const FORMAT_TIME_ONLY           As String = "hh:nn:ss"
 Public Const FORMAT_DATETIME_LOG        As String = "yyyy.MM.dd hh:nn:ss"
@@ -188,7 +188,7 @@ Public Function Process(vArgs As Variant, ByVal bStarted As Boolean) As Long
         Next
     Next
     If Not C_Bool(m_oOpt.Item("--nologo")) And Not bStarted Then
-        ConsolePrint App.ProductName & " v" & STR_VERSION & vbCrLf & Replace(App.LegalCopyright, "©", "(c)") & vbCrLf & vbCrLf
+        ConsolePrint App.ProductName & " v" & STR_VERSION & vbCrLf & Replace(App.LegalCopyright, "В©", "(c)") & vbCrLf & vbCrLf
     End If
     If C_Bool(m_oOpt.Item("--help")) Then
         ConsolePrint "Usage: " & App.EXEName & ".exe [options...]" & vbCrLf & vbCrLf & _

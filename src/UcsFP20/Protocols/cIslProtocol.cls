@@ -237,8 +237,8 @@ Private Const STR_EXTENDED_DAISY        As String = "1|Overflow after operation|
 Private Const STR_STATUSES_INCO         As String = "Syntax error in the received data|Invalid command code received|The clock is not set|3|4|5|Printer cover is open|7|0|Command not allowed|FM is reset|Invoices range not set|4|Wrong password 3 times|6|7|End of paper|1|2|A fiscal receipt is open|4|A service receipt is open"
 Private Const STR_ERRORS_INCO           As String = "Syntax error in the received data|Invalid command code received|2|3|4|5|6|7|0|Command not allowed|FM is reset|Invoices range not set|4|5|6|7|End of paper"
 Private Const STR_MEMORY_INCO           As String = "Fiscal memory store error|1|Wrong record|There is space for less than 50 records remaining in the FM|The fiscal memory is full|FM error|6|7|FM is in READONLY mode|1|2|Device is fiscalized|VAT are set at least once|Unique Printer ID and Fiscal Memory ID are set"
-Private Const STR_EXTENDED_INCO         As String = "1|Multiplication overflow|2|Daily report overflow|3|Invalid operation|4|The amount of discount if more than subtotal|5|No sum|6|Fiscal receipt overflow|7|Quantity overflow|8|Price or total overflow|9|No value|10|Custom prices are not allowed for this department/item|11|Fraction quantity is not allowed|12|Maximum number of operation for single fiscal receipt reached. Current receipt has to be committed|13|The percent value is outside 0.00 – 99.99 range|14|The operation is not allow as it leads to a negative result|15|Error accessing item|16|Available quantity is less than entered|18|There are no rows in the fiscal receipt|19|Period report overflow|21|Mot enough available sum|22|Operators report overflow|24|Fiscal memory overflow|25|Invalid range for fiscal memory report|26|Items/groups report overflow|28|Cannot print duplicate|29|Invoices will be available after fiscalization|" & _
-                                                    "32|Barcode already used by another item|33|Item/group33|Item/group report required|34|Groups report overflow|36|Insufficient availability|37|Invalid (inactive) tax group|42|Payment type is disabled or does not allow change|43|Invoices range depleted|73|Battery error|75|Total/price overflow programed limit (parameter 2- field 9; parameter 4 – field 6 and 7 for EFSA)|76|Real-time clock error|77|EJ media communication error|78|EJ overflow|79|EJ media not found"
+Private Const STR_EXTENDED_INCO         As String = "1|Multiplication overflow|2|Daily report overflow|3|Invalid operation|4|The amount of discount if more than subtotal|5|No sum|6|Fiscal receipt overflow|7|Quantity overflow|8|Price or total overflow|9|No value|10|Custom prices are not allowed for this department/item|11|Fraction quantity is not allowed|12|Maximum number of operation for single fiscal receipt reached. Current receipt has to be committed|13|The percent value is outside 0.00 вЂ“ 99.99 range|14|The operation is not allow as it leads to a negative result|15|Error accessing item|16|Available quantity is less than entered|18|There are no rows in the fiscal receipt|19|Period report overflow|21|Mot enough available sum|22|Operators report overflow|24|Fiscal memory overflow|25|Invalid range for fiscal memory report|26|Items/groups report overflow|28|Cannot print duplicate|29|Invoices will be available after fiscalization|" & _
+                                                    "32|Barcode already used by another item|33|Item/group33|Item/group report required|34|Groups report overflow|36|Insufficient availability|37|Invalid (inactive) tax group|42|Payment type is disabled or does not allow change|43|Invoices range depleted|73|Battery error|75|Total/price overflow programed limit (parameter 2- field 9; parameter 4 вЂ“ field 6 and 7 for EFSA)|76|Real-time clock error|77|EJ media communication error|78|EJ overflow|79|EJ media not found"
 Private Const DEF_SEP                   As String = ","
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 51
 Private Const DEF_DEVICEINFOTIMEOUT     As Long = 100
@@ -3011,11 +3011,11 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     ElseIf IsDaisy Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
+            pvToDevicePmtIndex = 0      ' P=SCash (Р’ Р‘Р РћР™)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 1      ' N=SCheck (С ЧЕК)
+            pvToDevicePmtIndex = 1      ' N=SCheck (РЎ Р§Р•Рљ)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 2      ' C=SCards (КРЕДИТ)
+            pvToDevicePmtIndex = 2      ' C=SCards (РљР Р•Р”РРў)
         Case ucsFscPmtCash + PMT_STEP
             pvToDevicePmtIndex = 3      ' D=SCash (USD)
         Case ucsFscPmtEUR
@@ -3024,90 +3024,90 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     ElseIf IsIncotex Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
+            pvToDevicePmtIndex = 0      ' P=SCash (Р’ Р‘Р РћР™)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1      ' C=SCards (КР./ДЕБ.КАРТА)
+            pvToDevicePmtIndex = 1      ' C=SCards (РљР ./Р”Р•Р‘.РљРђР РўРђ)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 2      ' N=SCheck (ЧЕК)
+            pvToDevicePmtIndex = 2      ' N=SCheck (Р§Р•Рљ)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 3      ' D=SR1 (НЗОК)
+            pvToDevicePmtIndex = 3      ' D=SR1 (РќР—РћРљ)
         Case ucsFscPmtEUR
-            pvToDevicePmtIndex = 4      ' B=SCash (ДОП.ВАЛУТА)
+            pvToDevicePmtIndex = 4      ' B=SCash (Р”РћРџ.Р’РђР›РЈРўРђ)
         End Select
     ElseIf IsEltrade Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' P=SCash (В брой)
+            pvToDevicePmtIndex = 0      ' P=SCash (Р’ Р±СЂРѕР№)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 1      ' N=SCheck (С чек)
+            pvToDevicePmtIndex = 1      ' N=SCheck (РЎ С‡РµРє)
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 2      ' C=ST (Талон)
+            pvToDevicePmtIndex = 2      ' C=ST (РўР°Р»РѕРЅ)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 3      ' D=SOT (външни талони)
+            pvToDevicePmtIndex = 3      ' D=SOT (РІСЉРЅС€РЅРё С‚Р°Р»РѕРЅРё)
         Case ucsFscPmtPackaging
-            pvToDevicePmtIndex = 4      ' I=SP (амбалаж)
+            pvToDevicePmtIndex = 4      ' I=SP (Р°РјР±Р°Р»Р°Р¶)
         Case ucsFscPmtMaintenance
-            pvToDevicePmtIndex = 5      ' J=SSelf (вътрешно обслужване)
+            pvToDevicePmtIndex = 5      ' J=SSelf (РІСЉС‚СЂРµС€РЅРѕ РѕР±СЃР»СѓР¶РІР°РЅРµ)
         Case ucsFscPmtDamage
-            pvToDevicePmtIndex = 6      ' K=SDmg (повреди)
+            pvToDevicePmtIndex = 6      ' K=SDmg (РїРѕРІСЂРµРґРё)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 7      ' L=SCards (кредитни/дебитни карти)
+            pvToDevicePmtIndex = 7      ' L=SCards (РєСЂРµРґРёС‚РЅРё/РґРµР±РёС‚РЅРё РєР°СЂС‚Рё)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 8      ' M=SW (банкови трансфери)
+            pvToDevicePmtIndex = 8      ' M=SW (Р±Р°РЅРєРѕРІРё С‚СЂР°РЅСЃС„РµСЂРё)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 9      ' Q=SR1 (НЗОК)
+            pvToDevicePmtIndex = 9      ' Q=SR1 (РќР—РћРљ)
         Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 10     ' R=SR2 (Резерв 2)
+            pvToDevicePmtIndex = 10     ' R=SR2 (Р РµР·РµСЂРІ 2)
         End Select
     ElseIf IsEcr Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' P=SCash (В БРОЙ)
+            pvToDevicePmtIndex = 0      ' P=SCash (Р’ Р‘Р РћР™)
         Case ucsFscPmtCard + PMT_STEP
-            pvToDevicePmtIndex = 1      ' N=SCards (КРЕДИТ)
+            pvToDevicePmtIndex = 1      ' N=SCards (РљР Р•Р”РРў)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 2      ' C=SCards (ДЕБ.КАРТА)
+            pvToDevicePmtIndex = 2      ' C=SCards (Р”Р•Р‘.РљРђР РўРђ)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 3      ' D=SR1 (НЗОК)
+            pvToDevicePmtIndex = 3      ' D=SR1 (РќР—РћРљ)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 4      ' J=SOT (ВАУЧЕР)
+            pvToDevicePmtIndex = 4      ' J=SOT (Р’РђРЈР§Р•Р )
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 5      ' I=ST (КУПОН)
+            pvToDevicePmtIndex = 5      ' I=ST (РљРЈРџРћРќ)
         End Select
     Else
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' P=SCash (В брой)
+            pvToDevicePmtIndex = 0      ' P=SCash (Р’ Р±СЂРѕР№)
         Case ucsFscPmtCard + PMT_STEP
-            pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
+            pvToDevicePmtIndex = 1      ' N=SCards (РЎ РєСЂРµРґРёС‚)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
+            pvToDevicePmtIndex = 2      ' C=SChecks (РЎ С‡РµРє)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
+            pvToDevicePmtIndex = 3      ' D=SCards (РЎ РґРµР±РёС‚РЅР° РєР°СЂС‚Р°)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
+            pvToDevicePmtIndex = 4      ' I=SR1 (РџСЂРѕРіСЂР°РјРёСЂСѓРµРј С‚РёРї РїР»Р°С‰Р°РЅРµ 1)
         Case ucsFscPmtCustom1 + PMT_STEP
-            pvToDevicePmtIndex = 5      ' J=SR1 (Програмируем тип плащане 2)
+            pvToDevicePmtIndex = 5      ' J=SR1 (РџСЂРѕРіСЂР°РјРёСЂСѓРµРј С‚РёРї РїР»Р°С‰Р°РЅРµ 2)
         Case ucsFscPmtCustom2 + PMT_STEP
-            pvToDevicePmtIndex = 6      ' K=SR1 (Програмируем тип плащане 3)
+            pvToDevicePmtIndex = 6      ' K=SR1 (РџСЂРѕРіСЂР°РјРёСЂСѓРµРј С‚РёРї РїР»Р°С‰Р°РЅРµ 3)
         Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 4)
+            pvToDevicePmtIndex = 7      ' L=SR2 (РџСЂРѕРіСЂР°РјРёСЂСѓРµРј С‚РёРї РїР»Р°С‰Р°РЅРµ 4)
 '        Case ucsFscPmtCash
 '            pvToDevicePmtIndex = 8      ' unused
 '        Case ucsFscPmtCash
 '            pvToDevicePmtIndex = 9      ' unused
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 10     ' m=ST (Талони)
+            pvToDevicePmtIndex = 10     ' m=ST (РўР°Р»РѕРЅРё)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 11     ' n=SOT (Външни талони)
+            pvToDevicePmtIndex = 11     ' n=SOT (Р’СЉРЅС€РЅРё С‚Р°Р»РѕРЅРё)
         Case ucsFscPmtPackaging
-            pvToDevicePmtIndex = 12     ' o=SP (Амбалаж)
+            pvToDevicePmtIndex = 12     ' o=SP (РђРјР±Р°Р»Р°Р¶)
         Case ucsFscPmtMaintenance
-            pvToDevicePmtIndex = 13     ' p=SSelf (Вътрешно обслужване)
+            pvToDevicePmtIndex = 13     ' p=SSelf (Р’СЉС‚СЂРµС€РЅРѕ РѕР±СЃР»СѓР¶РІР°РЅРµ)
         Case ucsFscPmtDamage
-            pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)
+            pvToDevicePmtIndex = 14     ' q=SDmg (РџРѕРІСЂРµРґРё)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 15     ' r=SW (Банкови трансфери)
+            pvToDevicePmtIndex = 15     ' r=SW (Р‘Р°РЅРєРѕРІРё С‚СЂР°РЅСЃС„РµСЂРё)
         End Select
     End If
     Exit Function

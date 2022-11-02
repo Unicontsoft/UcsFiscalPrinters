@@ -590,7 +590,7 @@ Public Function SplitCgAddress( _
             ByVal lRowChars As Long) As String
     Dim vSplit          As Variant
     
-    sAddress = Replace(sAddress, "Ή", "N")
+    sAddress = Replace(sAddress, "β„–", "N")
     Do While Left$(sAddress, 2) = vbCrLf
         sAddress = LTrim$(Mid$(sAddress, 3))
     Loop
@@ -1361,9 +1361,9 @@ Public Function JsonBoolItem(oJson As Object, sKey As String, Optional ByVal Def
     AssignVariant vValue, JsonValue(oJson, sKey)
     If VarType(vValue) = vbString Then
         Select Case LCase$(vValue)
-        Case "y", "yes", "true", "on", "δ", "δΰ"
+        Case "y", "yes", "true", "on", "Π΄", "Π΄Π°"
             JsonBoolItem = True
-        Case "n", "no", "false", "off", "ν", "νε"
+        Case "n", "no", "false", "off", "Π½", "Π½Πµ"
             JsonBoolItem = False
         Case Else
             If IsNumeric(vValue) Then

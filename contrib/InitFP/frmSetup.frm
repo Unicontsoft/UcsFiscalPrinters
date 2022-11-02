@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin VB.Form frmSetup 
    BorderStyle     =   3  'Fixed Dialog
-   Caption         =   "Настройки"
+   Caption         =   "РќР°СЃС‚СЂРѕР№РєРё"
    ClientHeight    =   6252
    ClientLeft      =   48
    ClientTop       =   336
@@ -30,7 +30,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdStatusReset 
-         Caption         =   "Ресет"
+         Caption         =   "Р РµСЃРµС‚"
          Height          =   375
          Left            =   180
          TabIndex        =   248
@@ -49,7 +49,7 @@ Begin VB.Form frmSetup
          Top             =   2430
          Width           =   5595
          Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Забрана дисплей"
+            Caption         =   "Р—Р°Р±СЂР°РЅР° РґРёСЃРїР»РµР№"
             Height          =   285
             Index           =   6
             Left            =   90
@@ -58,7 +58,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Прозрачен дисплей"
+            Caption         =   "РџСЂРѕР·СЂР°С‡РµРЅ РґРёСЃРїР»РµР№"
             Height          =   285
             Index           =   5
             Left            =   90
@@ -67,7 +67,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Нулиране памет"
+            Caption         =   "РќСѓР»РёСЂР°РЅРµ РїР°РјРµС‚"
             Height          =   285
             Index           =   4
             Left            =   90
@@ -94,7 +94,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Предварителен header"
+            Caption         =   "РџСЂРµРґРІР°СЂРёС‚РµР»РµРЅ header"
             Height          =   285
             Index           =   1
             Left            =   90
@@ -103,7 +103,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusDip 
-            Caption         =   "Центриране header/footer"
+            Caption         =   "Р¦РµРЅС‚СЂРёСЂР°РЅРµ header/footer"
             Height          =   285
             Index           =   0
             Left            =   90
@@ -112,7 +112,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Грешка запис ФП"
+            Caption         =   "Р“СЂРµС€РєР° Р·Р°РїРёСЃ Р¤Рџ"
             Height          =   285
             Index           =   0
             Left            =   90
@@ -121,7 +121,7 @@ Begin VB.Form frmSetup
             Width           =   1995
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Няма ФП"
+            Caption         =   "РќСЏРјР° Р¤Рџ"
             Height          =   285
             Index           =   2
             Left            =   90
@@ -130,7 +130,7 @@ Begin VB.Form frmSetup
             Width           =   1995
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Малко свободна ФП"
+            Caption         =   "РњР°Р»РєРѕ СЃРІРѕР±РѕРґРЅР° Р¤Рџ"
             Height          =   285
             Index           =   3
             Left            =   2880
@@ -139,7 +139,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Пълна ФП"
+            Caption         =   "РџСЉР»РЅР° Р¤Рџ"
             Height          =   285
             Index           =   4
             Left            =   2880
@@ -148,7 +148,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Фискална грешка"
+            Caption         =   "Р¤РёСЃРєР°Р»РЅР° РіСЂРµС€РєР°"
             Height          =   285
             Index           =   5
             Left            =   2880
@@ -157,7 +157,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "ФП само за четене"
+            Caption         =   "Р¤Рџ СЃР°РјРѕ Р·Р° С‡РµС‚РµРЅРµ"
             Height          =   285
             Index           =   8
             Left            =   2880
@@ -166,7 +166,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Форматирана ФП"
+            Caption         =   "Р¤РѕСЂРјР°С‚РёСЂР°РЅР° Р¤Рџ"
             Height          =   285
             Index           =   9
             Left            =   2880
@@ -175,7 +175,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Фискален режим"
+            Caption         =   "Р¤РёСЃРєР°Р»РµРЅ СЂРµР¶РёРј"
             Height          =   285
             Index           =   11
             Left            =   2880
@@ -184,7 +184,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Зададени данъчни ставки"
+            Caption         =   "Р—Р°РґР°РґРµРЅРё РґР°РЅСЉС‡РЅРё СЃС‚Р°РІРєРё"
             Height          =   285
             Index           =   12
             Left            =   2880
@@ -193,7 +193,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusMemory 
-            Caption         =   "Програмиран номер на ФП"
+            Caption         =   "РџСЂРѕРіСЂР°РјРёСЂР°РЅ РЅРѕРјРµСЂ РЅР° Р¤Рџ"
             Height          =   285
             Index           =   13
             Left            =   2880
@@ -214,7 +214,7 @@ Begin VB.Form frmSetup
          Top             =   180
          Width           =   5595
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Синтактична грешка"
+            Caption         =   "РЎРёРЅС‚Р°РєС‚РёС‡РЅР° РіСЂРµС€РєР°"
             Height          =   285
             Index           =   0
             Left            =   90
@@ -223,7 +223,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Невалидна команда"
+            Caption         =   "РќРµРІР°Р»РёРґРЅР° РєРѕРјР°РЅРґР°"
             Height          =   285
             Index           =   1
             Left            =   90
@@ -232,7 +232,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Часовник неустовен"
+            Caption         =   "Р§Р°СЃРѕРІРЅРёРє РЅРµСѓСЃС‚РѕРІРµРЅ"
             Height          =   285
             Index           =   2
             Left            =   90
@@ -241,7 +241,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Не се използва"
+            Caption         =   "РќРµ СЃРµ РёР·РїРѕР»Р·РІР°"
             Height          =   285
             Index           =   3
             Left            =   90
@@ -250,7 +250,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Неизправност механизъм"
+            Caption         =   "РќРµРёР·РїСЂР°РІРЅРѕСЃС‚ РјРµС…Р°РЅРёР·СЉРј"
             Height          =   285
             Index           =   4
             Left            =   90
@@ -259,7 +259,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Обща грешка"
+            Caption         =   "РћР±С‰Р° РіСЂРµС€РєР°"
             Height          =   285
             Index           =   5
             Left            =   90
@@ -268,7 +268,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Препълване"
+            Caption         =   "РџСЂРµРїСЉР»РІР°РЅРµ"
             Height          =   285
             Index           =   8
             Left            =   2880
@@ -277,7 +277,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Невалиден фискален режим"
+            Caption         =   "РќРµРІР°Р»РёРґРµРЅ С„РёСЃРєР°Р»РµРЅ СЂРµР¶РёРј"
             Height          =   285
             Index           =   9
             Left            =   90
@@ -286,7 +286,7 @@ Begin VB.Form frmSetup
             Width           =   2715
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Зануляване памет"
+            Caption         =   "Р—Р°РЅСѓР»СЏРІР°РЅРµ РїР°РјРµС‚"
             Height          =   285
             Index           =   10
             Left            =   2880
@@ -295,7 +295,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Разрушаване памет"
+            Caption         =   "Р Р°Р·СЂСѓС€Р°РІР°РЅРµ РїР°РјРµС‚"
             Height          =   285
             Index           =   12
             Left            =   2880
@@ -304,7 +304,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Няма хартия"
+            Caption         =   "РќСЏРјР° С…Р°СЂС‚РёСЏ"
             Height          =   285
             Index           =   16
             Left            =   2880
@@ -313,7 +313,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Отворен фискален бон"
+            Caption         =   "РћС‚РІРѕСЂРµРЅ С„РёСЃРєР°Р»РµРЅ Р±РѕРЅ"
             Height          =   285
             Index           =   19
             Left            =   2880
@@ -322,7 +322,7 @@ Begin VB.Form frmSetup
             Width           =   2625
          End
          Begin VB.CheckBox chkStatusStatus 
-            Caption         =   "Отворен служебен бон"
+            Caption         =   "РћС‚РІРѕСЂРµРЅ СЃР»СѓР¶РµР±РµРЅ Р±РѕРЅ"
             Height          =   285
             Index           =   21
             Left            =   2880
@@ -332,7 +332,7 @@ Begin VB.Form frmSetup
          End
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Опресняване"
+         Caption         =   "РћРїСЂРµСЃРЅСЏРІР°РЅРµ"
          Height          =   375
          Index           =   8
          Left            =   4320
@@ -349,14 +349,14 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.Frame Frame1 
-         Caption         =   "Зареждане"
+         Caption         =   "Р—Р°СЂРµР¶РґР°РЅРµ"
          Height          =   1185
          Left            =   180
          TabIndex        =   241
          Top             =   3780
          Width           =   5415
          Begin VB.OptionButton optLogoStretch 
-            Caption         =   "Разпънато"
+            Caption         =   "Р Р°Р·РїСЉРЅР°С‚Рѕ"
             Height          =   285
             Left            =   1800
             TabIndex        =   247
@@ -364,7 +364,7 @@ Begin VB.Form frmSetup
             Width           =   1455
          End
          Begin VB.OptionButton optLogoCenter 
-            Caption         =   "Центрирано"
+            Caption         =   "Р¦РµРЅС‚СЂРёСЂР°РЅРѕ"
             Height          =   285
             Left            =   180
             TabIndex        =   246
@@ -373,7 +373,7 @@ Begin VB.Form frmSetup
             Width           =   1545
          End
          Begin VB.CommandButton cmdLogoOpen 
-            Caption         =   "Избор"
+            Caption         =   "РР·Р±РѕСЂ"
             Height          =   375
             Left            =   3960
             TabIndex        =   243
@@ -392,7 +392,7 @@ Begin VB.Form frmSetup
          Begin VB.Label Label73 
             AutoSize        =   -1  'True
             BackStyle       =   0  'Transparent
-            Caption         =   "Ниво на черно:"
+            Caption         =   "РќРёРІРѕ РЅР° С‡РµСЂРЅРѕ:"
             Height          =   390
             Left            =   180
             TabIndex        =   245
@@ -413,7 +413,7 @@ Begin VB.Form frmSetup
          End
       End
       Begin VB.CheckBox chkLogoPrint 
-         Caption         =   "Печат графично лого преди header"
+         Caption         =   "РџРµС‡Р°С‚ РіСЂР°С„РёС‡РЅРѕ Р»РѕРіРѕ РїСЂРµРґРё header"
          Height          =   285
          Left            =   180
          TabIndex        =   239
@@ -454,7 +454,7 @@ Begin VB.Form frmSetup
          End
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   4
          Left            =   4320
@@ -465,7 +465,7 @@ Begin VB.Form frmSetup
       Begin VB.Label labLogoInfo 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Размери"
+         Caption         =   "Р Р°Р·РјРµСЂРё"
          Height          =   195
          Left            =   180
          TabIndex        =   240
@@ -493,7 +493,7 @@ Begin VB.Form frmSetup
          Width           =   1545
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   5
          Left            =   4320
@@ -520,7 +520,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label49 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Текущ номер:"
+         Caption         =   "РўРµРєСѓС‰ РЅРѕРјРµСЂ:"
          Height          =   195
          Left            =   180
          TabIndex        =   161
@@ -531,7 +531,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label48 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Краен номер:"
+         Caption         =   "РљСЂР°РµРЅ РЅРѕРјРµСЂ:"
          Height          =   195
          Left            =   180
          TabIndex        =   159
@@ -542,7 +542,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label47 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Начален номер:"
+         Caption         =   "РќР°С‡Р°Р»РµРЅ РЅРѕРјРµСЂ:"
          Height          =   195
          Left            =   180
          TabIndex        =   158
@@ -559,7 +559,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.OptionButton optReportType 
-         Caption         =   "Отчет оператори"
+         Caption         =   "РћС‚С‡РµС‚ РѕРїРµСЂР°С‚РѕСЂРё"
          Height          =   285
          Index           =   5
          Left            =   180
@@ -568,7 +568,7 @@ Begin VB.Form frmSetup
          Width           =   5145
       End
       Begin VB.CheckBox chkReportDetailed1 
-         Caption         =   "Детайлен"
+         Caption         =   "Р”РµС‚Р°Р№Р»РµРЅ"
          Height          =   285
          Left            =   900
          TabIndex        =   75
@@ -590,7 +590,7 @@ Begin VB.Form frmSetup
          Width           =   1095
       End
       Begin VB.CheckBox chkReportDetailed2 
-         Caption         =   "Детайлен"
+         Caption         =   "Р”РµС‚Р°Р№Р»РµРЅ"
          Height          =   285
          Left            =   900
          TabIndex        =   79
@@ -612,7 +612,7 @@ Begin VB.Form frmSetup
          Width           =   1095
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Печат"
+         Caption         =   "РџРµС‡Р°С‚"
          Height          =   375
          Index           =   7
          Left            =   4320
@@ -621,7 +621,7 @@ Begin VB.Form frmSetup
          Width           =   1275
       End
       Begin VB.OptionButton optReportType 
-         Caption         =   "Натрупани суми за период"
+         Caption         =   "РќР°С‚СЂСѓРїР°РЅРё СЃСѓРјРё Р·Р° РїРµСЂРёРѕРґ"
          Enabled         =   0   'False
          Height          =   285
          Index           =   4
@@ -631,7 +631,7 @@ Begin VB.Form frmSetup
          Width           =   5145
       End
       Begin VB.OptionButton optReportType 
-         Caption         =   "Периодичен отчет по дата на запис"
+         Caption         =   "РџРµСЂРёРѕРґРёС‡РµРЅ РѕС‚С‡РµС‚ РїРѕ РґР°С‚Р° РЅР° Р·Р°РїРёСЃ"
          Height          =   285
          Index           =   3
          Left            =   180
@@ -640,7 +640,7 @@ Begin VB.Form frmSetup
          Width           =   5145
       End
       Begin VB.OptionButton optReportType 
-         Caption         =   "Периодичен отчет по номер на запис"
+         Caption         =   "РџРµСЂРёРѕРґРёС‡РµРЅ РѕС‚С‡РµС‚ РїРѕ РЅРѕРјРµСЂ РЅР° Р·Р°РїРёСЃ"
          Height          =   285
          Index           =   2
          Left            =   180
@@ -649,7 +649,7 @@ Begin VB.Form frmSetup
          Width           =   5145
       End
       Begin VB.OptionButton optReportType 
-         Caption         =   "Данъчни ставки"
+         Caption         =   "Р”Р°РЅСЉС‡РЅРё СЃС‚Р°РІРєРё"
          Enabled         =   0   'False
          Height          =   285
          Index           =   1
@@ -659,7 +659,7 @@ Begin VB.Form frmSetup
          Width           =   5145
       End
       Begin VB.CheckBox chkReportDepartments 
-         Caption         =   "Департаменти"
+         Caption         =   "Р”РµРїР°СЂС‚Р°РјРµРЅС‚Рё"
          Height          =   285
          Left            =   3960
          TabIndex        =   71
@@ -667,7 +667,7 @@ Begin VB.Form frmSetup
          Width           =   1725
       End
       Begin VB.CheckBox chkReportItems 
-         Caption         =   "Артикули"
+         Caption         =   "РђСЂС‚РёРєСѓР»Рё"
          Height          =   285
          Left            =   2430
          TabIndex        =   70
@@ -675,7 +675,7 @@ Begin VB.Form frmSetup
          Width           =   1725
       End
       Begin VB.CheckBox chkReportClosure 
-         Caption         =   "Нулиране"
+         Caption         =   "РќСѓР»РёСЂР°РЅРµ"
          Height          =   285
          Left            =   900
          TabIndex        =   69
@@ -683,7 +683,7 @@ Begin VB.Form frmSetup
          Width           =   1725
       End
       Begin VB.OptionButton optReportType 
-         Caption         =   "Дневен финансов отчет"
+         Caption         =   "Р”РЅРµРІРµРЅ С„РёРЅР°РЅСЃРѕРІ РѕС‚С‡РµС‚"
          Height          =   285
          Index           =   0
          Left            =   180
@@ -695,7 +695,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label64 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "От номер:"
+         Caption         =   "РћС‚ РЅРѕРјРµСЂ:"
          Height          =   195
          Left            =   900
          TabIndex        =   187
@@ -707,7 +707,7 @@ Begin VB.Form frmSetup
          Alignment       =   1  'Right Justify
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "до: "
+         Caption         =   "РґРѕ: "
          Height          =   195
          Left            =   2520
          TabIndex        =   186
@@ -719,7 +719,7 @@ Begin VB.Form frmSetup
          Alignment       =   1  'Right Justify
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "до: "
+         Caption         =   "РґРѕ: "
          Height          =   195
          Left            =   2520
          TabIndex        =   185
@@ -730,7 +730,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label61 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "От дата:"
+         Caption         =   "РћС‚ РґР°С‚Р°:"
          Height          =   300
          Left            =   900
          TabIndex        =   184
@@ -765,7 +765,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkConnectRemember 
-         Caption         =   "Автоматично свързване"
+         Caption         =   "РђРІС‚РѕРјР°С‚РёС‡РЅРѕ СЃРІСЉСЂР·РІР°РЅРµ"
          Height          =   195
          Left            =   1620
          TabIndex        =   3
@@ -787,7 +787,7 @@ Begin VB.Form frmSetup
          Width           =   1635
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Свързване"
+         Caption         =   "РЎРІСЉСЂР·РІР°РЅРµ"
          Height          =   375
          Index           =   0
          Left            =   4320
@@ -817,7 +817,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label1 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Сериен порт:"
+         Caption         =   "РЎРµСЂРёРµРЅ РїРѕСЂС‚:"
          Height          =   195
          Left            =   180
          TabIndex        =   90
@@ -828,7 +828,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label2 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Скорост:"
+         Caption         =   "РЎРєРѕСЂРѕСЃС‚:"
          Height          =   195
          Left            =   180
          TabIndex        =   89
@@ -875,7 +875,7 @@ Begin VB.Form frmSetup
          Width           =   3525
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Печат"
+         Caption         =   "РџРµС‡Р°С‚"
          Height          =   375
          Index           =   9
          Left            =   4320
@@ -897,7 +897,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label56 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Контролна сума:"
+         Caption         =   "РљРѕРЅС‚СЂРѕР»РЅР° СЃСѓРјР°:"
          Height          =   195
          Left            =   180
          TabIndex        =   177
@@ -908,7 +908,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label55 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Ключета Sw1..Sw4:"
+         Caption         =   "РљР»СЋС‡РµС‚Р° Sw1..Sw4:"
          Height          =   195
          Left            =   180
          TabIndex        =   176
@@ -925,7 +925,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.OptionButton optCashOut 
-         Caption         =   "Износ"
+         Caption         =   "РР·РЅРѕСЃ"
          Height          =   285
          Left            =   3150
          TabIndex        =   65
@@ -933,7 +933,7 @@ Begin VB.Form frmSetup
          Width           =   1455
       End
       Begin VB.OptionButton optCashIn 
-         Caption         =   "Внос"
+         Caption         =   "Р’РЅРѕСЃ"
          Height          =   285
          Left            =   2070
          TabIndex        =   64
@@ -950,7 +950,7 @@ Begin VB.Form frmSetup
          Width           =   1545
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Внос/износ"
+         Caption         =   "Р’РЅРѕСЃ/РёР·РЅРѕСЃ"
          Height          =   375
          Index           =   6
          Left            =   4320
@@ -994,7 +994,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label53 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Сума:"
+         Caption         =   "РЎСѓРјР°:"
          Height          =   195
          Left            =   180
          TabIndex        =   169
@@ -1005,7 +1005,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label52 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Служебен износ:"
+         Caption         =   "РЎР»СѓР¶РµР±РµРЅ РёР·РЅРѕСЃ:"
          Height          =   195
          Left            =   180
          TabIndex        =   168
@@ -1016,7 +1016,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label51 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Служебен внос:"
+         Caption         =   "РЎР»СѓР¶РµР±РµРЅ РІРЅРѕСЃ:"
          Height          =   195
          Left            =   180
          TabIndex        =   166
@@ -1027,7 +1027,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label50 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Наличност каса:"
+         Caption         =   "РќР°Р»РёС‡РЅРѕСЃС‚ РєР°СЃР°:"
          Height          =   195
          Left            =   180
          TabIndex        =   164
@@ -1054,7 +1054,7 @@ Begin VB.Form frmSetup
          Width           =   2985
       End
       Begin VB.CommandButton cmdItemDelete 
-         Caption         =   "Изтриване"
+         Caption         =   "РР·С‚СЂРёРІР°РЅРµ"
          Height          =   375
          Left            =   4320
          TabIndex        =   62
@@ -1062,7 +1062,7 @@ Begin VB.Form frmSetup
          Width           =   1275
       End
       Begin VB.CommandButton cmdItemNew 
-         Caption         =   "Нов"
+         Caption         =   "РќРѕРІ"
          Height          =   375
          Left            =   2970
          TabIndex        =   61
@@ -1125,7 +1125,7 @@ Begin VB.Form frmSetup
          Width           =   2985
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   13
          Left            =   4320
@@ -1156,7 +1156,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label72 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Модифициран на:"
+         Caption         =   "РњРѕРґРёС„РёС†РёСЂР°РЅ РЅР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   233
@@ -1167,7 +1167,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label71 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Сума:"
+         Caption         =   "РЎСѓРјР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   199
@@ -1178,7 +1178,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label70 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Цена:"
+         Caption         =   "Р¦РµРЅР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   197
@@ -1200,7 +1200,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label68 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Данъчна група:"
+         Caption         =   "Р”Р°РЅСЉС‡РЅР° РіСЂСѓРїР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   195
@@ -1211,7 +1211,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label67 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Количество:"
+         Caption         =   "РљРѕР»РёС‡РµСЃС‚РІРѕ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   194
@@ -1222,7 +1222,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label66 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Наименование:"
+         Caption         =   "РќР°РёРјРµРЅРѕРІР°РЅРёРµ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   192
@@ -1233,7 +1233,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label65 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Номер:"
+         Caption         =   "РќРѕРјРµСЂ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   191
@@ -1321,7 +1321,7 @@ Begin VB.Form frmSetup
          Width           =   2265
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   12
          Left            =   4320
@@ -1340,7 +1340,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label37 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Сума за деня:"
+         Caption         =   "РЎСѓРјР° Р·Р° РґРµРЅСЏ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   139
@@ -1351,7 +1351,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label36 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Последна сума:"
+         Caption         =   "РџРѕСЃР»РµРґРЅР° СЃСѓРјР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   137
@@ -1362,7 +1362,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label35 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Брой продажби:"
+         Caption         =   "Р‘СЂРѕР№ РїСЂРѕРґР°Р¶Р±Рё:"
          Height          =   195
          Left            =   2610
          TabIndex        =   135
@@ -1373,7 +1373,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label34 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Данъчна група:"
+         Caption         =   "Р”Р°РЅСЉС‡РЅР° РіСЂСѓРїР°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   133
@@ -1384,7 +1384,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label33 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Номер:"
+         Caption         =   "РќРѕРјРµСЂ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   132
@@ -1395,7 +1395,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label32 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Поясняващ текст:"
+         Caption         =   "РџРѕСЏСЃРЅСЏРІР°С‰ С‚РµРєСЃС‚:"
          Height          =   195
          Left            =   2610
          TabIndex        =   130
@@ -1406,7 +1406,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label31 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Наименование:"
+         Caption         =   "РќР°РёРјРµРЅРѕРІР°РЅРёРµ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   129
@@ -1423,7 +1423,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdOperReset 
-         Caption         =   "Нулиране"
+         Caption         =   "РќСѓР»РёСЂР°РЅРµ"
          Height          =   375
          Left            =   4320
          TabIndex        =   47
@@ -1515,7 +1515,7 @@ Begin VB.Form frmSetup
          Width           =   2985
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   11
          Left            =   4320
@@ -1546,7 +1546,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label46 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Пак парола:"
+         Caption         =   "РџР°Рє РїР°СЂРѕР»Р°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   156
@@ -1557,7 +1557,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label45 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Нова парола:"
+         Caption         =   "РќРѕРІР° РїР°СЂРѕР»Р°:"
          Height          =   195
          Left            =   2610
          TabIndex        =   155
@@ -1568,7 +1568,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label44 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Надбавки:"
+         Caption         =   "РќР°РґР±Р°РІРєРё:"
          Height          =   195
          Left            =   2610
          TabIndex        =   154
@@ -1579,7 +1579,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label43 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Корекции:"
+         Caption         =   "РљРѕСЂРµРєС†РёРё:"
          Height          =   195
          Left            =   2610
          TabIndex        =   153
@@ -1590,7 +1590,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label42 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Фискални бонове:"
+         Caption         =   "Р¤РёСЃРєР°Р»РЅРё Р±РѕРЅРѕРІРµ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   150
@@ -1601,7 +1601,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label41 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Продажби:"
+         Caption         =   "РџСЂРѕРґР°Р¶Р±Рё:"
          Height          =   195
          Left            =   2610
          TabIndex        =   149
@@ -1612,7 +1612,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label40 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Отстъпки:"
+         Caption         =   "РћС‚СЃС‚СЉРїРєРё:"
          Height          =   195
          Left            =   2610
          TabIndex        =   148
@@ -1623,7 +1623,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label39 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Наименование:"
+         Caption         =   "РќР°РёРјРµРЅРѕРІР°РЅРёРµ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   144
@@ -1634,7 +1634,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label38 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Номер:"
+         Caption         =   "РќРѕРјРµСЂ:"
          Height          =   195
          Left            =   2610
          TabIndex        =   143
@@ -1678,7 +1678,7 @@ Begin VB.Form frmSetup
          Width           =   3525
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   10
          Left            =   4320
@@ -1698,7 +1698,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label60 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 4:"
+         Caption         =   "РўРёРї РїР»Р°С‰Р°РЅРµ 4:"
          Height          =   195
          Left            =   180
          TabIndex        =   183
@@ -1709,7 +1709,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label59 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 3:"
+         Caption         =   "РўРёРї РїР»Р°С‰Р°РЅРµ 3:"
          Height          =   195
          Left            =   180
          TabIndex        =   182
@@ -1720,7 +1720,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label58 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 2:"
+         Caption         =   "РўРёРї РїР»Р°С‰Р°РЅРµ 2:"
          Height          =   195
          Left            =   180
          TabIndex        =   181
@@ -1731,7 +1731,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label54 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Тип плащане 1:"
+         Caption         =   "РўРёРї РїР»Р°С‰Р°РЅРµ 1:"
          Height          =   195
          Left            =   180
          TabIndex        =   180
@@ -1748,7 +1748,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CheckBox chkHeadFormatInvoice 
-         Caption         =   "Форматиране като фактура на всички фискални бонове"
+         Caption         =   "Р¤РѕСЂРјР°С‚РёСЂР°РЅРµ РєР°С‚Рѕ С„Р°РєС‚СѓСЂР° РЅР° РІСЃРёС‡РєРё С„РёСЃРєР°Р»РЅРё Р±РѕРЅРѕРІРµ"
          Height          =   285
          Left            =   180
          TabIndex        =   33
@@ -1788,7 +1788,7 @@ Begin VB.Form frmSetup
          Width           =   1275
       End
       Begin VB.CheckBox chkHeadAdvanceHeader 
-         Caption         =   "Предварителен header (пести хартия)"
+         Caption         =   "РџСЂРµРґРІР°СЂРёС‚РµР»РµРЅ header (РїРµСЃС‚Рё С…Р°СЂС‚РёСЏ)"
          Height          =   285
          Left            =   180
          TabIndex        =   35
@@ -1796,7 +1796,7 @@ Begin VB.Form frmSetup
          Width           =   4065
       End
       Begin VB.CheckBox chkHeadVat 
-         Caption         =   "Печат ДДС в неразширен фискален бон"
+         Caption         =   "РџРµС‡Р°С‚ Р”Р”РЎ РІ РЅРµСЂР°Р·С€РёСЂРµРЅ С„РёСЃРєР°Р»РµРЅ Р±РѕРЅ"
          Height          =   285
          Left            =   180
          TabIndex        =   34
@@ -1804,7 +1804,7 @@ Begin VB.Form frmSetup
          Width           =   4065
       End
       Begin VB.CheckBox chkHeadSumDivider 
-         Caption         =   "Разделителна линия преди обща сума"
+         Caption         =   "Р Р°Р·РґРµР»РёС‚РµР»РЅР° Р»РёРЅРёСЏ РїСЂРµРґРё РѕР±С‰Р° СЃСѓРјР°"
          Height          =   285
          Left            =   180
          TabIndex        =   29
@@ -1812,7 +1812,7 @@ Begin VB.Form frmSetup
          Width           =   5415
       End
       Begin VB.CheckBox chkHeadEmptyFooter 
-         Caption         =   "Празна линия след footer"
+         Caption         =   "РџСЂР°Р·РЅР° Р»РёРЅРёСЏ СЃР»РµРґ footer"
          Height          =   285
          Left            =   2970
          TabIndex        =   28
@@ -1820,7 +1820,7 @@ Begin VB.Form frmSetup
          Width           =   2715
       End
       Begin VB.CheckBox chkHeadEmptyHeader 
-         Caption         =   "Празна линия след header"
+         Caption         =   "РџСЂР°Р·РЅР° Р»РёРЅРёСЏ СЃР»РµРґ header"
          Height          =   285
          Left            =   180
          TabIndex        =   27
@@ -1884,7 +1884,7 @@ Begin VB.Form frmSetup
          Width           =   3525
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   3
          Left            =   4320
@@ -1893,7 +1893,7 @@ Begin VB.Form frmSetup
          Width           =   1275
       End
       Begin VB.CheckBox chkHeadRateEUR 
-         Caption         =   "Курс: "
+         Caption         =   "РљСѓСЂСЃ: "
          Height          =   285
          Left            =   2970
          TabIndex        =   31
@@ -1901,7 +1901,7 @@ Begin VB.Form frmSetup
          Width           =   1185
       End
       Begin VB.CheckBox chkHeadSumEUR 
-         Caption         =   "Печат обща сума в EUR"
+         Caption         =   "РџРµС‡Р°С‚ РѕР±С‰Р° СЃСѓРјР° РІ EUR"
          Height          =   285
          Left            =   180
          TabIndex        =   30
@@ -1923,7 +1923,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label29 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "БУЛСТАТ:"
+         Caption         =   "Р‘РЈР›РЎРўРђРў:"
          Height          =   195
          Left            =   180
          TabIndex        =   125
@@ -2028,7 +2028,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdDateTransfer 
-         Caption         =   "От системна"
+         Caption         =   "РћС‚ СЃРёСЃС‚РµРјРЅР°"
          Height          =   375
          Left            =   2070
          TabIndex        =   15
@@ -2078,7 +2078,7 @@ Begin VB.Form frmSetup
          Width           =   1635
       End
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   2
          Left            =   4320
@@ -2089,7 +2089,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label21 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Системен час:"
+         Caption         =   "РЎРёСЃС‚РµРјРµРЅ С‡Р°СЃ:"
          Height          =   195
          Left            =   180
          TabIndex        =   113
@@ -2100,7 +2100,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label19 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Системна дата:"
+         Caption         =   "РЎРёСЃС‚РµРјРЅР° РґР°С‚Р°:"
          Height          =   195
          Left            =   180
          TabIndex        =   112
@@ -2111,7 +2111,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label18 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Принтер дата:"
+         Caption         =   "РџСЂРёРЅС‚РµСЂ РґР°С‚Р°:"
          Height          =   195
          Left            =   180
          TabIndex        =   111
@@ -2122,7 +2122,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label17 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Принтер час:"
+         Caption         =   "РџСЂРёРЅС‚РµСЂ С‡Р°СЃ:"
          Height          =   195
          Left            =   180
          TabIndex        =   110
@@ -2139,7 +2139,7 @@ Begin VB.Form frmSetup
       Top             =   90
       Width           =   5775
       Begin VB.CommandButton cmdSave 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Height          =   375
          Index           =   1
          Left            =   4320
@@ -2282,7 +2282,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label12 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Група Г:"
+         Caption         =   "Р“СЂСѓРїР° Р“:"
          Height          =   195
          Left            =   180
          TabIndex        =   104
@@ -2293,7 +2293,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label11 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Група В:"
+         Caption         =   "Р“СЂСѓРїР° Р’:"
          Height          =   195
          Left            =   180
          TabIndex        =   103
@@ -2304,7 +2304,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label10 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Група Б:"
+         Caption         =   "Р“СЂСѓРїР° Р‘:"
          Height          =   195
          Left            =   180
          TabIndex        =   102
@@ -2315,7 +2315,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label9 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Група А:"
+         Caption         =   "Р“СЂСѓРїР° Рђ:"
          Height          =   195
          Left            =   180
          TabIndex        =   101
@@ -2326,7 +2326,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label8 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Разрешени ставки:"
+         Caption         =   "Р Р°Р·СЂРµС€РµРЅРё СЃС‚Р°РІРєРё:"
          Height          =   195
          Left            =   180
          TabIndex        =   100
@@ -2337,7 +2337,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label7 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Парична единица:"
+         Caption         =   "РџР°СЂРёС‡РЅР° РµРґРёРЅРёС†Р°:"
          Height          =   195
          Left            =   180
          TabIndex        =   99
@@ -2348,7 +2348,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label6 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Десетични знаци:"
+         Caption         =   "Р”РµСЃРµС‚РёС‡РЅРё Р·РЅР°С†Рё:"
          Height          =   195
          Left            =   180
          TabIndex        =   98
@@ -2359,7 +2359,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label5 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Държава:"
+         Caption         =   "Р”СЉСЂР¶Р°РІР°:"
          Height          =   195
          Left            =   180
          TabIndex        =   96
@@ -2370,7 +2370,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label4 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Сериен номер:"
+         Caption         =   "РЎРµСЂРёРµРЅ РЅРѕРјРµСЂ:"
          Height          =   195
          Left            =   180
          TabIndex        =   94
@@ -2381,7 +2381,7 @@ Begin VB.Form frmSetup
       Begin VB.Label Label3 
          AutoSize        =   -1  'True
          BackStyle       =   0  'Transparent
-         Caption         =   "Номер на модула:"
+         Caption         =   "РќРѕРјРµСЂ РЅР° РјРѕРґСѓР»Р°:"
          Height          =   195
          Left            =   180
          TabIndex        =   92
@@ -2491,45 +2491,45 @@ Private Const FORMAT_CURRENCY       As String = "#0.00######"
 Private Const LNG_LOGO_FORECOLOR    As Long = &H800000
 '--- strings
 Private Const STR_SPEEDS            As String = "115200|38400|9600|19200|57600"
-Private Const STR_COMMANDS          As String = "Връзка принтер|Настройки|    Данъчна информация|    Дата и час|    Header и footer|    Номера на фактури|    Допълнителни типове|    Оператори|    Департаменти|    Артикули|    Графично лого|Операции|    Внос и износ|    Печат отчети|Администрация|    Диагностика|    Статус|    Журнал комуникация"
-Private Const STR_GROUPS            As String = "А|Б|В|Г"
+Private Const STR_COMMANDS          As String = "Р’СЂСЉР·РєР° РїСЂРёРЅС‚РµСЂ|РќР°СЃС‚СЂРѕР№РєРё|    Р”Р°РЅСЉС‡РЅР° РёРЅС„РѕСЂРјР°С†РёСЏ|    Р”Р°С‚Р° Рё С‡Р°СЃ|    Header Рё footer|    РќРѕРјРµСЂР° РЅР° С„Р°РєС‚СѓСЂРё|    Р”РѕРїСЉР»РЅРёС‚РµР»РЅРё С‚РёРїРѕРІРµ|    РћРїРµСЂР°С‚РѕСЂРё|    Р”РµРїР°СЂС‚Р°РјРµРЅС‚Рё|    РђСЂС‚РёРєСѓР»Рё|    Р“СЂР°С„РёС‡РЅРѕ Р»РѕРіРѕ|РћРїРµСЂР°С†РёРё|    Р’РЅРѕСЃ Рё РёР·РЅРѕСЃ|    РџРµС‡Р°С‚ РѕС‚С‡РµС‚Рё|РђРґРјРёРЅРёСЃС‚СЂР°С†РёСЏ|    Р”РёР°РіРЅРѕСЃС‚РёРєР°|    РЎС‚Р°С‚СѓСЃ|    Р–СѓСЂРЅР°Р» РєРѕРјСѓРЅРёРєР°С†РёСЏ"
+Private Const STR_GROUPS            As String = "Рђ|Р‘|Р’|Р“"
 Private Const STR_NA                As String = "N/A"
-Private Const STR_STATUS_CONNECTING As String = "Свързване..."
-Private Const STR_STATUS_SUCCESS_CONNECT As String = "Свързан %1"
-Private Const STR_STATUS_FAILURE_CONNECT As String = "Няма връзка"
-Private Const STR_STATUS_SAVING     As String = "Запазване..."
-Private Const STR_STATUS_SUCCESS_SAVE As String = "Успешно запазване на %1 (%2 сек.)"
-Private Const STR_STATUS_FETCHING   As String = "Получаване..."
-Private Const STR_STATUS_SUCCESS_FETCH As String = "Успешно получаване на %1 (%2 сек.)"
-Private Const STR_STATUS_NOT_IMPLEMENTED As String = "Не е реализирано"
-Private Const STR_STATUS_NO_DEP_SELECTED As String = "Липсва избран департамент"
-Private Const STR_STATUS_FETCH_DEP  As String = "Получаване департамент %1 от " & LNG_NUM_DEPS & "..."
-Private Const STR_STATUS_ENUM_PORTS As String = "Изброяване на налични принтери..."
-Private Const STR_STATUS_FETCH_OPER As String = "Получаване опрератор %1 от " & LNG_NUM_OPERS & "..."
-Private Const STR_STATUS_NO_OPER_SELECTED As String = "Липсва избран оператор"
-Private Const STR_STATUS_OPER_RESETTING As String = "Нулиране..."
-Private Const STR_STATUS_OPER_SUCCESS_RESET As String = "Успешно нулиране на оператор %1"
-Private Const STR_STATUS_REFRESH    As String = "Опресняване..."
-Private Const STR_STATUS_PRINT      As String = "Отпечатване..."
-Private Const STR_STATUS_NO_ITEM_GROUP As String = "Моля изберете група на артикул"
-Private Const STR_STATUS_NO_ITEM_PLU As String = "Моля въведен PLU на артикул"
-Private Const STR_STATUS_NO_ITEM_PRICE As String = "Моля въведена цена на артикул"
-Private Const STR_STATUS_NO_ITEM_NAME As String = "Моля въведено наименование на артикул"
-Private Const STR_STATUS_ITEM_FAILURE_ADD As String = "Невъзможно добавяне. %1 свободни позиции артикули"
-Private Const STR_STATUS_ITEM_DELETING As String = "Изтриване..."
-Private Const STR_STATUS_ITEM_SUCCESS_DELETE As String = "Успешно изтриване на артикул PLU %1"
-Private Const STR_STATUS_FETCH_LOGO As String = "Получаване на ред %1..."
-Private Const STR_STATUS_SAVE_LOGO  As String = "Запис на ред %1/%2..."
-Private Const STR_OPER_PASS_PROMPT  As String = "Парола на Оператор %1"
-Private Const STR_OPER_PASS_CAPTION As String = "Парола за достъп"
-Private Const STR_LOGO_DIMENSIONS   As String = "Размер на графика: %1x%2"
-Private Const STR_STATUS_RESETTING  As String = "Ресет..."
+Private Const STR_STATUS_CONNECTING As String = "РЎРІСЉСЂР·РІР°РЅРµ..."
+Private Const STR_STATUS_SUCCESS_CONNECT As String = "РЎРІСЉСЂР·Р°РЅ %1"
+Private Const STR_STATUS_FAILURE_CONNECT As String = "РќСЏРјР° РІСЂСЉР·РєР°"
+Private Const STR_STATUS_SAVING     As String = "Р—Р°РїР°Р·РІР°РЅРµ..."
+Private Const STR_STATUS_SUCCESS_SAVE As String = "РЈСЃРїРµС€РЅРѕ Р·Р°РїР°Р·РІР°РЅРµ РЅР° %1 (%2 СЃРµРє.)"
+Private Const STR_STATUS_FETCHING   As String = "РџРѕР»СѓС‡Р°РІР°РЅРµ..."
+Private Const STR_STATUS_SUCCESS_FETCH As String = "РЈСЃРїРµС€РЅРѕ РїРѕР»СѓС‡Р°РІР°РЅРµ РЅР° %1 (%2 СЃРµРє.)"
+Private Const STR_STATUS_NOT_IMPLEMENTED As String = "РќРµ Рµ СЂРµР°Р»РёР·РёСЂР°РЅРѕ"
+Private Const STR_STATUS_NO_DEP_SELECTED As String = "Р›РёРїСЃРІР° РёР·Р±СЂР°РЅ РґРµРїР°СЂС‚Р°РјРµРЅС‚"
+Private Const STR_STATUS_FETCH_DEP  As String = "РџРѕР»СѓС‡Р°РІР°РЅРµ РґРµРїР°СЂС‚Р°РјРµРЅС‚ %1 РѕС‚ " & LNG_NUM_DEPS & "..."
+Private Const STR_STATUS_ENUM_PORTS As String = "РР·Р±СЂРѕСЏРІР°РЅРµ РЅР° РЅР°Р»РёС‡РЅРё РїСЂРёРЅС‚РµСЂРё..."
+Private Const STR_STATUS_FETCH_OPER As String = "РџРѕР»СѓС‡Р°РІР°РЅРµ РѕРїСЂРµСЂР°С‚РѕСЂ %1 РѕС‚ " & LNG_NUM_OPERS & "..."
+Private Const STR_STATUS_NO_OPER_SELECTED As String = "Р›РёРїСЃРІР° РёР·Р±СЂР°РЅ РѕРїРµСЂР°С‚РѕСЂ"
+Private Const STR_STATUS_OPER_RESETTING As String = "РќСѓР»РёСЂР°РЅРµ..."
+Private Const STR_STATUS_OPER_SUCCESS_RESET As String = "РЈСЃРїРµС€РЅРѕ РЅСѓР»РёСЂР°РЅРµ РЅР° РѕРїРµСЂР°С‚РѕСЂ %1"
+Private Const STR_STATUS_REFRESH    As String = "РћРїСЂРµСЃРЅСЏРІР°РЅРµ..."
+Private Const STR_STATUS_PRINT      As String = "РћС‚РїРµС‡Р°С‚РІР°РЅРµ..."
+Private Const STR_STATUS_NO_ITEM_GROUP As String = "РњРѕР»СЏ РёР·Р±РµСЂРµС‚Рµ РіСЂСѓРїР° РЅР° Р°СЂС‚РёРєСѓР»"
+Private Const STR_STATUS_NO_ITEM_PLU As String = "РњРѕР»СЏ РІСЉРІРµРґРµРЅ PLU РЅР° Р°СЂС‚РёРєСѓР»"
+Private Const STR_STATUS_NO_ITEM_PRICE As String = "РњРѕР»СЏ РІСЉРІРµРґРµРЅР° С†РµРЅР° РЅР° Р°СЂС‚РёРєСѓР»"
+Private Const STR_STATUS_NO_ITEM_NAME As String = "РњРѕР»СЏ РІСЉРІРµРґРµРЅРѕ РЅР°РёРјРµРЅРѕРІР°РЅРёРµ РЅР° Р°СЂС‚РёРєСѓР»"
+Private Const STR_STATUS_ITEM_FAILURE_ADD As String = "РќРµРІСЉР·РјРѕР¶РЅРѕ РґРѕР±Р°РІСЏРЅРµ. %1 СЃРІРѕР±РѕРґРЅРё РїРѕР·РёС†РёРё Р°СЂС‚РёРєСѓР»Рё"
+Private Const STR_STATUS_ITEM_DELETING As String = "РР·С‚СЂРёРІР°РЅРµ..."
+Private Const STR_STATUS_ITEM_SUCCESS_DELETE As String = "РЈСЃРїРµС€РЅРѕ РёР·С‚СЂРёРІР°РЅРµ РЅР° Р°СЂС‚РёРєСѓР» PLU %1"
+Private Const STR_STATUS_FETCH_LOGO As String = "РџРѕР»СѓС‡Р°РІР°РЅРµ РЅР° СЂРµРґ %1..."
+Private Const STR_STATUS_SAVE_LOGO  As String = "Р—Р°РїРёСЃ РЅР° СЂРµРґ %1/%2..."
+Private Const STR_OPER_PASS_PROMPT  As String = "РџР°СЂРѕР»Р° РЅР° РћРїРµСЂР°С‚РѕСЂ %1"
+Private Const STR_OPER_PASS_CAPTION As String = "РџР°СЂРѕР»Р° Р·Р° РґРѕСЃС‚СЉРї"
+Private Const STR_LOGO_DIMENSIONS   As String = "Р Р°Р·РјРµСЂ РЅР° РіСЂР°С„РёРєР°: %1x%2"
+Private Const STR_STATUS_RESETTING  As String = "Р РµСЃРµС‚..."
 '--- messages
-Private Const MSG_INVALID_PASSWORD  As String = "Некоректна парола" & vbCrLf & vbCrLf & "Паролите се състоят от 4 до 6 цифри"
-Private Const MSG_PASSWORDS_MISMATCH As String = "Паролите не съвпадат"
-Private Const MSG_REJECTED_PASSWORD As String = "Невалидна парола на оператор"
-Private Const MSG_REQUEST_CANCELLED As String = "Заявката е отказана"
-Private Const MSG_CONFIRM_ITEM_DELETE As String = "Желаете ли да изтриете артикул PLU %1?"
+Private Const MSG_INVALID_PASSWORD  As String = "РќРµРєРѕСЂРµРєС‚РЅР° РїР°СЂРѕР»Р°" & vbCrLf & vbCrLf & "РџР°СЂРѕР»РёС‚Рµ СЃРµ СЃСЉСЃС‚РѕСЏС‚ РѕС‚ 4 РґРѕ 6 С†РёС„СЂРё"
+Private Const MSG_PASSWORDS_MISMATCH As String = "РџР°СЂРѕР»РёС‚Рµ РЅРµ СЃСЉРІРїР°РґР°С‚"
+Private Const MSG_REJECTED_PASSWORD As String = "РќРµРІР°Р»РёРґРЅР° РїР°СЂРѕР»Р° РЅР° РѕРїРµСЂР°С‚РѕСЂ"
+Private Const MSG_REQUEST_CANCELLED As String = "Р—Р°СЏРІРєР°С‚Р° Рµ РѕС‚РєР°Р·Р°РЅР°"
+Private Const MSG_CONFIRM_ITEM_DELETE As String = "Р–РµР»Р°РµС‚Рµ Р»Рё РґР° РёР·С‚СЂРёРµС‚Рµ Р°СЂС‚РёРєСѓР» PLU %1?"
 
 Private WithEvents m_oFP        As cIslProtocol
 Attribute m_oFP.VB_VarHelpID = -1

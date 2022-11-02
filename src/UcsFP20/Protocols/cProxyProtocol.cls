@@ -37,11 +37,11 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
-Private Const DEF_HEADERS               As String = "Наименование на задълженото лице|Адрес на задълженото лице|Наименование на обект|Адрес на обект"
-Private Const DEF_FOOTERS               As String = "Заповядайте отново!"
-Private Const DEF_PMTNAMES              As String = "В брой|С чек|Талони|В.талони|Амбалаж|В.обслужване|Повреди|С карта|По банкa|НЗОК|Прог.тип 2"
-Private Const DEF_TAXCAPTION            As String = "ЕИК"
-Private Const DEF_TAXNO                 As String = "Незададен"
+Private Const DEF_HEADERS               As String = "РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЅР° Р·Р°РґСЉР»Р¶РµРЅРѕС‚Рѕ Р»РёС†Рµ|РђРґСЂРµСЃ РЅР° Р·Р°РґСЉР»Р¶РµРЅРѕС‚Рѕ Р»РёС†Рµ|РќР°РёРјРµРЅРѕРІР°РЅРёРµ РЅР° РѕР±РµРєС‚|РђРґСЂРµСЃ РЅР° РѕР±РµРєС‚"
+Private Const DEF_FOOTERS               As String = "Р—Р°РїРѕРІСЏРґР°Р№С‚Рµ РѕС‚РЅРѕРІРѕ!"
+Private Const DEF_PMTNAMES              As String = "Р’ Р±СЂРѕР№|РЎ С‡РµРє|РўР°Р»РѕРЅРё|Р’.С‚Р°Р»РѕРЅРё|РђРјР±Р°Р»Р°Р¶|Р’.РѕР±СЃР»СѓР¶РІР°РЅРµ|РџРѕРІСЂРµРґРё|РЎ РєР°СЂС‚Р°|РџРѕ Р±Р°РЅРєa|РќР—РћРљ|РџСЂРѕРі.С‚РёРї 2"
+Private Const DEF_TAXCAPTION            As String = "Р•РРљ"
+Private Const DEF_TAXNO                 As String = "РќРµР·Р°РґР°РґРµРЅ"
 Private Const DEF_TAXRATES              As String = "0|20|20|9"
 '--- numeric
 Private Const READYSTATE_COMPLETE       As Long = 4

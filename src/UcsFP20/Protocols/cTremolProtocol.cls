@@ -2403,29 +2403,29 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     If pvExtendedPmtTypes Then
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' 0=SCash (Лева)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Р›РµРІР°)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 1      ' 1=SChecks (Чек)
+            pvToDevicePmtIndex = 1      ' 1=SChecks (Р§РµРє)
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 2      ' 2=ST (Талон)
+            pvToDevicePmtIndex = 2      ' 2=ST (РўР°Р»РѕРЅ)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 3      ' 3=SOT (В.Талон)
+            pvToDevicePmtIndex = 3      ' 3=SOT (Р’.РўР°Р»РѕРЅ)
         Case ucsFscPmtPackaging
-            pvToDevicePmtIndex = 4      ' 4=SP (Амбалаж)
+            pvToDevicePmtIndex = 4      ' 4=SP (РђРјР±Р°Р»Р°Р¶)
         Case ucsFscPmtMaintenance
-            pvToDevicePmtIndex = 5      ' 5=SSelf (Обслужване)
+            pvToDevicePmtIndex = 5      ' 5=SSelf (РћР±СЃР»СѓР¶РІР°РЅРµ)
         Case ucsFscPmtDamage
-            pvToDevicePmtIndex = 6      ' 6=SDmg (Повреди)
+            pvToDevicePmtIndex = 6      ' 6=SDmg (РџРѕРІСЂРµРґРё)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 7      ' 7=SCards (Карта)
+            pvToDevicePmtIndex = 7      ' 7=SCards (РљР°СЂС‚Р°)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 8      ' 8=SW (Банка)
+            pvToDevicePmtIndex = 8      ' 8=SW (Р‘Р°РЅРєР°)
         Case ucsFscPmtCustom1
-            pvToDevicePmtIndex = 9      ' 9=SR1 (Резерв 1)
+            pvToDevicePmtIndex = 9      ' 9=SR1 (Р РµР·РµСЂРІ 1)
         Case ucsFscPmtCustom2
-            pvToDevicePmtIndex = 10     ' 10=SR2 (Резерв 2)
+            pvToDevicePmtIndex = 10     ' 10=SR2 (Р РµР·РµСЂРІ 2)
         Case ucsFscPmtEUR
-            pvToDevicePmtIndex = 11     ' 0=SCash (Евро)
+            pvToDevicePmtIndex = 11     ' 0=SCash (Р•РІСЂРѕ)
         End Select
     ElseIf Not m_uConfig.PmtMapping Is Nothing Then
         AssignVariant vInfo, JsonValue(C_Obj(m_uConfig.PmtMapping), "#" & (PmtType - ucsFscPmtCash))
@@ -2435,15 +2435,15 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
     Else
         Select Case PmtType
         Case ucsFscPmtCash
-            pvToDevicePmtIndex = 0      ' 0=SCash (Лева)
+            pvToDevicePmtIndex = 0      ' 0=SCash (Р›РµРІР°)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 1      ' 7=SCards (Карта)
+            pvToDevicePmtIndex = 1      ' 7=SCards (РљР°СЂС‚Р°)
         Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 2      ' 1=SChecks (Чек)
+            pvToDevicePmtIndex = 2      ' 1=SChecks (Р§РµРє)
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 3      ' 2=ST (Талон)
+            pvToDevicePmtIndex = 3      ' 2=ST (РўР°Р»РѕРЅ)
         Case ucsFscPmtEUR
-            pvToDevicePmtIndex = 4      ' 0=SCash (Евро)
+            pvToDevicePmtIndex = 4      ' 0=SCash (Р•РІСЂРѕ)
         End Select
     End If
     Exit Function

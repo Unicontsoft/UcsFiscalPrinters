@@ -3,7 +3,7 @@ Attribute VB_Name = "mdNtService"
 '
 ' NtService Helpers (c) 2019 by wqweto@gmail.com
 '
-' Based on NT Service module © 2000-2004 Sergey Merzlikin (sm@smsoft.ru)
+' Based on NT Service module Â© 2000-2004 Sergey Merzlikin (sm@smsoft.ru)
 '
 ' This project is licensed under the terms of the MIT license
 ' See the LICENSE file in the project root for more information

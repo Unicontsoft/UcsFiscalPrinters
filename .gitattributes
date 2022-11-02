@@ -1,18 +1,85 @@
-# Auto detect text files and perform LF normalization
-* text=auto eol=crlf
+# VB6 source files (show diff + keep CRLF in zip download)
 
-*.dll binary
-*.pdb binary
-*.doc binary
-*.docx binary
-*.pdf binary
-*.zip binary
-*.gz binary
-*.frx binary
-*.ico binary
-*.ods binary
-*.xls binary
-*.cmp binary
-*.png binary
-*.res binary
-*.ctl linguist-language=vba
+*.bas        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.cls        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.ctl        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.dob        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.dsr        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.frm        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.pag        working-tree-encoding=CP1251 text eol=crlf linguist-language=vba
+*.vbg        working-tree-encoding=CP1251 text eol=crlf
+*.vbl        working-tree-encoding=CP1251 text eol=crlf
+*.vbp        working-tree-encoding=CP1251 text eol=crlf
+*.vbr        working-tree-encoding=CP1251 text eol=crlf
+*.vbw        working-tree-encoding=CP1251 text eol=crlf
+ 
+# Other source files (show diff + LF only in zip download)
+
+*.asm        text
+*.asp        text
+*.bat        text
+*.c          text
+*.cpp        text
+*.dsp        text
+*.dsw        text
+*.h          text
+*.idl        text
+*.java       text
+*.js         text
+*.manifest   text
+*.odl        text
+*.php        text
+*.php3       text
+*.rc         text
+*.sln        text
+*.sql        text
+*.vb         text
+*.vbs        text
+
+# Binary
+
+*.res        binary
+*.frx        binary
+*.ctx        binary
+*.dsx        binary
+*.exe        binary
+*.dll        binary
+*.ocx        binary
+*.cmp        binary
+*.pdb        binary
+*.tlb        binary
+*.xls        binary
+*.doc        binary
+*.ppt        binary
+*.xlsx       binary
+*.docx       binary
+*.pptx       binary
+*.chm        binary
+*.hlp        binary
+*.jpg        binary
+*.png        binary
+*.bmp        binary
+*.gif        binary
+*.ico        binary
+*.zip        binary
+*.cab        binary
+*.7z         binary
+
+# Text files but keep as binary (no diff)
+
+# *.cfg        text
+# *.conf       text
+# *.csi        text
+# *.css        text
+# *.csv        text
+# *.def        text
+# *.htm        text
+# *.html       text
+# *.inf        text
+# *.ini        text
+# *.log        text
+# *.reg        text
+# *.rtf        text
+# *.txt        text
+# *.url        text
+# *.xml        text

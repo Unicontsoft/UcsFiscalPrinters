@@ -47,11 +47,11 @@ Private Const STR_END_CONV_WITH_ERROR   As String = "INSERT      `umq_messages`(
                                                     "            , '%3' AS `message_body`" & vbCrLf & _
                                                     "            , CURRENT_TIMESTAMP(3)  AS `created_at`;"
 '--- i18n ids
-Private Const LANG_QUEUE_SETUP          As Long = 40 ' Опашка %1 слуша за %2 услуги
-Private Const LANG_QUEUE_TERMINATE      As Long = 41 ' Oпашка %1 е терминирана
-Private Const LANG_QUEUE_HEARTBEAT      As Long = 42 ' Oпашка %1 ще бъде рестартирана (не отговори в рамките на %2 сек.)
-Private Const LANG_QUEUE_ERROR          As Long = 43 ' Опашка %1 за принтер %2 върна грешка %3
-Private Const LANG_UNKNOWN_ERROR        As Long = 44 ' Неизвестна грешка %1
+Private Const LANG_QUEUE_SETUP          As Long = 40 ' РћРїР°С€РєР° %1 СЃР»СѓС€Р° Р·Р° %2 СѓСЃР»СѓРіРё
+Private Const LANG_QUEUE_TERMINATE      As Long = 41 ' OРїР°С€РєР° %1 Рµ С‚РµСЂРјРёРЅРёСЂР°РЅР°
+Private Const LANG_QUEUE_HEARTBEAT      As Long = 42 ' OРїР°С€РєР° %1 С‰Рµ Р±СЉРґРµ СЂРµСЃС‚Р°СЂС‚РёСЂР°РЅР° (РЅРµ РѕС‚РіРѕРІРѕСЂРё РІ СЂР°РјРєРёС‚Рµ РЅР° %2 СЃРµРє.)
+Private Const LANG_QUEUE_ERROR          As Long = 43 ' РћРїР°С€РєР° %1 Р·Р° РїСЂРёРЅС‚РµСЂ %2 РІСЉСЂРЅР° РіСЂРµС€РєР° %3
+Private Const LANG_UNKNOWN_ERROR        As Long = 44 ' РќРµРёР·РІРµСЃС‚РЅР° РіСЂРµС€РєР° %1
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 Private Const LNG_QUEUE_FIELDS          As Long = 5

@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin VB.Form frmSettings 
-   Caption         =   "Настройки"
+   Caption         =   "РќР°СЃС‚СЂРѕР№РєРё"
    ClientHeight    =   8124
    ClientLeft      =   192
    ClientTop       =   840
@@ -34,7 +34,7 @@ Begin VB.Form frmSettings
       Visible         =   0   'False
       Width           =   9924
       Begin VB.CommandButton cmdTest 
-         Caption         =   "Тест"
+         Caption         =   "РўРµСЃС‚"
          Height          =   432
          Left            =   8484
          TabIndex        =   9
@@ -43,7 +43,7 @@ Begin VB.Form frmSettings
          Width           =   1104
       End
       Begin VB.Frame fraQuickSetup 
-         Caption         =   "Бързи настройки"
+         Caption         =   "Р‘СЉСЂР·Рё РЅР°СЃС‚СЂРѕР№РєРё"
          Height          =   4884
          Left            =   0
          TabIndex        =   16
@@ -67,7 +67,7 @@ Begin VB.Form frmSettings
             Width           =   1440
          End
          Begin VB.CheckBox chkAutoDetect 
-            Caption         =   "Автоматично откриване на устройства"
+            Caption         =   "РђРІС‚РѕРјР°С‚РёС‡РЅРѕ РѕС‚РєСЂРёРІР°РЅРµ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІР°"
             Height          =   516
             Left            =   252
             TabIndex        =   0
@@ -76,7 +76,7 @@ Begin VB.Form frmSettings
             Width           =   4128
          End
          Begin VB.CommandButton cmdApply 
-            Caption         =   "Прилагане"
+            Caption         =   "РџСЂРёР»Р°РіР°РЅРµ"
             Height          =   432
             Left            =   2772
             TabIndex        =   7
@@ -118,7 +118,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Журнален файл:"
+            Caption         =   "Р–СѓСЂРЅР°Р»РµРЅ С„Р°Р№Р»:"
             Height          =   192
             Index           =   5
             Left            =   252
@@ -130,7 +130,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Сериен номер на ФУ:"
+            Caption         =   "РЎРµСЂРёРµРЅ РЅРѕРјРµСЂ РЅР° Р¤РЈ:"
             Height          =   192
             Index           =   4
             Left            =   252
@@ -142,7 +142,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Парола по подразбиране:"
+            Caption         =   "РџР°СЂРѕР»Р° РїРѕ РїРѕРґСЂР°Р·Р±РёСЂР°РЅРµ:"
             Height          =   192
             Index           =   3
             Left            =   252
@@ -154,7 +154,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Протокол за комуникация:"
+            Caption         =   "РџСЂРѕС‚РѕРєРѕР» Р·Р° РєРѕРјСѓРЅРёРєР°С†РёСЏ:"
             Height          =   192
             Index           =   0
             Left            =   252
@@ -166,7 +166,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Скорост на комуникация:"
+            Caption         =   "РЎРєРѕСЂРѕСЃС‚ РЅР° РєРѕРјСѓРЅРёРєР°С†РёСЏ:"
             Height          =   192
             Index           =   2
             Left            =   252
@@ -178,7 +178,7 @@ Begin VB.Form frmSettings
          End
          Begin VB.Label labLabel 
             AutoSize        =   -1  'True
-            Caption         =   "Комуникационен порт:"
+            Caption         =   "РљРѕРјСѓРЅРёРєР°С†РёРѕРЅРµРЅ РїРѕСЂС‚:"
             Height          =   192
             Index           =   1
             Left            =   252
@@ -278,13 +278,13 @@ Begin VB.Form frmSettings
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      Layout          =   "Устройства|Конфигурация|Журнал"
+      Layout          =   "РЈСЃС‚СЂРѕР№СЃС‚РІР°|РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ|Р–СѓСЂРЅР°Р»"
    End
    Begin VB.Menu mnuMain 
-      Caption         =   "Файл"
+      Caption         =   "Р¤Р°Р№Р»"
       Index           =   0
       Begin VB.Menu mnuFile 
-         Caption         =   "Запис"
+         Caption         =   "Р—Р°РїРёСЃ"
          Index           =   0
          Shortcut        =   ^S
       End
@@ -293,7 +293,7 @@ Begin VB.Form frmSettings
          Index           =   1
       End
       Begin VB.Menu mnuFile 
-         Caption         =   "Рестарт"
+         Caption         =   "Р РµСЃС‚Р°СЂС‚"
          Index           =   2
          Shortcut        =   ^R
       End
@@ -302,16 +302,16 @@ Begin VB.Form frmSettings
          Index           =   3
       End
       Begin VB.Menu mnuFile 
-         Caption         =   "Изход"
+         Caption         =   "РР·С…РѕРґ"
          Index           =   4
          Shortcut        =   ^W
       End
    End
    Begin VB.Menu mnuMain 
-      Caption         =   "Редакция"
+      Caption         =   "Р РµРґР°РєС†РёСЏ"
       Index           =   1
       Begin VB.Menu mnuEdit 
-         Caption         =   "Върни"
+         Caption         =   "Р’СЉСЂРЅРё"
          Index           =   0
          Shortcut        =   ^Z
       End
@@ -320,22 +320,22 @@ Begin VB.Form frmSettings
          Index           =   1
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Изрежи"
+         Caption         =   "РР·СЂРµР¶Рё"
          Index           =   2
          Shortcut        =   ^X
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Копирай"
+         Caption         =   "РљРѕРїРёСЂР°Р№"
          Index           =   3
          Shortcut        =   ^C
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Постави"
+         Caption         =   "РџРѕСЃС‚Р°РІРё"
          Index           =   4
          Shortcut        =   ^V
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Изтрий"
+         Caption         =   "РР·С‚СЂРёР№"
          Index           =   5
          Shortcut        =   {DEL}
       End
@@ -344,7 +344,7 @@ Begin VB.Form frmSettings
          Index           =   6
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Избери всичко"
+         Caption         =   "РР·Р±РµСЂРё РІСЃРёС‡РєРѕ"
          Index           =   7
          Shortcut        =   ^A
       End
@@ -353,16 +353,16 @@ Begin VB.Form frmSettings
          Index           =   8
       End
       Begin VB.Menu mnuEdit 
-         Caption         =   "Обнови"
+         Caption         =   "РћР±РЅРѕРІРё"
          Index           =   9
          Shortcut        =   {F5}
       End
    End
    Begin VB.Menu mnuMain 
-      Caption         =   "Помощ"
+      Caption         =   "РџРѕРјРѕС‰"
       Index           =   2
       Begin VB.Menu mnuHelp 
-         Caption         =   "Проверка нова версия"
+         Caption         =   "РџСЂРѕРІРµСЂРєР° РЅРѕРІР° РІРµСЂСЃРёСЏ"
          Index           =   0
       End
       Begin VB.Menu mnuHelp 
@@ -370,7 +370,7 @@ Begin VB.Form frmSettings
          Index           =   1
       End
       Begin VB.Menu mnuHelp 
-         Caption         =   "Относно"
+         Caption         =   "РћС‚РЅРѕСЃРЅРѕ"
          Index           =   2
       End
    End
@@ -440,33 +440,33 @@ End Type
 Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
 '--- i18n ids
-Private Const LANG_CAPTION_FORM         As Long = 1001 ' Настройки на %1
-Private Const LANG_CAPTION_PRINTERS     As Long = 1002 ' Устройства
-Private Const LANG_CAPTION_CONFIG       As Long = 1003 ' Конфигурация
-Private Const LANG_CAPTION_LOG          As Long = 1004 ' Журнал
-Private Const LANG_HEADER_PRINTERS      As Long = 1005 ' Сериен No.|Порт|Хост|Модел|Версия
-Private Const LANG_CAPTION_APPLY        As Long = 1006 ' Прилагане
-Private Const LANG_CAPTION_DISCOVERY    As Long = 1007 ' Търсене
-Private Const LANG_SAVE_CHANGES         As Long = 1008 ' Желаете ли да запазите модификациите на %1?
-Private Const LANG_SAVE_SUCCESS         As Long = 1009 ' Успешен запис на %1! vbCrLf & vbCrLf Желаете ли да рестартирате %2 за да активирате промените?
-Private Const LANG_PRINTER_NOT_FOUND    As Long = 1010 ' Не е открито фискалното устройство с тези настройки. vbCrLf & vbCrLf Желаете ли повторно прилагане?
-Private Const LANG_SUCCESS_FOUND        As Long = 1011 ' Успешно конфигуриране на фискално устройство %1!
-Private Const LANG_UPDATE_FOUND         As Long = 1012 ' Желаете ли да обновите %1 до последна версия след рестартиране?
-Private Const LANG_NO_UPDATE            As Long = 1013 ' Не е намерена по-нова версия на %1
-Private Const LANG_MENU_MAIN            As Long = 1014 ' Файл|Редакция|Помощ
-Private Const LANG_MENU_FILE            As Long = 1015 ' Запис|-|Рестарт|-|Изход
-Private Const LANG_MENU_EDIT            As Long = 1016 ' Върни|-|Изрежи|Копирай|Постави|Изтрий|-|Избери всичко|-|Обнови
-Private Const LANG_MENU_HELP            As Long = 1017 ' Проверка нова версия|-|Относно
-Private Const LANG_LAYOUT_TABS          As Long = 1018 ' Устройства|Конфигурация|Журнал
-Private Const LANG_CAPTION_TEST         As Long = 1019 ' Тест
-Private Const LANG_CAPTION_QUICK_SETUP  As Long = 1020 ' Бързи настройки
-Private Const LANG_CAPTION_AUTO_DETECT  As Long = 1021 ' Автоматично откриване на устройства
-Private Const LANG_LABEL_PROTOCOL       As Long = 1022 ' Протокол за комуникация
-Private Const LANG_LABEL_PORT           As Long = 1023 ' Комуникационен порт
-Private Const LANG_LABEL_SPEED          As Long = 1024 ' Скорост на комуникация
-Private Const LANG_LABEL_DEF_PASSWORD   As Long = 1025 ' Парола по подразбиране
-Private Const LANG_LABEL_SERIAL_NO      As Long = 1026 ' Сериен номер на ФУ
-Private Const LANG_LABEL_LOG_FILE       As Long = 1027 ' Журнален файл
+Private Const LANG_CAPTION_FORM         As Long = 1001 ' РќР°СЃС‚СЂРѕР№РєРё РЅР° %1
+Private Const LANG_CAPTION_PRINTERS     As Long = 1002 ' РЈСЃС‚СЂРѕР№СЃС‚РІР°
+Private Const LANG_CAPTION_CONFIG       As Long = 1003 ' РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ
+Private Const LANG_CAPTION_LOG          As Long = 1004 ' Р–СѓСЂРЅР°Р»
+Private Const LANG_HEADER_PRINTERS      As Long = 1005 ' РЎРµСЂРёРµРЅ No.|РџРѕСЂС‚|РҐРѕСЃС‚|РњРѕРґРµР»|Р’РµСЂСЃРёСЏ
+Private Const LANG_CAPTION_APPLY        As Long = 1006 ' РџСЂРёР»Р°РіР°РЅРµ
+Private Const LANG_CAPTION_DISCOVERY    As Long = 1007 ' РўСЉСЂСЃРµРЅРµ
+Private Const LANG_SAVE_CHANGES         As Long = 1008 ' Р–РµР»Р°РµС‚Рµ Р»Рё РґР° Р·Р°РїР°Р·РёС‚Рµ РјРѕРґРёС„РёРєР°С†РёРёС‚Рµ РЅР° %1?
+Private Const LANG_SAVE_SUCCESS         As Long = 1009 ' РЈСЃРїРµС€РµРЅ Р·Р°РїРёСЃ РЅР° %1! vbCrLf & vbCrLf Р–РµР»Р°РµС‚Рµ Р»Рё РґР° СЂРµСЃС‚Р°СЂС‚РёСЂР°С‚Рµ %2 Р·Р° РґР° Р°РєС‚РёРІРёСЂР°С‚Рµ РїСЂРѕРјРµРЅРёС‚Рµ?
+Private Const LANG_PRINTER_NOT_FOUND    As Long = 1010 ' РќРµ Рµ РѕС‚РєСЂРёС‚Рѕ С„РёСЃРєР°Р»РЅРѕС‚Рѕ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ СЃ С‚РµР·Рё РЅР°СЃС‚СЂРѕР№РєРё. vbCrLf & vbCrLf Р–РµР»Р°РµС‚Рµ Р»Рё РїРѕРІС‚РѕСЂРЅРѕ РїСЂРёР»Р°РіР°РЅРµ?
+Private Const LANG_SUCCESS_FOUND        As Long = 1011 ' РЈСЃРїРµС€РЅРѕ РєРѕРЅС„РёРіСѓСЂРёСЂР°РЅРµ РЅР° С„РёСЃРєР°Р»РЅРѕ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ %1!
+Private Const LANG_UPDATE_FOUND         As Long = 1012 ' Р–РµР»Р°РµС‚Рµ Р»Рё РґР° РѕР±РЅРѕРІРёС‚Рµ %1 РґРѕ РїРѕСЃР»РµРґРЅР° РІРµСЂСЃРёСЏ СЃР»РµРґ СЂРµСЃС‚Р°СЂС‚РёСЂР°РЅРµ?
+Private Const LANG_NO_UPDATE            As Long = 1013 ' РќРµ Рµ РЅР°РјРµСЂРµРЅР° РїРѕ-РЅРѕРІР° РІРµСЂСЃРёСЏ РЅР° %1
+Private Const LANG_MENU_MAIN            As Long = 1014 ' Р¤Р°Р№Р»|Р РµРґР°РєС†РёСЏ|РџРѕРјРѕС‰
+Private Const LANG_MENU_FILE            As Long = 1015 ' Р—Р°РїРёСЃ|-|Р РµСЃС‚Р°СЂС‚|-|РР·С…РѕРґ
+Private Const LANG_MENU_EDIT            As Long = 1016 ' Р’СЉСЂРЅРё|-|РР·СЂРµР¶Рё|РљРѕРїРёСЂР°Р№|РџРѕСЃС‚Р°РІРё|РР·С‚СЂРёР№|-|РР·Р±РµСЂРё РІСЃРёС‡РєРѕ|-|РћР±РЅРѕРІРё
+Private Const LANG_MENU_HELP            As Long = 1017 ' РџСЂРѕРІРµСЂРєР° РЅРѕРІР° РІРµСЂСЃРёСЏ|-|РћС‚РЅРѕСЃРЅРѕ
+Private Const LANG_LAYOUT_TABS          As Long = 1018 ' РЈСЃС‚СЂРѕР№СЃС‚РІР°|РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ|Р–СѓСЂРЅР°Р»
+Private Const LANG_CAPTION_TEST         As Long = 1019 ' РўРµСЃС‚
+Private Const LANG_CAPTION_QUICK_SETUP  As Long = 1020 ' Р‘СЉСЂР·Рё РЅР°СЃС‚СЂРѕР№РєРё
+Private Const LANG_CAPTION_AUTO_DETECT  As Long = 1021 ' РђРІС‚РѕРјР°С‚РёС‡РЅРѕ РѕС‚РєСЂРёРІР°РЅРµ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІР°
+Private Const LANG_LABEL_PROTOCOL       As Long = 1022 ' РџСЂРѕС‚РѕРєРѕР» Р·Р° РєРѕРјСѓРЅРёРєР°С†РёСЏ
+Private Const LANG_LABEL_PORT           As Long = 1023 ' РљРѕРјСѓРЅРёРєР°С†РёРѕРЅРµРЅ РїРѕСЂС‚
+Private Const LANG_LABEL_SPEED          As Long = 1024 ' РЎРєРѕСЂРѕСЃС‚ РЅР° РєРѕРјСѓРЅРёРєР°С†РёСЏ
+Private Const LANG_LABEL_DEF_PASSWORD   As Long = 1025 ' РџР°СЂРѕР»Р° РїРѕ РїРѕРґСЂР°Р·Р±РёСЂР°РЅРµ
+Private Const LANG_LABEL_SERIAL_NO      As Long = 1026 ' РЎРµСЂРёРµРЅ РЅРѕРјРµСЂ РЅР° Р¤РЈ
+Private Const LANG_LABEL_LOG_FILE       As Long = 1027 ' Р–СѓСЂРЅР°Р»РµРЅ С„Р°Р№Р»
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000

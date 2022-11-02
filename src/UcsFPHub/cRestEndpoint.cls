@@ -31,9 +31,9 @@ Implements IEndpoint
 '=========================================================================
 
 '--- i18n ids
-Private Const LANG_SOCKET_LISTEN        As Long = 45 ' Слуша на %1 порт %2
-Private Const LANG_CONN_ESTABLISHED     As Long = 46 ' %1 установена (%2 отворени)
-Private Const LANG_CONN_ERROR           As Long = 47 ' Грешка в %1: %2
+Private Const LANG_SOCKET_LISTEN        As Long = 45 ' РЎР»СѓС€Р° РЅР° %1 РїРѕСЂС‚ %2
+Private Const LANG_CONN_ESTABLISHED     As Long = 46 ' %1 СѓСЃС‚Р°РЅРѕРІРµРЅР° (%2 РѕС‚РІРѕСЂРµРЅРё)
+Private Const LANG_CONN_ERROR           As Long = 47 ' Р“СЂРµС€РєР° РІ %1: %2
 '--- numeric
 Private Const MAX_CONN_QUEUE            As Long = 120
 

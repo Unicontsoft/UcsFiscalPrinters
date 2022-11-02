@@ -63,24 +63,24 @@ End Type
 
 Private Const STR_QUEUE_PREFIX          As String = "UcsFpTargetQueue"
 '--- i18n ids
-Private Const LANG_CONN_OPEN            As Long = 25 ' Връзка с %2 на %1 е отворена
-Private Const LANG_CONN_REOPEN          As Long = 26 ' Връзка с %2 на %1 е възстановена
-Private Const LANG_HANDLER_ELAPSED      As Long = 27 ' Принтер %1 изпълни заявка %2 за %3 сек.
-Private Const LANG_HANDLER_ERROR        As Long = 28 ' Принтер %1 върна грешка %2
-Private Const LANG_CROSS_PRINTER_REQUEST As Long = 29 ' Заявка %1 не е към принтер на услуга %2
-Private Const LANG_DATETIME_SETUP       As Long = 30 ' Принтер %1 е с установен час %2 (предишен час %3)
-Private Const LANG_DATETIME_ERROR       As Long = 31 ' Принтер %1 върна грешка %2
+Private Const LANG_CONN_OPEN            As Long = 25 ' Р’СЂСЉР·РєР° СЃ %2 РЅР° %1 Рµ РѕС‚РІРѕСЂРµРЅР°
+Private Const LANG_CONN_REOPEN          As Long = 26 ' Р’СЂСЉР·РєР° СЃ %2 РЅР° %1 Рµ РІСЉР·СЃС‚Р°РЅРѕРІРµРЅР°
+Private Const LANG_HANDLER_ELAPSED      As Long = 27 ' РџСЂРёРЅС‚РµСЂ %1 РёР·РїСЉР»РЅРё Р·Р°СЏРІРєР° %2 Р·Р° %3 СЃРµРє.
+Private Const LANG_HANDLER_ERROR        As Long = 28 ' РџСЂРёРЅС‚РµСЂ %1 РІСЉСЂРЅР° РіСЂРµС€РєР° %2
+Private Const LANG_CROSS_PRINTER_REQUEST As Long = 29 ' Р—Р°СЏРІРєР° %1 РЅРµ Рµ РєСЉРј РїСЂРёРЅС‚РµСЂ РЅР° СѓСЃР»СѓРіР° %2
+Private Const LANG_DATETIME_SETUP       As Long = 30 ' РџСЂРёРЅС‚РµСЂ %1 Рµ СЃ СѓСЃС‚Р°РЅРѕРІРµРЅ С‡Р°СЃ %2 (РїСЂРµРґРёС€РµРЅ С‡Р°СЃ %3)
+Private Const LANG_DATETIME_ERROR       As Long = 31 ' РџСЂРёРЅС‚РµСЂ %1 РІСЉСЂРЅР° РіСЂРµС€РєР° %2
 '--- errors
-Private Const LANG_INVALID_URL          As Long = 32 ' Невалиден адрес: %1
-Private Const LANG_INVALID_XML          As Long = 33 ' Невалиден XML
+Private Const LANG_INVALID_URL          As Long = 32 ' РќРµРІР°Р»РёРґРµРЅ Р°РґСЂРµСЃ: %1
+Private Const LANG_INVALID_XML          As Long = 33 ' РќРµРІР°Р»РёРґРµРЅ XML
 '--- SSH consts
-Private Const LANG_SSH_TUNNEL_ERROR              As Long = 34 ' Грешка при отваряне на SSH тунел: %1
-Private Const LANG_SSH_TUNNEL_NO_PORT_AVAILABLE  As Long = 35 ' Невъзможно отваряне на локален порт
-Private Const LANG_SSH_TUNNEL_PORT_UNACCESSIBLE  As Long = 36 ' Тунелът е отворен, но локалния порт е недостъпен
-Private Const LANG_SSH_TUNNEL_MISSING_FILE       As Long = 53 ' Липсва файл %1
-Private Const LANG_SSH_TUNNEL_TIMEOUT            As Long = 37 ' Отваряне на SSH тунел отне прекалено много време
-Private Const LANG_SSH_TUNNEL_UNKNOWN_SERVER_KEY As Long = 38 ' SSH сървърът използва неоторизиран ключ
-Private Const LANG_SSH_TUNNEL_MISSING_PASSPHRASE As Long = 39 ' Клиентският ключ изисква парола
+Private Const LANG_SSH_TUNNEL_ERROR              As Long = 34 ' Р“СЂРµС€РєР° РїСЂРё РѕС‚РІР°СЂСЏРЅРµ РЅР° SSH С‚СѓРЅРµР»: %1
+Private Const LANG_SSH_TUNNEL_NO_PORT_AVAILABLE  As Long = 35 ' РќРµРІСЉР·РјРѕР¶РЅРѕ РѕС‚РІР°СЂСЏРЅРµ РЅР° Р»РѕРєР°Р»РµРЅ РїРѕСЂС‚
+Private Const LANG_SSH_TUNNEL_PORT_UNACCESSIBLE  As Long = 36 ' РўСѓРЅРµР»СЉС‚ Рµ РѕС‚РІРѕСЂРµРЅ, РЅРѕ Р»РѕРєР°Р»РЅРёСЏ РїРѕСЂС‚ Рµ РЅРµРґРѕСЃС‚СЉРїРµРЅ
+Private Const LANG_SSH_TUNNEL_MISSING_FILE       As Long = 53 ' Р›РёРїСЃРІР° С„Р°Р№Р» %1
+Private Const LANG_SSH_TUNNEL_TIMEOUT            As Long = 37 ' РћС‚РІР°СЂСЏРЅРµ РЅР° SSH С‚СѓРЅРµР» РѕС‚РЅРµ РїСЂРµРєР°Р»РµРЅРѕ РјРЅРѕРіРѕ РІСЂРµРјРµ
+Private Const LANG_SSH_TUNNEL_UNKNOWN_SERVER_KEY As Long = 38 ' SSH СЃСЉСЂРІСЉСЂСЉС‚ РёР·РїРѕР»Р·РІР° РЅРµРѕС‚РѕСЂРёР·РёСЂР°РЅ РєР»СЋС‡
+Private Const LANG_SSH_TUNNEL_MISSING_PASSPHRASE As Long = 39 ' РљР»РёРµРЅС‚СЃРєРёСЏС‚ РєР»СЋС‡ РёР·РёСЃРєРІР° РїР°СЂРѕР»Р°
 '--- defaults
 Private Const DEF_MSSQL_TIMEOUT         As Long = 15000
 Private Const DEF_MYSQL_TIMEOUT         As Long = 5000

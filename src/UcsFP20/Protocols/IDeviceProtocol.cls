@@ -81,8 +81,8 @@ Public Enum UcsFiscalPaymentTypeEnum
     ucsFscPmtDamage = 7         ' SDmg
     ucsFscPmtCard = 8           ' SCards
     ucsFscPmtBank = 9           ' SW
-    ucsFscPmtCustom1 = 10       ' SR1 ("Резерв 1"/ отложено плащане)
-    ucsFscPmtCustom2 = 11       ' SR2 ("Резерв 2" / вътрешно потребление)
+    ucsFscPmtCustom1 = 10       ' SR1 ("Р РµР·РµСЂРІ 1"/ РѕС‚Р»РѕР¶РµРЅРѕ РїР»Р°С‰Р°РЅРµ)
+    ucsFscPmtCustom2 = 11       ' SR2 ("Р РµР·РµСЂРІ 2" / РІСЉС‚СЂРµС€РЅРѕ РїРѕС‚СЂРµР±Р»РµРЅРёРµ)
     ucsFscPmtEUR = 12
     [_ucsFscPmtMax]
 End Enum

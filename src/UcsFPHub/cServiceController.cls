@@ -35,12 +35,12 @@ Event BeforeCommitReceipt(oCtx As Object, Cancel As Boolean)
 ' Constants and member variables
 '=========================================================================
 
-Private Const LANG_INVALID_JSON      As Long = 48 ' Невалидна JSON заявка: %1
-Private Const LANG_INVALID_XML       As Long = 49 ' Невалидна XML заявка
-Private Const LANG_PRINTER_NOT_FOUND As Long = 54 ' Принтер %1 не е намерен
-Private Const LANG_MISSING_PAYLOAD   As Long = 50 ' Празна заявка
-Private Const LANG_INVALID_URL       As Long = 51 ' Неизвестен адрес
-Private Const LANG_MISSING_PARAMETER As Long = 52 ' Липсва параметър %1
+Private Const LANG_INVALID_JSON      As Long = 48 ' РќРµРІР°Р»РёРґРЅР° JSON Р·Р°СЏРІРєР°: %1
+Private Const LANG_INVALID_XML       As Long = 49 ' РќРµРІР°Р»РёРґРЅР° XML Р·Р°СЏРІРєР°
+Private Const LANG_PRINTER_NOT_FOUND As Long = 54 ' РџСЂРёРЅС‚РµСЂ %1 РЅРµ Рµ РЅР°РјРµСЂРµРЅ
+Private Const LANG_MISSING_PAYLOAD   As Long = 50 ' РџСЂР°Р·РЅР° Р·Р°СЏРІРєР°
+Private Const LANG_INVALID_URL       As Long = 51 ' РќРµРёР·РІРµСЃС‚РµРЅ Р°РґСЂРµСЃ
+Private Const LANG_MISSING_PARAMETER As Long = 52 ' Р›РёРїСЃРІР° РїР°СЂР°РјРµС‚СЉСЂ %1
 
 Private m_lLastCode                 As Long
 Private m_sLastError                As String
