@@ -40,7 +40,7 @@ Event CommandComplete(sData As String, sResult As String)
 ' Constant and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Invalid device model (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESP/POS not implemented"
+Private Const STR_INTERNAL              As String = "Invalid device model (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented"
 Private Const STR_EPL2_ERRORS           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
