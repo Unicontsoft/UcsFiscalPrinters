@@ -18,6 +18,7 @@ Class=cFileLogger; Shared\cFileLogger.cls
 Module=mdJson; Shared\mdJson.bas
 Class=cGlobals; cGlobals.cls
 Class=cExec; Shared\cExec.cls
+Class=cLabelProtocol; Protocols\cLabelProtocol.cls
 Startup="Sub Main"
 HelpFile=""
 Title="Fiscal Printers"

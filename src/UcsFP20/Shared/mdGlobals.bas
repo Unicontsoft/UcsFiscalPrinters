@@ -85,6 +85,7 @@ Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal 
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function GetModuleFileName Lib "kernel32" Alias "GetModuleFileNameA" (ByVal hModule As Long, ByVal lpFileName As String, ByVal nSize As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
@@ -126,7 +127,7 @@ End Type
 '=========================================================================
 
 Public Const LIB_NAME                   As String = "UcsFP20"
-Public Const STR_NONE                   As String = "(Няма)"
+Public Const STR_NONE                   As String = "(N/A)"
 Public Const STR_PROTOCOL_DATECS_X      As String = "DATECS/X"
 Public Const STR_PROTOCOL_DATECS_FP     As String = "DATECS"
 Public Const STR_PROTOCOL_DAISY         As String = "DAISY"
@@ -135,6 +136,7 @@ Public Const STR_PROTOCOL_ELTRADE       As String = "ELTRADE"
 Public Const STR_PROTOCOL_TREMOL        As String = "TREMOL"
 Public Const STR_PROTOCOL_ESCPOS        As String = "ESC/POS"
 Public Const STR_PROTOCOL_PROXY         As String = "PROXY"
+Public Const STR_PROTOCOL_LABEL         As String = "LABEL"
 Public Const STR_CHR1                   As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON                As Double = 0.0000000001
 Public Const FORMAT_BASE_2              As String = "0.00"
@@ -1611,4 +1613,28 @@ End Function
 
 Public Function GetReportTypeName(ByVal ReportType As UcsFiscalReportsTypeEnum) As String
     GetReportTypeName = At(Split(STR_VL_REPORTTYPE_NAME, "|"), ReportType, "N/A") & " (" & ReportType & ")"
+End Function
+
+Public Function ConcatCollection(oCol As Collection, Optional Separator As String = "") As String
+    Const FUNC_NAME     As String = "ConcatCollection"
+    Dim lSize           As Long
+    Dim vElem           As Variant
+    
+    On Error GoTo EH
+    For Each vElem In oCol
+        lSize = lSize + Len(vElem) + Len(Separator)
+    Next
+    If lSize > 0 Then
+        ConcatCollection = String$(lSize - Len(Separator), 0)
+        lSize = 1
+        For Each vElem In oCol
+            If lSize <= Len(ConcatCollection) Then
+                Mid$(ConcatCollection, lSize, Len(vElem) + Len(Separator)) = vElem & Separator
+            End If
+            lSize = lSize + Len(vElem) + Len(Separator)
+        Next
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function

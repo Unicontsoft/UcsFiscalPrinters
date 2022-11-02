@@ -181,6 +181,8 @@ Public Function CreateObject(sProgID As String) As Object
         Set CreateObject = New cTremolProtocol
     Case LCase$(LIB_UCSFP & ".cEscPosProtocol")
         Set CreateObject = New cEscPosProtocol
+    Case LCase$(LIB_UCSFP & ".cLabelProtocol")
+        Set CreateObject = New cLabelProtocol
     Case Else
         Set CreateObject = VBA.CreateObject(sProgID)
     End Select
