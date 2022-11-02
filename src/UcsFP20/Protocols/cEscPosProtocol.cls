@@ -59,7 +59,6 @@ End Type
 '=========================================================================
 
 Private Const STR_INTERNAL              As String = "No receipt started|Error in line %1: %2|Unsupported discount type %1"
-    
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CHEQUE|COUPON|EXT.COUPON|PACKAGING|INT.USAGE|DAMAGE|CARD|BANK|CUSTOM 1|CUSTOM 2|EUR|SURCHARGE %1|DISCOUNT %1|TOTAL|SUBTOTAL|INVOICE No %1|Sales %1|UNIT PRICE|QUANTITY|VALUE|SUM GROUP %1|VAT %1=%2|NETTO SUM|TOTAL|%1 ITEMS|1 ITEM|CHANGE|SELLER: |RECEIVER: |BUYER: |TAX No: |VAT No: |SYSTEM RECEIPT|ORDER LIST|Date:     %1|Operator: %1|Table:    %1|EIC: %1"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
