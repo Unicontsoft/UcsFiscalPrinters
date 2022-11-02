@@ -504,36 +504,38 @@ Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
     Dim vRet            As Variant
     Dim lCount          As Long
     
-    ReDim vRet(0 To Len(sText)) As Variant
-    Do While LenB(sText) <> 0
-        lRight = lWidth + 1
-        If lRight > Len(sText) Then
-            lRight = Len(sText) + 1
-        Else
-            If IsDelimiter(Mid$(sText, lRight, 1)) Then
-                Do While IsWhiteSpace(Mid$(sText, lRight, 1)) And lRight <= Len(sText)
-                    lRight = lRight + 1
-                Loop
+    If lWidth > 0 Then
+        ReDim vRet(0 To Len(sText)) As Variant
+        Do While LenB(sText) <> 0
+            lRight = lWidth + 1
+            If lRight > Len(sText) Then
+                lRight = Len(sText) + 1
             Else
-                Do While lRight > 1
-                    If IsDelimiter(Mid$(sText, lRight - 1, 1)) Then
-                        Exit Do
+                If IsDelimiter(Mid$(sText, lRight, 1)) Then
+                    Do While IsWhiteSpace(Mid$(sText, lRight, 1)) And lRight <= Len(sText)
+                        lRight = lRight + 1
+                    Loop
+                Else
+                    Do While lRight > 1
+                        If IsDelimiter(Mid$(sText, lRight - 1, 1)) Then
+                            Exit Do
+                        End If
+                        lRight = lRight - 1
+                    Loop
+                    If lRight = 1 Then
+                        lRight = lWidth + 1
                     End If
-                    lRight = lRight - 1
-                Loop
-                If lRight = 1 Then
-                    lRight = lWidth + 1
                 End If
             End If
-        End If
-        lLeft = lRight - 1
-        Do While IsWhiteSpace(Mid$(sText, lLeft, 1)) And lLeft > 0
-            lLeft = lLeft - 1
+            lLeft = lRight - 1
+            Do While IsWhiteSpace(Mid$(sText, lLeft, 1)) And lLeft > 0
+                lLeft = lLeft - 1
+            Loop
+            vRet(lCount) = Left$(sText, lLeft)
+            lCount = lCount + 1
+            sText = Mid$(sText, lRight)
         Loop
-        vRet(lCount) = Left$(sText, lLeft)
-        lCount = lCount + 1
-        sText = Mid$(sText, lRight)
-    Loop
+    End If
     If lCount = 0 Then
         WrapText = Array(vbNullString)
     Else
