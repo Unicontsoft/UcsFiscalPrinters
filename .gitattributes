@@ -64,6 +64,7 @@
 *.zip        binary
 *.cab        binary
 *.7z         binary
+*.gz         binary
 
 # Text files but keep as binary (no diff)
 
