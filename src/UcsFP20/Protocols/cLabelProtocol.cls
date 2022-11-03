@@ -37,14 +37,40 @@ Implements IDeviceProtocol
 Event CommandComplete(sData As String, sResult As String)
 
 '=========================================================================
+' API
+'=========================================================================
+
+'--- error codes
+Private Const ERROR_IO_PENDING              As Long = 997
+'--- for WaitCommEvent
+Private Const EV_RXCHAR                     As Long = &H1
+Private Const EV_ERR                        As Long = &H80
+
+Private Declare Function SetCommMask Lib "kernel32" (ByVal hFile As Long, ByVal dwEvtMask As Long) As Long
+Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEvtMask As Long, lpOverlapped As Any) As Long
+Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
+Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
+Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+
+Private Type OVERLAPPED
+    Internal                    As Long
+    InternalHigh                As Long
+    Offset                      As Long
+    OffsetHigh                  As Long
+    hEvent                      As Long
+End Type
+
+'=========================================================================
 ' Constant and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Invalid device model (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented"
-Private Const STR_EPL2_ERRORS           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
+Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented"
+Private Const STR_ERRORS_EPL2           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
+Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
 Private Const DEF_PING_TIMEOUT          As Long = 400
+Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
 Private Const DEF_SOCKET_PORT           As Long = 9100
 Private Const DEF_TEMPLATE_FILE         As String = "LabelTemplates.conf"
 Private Const DEF_CODEPAGE              As Long = 1251
@@ -52,8 +78,8 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
-Private Const STR_MODEL_EPL2            As String = "EPL-2"
-Private Const STR_MODEL_ESCPOS          As String = "ESC/POS"
+Private Const STR_GROUP_EPL2            As String = "EPL-2"
+Private Const STR_GROUP_ESCPOS          As String = "ESC/POS"
 Private Const LNG_ACK                   As Long = &H6
 Private Const LNG_NACK                  As Long = &H15
 
@@ -66,15 +92,21 @@ Private m_uPrintData                As UcsProtocolPrintData
 Private m_uConfig                   As UcsConfigValues
 
 Private Enum UcsInternalErrors
-    ucsErrInvalidDeviceModel
+    ucsErrInvalidModelGroup
     ucsErrCannotLoadTemplates
     ucsErrTemplateNotFound
     ucsErrNotImplemented
 End Enum
 
+Private Type UcsAutodetect
+    Connector           As cSerialPortConnector
+    WaitOver            As OVERLAPPED
+    EventMask           As Long
+End Type
+
 Private Type UcsConfigValues
     CodePage            As Long
-    DeviceModel         As String
+    ModelGroup          As String
     Templates           As Object
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
@@ -124,6 +156,81 @@ End Property
 ' Methods
 '=========================================================================
 
+Public Function AutodetectDevices(vPorts As Variant) As Variant
+    Const FUNC_NAME     As String = "AutodetectDevices"
+    Dim vRetVal         As Variant
+    Dim vSpeed          As Variant
+    Dim aPorts()        As UcsAutodetect
+    Dim lIdx            As Long
+    Dim baBuffer()      As Byte
+    Dim sModel          As String
+    Dim sCmd            As String
+    Dim sReply          As String
+    Dim lResult         As Long
+    Dim hEvents()       As Long
+    Dim lEventsCount    As Long
+    Dim lTimeout        As Long
+    
+    On Error GoTo EH
+    vRetVal = vPorts
+    If Not IsArray(vPorts) Then
+        GoTo QH
+    End If
+    If UBound(vPorts) < 0 Then
+        GoTo QH
+    End If
+    lTimeout = GetConfigNumber(STR_PROTOCOL_LABEL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
+    For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
+        ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
+        ReDim hEvents(0 To UBound(vPorts)) As Long
+        For lIdx = 0 To UBound(aPorts)
+            If Not IsArray(vRetVal(lIdx)) Then
+                With aPorts(lIdx)
+                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
+                    If Not .Connector Is Nothing Then
+                        sCmd = vbLf & "UF" & vbLf '--- Form Information Inquiry
+                        .Connector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), 1
+                        .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
+                        Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
+                        lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
+                        If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                            hEvents(lEventsCount) = .WaitOver.hEvent
+                            lEventsCount = lEventsCount + 1
+                        End If
+                    End If
+                End With
+            End If
+        Next
+        If lEventsCount > 0 Then
+            lResult = WaitForMultipleObjects(lEventsCount, hEvents(0), 1, lTimeout)
+            lEventsCount = 0
+        End If
+        For lIdx = 0 To UBound(aPorts)
+            With aPorts(lIdx)
+                If Not .Connector Is Nothing Then
+                    If .Connector.ReadData(baBuffer, lTimeout) And UBound(baBuffer) >= 0 Then
+                        sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
+                        If sReply Like "*[0-9][0-9][0-9]" & vbCrLf & "*" Or sReply Like "*[0-9][0-9][0-9]" & vbLf & "*" Then
+                            DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
+                            sModel = At(pvRawGetDeviceInfo(.Connector), 0)
+                            vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
+                        End If
+                    End If
+                    Set .Connector = Nothing
+                    If .WaitOver.hEvent <> 0 Then
+                        Call CloseHandle(.WaitOver.hEvent)
+                    End If
+                End If
+            End With
+        Next
+    Next
+QH:
+    AutodetectDevices = vRetVal
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
 Public Function Init(sDeviceString As String) As Boolean
     Const FUNC_NAME     As String = "Init"
     Dim oOptions        As Object
@@ -152,10 +259,10 @@ Public Function Init(sDeviceString As String) As Boolean
     sDeviceString = ToDeviceString(oOptions)
     With m_uConfig
         .CodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
-        .DeviceModel = UCase$(C_Str(JsonValue(oOptions, "DeviceModel")))
-        If .DeviceModel <> STR_MODEL_EPL2 And .DeviceModel <> STR_MODEL_ESCPOS Then
+        .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), STR_GROUP_EPL2))
+        If .ModelGroup <> STR_GROUP_EPL2 And .ModelGroup <> STR_GROUP_ESCPOS Then
             On Error GoTo 0
-            Err.Raise vbObjectError, , Printf(pvInternal(ucsErrInvalidDeviceModel), Zn(.DeviceModel, STR_NONE))
+            Err.Raise vbObjectError, , Printf(pvInternal(ucsErrInvalidModelGroup), Zn(.ModelGroup, STR_NONE))
         End If
         sFile = Zn(C_Str(JsonValue(oOptions, "TemplateFile")), DEF_TEMPLATE_FILE)
         Set .Templates = JsonParseObject(pvReadTextFile(sFile), Error:=sError)
@@ -223,7 +330,7 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
-    GetDeviceModel = m_uConfig.DeviceModel
+    GetDeviceModel = At(pvRawGetDeviceInfo(m_oConnector), 0)
 End Function
 
 Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
@@ -389,7 +496,7 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     GoTo QH
                 End If
                 If InStr(sResult, pvChr(LNG_NACK)) > 0 Then
-                    vErrors = SplitOrReindex(STR_EPL2_ERRORS, "|")
+                    vErrors = SplitOrReindex(STR_ERRORS_EPL2, "|")
                     For Each vElem In Split(sResult, pvChr(LNG_NACK))
                         sText = At(vErrors, C_Lng(vElem))
                         If LenB(sText) <> 0 Then
@@ -415,6 +522,32 @@ Private Function pvPrintReceiptEscPos(uCtx As UcsPpdExecuteContext, uRow() As Uc
     #If uCtx And uRow And lRowCount Then '--- touch args
     #End If
     Err.Raise vbObjectError, , pvInternal(ucsErrNotImplemented)
+End Function
+
+Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector) As Variant
+    Const FUNC_NAME     As String = "pvRawGetDeviceInfo"
+    Const DEF_MODEL     As String = "LP-50"
+    Dim sCmd            As String
+    Dim baBuffer()      As Byte
+    Dim sReply          As String
+    
+    On Error GoTo EH
+    sCmd = "UQ" & vbLf
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
+        If oConnector.ReadData(baBuffer, 100) Then
+            sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
+            If sReply = pvChr(LNG_NACK) Then
+                pvRawGetDeviceInfo = Array(DEF_MODEL)
+            ElseIf InStr(sReply, vbCrLf) Then
+                pvRawGetDeviceInfo = Split(sReply, vbCrLf)
+            Else
+                pvRawGetDeviceInfo = Split(sReply, vbLf)
+            End If
+        End If
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Sub pvSetLastError(sError As String)
@@ -471,7 +604,7 @@ Private Function IDeviceProtocol_AddPLU(Name As String, ByVal Price As Double, O
 End Function
 
 Private Function IDeviceProtocol_AutodetectDevices(Ports As Variant) As Variant
-    IDeviceProtocol_AutodetectDevices = Ports
+    IDeviceProtocol_AutodetectDevices = AutodetectDevices(Ports)
 End Function
 
 Private Function IDeviceProtocol_CancelReceipt() As Boolean
@@ -496,10 +629,10 @@ End Function
 
 Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double, Optional InvoiceNo As String) As Boolean
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
-        Select Case m_uConfig.DeviceModel
-        Case STR_MODEL_EPL2
+        Select Case m_uConfig.ModelGroup
+        Case STR_GROUP_EPL2
             IDeviceProtocol_PrintReceipt = pvPrintReceiptEpl2(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
-        Case STR_MODEL_ESCPOS
+        Case STR_GROUP_ESCPOS
             IDeviceProtocol_PrintReceipt = pvPrintReceiptEscPos(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
         End Select
         With m_uPrintData.ExecCtx
