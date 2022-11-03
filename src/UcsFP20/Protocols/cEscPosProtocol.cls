@@ -265,7 +265,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     If UBound(vPorts) < 0 Then
         GoTo QH
     End If
-    lTimeout = GetConfigNumber(STR_PROTOCOL_TREMOL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
+    lTimeout = GetConfigNumber(STR_PROTOCOL_ESCPOS, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
     For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
@@ -274,8 +274,6 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 With aPorts(lIdx)
                     Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
-                        sCmd = STR_ESC & "@"            '--- Initialize printer
-                        '--- STR_GS & "I1"
                         sCmd = STR_GS & "r" & pvChr(1)  '--- Transmits paper sensor status
                         .Connector.WriteData ToMultiByte(sCmd, m_lCodePage), 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
@@ -325,11 +323,13 @@ EH:
 End Function
 
 Private Function pvRawGetAutodetectInfo(oConnector As IDeviceConnector, ByVal lIndex As Long) As String
+    Const FUNC_NAME     As String = "pvRawGetAutodetectInfo"
     Dim sCmd            As String
     Dim sRetVal         As String
     Dim baBuffer()      As Byte
     Dim lRepeat         As Long
     
+    On Error GoTo EH
 Repeat:
     sCmd = STR_GS & "I" & pvChr(lIndex)
     If oConnector.WriteData(ToMultiByte(sCmd, m_lCodePage), 100) Then
@@ -350,6 +350,9 @@ Repeat:
     If LenB(sRetVal) <> 0 Then
         pvRawGetAutodetectInfo = ", " & sRetVal
     End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Public Function Init(sDeviceString As String) As Boolean
