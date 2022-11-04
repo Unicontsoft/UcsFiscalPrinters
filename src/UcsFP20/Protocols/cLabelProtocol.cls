@@ -418,15 +418,15 @@ End Function
 Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
     Const FUNC_NAME     As String = "pvPrintReceiptEpl2"
     Dim vSplit          As Variant
-    Dim sLabel          As String
     Dim lCopies         As Long
     Dim oTemplate       As Object
     Dim cOutput         As Collection
-    Dim sControl        As String
+    Dim sName           As String
     Dim sText           As String
     Dim lWidth          As Long
     Dim lHeight         As Long
     Dim sHorAlign       As String
+    Dim bNoWrap         As Boolean
     Dim lIdx            As Long
     Dim vElem           As Variant
     Dim vErrors         As Variant
@@ -438,41 +438,46 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
         With uRow(uCtx.Row)
         Select Case .RowType
         Case ucsRowLine
+            vSplit = Split(.LineText, "=", Limit:=2)
+            sName = At(vSplit, 0)
+            sText = Replace(At(vSplit, 1), "^p", vbCrLf)
             If oTemplate Is Nothing Then
-                vSplit = Split(.LineText, ",")
-                sLabel = At(vSplit, 0)
-                lCopies = Znl(C_Lng(At(vSplit, 1)), 1)
-                Set oTemplate = C_Obj(JsonValue(m_uConfig.Templates, sLabel))
+                vSplit = Split(sText, ",")
+                lCopies = Znl(C_Lng(At(vSplit, 0)), 1)
+                Set oTemplate = C_Obj(JsonValue(m_uConfig.Templates, sName))
                 If oTemplate Is Nothing Then
                     On Error GoTo EH
-                    Err.Raise vbObjectError, , Printf(pvInternal(ucsErrTemplateNotFound), sLabel)
+                    Err.Raise vbObjectError, , Printf(pvInternal(ucsErrTemplateNotFound), sName)
                 End If
                 Set cOutput = New Collection
                 '--- FR Command - Retrieve Form
-                cOutput.Add "FR" & """" & sLabel & """"
+                cOutput.Add "FR" & """" & sName & """"
                 '--- ? Command - Download Variables
                 cOutput.Add "?"
-            Else
-                vSplit = Split(.LineText, "=", Limit:=2)
-                sControl = At(vSplit, 0)
-                If IsObject(JsonValue(oTemplate, "Controls/" & sControl)) Then
-                    sText = Replace(At(vSplit, 1), "^p", vbCrLf)
-                    lWidth = C_Lng(JsonValue(oTemplate, "Controls/" & sControl & "/Width"))
-                    lHeight = C_Lng(JsonValue(oTemplate, "Controls/" & sControl & "/Height"))
-                    sHorAlign = LCase$(C_Str(JsonValue(oTemplate, "Controls/" & sControl & "/HorAlign")))
-                    If lWidth > 0 Then
-                        vSplit = WrapMultiline(sText, lWidth)
+            ElseIf IsObject(JsonValue(oTemplate, "Controls/" & sName)) Then
+                lWidth = C_Lng(JsonValue(oTemplate, "Controls/" & sName & "/Width"))
+                lHeight = C_Lng(JsonValue(oTemplate, "Controls/" & sName & "/Height"))
+                sHorAlign = LCase$(C_Str(JsonValue(oTemplate, "Controls/" & sName & "/HorAlign")))
+                bNoWrap = C_Bool(JsonValue(oTemplate, "Controls/" & sName & "/NoWrap"))
+                If lWidth > 0 Then
+                    If bNoWrap Then
+                        ReDim vSplit(0 To (Len(sText) + lWidth - 1) \ lWidth - 1) As String
+                        For lIdx = 0 To UBound(vSplit)
+                            vSplit(lIdx) = Mid$(sText, lIdx * lWidth + 1, lWidth)
+                        Next
                     Else
-                        vSplit = Split(sText, vbCrLf)
+                        vSplit = WrapMultiline(sText, lWidth)
                     End If
-                    For lIdx = 0 To Clamp(lHeight - 1, 0)
-                        If sHorAlign = "center" And lWidth > 0 Then
-                            cOutput.Add Zn(RTrim$(CenterText(At(vSplit, lIdx), lWidth)), " ")
-                        Else
-                            cOutput.Add Zn(RTrim$(At(vSplit, lIdx)), " ")
-                        End If
-                    Next
+                Else
+                    vSplit = Split(sText, vbCrLf)
                 End If
+                For lIdx = 0 To Clamp(lHeight - 1, 0)
+                    If sHorAlign = "center" And lWidth > 0 Then
+                        cOutput.Add Zn(RTrim$(CenterText(At(vSplit, lIdx), lWidth)), " ")
+                    Else
+                        cOutput.Add Zn(At(vSplit, lIdx), " ")
+                    End If
+                Next
             End If
         Case ucsRowInit
         Case ucsRowPlu
@@ -532,7 +537,7 @@ Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector) As Variant
     Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = "UQ" & vbLf
+    sCmd = "UQ" & vbLf '--- Configuration Inquiry
     If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
         If oConnector.ReadData(baBuffer, 100) Then
             sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
