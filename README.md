@@ -128,6 +128,7 @@ Key              | Type   | Protocol | Description
 `PrintVat`       | bool   | Tremol   | Include total VAT by tax groups in footer like on invoices (default `Off`)
 `DelayPrint`     | bool   | Tremol   | Spool receipt data to device before printing (default `On`)
 `BufferPrint`    | bool   | Tremol   | Buffer receipt data (default `Off`)
+`TemplateFile`   | string | Label    | Label templates JSON configuration (default [`LabelTemplates.conf`](TERMPLATES.md))
 
 ### Available protocols
 
@@ -142,6 +143,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `INCOTEX`        | Incotex Ltd. | 181, 777       | All
 `ELTRADE`        | Eltrade Ltd. | A3             | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
+`LABEL`          | Datecs Ltd.  | LP-50, LP-50MX | All EPL-2 label printers
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
 ### REST service protocol description
