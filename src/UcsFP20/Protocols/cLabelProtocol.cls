@@ -426,12 +426,15 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
     Dim lWidth          As Long
     Dim lHeight         As Long
     Dim sHorAlign       As String
-    Dim bNoWrap         As Boolean
+    Dim sWrap           As String
     Dim lIdx            As Long
     Dim vElem           As Variant
     Dim vErrors         As Variant
     Dim sResult         As String
     Dim sError          As String
+    Dim oCanvas         As Object
+    Dim oItem           As Object
+    Dim lTop            As Long
     
     On Error GoTo EH
     Do While uCtx.Row < lRowCount
@@ -454,16 +457,35 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 cOutput.Add "FR" & """" & sName & """"
                 '--- ? Command - Download Variables
                 cOutput.Add "?"
+                lTop = 0
+                For Each vElem In JsonKeys(oTemplate, "Controls")
+                    Set oItem = C_Obj(JsonValue(oTemplate, "Controls/" & vElem))
+                    If IsEmpty(JsonValue(oItem, "Top")) Then
+                        JsonValue(oItem, "Top") = lTop
+                    End If
+                    lTop = lTop + C_Lng(JsonValue(oItem, "Height"))
+                Next
+                For lIdx = 0 To lTop - 1
+                    JsonValue(oCanvas, lIdx) = vbNullString
+                Next
             ElseIf IsObject(JsonValue(oTemplate, "Controls/" & sName)) Then
-                lWidth = C_Lng(JsonValue(oTemplate, "Controls/" & sName & "/Width"))
-                lHeight = C_Lng(JsonValue(oTemplate, "Controls/" & sName & "/Height"))
-                sHorAlign = LCase$(C_Str(JsonValue(oTemplate, "Controls/" & sName & "/HorAlign")))
-                bNoWrap = C_Bool(JsonValue(oTemplate, "Controls/" & sName & "/NoWrap"))
+                Set oItem = C_Obj(JsonValue(oTemplate, "Controls/" & sName))
+                lTop = C_Lng(JsonValue(oItem, "Top"))
+                lWidth = C_Lng(JsonValue(oItem, "Width"))
+                lHeight = C_Lng(JsonValue(oItem, "Height"))
+                sHorAlign = LCase$(C_Str(JsonValue(oItem, "HorAlign")))
+                sWrap = LCase$(C_Str(JsonValue(oItem, "Wrap")))
                 If lWidth > 0 Then
-                    If bNoWrap Then
-                        ReDim vSplit(0 To (Len(sText) + lWidth - 1) \ lWidth - 1) As String
+                    If sWrap = "barcode" Then
+                        ReDim vSplit(0 To Clamp(lHeight - 1, 0)) As String
                         For lIdx = 0 To UBound(vSplit)
                             vSplit(lIdx) = Mid$(sText, lIdx * lWidth + 1, lWidth)
+                        Next
+                        For lIdx = 1 To UBound(vSplit)
+                            If LenB(vSplit(lIdx)) = 0 And Len(vSplit(lIdx - 1)) > 1 Then
+                                vSplit(lIdx) = Mid$(vSplit(lIdx - 1), 2)
+                                vSplit(lIdx - 1) = Left$(vSplit(lIdx - 1), 1)
+                            End If
                         Next
                     Else
                         vSplit = WrapMultiline(sText, lWidth)
@@ -473,9 +495,9 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 End If
                 For lIdx = 0 To Clamp(lHeight - 1, 0)
                     If sHorAlign = "center" And lWidth > 0 Then
-                        cOutput.Add Zn(RTrim$(CenterText(At(vSplit, lIdx), lWidth)), " ")
+                        JsonValue(oCanvas, lTop + lIdx) = RTrim$(CenterText(At(vSplit, lIdx), lWidth))
                     Else
-                        cOutput.Add Zn(At(vSplit, lIdx), " ")
+                        JsonValue(oCanvas, lTop + lIdx) = At(vSplit, lIdx)
                     End If
                 Next
             End If
@@ -485,6 +507,9 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
         Case ucsRowBarcode
         Case ucsRowPayment
             If .PmtType = 0 Then
+                For Each vElem In JsonValue(oCanvas, "*")
+                    cOutput.Add Zn(C_Str(vElem), " ")
+                Next
                 '--- P Command - Print
                 cOutput.Add "P" & 1 & "," & lCopies
                 If m_lPingTimeout > 1 Then
