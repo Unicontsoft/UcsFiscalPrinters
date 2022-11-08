@@ -437,7 +437,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|PROXY"
+Private Const STR_PROTOCOLS             As String = "TREMOL|DATECS|DATECS/X|DAISY|INCOTEX|ELTRADE|ESC/POS|LABEL|PROXY"
 Private Const STR_SPEEDS                As String = "9600|19200|38400|57600|115200"
 '--- i18n ids
 Private Const LANG_CAPTION_FORM         As Long = 1001 ' Настройки на %1
