@@ -43,6 +43,7 @@ Private Const DUPLICATE_SAME_ACCESS         As Long = &H2
 Private Const STATUS_PENDING                As Long = &H103
 '--- for SetInformationJobObject
 Private Const JobObjectExtendedLimitInformation As Long = 9
+Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Function CreateProcess Lib "kernel32" Alias "CreateProcessW" (ByVal lpApplicationName As Long, ByVal lpCommandLine As Long, ByVal lpProcessAttributes As Long, ByVal lpThreadAttributes As Long, ByVal bInheritHandles As Long, ByVal dwCreationFlags As Long, ByVal lpEnvironment As Long, ByVal lpCurrentDirectory As Long, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As Long
 Private Declare Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As Long, ByVal dwMilliseconds As Long) As Long
@@ -150,7 +151,7 @@ Public Function Run( _
             sParams As String, _
             Optional ByVal StartHidden As Boolean, _
             Optional ByVal StartMinimized As Boolean, _
-            Optional ByVal LimitFlags As Long, _
+            Optional ByVal LimitFlags As Long = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, _
             Optional CurrentDir As String) As Boolean
     Const FUNC_NAME     As String = "Run"
     Dim uProcInfo       As PROCESS_INFORMATION
@@ -202,7 +203,7 @@ Public Function Run( _
     '--- setup start info
     uStart.cb = Len(uStart)
     uStart.dwFlags = STARTF_USESTDHANDLES
-    uStart.hStdInput = hReadInput  ' GetStdHandle(STD_INPUT_HANDLE)
+    uStart.hStdInput = hReadInput
     uStart.hStdOutput = hWriteOutput
     uStart.hStdError = hWriteError
     If StartHidden Then
