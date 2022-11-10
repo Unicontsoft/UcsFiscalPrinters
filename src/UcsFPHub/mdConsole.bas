@@ -25,8 +25,8 @@ Private Const KEY_EVENT                     As Long = 1
 Private Declare Function GetStdHandle Lib "kernel32" (ByVal nStdHandle As Long) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
-Private Declare Function CharToOemBuff Lib "user32" Alias "CharToOemBuffA" (ByVal lpszSrc As String, lpszDst As Any, ByVal cchDstLength As Long) As Long
-Private Declare Function OemToCharBuff Lib "user32" Alias "OemToCharBuffA" (lpszSrc As Any, ByVal lpszDst As String, ByVal cchDstLength As Long) As Long
+Private Declare Function CharToOemBuffA Lib "user32" (ByVal lpszSrc As String, lpszDst As Any, ByVal cchDstLength As Long) As Long
+Private Declare Function OemToCharBuffA Lib "user32" (lpszSrc As Any, ByVal lpszDst As String, ByVal cchDstLength As Long) As Long
 Private Declare Function SetConsoleTextAttribute Lib "kernel32" (ByVal hConsoleOutput As Long, ByVal wAttributes As Long) As Long
 Private Declare Function GetConsoleScreenBufferInfo Lib "kernel32" (ByVal hConsoleOutput As Long, lpConsoleScreenBufferInfo As CONSOLE_SCREEN_BUFFER_INFO) As Long
 Private Declare Function PeekNamedPipe Lib "kernel32" (ByVal hNamedPipe As Long, lpBuffer As Any, ByVal nBufferSize As Long, lpBytesRead As Long, lpTotalBytesAvail As Long, lpBytesLeftThisMessage As Long) As Long
@@ -120,7 +120,7 @@ Private Function pvConsoleOutput(ByVal hOut As Long, ByVal sText As String, A As
         Debug.Print pvConsoleOutput;
     Else
         ReDim baBuffer(0 To Len(pvConsoleOutput) - 1) As Byte
-        If CharToOemBuff(pvConsoleOutput, baBuffer(0), UBound(baBuffer) + 1) Then
+        If CharToOemBuffA(pvConsoleOutput, baBuffer(0), UBound(baBuffer) + 1) <> 0 Then
             Call WriteFile(hOut, baBuffer(0), UBound(baBuffer) + 1, dwDummy, ByVal 0&)
         End If
     End If
@@ -167,7 +167,7 @@ Public Function ConsoleRead(Optional ByVal lSize As Long = 1) As String
         ReDim baBuffer(0 To lSize - 1) As Byte
         If ReadFile(hIn, baBuffer(0), UBound(baBuffer) + 1, lSize, ByVal 0) <> 0 And lSize > 0 Then
             sText = String$(lSize, 0)
-            Call OemToCharBuff(baBuffer(0), sText, lSize + 1)
+            Call OemToCharBuffA(baBuffer(0), sText, lSize + 1)
         End If
     End If
     ConsoleRead = sText

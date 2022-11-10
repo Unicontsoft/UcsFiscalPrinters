@@ -60,6 +60,7 @@ Private Declare Function PeekNamedPipe Lib "kernel32" (ByVal hNamedPipe As Long,
 Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectW" (ByVal lpJobAttributes As Long, ByVal lpName As Long) As Long
 Private Declare Function SetInformationJobObject Lib "kernel32" (ByVal hJob As Long, ByVal JobObjectInformationClass As Long, lpJobObjectInformation As Any, ByVal cbJobObjectInformationLength As Long) As Long
 Private Declare Function AssignProcessToJobObject Lib "kernel32" (ByVal hJob As Long, ByVal hProcess As Long) As Long
+Private Declare Function OemToCharBuffA Lib "user32" (lpszSrc As Any, ByVal lpszDst As String, ByVal cchDstLength As Long) As Long
 
 Private Type STARTUPINFO
     cb                  As Long
@@ -157,7 +158,7 @@ Public Function Run( _
     Dim uProcInfo       As PROCESS_INFORMATION
     Dim uStart          As STARTUPINFO
     Dim sCommandLine    As String
-    Dim uSA             As SECURITY_ATTRIBUTES
+    Dim uAttr           As SECURITY_ATTRIBUTES
     Dim hTmp            As Long
     Dim hWriteOutput    As Long
     Dim hWriteError     As Long
@@ -189,19 +190,19 @@ Public Function Run( _
         sCommandLine = IIf(LenB(sCommandLine) <> 0, sCommandLine & " ", vbNullString) & sParams
     End If
     '--- create pipes
-    uSA.nLength = Len(uSA)
-    uSA.bInheritHandle = 1
-    Call CreatePipe(hTmp, hWriteOutput, uSA, 0)
+    uAttr.nLength = LenB(uAttr)
+    uAttr.bInheritHandle = 1
+    Call CreatePipe(hTmp, hWriteOutput, uAttr, 0)
     Call DuplicateHandle(GetCurrentProcess(), hTmp, GetCurrentProcess(), m_hReadOutput, 0, False, DUPLICATE_SAME_ACCESS)
     Call CloseHandle(hTmp)
-    Call CreatePipe(hTmp, hWriteError, uSA, 0)
+    Call CreatePipe(hTmp, hWriteError, uAttr, 0)
     Call DuplicateHandle(GetCurrentProcess(), hTmp, GetCurrentProcess(), m_hReadError, 0, False, DUPLICATE_SAME_ACCESS)
     Call CloseHandle(hTmp)
-    Call CreatePipe(hReadInput, hTmp, uSA, 0)
+    Call CreatePipe(hReadInput, hTmp, uAttr, 0)
     Call DuplicateHandle(GetCurrentProcess(), hTmp, GetCurrentProcess(), m_hWriteInput, 0, False, DUPLICATE_SAME_ACCESS)
     Call CloseHandle(hTmp)
     '--- setup start info
-    uStart.cb = Len(uStart)
+    uStart.cb = LenB(uStart)
     uStart.dwFlags = STARTF_USESTDHANDLES
     uStart.hStdInput = hReadInput
     uStart.hStdOutput = hWriteOutput
@@ -274,13 +275,14 @@ Public Function AtEndOfError() As Boolean
 End Function
 
 Public Function ReadError(ByVal lSize As Long) As String
-    Dim szBuffer        As String
+    Dim baBuffer()      As Byte
     Dim lRead           As Long
     
     If m_hReadError <> 0 Then
-        szBuffer = String$(lSize, 0)
-        If ReadFile(m_hReadError, ByVal szBuffer, lSize, lRead, 0) <> 0 Then
-            ReadError = Left$(szBuffer, lRead)
+        ReDim baBuffer(0 To lSize) As Byte
+        If ReadFile(m_hReadError, baBuffer(0), lSize, lRead, 0) <> 0 And lRead > 0 Then
+            ReadError = String$(lRead, 0)
+            Call OemToCharBuffA(baBuffer(0), ReadError, lRead + 1)
         Else
             Call CloseHandle(m_hReadError)
             m_hReadError = 0
@@ -335,13 +337,14 @@ Public Function AtEndOfOutput() As Boolean
 End Function
 
 Public Function ReadOutput(ByVal lSize As Long) As String
-    Dim szBuffer        As String
+    Dim baBuffer()      As Byte
     Dim lRead           As Long
     
     If m_hReadOutput <> 0 Then
-        szBuffer = String$(lSize, 0)
-        If ReadFile(m_hReadOutput, ByVal szBuffer, lSize, lRead, 0) <> 0 Then
-            ReadOutput = Left$(szBuffer, lRead)
+        ReDim baBuffer(0 To lSize) As Byte
+        If ReadFile(m_hReadOutput, baBuffer(0), lSize, lRead, 0) <> 0 And lRead > 0 Then
+            ReadOutput = String$(lRead, 0)
+            Call OemToCharBuffA(baBuffer(0), ReadOutput, lRead + 1)
         Else
             Call CloseHandle(m_hReadOutput)
             m_hReadOutput = 0
