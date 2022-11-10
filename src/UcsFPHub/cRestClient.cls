@@ -50,7 +50,7 @@ Private Const STR_STATUS_CODE_OK        As String = "200 OK"
 Private Const STR_CONTENT_TYPE_TEXT_PLAIN As String = "text/plain; charset=utf-8"
 Private Const STR_CONTENT_TYPE_TEXT_XML As String = "text/xml; charset=utf-8"
 Private Const STR_CONTENT_TYPE_APPLICATION_JSON As String = "application/json"
-Private Const STR_CONN_ELAPSED          As String = "%1 изпълни заявка %2 за %3 сек."
+Private Const LANG_CONN_ELAPSED         As Long = 55 ' %1 изпълни заявка %2 за %3 сек.
 
 Private m_sLastError                As String
 Private m_sID                       As String
@@ -300,7 +300,7 @@ Private Sub m_oSocket_OnReceive()
         End If
         vElem = Split(m_sRawUrl, "?", Limit:=2)
         pvHandleRequest At(vElem, 0), At(vElem, 1)
-        DebugLog MODULE_NAME, FUNC_NAME, Printf(STR_CONN_ELAPSED, m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3))
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_CONN_ELAPSED), m_sID, m_sRawUrl, Format(TimerEx - m_dblStartTimerEx, FORMAT_BASE_3))
         pvClearState
     End If
 QH:
