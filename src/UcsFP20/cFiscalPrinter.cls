@@ -48,6 +48,15 @@ Public Enum UcsFiscalPrintReportTypeEnum
 End Enum
 
 '=========================================================================
+' API
+'=========================================================================
+
+'--- for GetSystemDefaultLCID
+Private Const LOCALE_BULGARIAN                  As Long = &H402
+
+Private Declare Function GetSystemDefaultLCID Lib "kernel32" () As Long
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -92,7 +101,6 @@ Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТА�
 Private Const STR_PROXY_INTERNAL        As String = "Устройството не е намерено|Невалидно състояние на готовност %1|Невалидeн JSON: %1|Неподдържан вид отстъпка %1"
 Private Const STR_LABEL_INTERNAL        As String = "Невалиден модел на устройство (%1)|Невъзможно зареждане на шаблони от %1. %2|Шаблонът не е намерен (%1)|Поддръжка на ESC/POS не е довършена"
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка от %1: %2|Време за достъп изтече в очакване на отговор"
-Private Const ERR_UNKNOWN_PROTOCOL      As String = "Неизвестен протокол: %1"
 '--- enums texts
 Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packaging|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
 Private Const STR_ENUM_RECEIPT_TYPE     As String = "|Sale|Reversal|Invoice|CreditNote|OrderList"
@@ -109,6 +117,8 @@ Private Const CFG_MEMORY_TEXTS          As String = "MemoryTexts"
 Private Const CFG_RECEIPT_TEXTS         As String = "ReceiptTexts"
 Private Const CFG_EXTENDED_ERRORS       As String = "ExtendedErrors"
 Private Const CFG_CONNECTOR_ERRORS      As String = "ConnectorErrors"
+'--- errors
+Private Const ERR_UNKNOWN_PROTOCOL      As String = "Unknown protocol (%1)"
 
 Private m_uConfig                   As UcsConfigValues
 Private m_sCommandLog               As String
@@ -832,58 +842,70 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipInit As Boole
     Select Case sProtocol
     Case STR_PROTOCOL_DATECS_X
         Set pvInit = New cDatecsProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_INTERNAL)
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_STATUSES)
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_ERRORS)
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_MEMORY)
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_TEXTS)
-        pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_DATECS_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_DATECS_STATUSES)
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_DATECS_ERRORS)
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol, CFG_MEMORY_TEXTS, STR_DATECS_MEMORY)
+            pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_DATECS_TEXTS)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        End If
     Case STR_PROTOCOL_DATECS_FP, STR_PROTOCOL_DAISY, STR_PROTOCOL_INCOTEX, STR_PROTOCOL_ELTRADE
         Set pvInit = New cIslProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ISL_INTERNAL)
-        pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_ISL_DIP_SWITCHES)
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ISL_TEXTS)
-        pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
-        lConfigIdx = ucsIslCfgDatecsModelA '--- FPs
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_A), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_A), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_A), lConfigIdx
-        lConfigIdx = ucsIslCfgDatecsModelB '--- ECRs
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_B), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_B), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_B), lConfigIdx
-        lConfigIdx = ucsIslCfgDaisy
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_DAISY), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_DAISY), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_DAISY), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_EXTENDED_ERRORS, STR_ISL_EXTENDED_DAISY), lConfigIdx
-        lConfigIdx = ucsIslCfgIncotex
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_INCO), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_INCO), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_INCO), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_EXTENDED_ERRORS, STR_ISL_EXTENDED_INCO), lConfigIdx
-        lConfigIdx = ucsIslCfgEltrade
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_ELTRADE), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_ELTRADE), lConfigIdx
-        pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_ELTRADE), lConfigIdx
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ISL_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciDipSwitchesTexts, GetConfigValue(sProtocol, CFG_DIP_SWITCHES_TEXTS, STR_ISL_DIP_SWITCHES)
+            pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ISL_TEXTS)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+            lConfigIdx = ucsIslCfgDatecsModelA '--- FPs
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_A), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_A), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_A), lConfigIdx
+            lConfigIdx = ucsIslCfgDatecsModelB '--- ECRs
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_B), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_B), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_B), lConfigIdx
+            lConfigIdx = ucsIslCfgDaisy
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_DAISY), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_DAISY), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_DAISY), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_EXTENDED_ERRORS, STR_ISL_EXTENDED_DAISY), lConfigIdx
+            lConfigIdx = ucsIslCfgIncotex
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_INCO), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_INCO), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_INCO), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciExtendedErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_EXTENDED_ERRORS, STR_ISL_EXTENDED_INCO), lConfigIdx
+            lConfigIdx = ucsIslCfgEltrade
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_STATUSES, STR_ISL_STATUSES_ELTRADE), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol & lConfigIdx, CFG_PRINTER_ERRORS, STR_ISL_ERRORS_ELTRADE), lConfigIdx
+            pvInit.SetLocalizedText ucsFscLciMemoryTexts, GetConfigValue(sProtocol & lConfigIdx, CFG_MEMORY_TEXTS, STR_ISL_MEMORY_ELTRADE), lConfigIdx
+        End If
     Case STR_PROTOCOL_TREMOL
         Set pvInit = New cTremolProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_TREMOL_INTERNAL)
-        pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_TREMOL_STATUSES)
-        pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_TREMOL_ERRORS)
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_TREMOL_TEXTS)
-        pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_TREMOL_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciPrinterStatuses, GetConfigValue(sProtocol, CFG_PRINTER_STATUSES, STR_TREMOL_STATUSES)
+            pvInit.SetLocalizedText ucsFscLciPrinterErrors, GetConfigValue(sProtocol, CFG_PRINTER_ERRORS, STR_TREMOL_ERRORS)
+            pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_TREMOL_TEXTS)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        End If
     Case STR_PROTOCOL_ESCPOS
         Set pvInit = New cEscPosProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ESP_POS_INTERNAL)
-        pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ESP_POS_TEXTS)
-        pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_ESP_POS_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciReceiptTexts, GetConfigValue(sProtocol, CFG_RECEIPT_TEXTS, STR_ESP_POS_TEXTS)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        End If
     Case STR_PROTOCOL_PROXY
         Set pvInit = New cProxyProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_PROXY_INTERNAL)
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_PROXY_INTERNAL)
+        End If
     Case STR_PROTOCOL_LABEL
         Set pvInit = New cLabelProtocol
-        pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_LABEL_INTERNAL)
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_LABEL_INTERNAL)
+        End If
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)
     End Select
