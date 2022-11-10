@@ -93,6 +93,7 @@ Private m_sConfFile                 As String
 Private m_sExeAutoUpdate            As String
 Private m_pUpdateTimer              As IUnknown
 Private m_pAutoUpdateTimer          As IUnknown
+Private m_pShutDownTimer            As IUnknown
 Private WithEvents m_oSysTray       As cSysTray
 Attribute m_oSysTray.VB_VarHelpID = -1
 Private m_hDevNotify                As Long
@@ -191,6 +192,9 @@ Public Sub ShutDown()
     Dim oFrm            As Object
     
     On Error GoTo EH
+    Set m_pUpdateTimer = Nothing
+    Set m_pAutoUpdateTimer = Nothing
+    Set m_pShutDownTimer = Nothing
     TerminateEndpoints
     FlushDebugLog
     For Each oFrm In Forms
@@ -202,6 +206,30 @@ Public Sub ShutDown()
 EH:
     PrintError FUNC_NAME
 End Sub
+
+Public Function DelayShutDown(Optional ByVal Delay As Long = 1000) As Boolean
+    Const FUNC_NAME     As String = "DelayShutDown"
+    
+    On Error GoTo EH
+    Set m_pShutDownTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.StartShutDown, Delay:=Delay)
+    '--- success
+    DelayShutDown = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function StartShutDown() As Long
+Attribute StartShutDown.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "StartShutDown"
+    
+    On Error GoTo EH
+    Set m_pShutDownTimer = Nothing
+    ShutDown
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
 
 Public Sub Restart(Optional AddParam As Variant)
     Const FUNC_NAME     As String = "Restart"
