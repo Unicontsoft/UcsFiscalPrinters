@@ -220,7 +220,6 @@ End Sub
 
 Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUseDefault) As Boolean
     Const FUNC_NAME     As String = "StartAutoUpdate"
-    Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
     On Error GoTo EH
     If LenB(m_sExeAutoUpdate) = 0 Then
@@ -230,7 +229,7 @@ Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUse
         StartAutoUpdate = True
     Else
         With InitExec()
-            .Run m_sExeAutoUpdate, "/checkupdate", StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            .Run m_sExeAutoUpdate, "/checkupdate", StartHidden:=True
             StartAutoUpdate = .GetExitCode() <> 0
         End With
     End If

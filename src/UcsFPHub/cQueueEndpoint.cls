@@ -35,8 +35,6 @@ Private Const AF_INET                   As Long = 2
 Private Const SOCK_STREAM               As Long = 1
 Private Const IPPROTO_TCP               As Long = 6
 Private Const INVALID_SOCKET            As Long = -1
-'--- for SetInformationJobObject
-Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As String, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
 Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
@@ -657,7 +655,7 @@ Private Function pvMakeSshTunnel( _
     '--- shell plink.exe
     Set oTunnel = InitExec()
     With oTunnel
-        .Run vbNullString, sExeFile & " " & sParams, StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        .Run vbNullString, sExeFile & " " & sParams, StartHidden:=True
         dblTimerEx = TimerEx
         Do While Not .AtEndOfError Or Not .AtEndOfOutput
             If TimerEx > dblTimerEx + lTimeout + lExtraTimeout Then

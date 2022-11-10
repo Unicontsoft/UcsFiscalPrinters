@@ -72,8 +72,6 @@ Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
 '--- error codes
 Private Const ERROR_ACCESS_DENIED           As Long = 5&
-'--- for SetInformationJobObject
-Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As Any) As Long
@@ -481,7 +479,7 @@ Private Function pvOpenPort(sDevice As String, Optional Error As String) As Long
                 For Each vElem In RegEnumValues(HKEY_LOCAL_MACHINE, KEY_PORTS)
                     If LCase$(RegReadString(HKEY_LOCAL_MACHINE, KEY_PORTS, C_Str(vElem))) = LCase$(At(vSplit, 0)) Then
                         With New cExec
-                            .Run vbNullString, sExeFile & " -accepteula -a " & .ArgvQuote(C_Str(vElem)), StartHidden:=True, LimitFlags:=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+                            .Run vbNullString, sExeFile & " -accepteula -a " & .ArgvQuote(C_Str(vElem)), StartHidden:=True
                             vElem = Split(preg_replace("/(\r*\n)*$/m", .ReadAllOutput), vbCrLf)
                         End With
                         Error = Error & " (" & At(vElem, -1) & ")"
