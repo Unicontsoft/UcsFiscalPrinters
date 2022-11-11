@@ -67,8 +67,12 @@ Private Const FW_NORMAL                     As Long = 400
 Private Const LOGPIXELSX                    As Long = 88
 Private Const LOGPIXELSY                    As Long = 90
 '--- for ShellExecuteEx
+Private Const SEE_MASK_NOCLOSEPROCESS       As Long = &H40
 Private Const SEE_MASK_NOASYNC              As Long = &H100
 Private Const SEE_MASK_FLAG_NO_UI           As Long = &H400
+'--- for SetInformationJobObject
+Private Const JobObjectExtendedLimitInformation As Long = 9
+Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As Long = &H2000
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function CommandLineToArgvW Lib "shell32" (ByVal lpCmdLine As Long, pNumArgs As Long) As Long
@@ -110,6 +114,9 @@ Private Declare Function GetDC Lib "user32" (ByVal hWnd As Long) As Long
 Private Declare Function ReleaseDC Lib "user32" (ByVal hWnd As Long, ByVal hDC As Long) As Long
 Private Declare Function GetDeviceCaps Lib "gdi32" (ByVal hDC As Long, ByVal nIndex As Long) As Long
 Private Declare Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExA" (lpExecInfo As SHELLEXECUTEINFO) As Long
+Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectW" (ByVal lpJobAttributes As Long, ByVal lpName As String) As Long
+Private Declare Function SetInformationJobObject Lib "kernel32" (ByVal hJob As Long, ByVal JobObjectInformationClass As Long, lpJobObjectInformation As Any, ByVal cbJobObjectInformationLength As Long) As Long
+Private Declare Function AssignProcessToJobObject Lib "kernel32" (ByVal hJob As Long, ByVal hProcess As Long) As Long
 
 Private Type FILETIME
     dwLowDateTime   As Long
@@ -161,6 +168,32 @@ Private Type SHELLEXECUTEINFO
     dwHotKey            As Long
     hIcon               As Long
     hProcess            As Long
+End Type
+
+Private Type JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+    '--- BasicLimitInformation
+    PerProcessUserTimeLimit As Currency
+    PerJobUserTimeLimit     As Currency
+    LimitFlags              As Long
+    MinimumWorkingSetSize   As Long
+    MaximumWorkingSetSize   As Long
+    ActiveProcessLimit      As Long
+    Affinity                As Long
+    PriorityClass           As Long
+    SchedulingClass         As Long
+    dwPadding1              As Long
+    '--- IoInfo
+    ReadOperationCount      As Currency
+    WriteOperationCount     As Currency
+    OtherOperationCount     As Currency
+    ReadTransferCount       As Currency
+    WriteTransferCount      As Currency
+    OtherTransferCount      As Currency
+    '--- rest
+    ProcessMemoryLimit      As Long
+    JobMemoryLimit          As Long
+    PeakProcessMemoryUsed   As Long
+    PeakJobMemoryUsed       As Long
 End Type
 
 '=========================================================================
@@ -1168,16 +1201,30 @@ Public Function IconScale(ByVal sngSize As Single) As Long
     End If
 End Function
 
-Public Function ShellExec(sExeFile As String, sParams As String) As Boolean
+Public Function ShellExec(sExeFile As String, sParams As String, Optional ByVal LimitFlags As Long = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE) As Boolean
     Dim uShell          As SHELLEXECUTEINFO
+    Dim hJob            As Long
+    Dim uInfo           As JOBOBJECT_EXTENDED_LIMIT_INFORMATION
     
     With uShell
         .cbSize = Len(uShell)
-        .fMask = SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
+        .fMask = SEE_MASK_NOCLOSEPROCESS Or SEE_MASK_NOASYNC Or SEE_MASK_FLAG_NO_UI
         .lpFile = sExeFile
         .lpParameters = sParams
     End With
-    Call ShellExecuteEx(uShell)
+    If ShellExecuteEx(uShell) = 0 Then
+        GoTo QH
+    End If
+    If LimitFlags <> 0 And uShell.hProcess <> 0 Then
+        hJob = CreateJobObject(0, 0)
+        uInfo.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        Call SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, uInfo, LenB(uInfo))
+        Call AssignProcessToJobObject(hJob, uShell.hProcess)
+    End If
+QH:
+    If uShell.hProcess <> 0 Then
+        Call CloseHandle(uShell.hProcess)
+    End If
 End Function
 
 Public Function Clamp( _
