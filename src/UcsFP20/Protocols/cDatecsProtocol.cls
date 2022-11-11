@@ -1986,16 +1986,22 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     End If
                 Next
                 sData = At(vSplit, UBound(vSplit))
-                sDiscType = vbNullString
-                dblDisc = Round(.DiscValue, DEF_PRICE_SCALE)
-                Select Case .DiscType
-                Case ucsFscDscPlu
-                    If Abs(.PluPrice) > DBL_EPSILON Then
-                        sDiscType = Switch(dblDisc > DBL_EPSILON, "1", dblDisc < -DBL_EPSILON, "2", True, vbNullString)
-                    End If
-                Case ucsFscDscPluAbs
-                    sDiscType = Switch(dblDisc > DBL_EPSILON, "3", dblDisc < -DBL_EPSILON, "4", True, vbNullString)
-                End Select
+                '--- bug: when qty is 0.000 total row as if qty is 1.000 -> transform row to 100% PLU discount (FP-700MX)
+                If Abs(.PluQuantity) < DBL_EPSILON And Abs(.PluPrice) > DBL_EPSILON Then
+                    sDiscType = "1"
+                    dblDisc = 100
+                Else
+                    sDiscType = vbNullString
+                    dblDisc = .DiscValue
+                    Select Case .DiscType
+                    Case ucsFscDscPlu
+                        If Abs(.PluPrice) > DBL_EPSILON Then
+                            sDiscType = Switch(dblDisc > DBL_EPSILON, "1", dblDisc < -DBL_EPSILON, "2", True, vbNullString)
+                        End If
+                    Case ucsFscDscPluAbs
+                        sDiscType = Switch(dblDisc > DBL_EPSILON, "3", dblDisc < -DBL_EPSILON, "4", True, vbNullString)
+                    End Select
+                End If
                 '--- %1={PluName}<SEP>%2={TaxCd}<SEP>%3={Price}<SEP>%4={Quantity}<SEP>%5={DiscountType}<SEP>%6={DiscountValue}<SEP>%7={Department}<SEP>%8=[ {Unit}<SEP> ]
                 sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & DEF_SEP & "%4" & DEF_SEP & "%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & DEF_SEP & "%8"
                 pvGetCommandConfig CONF_NAME, "FiscalSell" & .PrintRowType, eCmd, ucsDcsCmdFiscalSell, sParam, sParam, _
@@ -2005,7 +2011,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sParam = Printf(sParam, sData, .PluTaxGroup, SafeFormat(.PluPrice, sFormatPrice), _
                     IIf(Abs(.PluQuantity - 1) > DBL_EPSILON, SafeFormat(.PluQuantity, sFormatQty), vbNullString), _
                     sDiscType, _
-                    IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(.DiscValue), sFormatDisc), vbNullString), _
+                    IIf(LenB(sDiscType) <> 0, SafeFormat(Abs(dblDisc), sFormatDisc), vbNullString), _
                     .PluDepartmentNo, _
                     IIf(LenB(.PluUnitOfMeasure) <> 0, Left$(.PluUnitOfMeasure, MAX_UNIT_OF_MEASURE) & DEF_SEP, vbNullString))
                 SendCommand eCmd, sParam, LogName:=FUNC_NAME
