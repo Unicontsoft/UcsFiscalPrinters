@@ -115,6 +115,7 @@ Public Enum UcsFiscalErrorsEnum
     ucsFerGeneralError
     ucsFerInvalidPassword
     ucsFerPasswordNotSet
+    ucsFerOutOfPaper
 End Enum
 
 Public Enum UcsFiscalReversalTypeEnum

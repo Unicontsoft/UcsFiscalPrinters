@@ -882,7 +882,15 @@ Public Function SendCommand(ByVal eCmd As UcsIslCommandsEnum, Data As String, Op
     End If
     SendCommand = pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, Data, LogName, Error:=sError)
     If LenB(sError) <> 0 Then
-        pvSetLastError sError
+        If Status(ucsIslStbOutOfPaper) Then
+            pvSetLastError sError, ucsFerOutOfPaper
+        Else
+            pvSetLastError sError
+        End If
+        GoTo QH
+    End If
+    If Status(ucsIslStbOutOfPaper) Then
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus))), ucsFerOutOfPaper
         GoTo QH
     End If
     If Status(ucsIslStbPrintingError) Then
@@ -2740,7 +2748,7 @@ QH:
         '--- use pvRawSendCommand to preserve LastError
         pvRawSendCommand m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME
     End If
-    If bInLogin Then
+    If bInLogin And m_uPrintData.LastErrNo = ucsFerGeneralError Then
         pvSetLastError m_uPrintData.LastError & pvInternal(ucsErrInvalidOperatorPassword), ucsFerInvalidPassword
     End If
     If LenB(m_uPrintData.LastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then

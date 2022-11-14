@@ -214,6 +214,7 @@ Private Const FORMAT_DATE_DST           As String = "dd\-mm\-yy hh\:nn\:ss \D\S\
 Private Const FORMAT_DATE_REPORT        As String = "dd\-mm\-yy"
 Private Const ERR_OPER_WRONG_PASSWORD   As Long = -102002
 Private Const ERR_R_PAY_NOCASH          As Long = -111017
+Private Const ERR_FP_NO_PAPER           As Long = -112006
 Private Const ERR_FP_BAD_PARAM_7        As Long = -112207
 Private Const ERR_FP_BAD_PARAM_8        As Long = -112208
 Private Const MAX_HEADER_LINES          As Long = 10
@@ -687,6 +688,7 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
     Dim sError          As String
     Dim lPos            As Long
     Dim lErrCode        As Long
+    Dim eErrNum         As UcsFiscalErrorsEnum
     
     On Error GoTo EH
     pvSetLastError vbNullString
@@ -695,7 +697,11 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
     End If
     SendCommand = pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, Data, LogName, Error:=sError)
     If LenB(sError) <> 0 Then
-        pvSetLastError sError
+        If Status(ucsDcsStbOutOfPaper) Then
+            pvSetLastError sError, ucsFerOutOfPaper
+        Else
+            pvSetLastError sError
+        End If
         GoTo QH
     End If
     lPos = InStr(SendCommand, DEF_SEP)
@@ -704,16 +710,24 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
         Select Case lErrCode
         Case 0
             '--- do nothing
-        Case ERR_OPER_WRONG_PASSWORD
-            pvSetLastError pvToErrorCode(sError), ucsFerInvalidPassword, ErrCode:=lErrCode
-            GoTo QH
         Case ERR_R_PAY_NOCASH
             pvSetLastError pvInternal(ucsErrInsufficientSum), ErrCode:=lErrCode
             GoTo QH
+        Case ERR_OPER_WRONG_PASSWORD
+            eErrNum = ucsFerInvalidPassword
+        Case ERR_FP_NO_PAPER
+            eErrNum = ucsFerOutOfPaper
         Case Else
-            pvSetLastError pvToErrorCode(sError), ErrCode:=lErrCode
-            GoTo QH
+            eErrNum = ucsFerGeneralError
         End Select
+        If eErrNum <> 0 Then
+            pvSetLastError pvToErrorCode(sError), eErrNum, ErrCode:=lErrCode
+            GoTo QH
+        End If
+    End If
+    If Status(ucsDcsStbOutOfPaper) Then
+        pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus))), ucsFerOutOfPaper
+        GoTo QH
     End If
     If Status(ucsDcsStbGeneralError) Then
         pvSetLastError Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))

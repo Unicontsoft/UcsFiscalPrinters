@@ -771,7 +771,7 @@ Public Function WaitDevice(Optional ByVal Timeout As Long) As Boolean
                         End If
                         GoTo QH
                     Case STA_OUT_OF_PAPER, STA_OUT_OF_PAPER_AND_BUSY
-                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper)
+                        pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrOutOfPaper), ucsFerOutOfPaper
                         GoTo QH
                     Case STA_PRINTER_OVERHEATED, STA_PRINTER_OVERHEATED_AND_BUSY
                         pvSetLastError At(m_uConfig.LocalizedText(ucsFscLciPrinterErrors), ucsErrPrinterOverheated)
