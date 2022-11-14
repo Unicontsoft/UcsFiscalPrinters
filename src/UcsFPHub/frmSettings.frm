@@ -28,16 +28,25 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   13
+      TabIndex        =   14
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
       Width           =   9924
+      Begin VB.CommandButton cmdReset 
+         Caption         =   "Ресет"
+         Height          =   432
+         Left            =   7392
+         TabIndex        =   9
+         Tag             =   "FONT"
+         Top             =   2436
+         Width           =   1104
+      End
       Begin VB.CommandButton cmdTest 
          Caption         =   "Тест"
          Height          =   432
-         Left            =   8484
-         TabIndex        =   9
+         Left            =   8568
+         TabIndex        =   10
          Tag             =   "FONT"
          Top             =   2436
          Width           =   1104
@@ -46,7 +55,7 @@ Begin VB.Form frmSettings
          Caption         =   "Бързи настройки"
          Height          =   4884
          Left            =   0
-         TabIndex        =   16
+         TabIndex        =   17
          Tag             =   "FONT"
          Top             =   0
          Width           =   4464
@@ -122,7 +131,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   5
             Left            =   252
-            TabIndex        =   22
+            TabIndex        =   23
             Tag             =   "FONT"
             Top             =   3528
             UseMnemonic     =   0   'False
@@ -134,7 +143,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   4
             Left            =   252
-            TabIndex        =   21
+            TabIndex        =   22
             Tag             =   "FONT"
             Top             =   3024
             UseMnemonic     =   0   'False
@@ -146,7 +155,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   3
             Left            =   252
-            TabIndex        =   20
+            TabIndex        =   21
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
@@ -158,7 +167,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   0
             Left            =   252
-            TabIndex        =   19
+            TabIndex        =   20
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
@@ -170,7 +179,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   2
             Left            =   252
-            TabIndex        =   18
+            TabIndex        =   19
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
@@ -182,7 +191,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   1
             Left            =   252
-            TabIndex        =   17
+            TabIndex        =   18
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
@@ -195,7 +204,7 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         TabIndex        =   10
+         TabIndex        =   11
          Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
@@ -218,7 +227,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   15
+      TabIndex        =   16
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -230,7 +239,7 @@ Begin VB.Form frmSettings
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   12
+         TabIndex        =   13
          Tag             =   "MONO"
          Top             =   0
          Width           =   9252
@@ -244,7 +253,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   14
+      TabIndex        =   15
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -255,7 +264,7 @@ Begin VB.Form frmSettings
          Left            =   0
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   11
+         TabIndex        =   12
          Tag             =   "MONO"
          Top             =   0
          Width           =   6396
@@ -400,22 +409,28 @@ Private Const MODULE_NAME As String = "frmSettings"
 
 '--- Windows Messages
 Private Const WM_SETREDRAW              As Long = &HB
-Private Const WM_GETTEXTLENGTH          As Long = &HE
-Private Const WM_GETMINMAXINFO          As Long = &H24
-Private Const EM_SETSEL                 As Long = &HB1
-Private Const EM_REPLACESEL             As Long = &HC2
-Private Const EM_CANUNDO                As Long = &HC6
-Private Const EM_UNDO                   As Long = &HC7
-Private Const WM_VSCROLL                As Long = &H115
-Private Const WM_INITMENU               As Long = &H116
-Private Const WM_CUT                    As Long = &H300
-Private Const WM_COPY                   As Long = &H301
-Private Const WM_PASTE                  As Long = &H302
-Private Const WM_CLEAR                  As Long = &H303
+Private Const WM_GETTEXTLENGTH                  As Long = &HE
+Private Const WM_GETMINMAXINFO              As Long = &H24
+Private Const EM_SETSEL                     As Long = &HB1
+Private Const EM_REPLACESEL                 As Long = &HC2
+Private Const EM_CANUNDO                    As Long = &HC6
+Private Const EM_UNDO                       As Long = &HC7
+Private Const WM_VSCROLL                    As Long = &H115
+Private Const WM_INITMENU                   As Long = &H116
+Private Const WM_UPDATEUISTATE              As Long = &H128
+Private Const WM_CUT                        As Long = &H300
+Private Const WM_COPY                       As Long = &H301
+Private Const WM_PASTE                      As Long = &H302
+Private Const WM_CLEAR                      As Long = &H303
 '--- clipboard format
-Private Const CF_UNICODETEXT            As Long = 13
+Private Const CF_UNICODETEXT                As Long = 13
 '--- for WM_VSCROLL
-Private Const SB_BOTTOM                 As Long = 7
+Private Const SB_BOTTOM                     As Long = 7
+'--- for XP theme support
+Private Const UIS_CLEAR                     As Long = 2
+Private Const UISF_HIDEACCEL                As Long = &H2
+Private Const UISF_HIDEFOCUS                As Long = &H1
+Private Const CLEAR_IT_ALL                  As Long = ((UISF_HIDEACCEL Or UISF_HIDEFOCUS) * &H10000) Or UIS_CLEAR
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
@@ -467,6 +482,7 @@ Private Const LANG_LABEL_SPEED          As Long = 1024 ' Скорост на к�
 Private Const LANG_LABEL_DEF_PASSWORD   As Long = 1025 ' Парола по подразбиране
 Private Const LANG_LABEL_SERIAL_NO      As Long = 1026 ' Сериен номер на ФУ
 Private Const LANG_LABEL_LOG_FILE       As Long = 1027 ' Журнален файл
+Private Const LANG_CAPTION_RESET        As Long = 1028 ' Ресет
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000
@@ -1043,6 +1059,26 @@ EH:
     Resume QH
 End Sub
 
+Private Sub cmdReset_Click()
+    Const FUNC_NAME     As String = "cmdReset_Click"
+    Const URL_INFO      As String = "/printers/%1/receipt?format=json"
+    Dim sPrinterID      As String
+    Dim sResponse       As String
+    
+    On Error GoTo EH
+    Screen.MousePointer = vbHourglass
+    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
+    If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), "{}", sResponse) Then
+        GoTo QH
+    End If
+QH:
+    Screen.MousePointer = vbDefault
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
 Private Sub Form_Load()
     Const FUNC_NAME     As String = "Form_Load"
     
@@ -1054,6 +1090,7 @@ Private Sub Form_Load()
     LocalizeMenu mnuHelp, T(LANG_MENU_HELP)
     tabMain.Layout = T(LANG_LAYOUT_TABS)
     cmdTest.Caption = T(LANG_CAPTION_TEST)
+    cmdReset.Caption = T(LANG_CAPTION_RESET)
     fraQuickSetup.Caption = T(LANG_CAPTION_QUICK_SETUP)
     chkAutoDetect.Caption = T(LANG_CAPTION_AUTO_DETECT)
     labLabel(0).Caption = T(LANG_LABEL_PROTOCOL) & ":"
@@ -1063,6 +1100,7 @@ Private Sub Form_Load()
     labLabel(4).Caption = T(LANG_LABEL_SERIAL_NO) & ":"
     labLabel(5).Caption = T(LANG_LABEL_LOG_FILE) & ":"
     cmdApply.Caption = T(LANG_CAPTION_APPLY)
+    Call SendMessage(hWnd, WM_UPDATEUISTATE, CLEAR_IT_ALL, ByVal 0)
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -1215,9 +1253,12 @@ Private Sub Form_Resize()
                 dblLeft = fraQuickSetup.Left + fraQuickSetup.Width + GRID_SIZE
                 dblHeight = (.ScaleHeight - GRID_SIZE) / 2 - cmdTest.Height
                 MoveCtl lstPrinters, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, dblHeight - GRID_SIZE
-                MoveCtl cmdTest, lstPrinters.Left + lstPrinters.Width - cmdTest.Width - GRID_SIZE, dblHeight + 2 * GRID_SIZE
                 dblTop = dblHeight + GRID_SIZE
                 MoveCtl txtInfo, dblLeft, dblTop, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight - dblTop - GRID_SIZE
+                dblLeft = lstPrinters.Left + lstPrinters.Width - cmdTest.Width - GRID_SIZE
+                MoveCtl cmdTest, dblLeft, dblHeight + 2 * GRID_SIZE
+                dblLeft = cmdTest.Left - cmdTest.Width - GRID_SIZE
+                MoveCtl cmdReset, dblLeft, dblHeight + 2 * GRID_SIZE
             Case ucsTabConfig
                 dblLeft = GRID_SIZE
                 MoveCtl txtConfig, dblLeft, 0, .ScaleWidth - dblLeft, .ScaleHeight
