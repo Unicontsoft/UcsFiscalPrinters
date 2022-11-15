@@ -28,34 +28,16 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   14
+      TabIndex        =   12
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
       Width           =   9924
-      Begin VB.CommandButton cmdReset 
-         Caption         =   "Ресет"
-         Height          =   432
-         Left            =   7392
-         TabIndex        =   9
-         Tag             =   "FONT"
-         Top             =   2436
-         Width           =   1104
-      End
-      Begin VB.CommandButton cmdTest 
-         Caption         =   "Тест"
-         Height          =   432
-         Left            =   8568
-         TabIndex        =   10
-         Tag             =   "FONT"
-         Top             =   2436
-         Width           =   1104
-      End
       Begin VB.Frame fraQuickSetup 
          Caption         =   "Бързи настройки"
          Height          =   4884
          Left            =   0
-         TabIndex        =   17
+         TabIndex        =   15
          Tag             =   "FONT"
          Top             =   0
          Width           =   4464
@@ -131,7 +113,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   5
             Left            =   252
-            TabIndex        =   23
+            TabIndex        =   21
             Tag             =   "FONT"
             Top             =   3528
             UseMnemonic     =   0   'False
@@ -143,7 +125,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   4
             Left            =   252
-            TabIndex        =   22
+            TabIndex        =   20
             Tag             =   "FONT"
             Top             =   3024
             UseMnemonic     =   0   'False
@@ -155,7 +137,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   3
             Left            =   252
-            TabIndex        =   21
+            TabIndex        =   19
             Tag             =   "FONT"
             Top             =   2520
             UseMnemonic     =   0   'False
@@ -167,7 +149,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   0
             Left            =   252
-            TabIndex        =   20
+            TabIndex        =   18
             Tag             =   "FONT"
             Top             =   1008
             UseMnemonic     =   0   'False
@@ -179,7 +161,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   2
             Left            =   252
-            TabIndex        =   19
+            TabIndex        =   17
             Tag             =   "FONT"
             Top             =   2016
             UseMnemonic     =   0   'False
@@ -191,7 +173,7 @@ Begin VB.Form frmSettings
             Height          =   192
             Index           =   1
             Left            =   252
-            TabIndex        =   18
+            TabIndex        =   16
             Tag             =   "FONT"
             Top             =   1512
             UseMnemonic     =   0   'False
@@ -204,7 +186,8 @@ Begin VB.Form frmSettings
          Left            =   4620
          Locked          =   -1  'True
          MultiLine       =   -1  'True
-         TabIndex        =   11
+         ScrollBars      =   2  'Vertical
+         TabIndex        =   9
          Tag             =   "MONO"
          Top             =   3192
          Width           =   5052
@@ -227,7 +210,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   16
+      TabIndex        =   14
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -239,7 +222,7 @@ Begin VB.Form frmSettings
          Locked          =   -1  'True
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   13
+         TabIndex        =   11
          Tag             =   "MONO"
          Top             =   0
          Width           =   9252
@@ -253,7 +236,7 @@ Begin VB.Form frmSettings
       Left            =   252
       ScaleHeight     =   6984
       ScaleWidth      =   9924
-      TabIndex        =   15
+      TabIndex        =   13
       TabStop         =   0   'False
       Top             =   504
       Visible         =   0   'False
@@ -264,7 +247,7 @@ Begin VB.Form frmSettings
          Left            =   0
          MultiLine       =   -1  'True
          ScrollBars      =   3  'Both
-         TabIndex        =   12
+         TabIndex        =   10
          Tag             =   "MONO"
          Top             =   0
          Width           =   6396
@@ -368,8 +351,20 @@ Begin VB.Form frmSettings
       End
    End
    Begin VB.Menu mnuMain 
-      Caption         =   "Помощ"
+      Caption         =   "Средства"
       Index           =   2
+      Begin VB.Menu mnuTools 
+         Caption         =   "Тест"
+         Index           =   0
+      End
+      Begin VB.Menu mnuTools 
+         Caption         =   "Ресет"
+         Index           =   1
+      End
+   End
+   Begin VB.Menu mnuMain 
+      Caption         =   "Помощ"
+      Index           =   3
       Begin VB.Menu mnuHelp 
          Caption         =   "Проверка нова версия"
          Index           =   0
@@ -418,6 +413,7 @@ Private Const EM_UNDO                       As Long = &HC7
 Private Const WM_VSCROLL                    As Long = &H115
 Private Const WM_INITMENU                   As Long = &H116
 Private Const WM_UPDATEUISTATE              As Long = &H128
+Private Const LB_GETITEMHEIGHT              As Long = &H1A1
 Private Const WM_CUT                        As Long = &H300
 Private Const WM_COPY                       As Long = &H301
 Private Const WM_PASTE                      As Long = &H302
@@ -468,12 +464,12 @@ Private Const LANG_PRINTER_NOT_FOUND    As Long = 1010 ' Не е открито 
 Private Const LANG_SUCCESS_FOUND        As Long = 1011 ' Успешно конфигуриране на фискално устройство %1!
 Private Const LANG_UPDATE_FOUND         As Long = 1012 ' Желаете ли да обновите %1 до последна версия след рестартиране?
 Private Const LANG_NO_UPDATE            As Long = 1013 ' Не е намерена по-нова версия на %1
-Private Const LANG_MENU_MAIN            As Long = 1014 ' Файл|Редакция|Помощ
+Private Const LANG_MENU_MAIN            As Long = 1014 ' Файл|Редакция|Средства|Помощ
 Private Const LANG_MENU_FILE            As Long = 1015 ' Запис|-|Рестарт|-|Изход
 Private Const LANG_MENU_EDIT            As Long = 1016 ' Върни|-|Изрежи|Копирай|Постави|Изтрий|-|Избери всичко|-|Обнови
+Private Const LANG_MENU_TOOLS           As Long = 1019 ' Тест|Ресет
 Private Const LANG_MENU_HELP            As Long = 1017 ' Проверка нова версия|-|Относно
 Private Const LANG_LAYOUT_TABS          As Long = 1018 ' Устройства|Конфигурация|Журнал
-Private Const LANG_CAPTION_TEST         As Long = 1019 ' Тест
 Private Const LANG_CAPTION_QUICK_SETUP  As Long = 1020 ' Бързи настройки
 Private Const LANG_CAPTION_AUTO_DETECT  As Long = 1021 ' Автоматично откриване на устройства
 Private Const LANG_LABEL_PROTOCOL       As Long = 1022 ' Протокол за комуникация
@@ -482,7 +478,6 @@ Private Const LANG_LABEL_SPEED          As Long = 1024 ' Скорост на к�
 Private Const LANG_LABEL_DEF_PASSWORD   As Long = 1025 ' Парола по подразбиране
 Private Const LANG_LABEL_SERIAL_NO      As Long = 1026 ' Сериен номер на ФУ
 Private Const LANG_LABEL_LOG_FILE       As Long = 1027 ' Журнален файл
-Private Const LANG_CAPTION_RESET        As Long = 1028 ' Ресет
 '--- numeric
 Private Const GRID_SIZE                 As Long = 60
 Private Const DEF_MIN_WIDTH             As Single = 10000
@@ -500,6 +495,10 @@ Private m_pTimerLog                 As IUnknown
 Private m_lLogMemoryCount           As Long
 
 Private Enum UcsMenuItems
+    ucsMnuMainFile
+    ucsMnuMainEdit
+    ucsMnuMainTools
+    ucsMnuMainHelp
     ucsMnuFileSave = 0
     ucsMnuFileSep1
     ucsMnuFileRestart
@@ -515,6 +514,8 @@ Private Enum UcsMenuItems
     ucsMnuEditSelectAll
     ucsMnuEditSep3
     ucsMnuEditRefresh
+    ucsMnuToolsTest = 0
+    ucsMnuToolsReset
     ucsMnuHelpAutoUpdate = 0
     ucsMnuHelpSep1
     ucsMnuHelpAbout
@@ -981,6 +982,10 @@ Private Sub pvAppendLogText(sValue As String)
     Call SendMessage(txtLog.hWnd, WM_VSCROLL, SB_BOTTOM, ByVal 0)
 End Sub
 
+Private Function pvItemHeight(oCtl As ListBox) As Single
+    pvItemHeight = ScaleY(SendMessage(oCtl.hWnd, LB_GETITEMHEIGHT, 0, ByVal 0), vbPixels)
+End Function
+
 '=========================================================================
 ' Events
 '=========================================================================
@@ -1038,47 +1043,6 @@ EH:
     PrintError FUNC_NAME
 End Sub
 
-Private Sub cmdTest_Click()
-    Const FUNC_NAME     As String = "cmdTest_Click"
-    Const URL_INFO      As String = "/printers/%1?format=json"
-    Dim sPrinterID      As String
-    Dim sResponse       As String
-    
-    On Error GoTo EH
-    Screen.MousePointer = vbHourglass
-    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
-    If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), vbNullString, sResponse) Then
-        GoTo QH
-    End If
-    txtInfo.Text = sResponse
-QH:
-    Screen.MousePointer = vbDefault
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Sub
-
-Private Sub cmdReset_Click()
-    Const FUNC_NAME     As String = "cmdReset_Click"
-    Const URL_INFO      As String = "/printers/%1/receipt?format=json"
-    Dim sPrinterID      As String
-    Dim sResponse       As String
-    
-    On Error GoTo EH
-    Screen.MousePointer = vbHourglass
-    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
-    If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), "{}", sResponse) Then
-        GoTo QH
-    End If
-QH:
-    Screen.MousePointer = vbDefault
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Sub
-
 Private Sub Form_Load()
     Const FUNC_NAME     As String = "Form_Load"
     
@@ -1087,10 +1051,9 @@ Private Sub Form_Load()
     LocalizeMenu mnuMain, T(LANG_MENU_MAIN)
     LocalizeMenu mnuFile, T(LANG_MENU_FILE)
     LocalizeMenu mnuEdit, T(LANG_MENU_EDIT)
+    LocalizeMenu mnuTools, T(LANG_MENU_TOOLS)
     LocalizeMenu mnuHelp, T(LANG_MENU_HELP)
     tabMain.Layout = T(LANG_LAYOUT_TABS)
-    cmdTest.Caption = T(LANG_CAPTION_TEST)
-    cmdReset.Caption = T(LANG_CAPTION_RESET)
     fraQuickSetup.Caption = T(LANG_CAPTION_QUICK_SETUP)
     chkAutoDetect.Caption = T(LANG_CAPTION_AUTO_DETECT)
     labLabel(0).Caption = T(LANG_LABEL_PROTOCOL) & ":"
@@ -1104,7 +1067,6 @@ Private Sub Form_Load()
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume Next
 End Sub
 
 Private Sub mnuFile_Click(Index As Integer)
@@ -1168,6 +1130,39 @@ Private Sub mnuEdit_Click(Index As Integer)
         Case ucsTabLog
             TimerProc
         End Select
+    End Select
+QH:
+    Screen.MousePointer = vbDefault
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
+Private Sub mnuTools_Click(Index As Integer)
+    Const FUNC_NAME     As String = "mnuTools_Click"
+    Const URL_INFO      As String = "/printers/%1?format=json"
+    Const URL_RECEIPT   As String = "/printers/%1/receipt?format=json"
+    Dim sPrinterID      As String
+    Dim sResponse       As String
+    
+    On Error GoTo EH
+    Screen.MousePointer = vbHourglass
+    sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
+    Select Case Index
+    Case ucsMnuToolsTest
+        If LenB(sPrinterID) <> 0 Then
+            If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_INFO, sPrinterID), vbNullString, sResponse) Then
+                GoTo QH
+            End If
+            txtInfo.Text = sResponse
+        End If
+    Case ucsMnuToolsReset
+        If LenB(sPrinterID) <> 0 Then
+            If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_RECEIPT, sPrinterID), "{}", sResponse) Then
+                GoTo QH
+            End If
+        End If
     End Select
 QH:
     Screen.MousePointer = vbDefault
@@ -1251,14 +1246,10 @@ Private Sub Form_Resize()
                 dblTop = GRID_SIZE
                 MoveCtl fraQuickSetup, dblLeft, dblTop, fraQuickSetup.Width, .ScaleHeight - dblTop - GRID_SIZE
                 dblLeft = fraQuickSetup.Left + fraQuickSetup.Width + GRID_SIZE
-                dblHeight = (.ScaleHeight - GRID_SIZE) / 2 - cmdTest.Height
+                dblHeight = (.ScaleHeight - GRID_SIZE) / 2 - 10 * GRID_SIZE
                 MoveCtl lstPrinters, dblLeft, 0, .ScaleWidth - dblLeft - GRID_SIZE, dblHeight - GRID_SIZE
                 dblTop = dblHeight + GRID_SIZE
                 MoveCtl txtInfo, dblLeft, dblTop, .ScaleWidth - dblLeft - GRID_SIZE, .ScaleHeight - dblTop - GRID_SIZE
-                dblLeft = lstPrinters.Left + lstPrinters.Width - cmdTest.Width - GRID_SIZE
-                MoveCtl cmdTest, dblLeft, dblHeight + 2 * GRID_SIZE
-                dblLeft = cmdTest.Left - cmdTest.Width - GRID_SIZE
-                MoveCtl cmdReset, dblLeft, dblHeight + 2 * GRID_SIZE
             Case ucsTabConfig
                 dblLeft = GRID_SIZE
                 MoveCtl txtConfig, dblLeft, 0, .ScaleWidth - dblLeft, .ScaleHeight
@@ -1339,7 +1330,26 @@ Private Sub lstPrinters_Click()
     On Error GoTo EH
     sPrinterID = Trim$(At(Split(lstPrinters.Text, vbTab), 0))
     txtInfo.Text = JsonDump(JsonValue(MainForm.Printers, sPrinterID))
-    cmdTest.Enabled = (lstPrinters.ListIndex > 0)
+    mnuTools(ucsMnuToolsTest).Enabled = (lstPrinters.ListIndex > 0)
+    mnuTools(ucsMnuToolsReset).Enabled = (lstPrinters.ListIndex > 0)
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+End Sub
+
+Private Sub lstPrinters_MouseUp(Button As Integer, Shift As Integer, X As Single, Y As Single)
+    Const FUNC_NAME     As String = "lstPrinters_MouseUp"
+    Dim lNewIndex       As Long
+    
+    On Error GoTo EH
+    If Button = vbRightButton Then
+        lstPrinters.SetFocus
+        lNewIndex = lstPrinters.Top + Y \ pvItemHeight(lstPrinters)
+        If lstPrinters.ListIndex <> lNewIndex Then
+            lstPrinters.ListIndex = lNewIndex
+        End If
+        PopupMenu mnuMain(ucsMnuMainTools)
+    End If
     Exit Sub
 EH:
     PrintError FUNC_NAME
@@ -1388,7 +1398,6 @@ Private Sub cobProtocol_Change()
     Exit Sub
 EH:
     PrintError FUNC_NAME
-    Resume Next
 End Sub
 
 Private Sub cobProtocol_Click()
