@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' Poor Man's SysTray Support (c) 2019 by wqweto@gmail.com
+' Poor Man's SysTray Support (c) 2019-2022 by wqweto@gmail.com
 '
 ' Based on systray by Ellis Dee of vbforums.com
 '
@@ -23,6 +23,8 @@ Attribute VB_Exposed = False
 '=========================================================================
 Option Explicit
 DefObj A-Z
+
+#Const HasPtrSafe = (VBA7 <> 0)
 
 '=========================================================================
 ' Public events
@@ -73,17 +75,26 @@ Private Const NIF_INFO                          As Long = &H10
 '--- for NOTIFYICONDATA.dwState
 Private Const NIS_HIDDEN                        As Long = 1
 
-Private Declare Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconA" (ByVal dwMessage As Long, pnid As NOTIFYICONDATA) As Boolean
-Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As Long) As Long
-Private Declare Function SetCapture Lib "user32" (ByVal hWnd As Long) As Long
+#If HasPtrSafe Then
+Private Declare PtrSafe Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As Long, ByVal pnid As LongPtr) As Boolean
+Private Declare PtrSafe Function SetForegroundWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+Private Declare PtrSafe Function SetCapture Lib "user32" (ByVal hWnd As LongPtr) As Long
+#Else
+Private Enum LongPtr
+    [_]
+End Enum
+Private Declare Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As Long, ByVal pnid As LongPtr) As Boolean
+Private Declare Function SetForegroundWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+Private Declare Function SetCapture Lib "user32" (ByVal hWnd As LongPtr) As Long
+#End If
 
 Private Type NOTIFYICONDATA
     cbSize              As Long
-    hWnd                As Long
+    hWnd                As LongPtr
     uID                 As Long
     uFlags              As Long
     uCallbackMessage    As Long
-    hIcon               As Long
+    hIcon               As LongPtr
     szTip               As String * 128
     dwState             As Long
     dwStateMask         As Long
@@ -117,7 +128,7 @@ Property Let Visible(ByVal bValue As Boolean)
     m_uData.uFlags = NIF_STATE
     m_uData.dwState = IIf(bValue, 0, NIS_HIDDEN)
     m_uData.dwStateMask = NIS_HIDDEN
-    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+    If Shell_NotifyIcon(NIM_MODIFY, VarPtr(m_uData)) = 0 Then
         Err.Raise Err.LastDllError
     End If
 End Property
@@ -131,7 +142,7 @@ Property Set Icon(oValue As StdPicture)
     Set m_oIcon = oValue
     m_uData.uFlags = NIF_ICON
     m_uData.hIcon = oValue.Handle
-    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+    If Shell_NotifyIcon(NIM_MODIFY, VarPtr(m_uData)) = 0 Then
         Err.Raise Err.LastDllError
     End If
 End Property
@@ -144,7 +155,7 @@ Property Let TooltipText(ByVal sValue As String)
     m_sTooltip = sValue
     m_uData.uFlags = NIF_TIP
     m_uData.szTip = m_sTooltip & vbNullChar
-    If Shell_NotifyIcon(NIM_MODIFY, m_uData) = 0 Then
+    If Shell_NotifyIcon(NIM_MODIFY, VarPtr(m_uData)) = 0 Then
         Err.Raise Err.LastDllError
     End If
 End Property
@@ -161,10 +172,13 @@ Public Function Init(oForm As Form, sTooltip As String, Optional ByVal uID As Lo
         .uID = uID
         .uFlags = NIF_MESSAGE Or NIF_ICON Or NIF_TIP
         .uCallbackMessage = WM_LBUTTONDOWN
-        .hIcon = m_oForm.Icon.Handle
+        #If TWINBASIC = 0 Then
+            .hIcon = m_oForm.Icon.Handle
+        #End If
         .szTip = sTooltip & vbNullChar
     End With
-    If Shell_NotifyIcon(NIM_ADD, m_uData) = 0 Then
+    Debug.Print LenB(m_uData), VarPtr(m_uData.dwInfoFlags) - VarPtr(m_uData)
+    If Shell_NotifyIcon(NIM_ADD, VarPtr(m_uData)) = 0 Then
         Err.Raise Err.LastDllError
     End If
     m_bVisible = True
@@ -173,7 +187,7 @@ Public Function Init(oForm As Form, sTooltip As String, Optional ByVal uID As Lo
 End Function
 
 Public Sub Terminate()
-    Shell_NotifyIcon NIM_DELETE, m_uData
+    Shell_NotifyIcon NIM_DELETE, VarPtr(m_uData)
     Set m_oForm = Nothing
 End Sub
 
@@ -187,7 +201,7 @@ Public Sub ShowBalloonTip( _
     m_uData.uTimeoutOrVersion = Timeout
     m_uData.dwInfoFlags = IconType
     m_uData.uFlags = NIF_INFO
-    Shell_NotifyIcon NIM_MODIFY, m_uData
+    Shell_NotifyIcon NIM_MODIFY, VarPtr(m_uData)
 End Sub
 
 '=========================================================================
@@ -196,7 +210,10 @@ End Sub
 
 Private Sub m_oForm_MouseDown(Button As Integer, Shift As Integer, X As Single, Y As Single)
     If Y = 0 Then
-        Select Case m_oForm.ScaleX(X, m_oForm.ScaleMode, vbPixels)
+        #If TWINBASIC Then
+            X = X * m_oForm.DpiScaleFactorX
+        #End If
+        Select Case CLng(m_oForm.ScaleX(X, m_oForm.ScaleMode, vbPixels))
         Case WM_LBUTTONUP
             Call SetCapture(0)
             Call SetForegroundWindow(m_uData.hWnd)
