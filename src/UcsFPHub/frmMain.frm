@@ -239,7 +239,7 @@ Public Sub Restart(Optional AddParam As Variant)
     If IsMissing(AddParam) Or InIde Then
         Main
     Else
-        ShellExec GetProcessName(), Trim$(Command$ & IIf(LenB(AddParam) <> 0, " " & ArgvQuote(AddParam & vbNullString), vbNullString))
+        ShellExec GetProcessName(), Trim$(Command$ & IIf(LenB(AddParam) <> 0, " " & ArgvQuote(AddParam & vbNullString), vbNullString)), LimitFlags:=0
     End If
     Exit Sub
 EH:
@@ -266,7 +266,7 @@ Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUse
     End If
     If StartAutoUpdate Then
         ShutDown
-        ShellExec m_sExeAutoUpdate, vbNullString
+        ShellExec m_sExeAutoUpdate, vbNullString, LimitFlags:=0
         If InIde Then
             Main
         End If

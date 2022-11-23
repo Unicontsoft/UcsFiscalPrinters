@@ -403,8 +403,8 @@ Private Const MODULE_NAME As String = "frmSettings"
 '=========================================================================
 
 '--- Windows Messages
-Private Const WM_SETREDRAW              As Long = &HB
-Private Const WM_GETTEXTLENGTH                  As Long = &HE
+Private Const WM_SETREDRAW                  As Long = &HB
+Private Const WM_GETTEXTLENGTH              As Long = &HE
 Private Const WM_GETMINMAXINFO              As Long = &H24
 Private Const EM_SETSEL                     As Long = &HB1
 Private Const EM_REPLACESEL                 As Long = &HC2
