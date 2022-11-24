@@ -1339,7 +1339,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Dim sParam          As String
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoStatus", eCmd, ucsDcsCmdInfoStatus, sParam, vbNullString
+    pvGetCommandConfig CONF_NAME, "InfoTransaction", eCmd, ucsDcsCmdInfoTransaction, sParam, vbNullString
     pvRawSendCommand m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME, Error:=m_uPrintData.LastError
     If LenB(m_uPrintData.LastError) <> 0 Then
         '--- do nothing
@@ -2127,6 +2127,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 "AmountIndex", lAmountIndex, 4, _
                 "PaidIndex", lPaidIndex, 5
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+            If LenB(m_uPrintData.LastError) <> 0 Then
+                GoTo QH
+            End If
             If C_Lng(At(vSplit, lIndex)) = lStatusClosed Then
                 pvSetLastError pvInternal(ucsErrCannotPrint)
                 GoTo QH
@@ -2164,7 +2167,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
-                    If m_lLastErrCode <> 0 Then
+                    If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
                         GoTo QH
                     End If
                     uCtx.PmtPrinted = True
@@ -2206,7 +2209,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If m_lLastErrCode <> 0 And eCmd <> ucsDcsCmdFiscalCancel Then
+            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
                 GoTo QH
             End If
             If eCmd <> ucsDcsCmdNoop Then
