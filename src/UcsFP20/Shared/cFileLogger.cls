@@ -152,7 +152,7 @@ Public Sub DataDump(sModule As String, sFunction As String, ByVal sPrefix As Str
     lCount = ((UBound(baData) + 16) \ 16) * 16
     For lIdx = 0 To lCount
         If lIdx Mod 16 = 0 And LenB(sHext) <> 0 Then
-            pvOutputLog IIf(lIdx = lCount, sModule, vbNullString), sFunction, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " " & sText
+            pvOutputLog IIf(lIdx = lCount, sModule, vbNullString), sFunction, sPrefix & Right$("0000" & Hex$(lIdx - 16), 4) & ": " & sHext & " |" & sText & "|"
             sHext = vbNullString
             sText = vbNullString
             sPrefix = Space$(Len(sPrefix))
