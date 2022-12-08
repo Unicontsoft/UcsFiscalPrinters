@@ -221,6 +221,9 @@ Public Function Run( _
         uInfo.LimitFlags = LimitFlags
         Call SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, uInfo, LenB(uInfo))
     End If
+    If LenB(CurrentDir) = 0 Then
+        CurrentDir = vbNullString
+    End If
     If CreateProcess(0, StrPtr(sCommandLine), 0, 0, 1, NORMAL_PRIORITY_CLASS, 0, StrPtr(CurrentDir), uStart, uProcInfo) <> 0 Then
         Call CloseHandle(uProcInfo.hThread)
         m_hProcess = uProcInfo.hProcess
