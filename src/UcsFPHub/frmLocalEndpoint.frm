@@ -43,6 +43,7 @@ Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 '--- i18n ids
 Private Const LANG_COM_SETUP            As Long = 2001 ' Слуша на COM сървър с моникер %1
 Private Const LANG_REGISTATION_FAILED   As Long = 2002 ' Невъзможна COM регистрация на моникер %1
+Private Const LANG_COM_TERMINATE        As Long = 2004 ' Дерегистрация на COM сървър с моникер %1
 
 Private m_sLastError                As String
 Private m_oController               As cServiceController
@@ -130,22 +131,6 @@ EH:
     PrintError FUNC_NAME
     Resume QH
 End Function
-
-Friend Sub frTerminate()
-    Const FUNC_NAME     As String = "frTerminate"
-    
-    On Error GoTo EH
-    If m_lCookie <> 0 Then
-        RevokeObject m_lCookie
-        m_lCookie = 0
-    End If
-    Set m_pTimerAutodetect = Nothing
-QH:
-    Exit Sub
-EH:
-    PrintError FUNC_NAME
-    Resume QH
-End Sub
 
 Public Function ServiceRequest(sRawUrl As String, sRequest As String, sResponse As String) As Boolean
     Const FUNC_NAME     As String = "ServiceRequest"
@@ -292,12 +277,34 @@ EH:
     Resume Next
 End Function
 
+Private Sub pvTerminate()
+    Const FUNC_NAME     As String = "pvTerminate"
+    
+    On Error GoTo EH
+    If m_lCookie <> 0 Then
+        DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_COM_TERMINATE), STR_SERVICE_MONIKER), vbLogEventTypeInformation
+        RevokeObject m_lCookie
+        m_lCookie = 0
+    End If
+    Set m_pTimerAutodetect = Nothing
+QH:
+    Exit Sub
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Sub
+
 '=========================================================================
 ' Base class events
 '=========================================================================
 
 Private Sub Form_Terminate()
-    frTerminate
+    Const FUNC_NAME     As String = "Form_Terminate"
+    
+    pvTerminate
+    If IsLogDebugEnabled Then
+        DebugLog MODULE_NAME, FUNC_NAME, "After terminate", vbLogEventTypeDebug
+    End If
 End Sub
 
 '=========================================================================
@@ -305,5 +312,5 @@ End Sub
 '=========================================================================
 
 Private Sub IEndpoint_Terminate()
-    frTerminate
+    pvTerminate
 End Sub

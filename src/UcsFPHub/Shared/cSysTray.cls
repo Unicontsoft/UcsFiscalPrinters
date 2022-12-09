@@ -177,7 +177,6 @@ Public Function Init(oForm As Form, sTooltip As String, Optional ByVal uID As Lo
         #End If
         .szTip = sTooltip & vbNullChar
     End With
-    Debug.Print LenB(m_uData), VarPtr(m_uData.dwInfoFlags) - VarPtr(m_uData)
     If Shell_NotifyIcon(NIM_ADD, VarPtr(m_uData)) = 0 Then
         Err.Raise Err.LastDllError
     End If
