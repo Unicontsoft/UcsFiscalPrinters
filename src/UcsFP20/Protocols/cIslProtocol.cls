@@ -219,7 +219,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available (%1)"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Barcode type %1 not supported|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available (%1)|Cannot set device invoice number to %1 from current %2. %3"
 Private Const STR_DIP_SWITCHES          As String = "Center header and footer|Enable header|Sw1.3|Sw1.4|Zero memory|Transparent display|No display|7"
 Private Const STR_RECEIPT_TEXTS         As String = "CASH|CARD|CHEQUE|CARD|SURCHARGE %1|DISCOUNT %1|SUBTOTAL|Sales %1|EIC"
 Private Const STR_STATUSES_A            As String = "Syntax error in the received data|Invalid command code received|The clock is not set|No customer display is connected|Printing unit fault|5|The printer cover is open|7|The command resulted in an overflow of some amount fields|The command is not allowed in the current fiscal mode|The RAM has been reset|Low battery (the real-time clock is in RESET status)|A refund (storno) receipt is open|A service receipt with 90-degree rotated text printing is open|The built-in tax terminal is not responding|7|No paper|Low paper|End of the EJ (less than 1 MB free in the EJ)|A fiscal receipt is open|The end of the EJ is near (less than 10 MB free in the EJ)|A service receipt is open|The end of the EJ is very near (only certain receipts are allowed)"
@@ -305,6 +305,7 @@ Private Enum UcsInternalErrors
     ucsErrUnsupportedDiscType
     ucsErrCommitReceiptCancelled
     ucsErrInsufficientSum
+    ucsErrCannotSetInvoiceNo
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -1277,6 +1278,12 @@ Public Function GetLastInvoiceNo() As String
         "Offset", lOffset, lOffset
     vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP)
     GetLastInvoiceNo = At(vSplit, lIndex)
+    If Val(GetLastInvoiceNo) = 0 And IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+            "Index", lIndex, -1
+        vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, eCmd, sParam, FUNC_NAME), DEF_SEP)
+        GetLastInvoiceNo = At(vSplit, lIndex)
+    End If
     If lOffset <> 0 And IsNumeric(GetLastInvoiceNo) Then
         GetLastInvoiceNo = Val(GetLastInvoiceNo) - lOffset
     End If
@@ -1709,7 +1716,7 @@ Public Function GetTotalsStats() As Variant
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
-        "Index", lIndex, -1
+        "Index", lIndex, IIf(IsDaisy, -2, -1)
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
     If UBound(vSplit) >= 1 Then
         lReceipts = C_Lng(At(vSplit, lIndex))
@@ -2319,6 +2326,10 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     End If
                     If LenB(m_uPrintData.LastError) <> 0 Then
+                        sParam = m_uPrintData.LastError
+                        If m_uPrintData.LastErrNo = ucsFerGeneralError Then
+                            pvSetLastError Printf(pvInternal(ucsErrCannotSetInvoiceNo), .InitInvData(ucsInvDocNo), GetLastInvoiceNo(), sParam)
+                        End If
                         GoTo QH
                     End If
                 End Select
