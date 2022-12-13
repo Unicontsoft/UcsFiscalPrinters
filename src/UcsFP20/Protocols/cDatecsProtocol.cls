@@ -1958,7 +1958,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & .InitUniqueSaleNo, vbNullString))
             End Select
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 Then
+            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
                 GoTo QH
             End If
             '--- assert invoice number generated
@@ -1967,10 +1967,14 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 uCtx.InvoiceNo = GetLastInvoiceNo()
                 If LenB(.InitInvData(ucsInvDocNo)) <> 0 And LenB(uCtx.InvoiceNo) <> 0 Then
                     If Val(.InitInvData(ucsInvDocNo)) <> Val(uCtx.InvoiceNo) Then
-                        pvSetLastError Printf(pvInternal(ucsErrWrongInvoiceNo), uCtx.InvoiceNo)
+                        If LenB(m_uPrintData.LastError) = 0 Then
+                            pvSetLastError Printf(pvInternal(ucsErrWrongInvoiceNo), uCtx.InvoiceNo)
+                        End If
                         GoTo QH
                     End If
                 End If
+                '--- use resume token on failure from this point on
+                uCtx.PmtPrinted = True
             End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
