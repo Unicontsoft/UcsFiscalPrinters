@@ -1715,9 +1715,13 @@ Public Function GetTotalsStats() As Variant
     Dim lIdx            As Long
     
     On Error GoTo EH
-    pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
-        "Index", lIndex, IIf(IsDaisy, -2, -1)
-    vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    If Not IsDaisy Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+            "Index", lIndex, -1
+        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+    Else
+        vSplit = Split(vbNullString)
+    End If
     If UBound(vSplit) >= 1 Then
         lReceipts = C_Lng(At(vSplit, lIndex))
     Else
