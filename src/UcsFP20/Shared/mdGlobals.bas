@@ -305,6 +305,10 @@ Public Function Znl(ByVal lValue As Long, Optional IfEmptyLong As Variant = Null
     Znl = IIf(lValue = EmptyLong, IfEmptyLong, lValue)
 End Function
 
+Public Function Znd(ByVal dDate As Date, Optional IfEmptyDate As Variant = Null) As Variant
+    Znd = IIf(dDate = 0, IfEmptyDate, dDate)
+End Function
+
 Public Function Zndbl(ByVal dblValue As Double, Optional IfZeroDouble As Variant = Null) As Variant
     Zndbl = IIf(C_Dbl(CStr(dblValue)) = 0, IfZeroDouble, dblValue)
 End Function

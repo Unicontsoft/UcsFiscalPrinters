@@ -140,6 +140,8 @@ Public Type UcsPpdConfigValues
     MaxReceiptLines     As Long
     MaxItemLines        As Long
     EmptyUniqueSaleNo   As String
+    EmptyReceiptNo      As String
+    FiscalMemoryNo      As String
 End Type
 
 Public Type UcsPpdLocalizedTexts
@@ -219,8 +221,17 @@ Public Function PpdStartReceipt( _
         SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
         .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
             SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
-        .InitRevData = Array(RevType, SafeText(RevReceiptNo), RevReceiptDate, SafeText(RevFiscalMemoryNo), _
-            SafeText(RevInvoiceNo), SafeText(RevReason))
+        Select Case .InitReceiptType
+        Case ucsFscRcpReversal, ucsFscRcpCreditNote
+            .InitRevData = Array(RevType, _
+                SafeText(Zn(RevReceiptNo, uData.Config.EmptyReceiptNo)), _
+                Znd(RevReceiptDate, GetCurrentNow), _
+                SafeText(Zn(RevFiscalMemoryNo, uData.Config.FiscalMemoryNo)), _
+                SafeText(RevInvoiceNo), _
+                SafeText(RevReason))
+        Case Else
+            .InitRevData = Array(-1, vbNullString, C_Date(0), vbNullString, vbNullString, vbNullString)
+        End Select
         .InitOwnData = Split(OwnData, STR_SEP)
         .PrintRowType = uData.Row(0).InitReceiptType
     End With

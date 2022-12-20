@@ -262,6 +262,7 @@ Private Const DEF_MAX_OPERATOR_NAME     As Long = 24
 Private Const DEF_MAX_REV_REASON        As Long = 30
 Private Const DEF_MAX_ECR_REV_REASON    As Long = 42
 Private Const DEF_SEQUENCE              As Long = &H20
+Private Const DEF_EMPTY_RECEIPTNO       As String = "9999999"
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
@@ -814,6 +815,8 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
+        .EmptyReceiptNo = GetConfigValue(sDeviceSerialNo, "EmptyReceiptNo", Zn(C_Str(JsonValue(oOptions, "EmptyReceiptNo")), DEF_EMPTY_RECEIPTNO))
+        .FiscalMemoryNo = GetFiscalMemoryNo()
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))
@@ -2346,7 +2349,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "2", _
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "1", _
                         True, "0")
-                    '--- %1={ClerkNum},%2={Password},%3={UnicSaleNum}%4=({Refund} | {Credit}{InvLink},)%5={Reason},%6={DocLink},%7={DocLinkDT}{Tab}%8={FiskMem}
+                    '--- %1={ClerkNum},%2={Password},%3={UnicSaleNum}{Tab}%4=({Refund} | {Credit}{InvLink},)%5={Reason},%6={DocLink},%7={DocLinkDT}{Tab}%8={FiskMem}
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "%3" & vbTab & "%4%5" & DEF_SEP & "%6" & DEF_SEP & "%7" & vbTab & "%8"
                     If .InitDisablePrinting Then
                         pvGetCommandConfig CONF_NAME, "FiscalNoPrintReversal" & .PrintRowType, eCmd, ucsIslCmdFiscalNoPrintOpen, sParam, sParam, _

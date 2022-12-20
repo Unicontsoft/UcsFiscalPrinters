@@ -208,6 +208,7 @@ Private Const DEF_CODEPAGE              As Long = 1251
 Private Const DEF_MAX_CGINFO            As String = "36|36|36|36|36|16|16"
 Private Const DEF_MAX_OPERATOR_NAME     As Long = 32
 Private Const DEF_SEQUENCE              As Long = &H20
+Private Const DEF_EMPTY_RECEIPTNO       As String = "9999999"
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const LNG_OPEN_IMPULSE          As Long = 250
 Private Const FORMAT_DATE_DST           As String = "dd\-mm\-yy hh\:nn\:ss \D\S\T"
@@ -630,6 +631,8 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonValue(oOptions, "MaxReceiptLines")), DEF_MAX_RECEIPT_LINES))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonValue(oOptions, "MaxItemLines")), DEF_MAX_ITEM_LINES))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
+        .EmptyReceiptNo = GetConfigValue(sDeviceSerialNo, "EmptyReceiptNo", Zn(C_Str(JsonValue(oOptions, "EmptyReceiptNo")), DEF_EMPTY_RECEIPTNO))
+        .FiscalMemoryNo = GetFiscalMemoryNo()
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))
