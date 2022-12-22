@@ -202,10 +202,22 @@ Public Function PpdStartReceipt( _
             Optional OwnData As String) As Boolean
     Const FUNC_NAME     As String = "PpdStartReceipt"
     Dim uCtxEmpty       As UcsPpdExecuteContext
-    Dim sCity           As String
-    Dim sAddress        As String
+    Dim sCgTaxNo        As String
+    Dim sCgVatNo        As String
+    Dim sTemp           As String
+    Dim sCgCity         As String
+    Dim sCgAddress      As String
 
     On Error GoTo EH
+    sCgTaxNo = Trim$(SafeText(InvCgTaxNo))
+    sCgVatNo = Trim$(SafeText(InvCgVatNo))
+    '--- fix swapped VAT number vs Tax number
+    If preg_match("^\d+$", sCgVatNo) And preg_match("^[a-zA-Z]{2}\d+$", sCgTaxNo) Then
+        sTemp = sCgTaxNo
+        sCgTaxNo = sCgVatNo
+        sCgVatNo = sTemp
+    End If
+    SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCgCity, sCgAddress, uData.Config.CommentChars
     uData.ExecCtx = uCtxEmpty
     ReDim uData.Row(0 To 10) As UcsPpdRowData
     uData.RowCount = 0
@@ -218,9 +230,8 @@ Public Function PpdStartReceipt( _
         .InitTableNo = TableNo
         .InitUniqueSaleNo = SafeText(Zn(UniqueSaleNo, uData.Config.EmptyUniqueSaleNo))
         .InitDisablePrinting = DisablePrinting
-        SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCity, sAddress, uData.Config.CommentChars
-        .InitInvData = Array(SafeText(InvDocNo), SafeText(InvCgTaxNo), SafeText(InvCgVatNo), _
-            SafeText(InvCgName), sCity, sAddress, SafeText(InvCgPrsReceive), InvCgTaxNoType)
+        .InitInvData = Array(SafeText(InvDocNo), sCgTaxNo, sCgVatNo, SafeText(InvCgName), sCgCity, sCgAddress, _
+            SafeText(InvCgPrsReceive), InvCgTaxNoType)
         Select Case .InitReceiptType
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
             .InitRevData = Array(RevType, _

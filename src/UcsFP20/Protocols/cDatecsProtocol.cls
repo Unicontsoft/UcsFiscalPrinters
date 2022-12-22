@@ -2198,9 +2198,9 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If m_lLastErrCode <> 0 Then
                         Select Case m_lLastErrCode
                         Case ERR_FP_BAD_PARAM_7
-                            pvSetLastError Printf(pvInternal(ucsErrInvalidTaxNo), .InitInvData(ucsInvCgTaxNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
+                            pvSetLastError Printf(pvInternal(ucsErrInvalidTaxNo), uRow(0).InitInvData(ucsInvCgTaxNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
                         Case ERR_FP_BAD_PARAM_8
-                            pvSetLastError Printf(pvInternal(ucsErrInvalidVatNo), .InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
+                            pvSetLastError Printf(pvInternal(ucsErrInvalidVatNo), uRow(0).InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
                         End Select
                         uCtx.PmtPrinted = False
                         GoTo QH
