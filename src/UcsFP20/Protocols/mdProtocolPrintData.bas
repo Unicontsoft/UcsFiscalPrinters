@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdProtocolPrintData"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2022 by Unicontsoft
+' UcsFP20 (c) 2008-2023 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -209,8 +209,8 @@ Public Function PpdStartReceipt( _
     Dim sCgAddress      As String
 
     On Error GoTo EH
-    sCgTaxNo = Trim$(SafeText(InvCgTaxNo))
-    sCgVatNo = Trim$(SafeText(InvCgVatNo))
+    sCgTaxNo = preg_replace("[^a-zA-Z0-9]", InvCgTaxNo, vbNullString)
+    sCgVatNo = preg_replace("[^a-zA-Z0-9]", InvCgVatNo, vbNullString)
     '--- fix swapped VAT number vs Tax number
     If preg_match("^\d+$", sCgVatNo) And preg_match("^[a-zA-Z]{2}\d+$", sCgTaxNo) Then
         sTemp = sCgTaxNo

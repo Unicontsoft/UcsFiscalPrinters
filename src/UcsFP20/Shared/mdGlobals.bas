@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2022 by Unicontsoft
+' UcsFP20 (c) 2008-2023 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -889,12 +889,7 @@ Public Function SafeFormat(Expression As Variant, Optional Fmt As Variant, Optio
 End Function
 
 Public Function SafeText(sText As String) As String
-    Dim lIdx            As Long
-    
-    SafeText = sText
-    For lIdx = 0 To 31
-        SafeText = Replace(SafeText, Chr$(lIdx), vbNullString)
-    Next
+    SafeText = preg_replace("[" & Chr$(0) & "-" & Chr$(31) & "]", sText, vbNullString)
 End Function
 
 Public Sub AssignVariant(vDest As Variant, vSrc As Variant)
