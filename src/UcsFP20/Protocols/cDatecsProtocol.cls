@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2022 by Unicontsoft
+' UcsFP20 (c) 2008-2023 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -1976,8 +1976,6 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                 End If
-                '--- use resume token on failure from this point on
-                uCtx.PmtPrinted = True
             End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
