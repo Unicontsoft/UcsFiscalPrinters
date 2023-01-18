@@ -714,7 +714,7 @@ Public Function RegEnumValues(ByVal hRoot As UcsRegistryRootsEnum, sKey As Strin
                 Exit For
             End If
             ReDim Preserve vRetVal(0 To UBound(vRetVal) + 1) As Variant
-            vRetVal(UBound(vRetVal)) = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+            vRetVal(UBound(vRetVal)) = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
         Next
         Call RegCloseKey(hKey)
     End If
@@ -889,7 +889,7 @@ Public Function SafeFormat(Expression As Variant, Optional Fmt As Variant, Optio
 End Function
 
 Public Function SafeText(sText As String) As String
-    SafeText = preg_replace("[" & Chr$(0) & "-" & Chr$(31) & "]", sText, vbNullString)
+    SafeText = preg_replace("[\x00-\x1F]", sText, vbNullString)
 End Function
 
 Public Sub AssignVariant(vDest As Variant, vSrc As Variant)

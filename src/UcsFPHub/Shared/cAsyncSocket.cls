@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' VbAsyncSocket Project (c) 2018-2020 by wqweto@gmail.com
+' VbAsyncSocket Project (c) 2018-2023 by wqweto@gmail.com
 '
 ' Simple and thin WinSock API wrappers for VB6
 '
@@ -486,7 +486,7 @@ Public Function GetLocalHost(HostName As String, HostAddress As String) As Boole
         m_lLastError = Err.LastDllError
         GoTo QH
     End If
-    HostName = Left$(sBuffer, InStr(sBuffer, Chr$(0)) - 1)
+    HostName = Left$(sBuffer, InStr(sBuffer, vbNullChar) - 1)
     pvToSockAddr HostName, 0, uAddr
     pvFromSockAddr uAddr, HostAddress, 0
     '--- success

@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2022 by Unicontsoft
+' UcsFP20 (c) 2008-2023 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -17,12 +17,11 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "mdJson"
 
-#Const ImplScripting = (JSON_USE_SCRIPTING <> 0)
-#Const ImplUseShared = (DebugMode <> 0)
-#Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
-
 #Const HasPtrSafe = (VBA7 <> 0)
 #Const LargeAddressAware = (Win64 = 0 And VBA7 = 0 And VBA6 = 0 And VBA5 = 0)
+#Const ImplUseShared = (DebugMode <> 0)
+#Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
+#Const ImplScripting = False
 
 '=========================================================================
 ' API
@@ -165,13 +164,10 @@ End Function
 ' Functions
 '=========================================================================
 
-Public Function JsonParse( _
-            sText As String, _
-            Optional RetVal As Variant, _
-            Optional Error As String, _
-            Optional ByVal StrictMode As Boolean, _
-            Optional LastPos As Long) As Boolean
+Public Function JsonParse(sText As String, Optional RetVal As Variant, Optional Error As String, _
+            Optional ByVal StrictMode As Boolean, Optional LastPos As Long) As Boolean
     Const FUNC_NAME     As String = "JsonParse"
+    Const FADF_AUTO     As Long = 1
     Dim uCtx            As JsonContext
 
     On Error GoTo EH
@@ -180,7 +176,7 @@ Public Function JsonParse( _
         '--- map array over input string
         With .TextArray
             .cDims = 1
-            .fFeatures = 1 ' FADF_AUTO
+            .fFeatures = FADF_AUTO
             .cbElements = 2
             .cLocks = 1
             .pvData = StrPtr(sText)
@@ -217,10 +213,7 @@ EH:
     #End If
 End Function
 
-Public Function JsonParseObject( _
-            sText As String, _
-            Optional Error As String, _
-            Optional ByVal StrictMode As Boolean) As Object
+Public Function JsonParseObject(sText As String, Optional Error As String, Optional ByVal StrictMode As Boolean) As Object
     Const FUNC_NAME     As String = "JsonParseObject"
     Dim vJson           As Variant
     
@@ -549,10 +542,10 @@ EH:
     End If
 End Function
 
-Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean, Optional CompoundChars As String) As String
+Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optional ByVal Minimize As Boolean, Optional CompoundChars As String, _
+            Optional IndentSize As Long = 4, Optional ByVal MaxWidth As Long = 100) As String
     Const STR_CODES     As String = "\u0000|\u0001|\u0002|\u0003|\u0004|\u0005|\u0006|\u0007|\b|\t|\n|\u000B|\f|\r|\u000E|\u000F|\u0010|\u0011|" & _
                                     "\u0012|\u0013|\u0014|\u0015|\u0016|\u0017|\u0018|\u0019|\u001A|\u001B|\u001C|\u001D|\u001E|\u001F"
-    Const LNG_INDENT    As Long = 4
     Static vTranscode   As Variant
     Dim vKeys           As Variant
     Dim vItems          As Variant
@@ -600,16 +593,16 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             End If
             For lIdx = 0 To lCount - 1
                 If lCompareMode = vbBinaryCompare Then
-                    vItems(lIdx) = JsonDump(vKeys(lIdx)) & ":" & sSpace & JsonDump(oJson.Item(vKeys(lIdx)), Level + 1, Minimize)
+                    vItems(lIdx) = JsonDump(vKeys(lIdx)) & ":" & sSpace & JsonDump(oJson.Item(vKeys(lIdx)), Level:=Level + 1, Minimize:=Minimize, IndentSize:=IndentSize, MaxWidth:=MaxWidth)
                 Else
-                    vItems(lIdx) = JsonDump(oJson.Item(lIdx + IDX_OFFSET), Level + 1, Minimize)
+                    vItems(lIdx) = JsonDump(oJson.Item(lIdx + IDX_OFFSET), Level:=Level + 1, Minimize:=Minimize, IndentSize:=IndentSize, MaxWidth:=MaxWidth)
                 End If
                 lSize = lSize + Len(vItems(lIdx))
             Next
-            If lSize > 100 And Not Minimize Then
+            If lSize > MaxWidth And Not Minimize Then
                 JsonDump = Left$(CompoundChars, 1) & vbCrLf & _
-                    Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT) & Join(vItems, "," & vbCrLf & Space$(IIf(Level > -1, Level + 1, 0) * LNG_INDENT)) & vbCrLf & _
-                    Space$(IIf(Level > 0, Level, 0) * LNG_INDENT) & Right$(CompoundChars, 1)
+                    Space$(IIf(Level > -1, Level + 1, 0) * IndentSize) & Join(vItems, "," & vbCrLf & Space$(IIf(Level > -1, Level + 1, 0) * IndentSize)) & vbCrLf & _
+                    Space$(IIf(Level > 0, Level, 0) * IndentSize) & Right$(CompoundChars, 1)
             Else
                 JsonDump = Left$(CompoundChars, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(CompoundChars, 1)
             End If
@@ -654,7 +647,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             For Each vKeys In vJson
                 JsonValue(oJson, -1) = vKeys
             Next
-            JsonDump = JsonDump(oJson)
+            JsonDump = JsonDump(oJson, Level:=Level, Minimize:=Minimize, IndentSize:=IndentSize, MaxWidth:=MaxWidth)
         ElseIf IsNumeric(vJson) Then
             JsonDump = Trim$(Replace(Replace(Str$(vJson), " .", "0."), "-.", "-0."))
         Else
@@ -847,6 +840,10 @@ EH:
     If RaiseError(FUNC_NAME & "(sKey=" & sKey & ", vValue=" & C_Str(vValue) & ")") = vbRetry Then
         Resume
     End If
+End Property
+
+Public Property Set JsonValue(oJson As Object, ByVal sKey As String, vValue As Variant)
+    JsonValue(oJson, sKey) = vValue
 End Property
 
 Public Function JsonKeys(oJson As Object, Optional ByVal Key As String) As Variant

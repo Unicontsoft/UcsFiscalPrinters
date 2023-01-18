@@ -11,14 +11,14 @@ Begin VB.UserControl AlphaBlendTabStrip
    ScaleWidth      =   5700
    Windowless      =   -1  'True
    Begin UcsFPHub.AlphaBlendLabel labTab 
-      Height          =   348
+      Height          =   264
       Index           =   0
-      Left            =   0
+      Left            =   324
       Top             =   0
       Visible         =   0   'False
-      Width           =   1020
-      _ExtentX        =   1799
-      _ExtentY        =   614
+      Width           =   372
+      _ExtentX        =   656
+      _ExtentY        =   466
       Caption         =   "Tab"
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Segoe UI"
@@ -30,14 +30,18 @@ Begin VB.UserControl AlphaBlendTabStrip
          Strikethrough   =   0   'False
       EndProperty
       ForeOpacity     =   0.75
+      TextAlign       =   5
+      TextFlags       =   65536
    End
    Begin UcsFPHub.AlphaBlendLabel labBackgr 
-      Height          =   390
+      Height          =   312
       Left            =   0
       Top             =   0
       Width           =   4968
       _ExtentX        =   8763
-      _ExtentY        =   699
+      _ExtentY        =   550
+      BackColor       =   -2147483643
+      BackOpacity     =   0.75
       BeginProperty Font {0BE35203-8F91-11CE-9DE3-00AA004BB851} 
          Name            =   "Segoe UI"
          Size            =   9
@@ -47,8 +51,7 @@ Begin VB.UserControl AlphaBlendTabStrip
          Italic          =   0   'False
          Strikethrough   =   0   'False
       EndProperty
-      BackColor       =   -2147483643
-      BackOpacity     =   0.75
+      TextFlags       =   65536
    End
 End
 Attribute VB_Name = "AlphaBlendTabStrip"
@@ -58,7 +61,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' AlphaBlendTabStrip (c) 2020 by wqweto@gmail.com
+' AlphaBlendTabStrip (c) 2020-2023 by wqweto@gmail.com
 '
 ' Poor Man's TabStrip Control
 '
@@ -67,12 +70,15 @@ Option Explicit
 DefObj A-Z
 Private Const MODULE_NAME As String = "AlphaBlendTabStrip"
 
+#Const ImplUseShared = (DebugMode <> 0)
+
 '=========================================================================
 ' Events
 '=========================================================================
 
 Event Click()
 Event BeforeClick(TabIndex As Long, Cancel As Boolean)
+Attribute BeforeClick.VB_UserMemId = -600
 
 '=========================================================================
 ' API
@@ -132,6 +138,7 @@ Property Let Layout(sValue As String)
 End Property
 
 Property Get Font() As StdFont
+Attribute Font.VB_UserMemId = -512
     Set Font = m_oFont
 End Property
 
@@ -223,8 +230,7 @@ Private Sub pvResizeTabs()
             .BackOpacity = IIf(lIdx = m_lCurrentTab, 1, 0)
             .AutoSize = True
             .AutoSize = False
-            .Width = .Width + IIf(lIdx = m_lCurrentTab, 240, 180)
-            .Height = lHeight
+            .Move lLeft, lTop, .Width + IIf(lIdx = m_lCurrentTab, 240, 180), lHeight
             lLeft = lLeft + .Width
             .Visible = True
         End With
@@ -369,6 +375,28 @@ EH:
     PrintError FUNC_NAME
     Resume QH
 End Function
+
+#If Not ImplUseShared Then
+Private Property Get ScreenTwipsPerPixelX() As Single
+    ScreenTwipsPerPixelX = Screen.TwipsPerPixelX
+End Property
+
+Private Property Get ScreenTwipsPerPixelY() As Single
+    ScreenTwipsPerPixelY = Screen.TwipsPerPixelY
+End Property
+
+Private Function IconScale(ByVal sngSize As Single) As Long
+    If ScreenTwipsPerPixelX < 6.5 Then
+        IconScale = Int(sngSize * 3)
+    ElseIf ScreenTwipsPerPixelX < 9.5 Then
+        IconScale = Int(sngSize * 2)
+    ElseIf ScreenTwipsPerPixelX < 11.5 Then
+        IconScale = Int(sngSize * 3 \ 2)
+    Else
+        IconScale = Int(sngSize * 1)
+    End If
+End Function
+#End If
 
 '=========================================================================
 ' Base class events
