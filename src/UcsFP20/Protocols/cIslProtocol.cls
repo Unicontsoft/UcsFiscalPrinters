@@ -816,7 +816,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
         .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
         .EmptyReceiptNo = GetConfigValue(sDeviceSerialNo, "EmptyReceiptNo", Zn(C_Str(JsonValue(oOptions, "EmptyReceiptNo")), DEF_EMPTY_RECEIPTNO))
-        .FiscalMemoryNo = GetFiscalMemoryNo()
+        .EmptyFiscalMemoryNo = GetConfigValue(sDeviceSerialNo, "EmptyFiscalMemoryNo", Zn(C_Str(JsonValue(oOptions, "EmptyFiscalMemoryNo")), GetFiscalMemoryNo()))
     End With
     With m_uConfig
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))

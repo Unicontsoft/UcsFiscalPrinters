@@ -141,7 +141,7 @@ Public Type UcsPpdConfigValues
     MaxItemLines        As Long
     EmptyUniqueSaleNo   As String
     EmptyReceiptNo      As String
-    FiscalMemoryNo      As String
+    EmptyFiscalMemoryNo As String
 End Type
 
 Public Type UcsPpdLocalizedTexts
@@ -237,7 +237,7 @@ Public Function PpdStartReceipt( _
             .InitRevData = Array(RevType, _
                 SafeText(Zn(RevReceiptNo, uData.Config.EmptyReceiptNo)), _
                 Znd(RevReceiptDate, GetCurrentNow), _
-                SafeText(Zn(RevFiscalMemoryNo, uData.Config.FiscalMemoryNo)), _
+                SafeText(Zn(RevFiscalMemoryNo, uData.Config.EmptyFiscalMemoryNo)), _
                 SafeText(RevInvoiceNo), _
                 SafeText(RevReason))
         Case Else
