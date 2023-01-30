@@ -1963,6 +1963,8 @@ Private Function pvRawSendCommand( _
     Dim lSize           As Long
     Dim sBuffer         As String
     Dim dblTimerEx      As Double
+    Dim sErrorText      As String
+    Dim sMemoryText     As String
     
     On Error GoTo EH
     DebugLog Zn(LogName, FUNC_NAME), "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString) & ", lTimeout=" & lTimeout
@@ -2047,11 +2049,21 @@ RetryParse:
         End If
         pvRawSendCommand = Mid$(sText, 5, lSize - 4)
         If Status(ucsIslStbPrintingError) Then
-            Error = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
+            sErrorText = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
+            If IsEltrade And Left$(pvRawSendCommand, 2) = "E:" Then
+                Error = Replace(Replace(Mid$(pvRawSendCommand, 3), vbCr, vbNullString), vbLf, vbNullString)
+            Else
+                Error = sErrorText
+                sErrorText = vbNullString
+            End If
+        End If
+        If Memory(ucsIslFmeMemoryError) Then
+            sMemoryText = Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
         End If
         DebugLog Zn(LogName, FUNC_NAME), "RetVal=" & pvRawSendCommand & _
-            IIf(Status(ucsIslStbPrintingError), ", ErrorText=" & Error, vbNullString) & _
-            IIf(Memory(ucsIslFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory))), vbNullString)
+            IIf(LenB(Error) <> 0, ", Error=" & Error, vbNullString) & _
+            IIf(LenB(sErrorText) <> 0, ", ErrorText=" & sErrorText, vbNullString) & _
+            IIf(LenB(sMemoryText) <> 0, ", MemoryText=" & sMemoryText, vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
         lIdx = InStr(sText, pvChr(SYM_PREAMBLE))

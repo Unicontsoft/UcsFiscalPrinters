@@ -1612,6 +1612,7 @@ Private Function pvRawSendCommand( _
     Dim lSize           As Long
     Dim sBuffer         As String
     Dim dblTimerEx      As Double
+    Dim sMemoryText     As String
     
     On Error GoTo EH
     DebugLog Zn(LogName, FUNC_NAME), "eCmd=" & eCmd & IIf(LenB(Data) <> 0, ", Data=" & Data, vbNullString) & ", lTimeout=" & lTimeout
@@ -1694,9 +1695,12 @@ RetryParse:
         If Status(ucsDcsStbGeneralError) Then
             Error = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
         End If
+        If Memory(ucsDcsFmeMemoryError) Then
+            sMemoryText = Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory)))
+        End If
         DebugLog Zn(LogName, FUNC_NAME), "RetVal=" & pvRawSendCommand & pvToErrorCode(pvRawSendCommand) & _
-            IIf(Status(ucsDcsStbGeneralError), ", ErrorText=" & Error, vbNullString) & _
-            IIf(Memory(ucsDcsFmeMemoryError), ", MemoryText=" & Zn(MemoryText, Printf(pvInternal(ucsErrUnknownMemory), "&H" & Hex$(m_eMemory))), vbNullString)
+            IIf(LenB(Error) <> 0, ", Error=" & Error, vbNullString) & _
+            IIf(LenB(sMemoryText) <> 0, ", MemoryText=" & sMemoryText, vbNullString)
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
         lIdx = InStr(sText, pvChr(SYM_PREAMBLE))
