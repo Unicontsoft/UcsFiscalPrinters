@@ -236,7 +236,7 @@ Public Function PpdStartReceipt( _
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
             .InitRevData = Array(RevType, _
                 SafeText(Zn(RevReceiptNo, uData.Config.EmptyReceiptNo)), _
-                Znd(RevReceiptDate, GetCurrentNow), _
+                Znd(RevReceiptDate, GetCurrentDate), _
                 SafeText(Zn(RevFiscalMemoryNo, uData.Config.EmptyFiscalMemoryNo)), _
                 SafeText(RevInvoiceNo), _
                 SafeText(RevReason))

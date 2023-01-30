@@ -2007,7 +2007,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 sData = At(vSplit, UBound(vSplit))
                 '--- bug: when qty is 0.000 total row as if qty is 1.000 -> transform row to 100% PLU discount (FP-700MX)
                 If Abs(.PluQuantity) < DBL_EPSILON And Abs(.PluPrice) > DBL_EPSILON Then
-                    sDiscType = "1"
+                    sDiscType = "2"
                     dblDisc = 100
                 Else
                     sDiscType = vbNullString

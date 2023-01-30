@@ -534,11 +534,13 @@ Public Sub DebugLog(sModule As String, sFunction As String, sText As String, Opt
         Case vbLogEventTypeDebug
             sPrefix = sPrefix & "[" & T(LANG_PREFIX_DEBUG) & "] "
         End Select
-        sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText) & vbCrLf
+        sPrefix = sPrefix & IIf(Len(sText) > 200, Left$(sText, 200) & "...", sText)
         If eType = vbLogEventTypeError Then
-            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix
+            ConsoleColorError FOREGROUND_RED, FOREGROUND_MASK, sPrefix & vbCrLf
+        ElseIf eType = vbLogEventTypeDebug Then
+            ConsolePrint sPrefix & " [" & sModule & "." & sFunction & "]" & vbCrLf
         Else
-            ConsolePrint sPrefix
+            ConsolePrint sPrefix & vbCrLf
         End If
     End If
 End Sub
