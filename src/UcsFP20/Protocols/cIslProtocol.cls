@@ -1908,7 +1908,7 @@ Public Function GetLastZReportDate() As Date
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
-        "Index", lIndex, 1, _
+        "Index", lIndex, IIf(IsDaisy, 0, 1), _
         "DateIndex", lDateIndex, -1
     vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
     If UBound(vSplit) >= 1 Then
@@ -1959,6 +1959,8 @@ Private Function pvRawSendCommand( _
     Dim sSend           As String
     Dim sText           As String
     Dim baText()        As Byte
+    Dim lPos            As Long
+    Dim lEnd            As Long
     Dim lIdx            As Long
     Dim lSize           As Long
     Dim sBuffer         As String
@@ -1978,7 +1980,7 @@ Private Function pvRawSendCommand( _
     '--- increment sequence
     m_lSequence = IIf(m_lSequence >= LNG_MAX_SEQUENCE, DEF_SEQUENCE, m_lSequence + 1)
     '--- append checksum and terminator
-    sSend = sSend & pvCheckSum(sSend) & pvChr(SYM_TERMINATOR)
+    sSend = sSend & pvCalcCheckSum(sSend) & pvChr(SYM_TERMINATOR)
     '--- send request
     dblTimerEx = TimerEx
 RetrySend:
@@ -2019,35 +2021,37 @@ RetrySend:
             dblTimerEx = TimerEx
         End If
     Loop While Right$(sText, 1) <> pvChr(SYM_TERMINATOR)
+    lPos = 1
 RetryParse:
     '--- response complete w/ TERMINATOR (&H3)
     Debug.Assert Right$(sText, 1) = pvChr(SYM_TERMINATOR)
-    If Left$(sText, 1) = pvChr(SYM_PREAMBLE) Then
-        lIdx = InStr(sText, pvChr(SYM_POSTAMBLE))
-        If lIdx <= 2 Then
+    If Mid$(sText, lPos, 1) = pvChr(SYM_PREAMBLE) Then
+        lEnd = InStr(lPos, sText, pvChr(SYM_POSTAMBLE))
+        If lEnd - lPos <= 1 Then
             Error = Printf(pvInternal(ucsErrResponseMissingPostamble), "0x" & ToHexDump(sText))
             GoTo QH
         End If
-        lSize = pvAsc(Mid$(sText, 2, 1)) - SYM_BASEDATA
         '--- check message length
-        If lSize < 4 Or lSize >= lIdx Then
+        lSize = pvAsc(Mid$(sText, lPos + 1, 1)) - SYM_BASEDATA
+        If lSize < 4 Or lSize > lEnd - lPos Then
             Error = Printf(pvInternal(ucsErrInvalidResponseLength), "0x" & ToHexDump(sText))
             GoTo QH
         End If
         '--- check sum
-        If pvCheckSum(Mid$(sText, 1, lSize + 1)) <> Mid$(sText, lSize + 2, 4) Then
+        lSize = lEnd - lPos
+        If pvCalcCheckSum(Mid$(sText, lPos, lSize + 1)) <> Mid$(sText, lEnd + 1, 4) Then
             Error = Printf(pvInternal(ucsErrInvalidResponseChecksum), "0x" & ToHexDump(sText))
             GoTo QH
         End If
         '--- check for status info
-        lIdx = InStrRev(sText, pvChr(SYM_SEPARATOR), lIdx)
-        If lIdx > 4 Then
+        lIdx = InStrRev(sText, pvChr(SYM_SEPARATOR), lEnd)
+        If lIdx >= lPos + 4 Then
             pvSetStatus Mid$(sText, lIdx + 1, 6)
-            lSize = lIdx - 1
+            lSize = lIdx - lPos
         Else
             pvSetStatus vbNullString '--- clear
         End If
-        pvRawSendCommand = Mid$(sText, 5, lSize - 4)
+        pvRawSendCommand = pvRawSendCommand & Mid$(sText, lPos + 4, lSize - 4)
         If Status(ucsIslStbPrintingError) Then
             sErrorText = Zn(ErrorText, Printf(pvInternal(ucsErrUnknownError), "&H" & Hex$(m_eStatus)))
             If IsEltrade And Left$(pvRawSendCommand, 2) = "E:" Then
@@ -2064,6 +2068,10 @@ RetryParse:
             IIf(LenB(Error) <> 0, ", Error=" & Error, vbNullString) & _
             IIf(LenB(sErrorText) <> 0, ", ErrorText=" & sErrorText, vbNullString) & _
             IIf(LenB(sMemoryText) <> 0, ", MemoryText=" & sMemoryText, vbNullString)
+        If Mid$(sText, lEnd + 6, 1) = pvChr(SYM_PREAMBLE) Then
+            lPos = lEnd + 6
+            GoTo RetryParse
+        End If
     Else
         '--- check for GSM tax terminal interferences: "AT+CPIN?\r\n" or "AT+CIMI\r\n"
         lIdx = InStr(sText, pvChr(SYM_PREAMBLE))
@@ -2083,7 +2091,7 @@ EH:
     Resume Next
 End Function
 
-Private Function pvCheckSum(sText As String) As String
+Private Function pvCalcCheckSum(sText As String) As String
     Dim baText()        As Byte
     Dim lIdx            As Long
     Dim lSum            As Long
@@ -2092,7 +2100,7 @@ Private Function pvCheckSum(sText As String) As String
     For lIdx = 1 To UBound(baText)
         lSum = lSum + baText(lIdx)
     Next
-    pvCheckSum = pvToWireLong(lSum)
+    pvCalcCheckSum = pvToWireLong(lSum)
 End Function
 
 Private Function pvToWireLong(ByVal lValue As Long) As String
