@@ -334,6 +334,7 @@ Private Enum UcsProtocolMarkers
     SYM_TERMINATOR = &H3
     SYM_SEPARATOR = &H4
     SYM_POSTAMBLE = &H5
+    SYM_LINECONFIRM = &H11
     SYM_NAK = &H15
     SYM_SYN = &H16
     SYM_BASEDATA = &H20
@@ -933,10 +934,10 @@ Public Function PrintDuplicate( _
         vSplit = Split(DuplicateNo, "-")
         If IsDaisy Then
             sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%2"
-            pvGetCommandConfig CONF_NAME, "ExtendedInitEJ" & sParam, eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
+            pvGetCommandConfig CONF_NAME, "ExtendedInitEJ", eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
         Else
             sParam = "P" & DEF_SEP & "%1" & DEF_SEP & "%2"
-            pvGetCommandConfig CONF_NAME, "InitEJ" & sParam, eCmd, ucsIslCmdInitEJ, sParam, sParam
+            pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, sParam
         End If
         sParam = Printf(sParam, At(vSplit, 0), At(vSplit, 1, At(vSplit, 0)))
     End If
@@ -1905,6 +1906,7 @@ Public Function GetLastZReportDate() As Date
     Dim lClosure        As Long
     Dim lIndex          As Long
     Dim lDateIndex      As Long
+    Dim lDocNo          As Long
     
     On Error GoTo EH
     pvGetCommandConfig CONF_NAME, "InfoLastFiscalBlock", eCmd, ucsIslCmdInfoLastFiscalBlock, sParam, vbNullString, _
@@ -1915,28 +1917,53 @@ Public Function GetLastZReportDate() As Date
         GetLastZReportDate = pvParseDdmmyyDate(At(vSplit, lDateIndex))
         lClosure = C_Lng(At(vSplit, lIndex))
     End If
+    If lClosure = 0 Then
+        pvGetCommandConfig CONF_NAME, "InfoTotalsByPayments", eCmd, ucsIslCmdInfoTotalsByPayments, sParam, vbNullString, _
+            "Index", lIndex, -2
+        vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+        If UBound(vSplit) >= 1 Then
+            lClosure = C_Lng(At(vSplit, lIndex))
+        End If
+    End If
     If lClosure > 0 Then
-        If IsFP Then
-            pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, "C" & DEF_SEP & "R%1", _
-                "Index", lIndex, 2
+        If IsDaisy Then
+            sParam = "R12" & DEF_SEP & "%1" & DEF_SEP & "%1" & DEF_SEP & "A"
+            pvGetCommandConfig CONF_NAME, "ExtendedInitEJ", eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam, _
+                "DateIndex", lDateIndex, 2
+            sParam = Printf(sParam, lClosure)
+            vSplit = Split(Replace(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), " ", vbTab), vbTab)
+            If At(vSplit, 0) = "D" Then
+                GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
+            Else
+                vSplit = Split(Replace(pvRawReadLine(m_oConnector, 1000, FUNC_NAME), " ", vbTab), vbTab)
+                If At(vSplit, 0) = "D" Then
+                    GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
+                End If
+            End If
+        ElseIf IsFP Then
+            sParam = "C" & DEF_SEP & "R%1"
+            pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, sParam, _
+                "DateIndex", lDateIndex, 2
             sParam = Printf(sParam, lClosure)
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
             If UBound(vSplit) >= 1 Then
-                GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
+                GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex))
             End If
         Else
-            pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1", _
+            sParam = "Z" & DEF_SEP & "2" & DEF_SEP & "%1" & DEF_SEP & "%1"
+            pvGetCommandConfig CONF_NAME, "InfoEcTape", eCmd, ucsIslCmdInfoEcTape, sParam, sParam, _
                 "Index", lIndex, 1
             sParam = Printf(sParam, lClosure)
             vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
             If UBound(vSplit) >= 1 Then
-                lClosure = C_Lng(At(vSplit, lIndex))        '--- Z-report DocNo
-                pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, "0" & DEF_SEP & "%1" & DEF_SEP & "2", _
-                    "Index", lIndex, 2
-                sParam = Printf(sParam, lClosure)
+                lDocNo = C_Lng(At(vSplit, lIndex))              '--- Z-report DocNo
+                sParam = "0" & DEF_SEP & "%1" & DEF_SEP & "2"
+                pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, sParam, _
+                    "DateIndex", lDateIndex, 2
+                sParam = Printf(sParam, lDocNo)
                 vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
                 If UBound(vSplit) >= 1 Then
-                    GetLastZReportDate = ParseExtendedDate(At(vSplit, lIndex))
+                    GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex))
                 End If
             End If
         End If
@@ -2085,6 +2112,53 @@ RetryParse:
     End If
 QH:
     RaiseEvent CommandComplete(eCmd, Data, pvRawSendCommand)
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvRawReadLine( _
+            oConnector As IDeviceConnector, _
+            ByVal lTimeout As Long, _
+            LogName As String, _
+            Optional Error As String) As String
+    Const FUNC_NAME     As String = "pvRawReadLine"
+    Dim sSend           As String
+    Dim sText           As String
+    Dim baText()        As Byte
+    Dim sBuffer         As String
+    Dim dblTimerEx      As Double
+    
+    On Error GoTo EH
+    dblTimerEx = TimerEx
+    sSend = pvChr(SYM_LINECONFIRM)
+    DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sSend
+    baText = ToMultiByte(sSend, m_uConfig.CodePage)
+    If Not oConnector.WriteData(baText, lTimeout) Then
+        Error = oConnector.GetLastError()
+        DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
+        GoTo QH
+    End If
+    '--- read response
+    sText = vbNullString
+    Do
+        If TimerEx > dblTimerEx + lTimeout / 1000# Then
+            Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
+            GoTo QH
+        End If
+        If Not oConnector.ReadData(baText, lTimeout) Then
+            Error = oConnector.GetLastError()
+            DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
+            GoTo QH
+        End If
+        sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
+        DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
+        '--- remove SYN (&H16)
+        sText = sText & Replace(sBuffer, pvChr(SYM_SYN), vbNullString)
+    Loop While Right$(sText, 1) <> vbLf
+QH:
+    pvRawReadLine = sText
     Exit Function
 EH:
     PrintError FUNC_NAME
