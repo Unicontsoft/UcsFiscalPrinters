@@ -361,6 +361,10 @@ Begin VB.Form frmSettings
          Caption         =   "Ресет"
          Index           =   1
       End
+      Begin VB.Menu mnuTools 
+         Caption         =   "Статус"
+         Index           =   2
+      End
    End
    Begin VB.Menu mnuMain 
       Caption         =   "Помощ"
@@ -467,7 +471,7 @@ Private Const LANG_NO_UPDATE            As Long = 1013 ' Не е намерен�
 Private Const LANG_MENU_MAIN            As Long = 1014 ' Файл|Редакция|Средства|Помощ
 Private Const LANG_MENU_FILE            As Long = 1015 ' Запис|-|Рестарт|-|Изход
 Private Const LANG_MENU_EDIT            As Long = 1016 ' Върни|-|Изрежи|Копирай|Постави|Изтрий|-|Избери всичко|-|Обнови
-Private Const LANG_MENU_TOOLS           As Long = 1019 ' Тест|Ресет
+Private Const LANG_MENU_TOOLS           As Long = 1019 ' Тест|Ресет|Статус
 Private Const LANG_MENU_HELP            As Long = 1017 ' Проверка нова версия|-|Относно
 Private Const LANG_LAYOUT_TABS          As Long = 1018 ' Устройства|Конфигурация|Журнал
 Private Const LANG_CAPTION_QUICK_SETUP  As Long = 1020 ' Бързи настройки
@@ -516,6 +520,7 @@ Private Enum UcsMenuItems
     ucsMnuEditRefresh
     ucsMnuToolsTest = 0
     ucsMnuToolsReset
+    ucsMnuToolsStatus
     ucsMnuHelpAutoUpdate = 0
     ucsMnuHelpSep1
     ucsMnuHelpAbout
@@ -1143,8 +1148,10 @@ Private Sub mnuTools_Click(Index As Integer)
     Const FUNC_NAME     As String = "mnuTools_Click"
     Const URL_INFO      As String = "/printers/%1?format=json"
     Const URL_RECEIPT   As String = "/printers/%1/receipt?format=json"
+    Const URL_STATUS    As String = "/printers/%1/status?format=json"
     Dim sPrinterID      As String
     Dim sResponse       As String
+    Dim oJson           As Object
     
     On Error GoTo EH
     Screen.MousePointer = vbHourglass
@@ -1162,6 +1169,15 @@ Private Sub mnuTools_Click(Index As Integer)
             If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_RECEIPT, sPrinterID), "{}", sResponse) Then
                 GoTo QH
             End If
+        End If
+    Case ucsMnuToolsStatus
+        If LenB(sPrinterID) <> 0 Then
+            If Not GetObject(STR_SERVICE_MONIKER).ServiceRequest(Printf(URL_STATUS, sPrinterID), vbNullString, sResponse) Then
+                GoTo QH
+            End If
+            Set oJson = JsonParseObject(sResponse)
+            MsgBox JsonValue(oJson, "DeviceStatusCode") & IIf(LenB(JsonValue(oJson, "DeviceStatus")) <> 0, _
+                ", " & JsonValue(oJson, "DeviceStatus"), vbNullString), vbExclamation
         End If
     End Select
 QH:
@@ -1332,6 +1348,7 @@ Private Sub lstPrinters_Click()
     txtInfo.Text = JsonDump(JsonValue(MainForm.Printers, sPrinterID))
     mnuTools(ucsMnuToolsTest).Enabled = (lstPrinters.ListIndex > 0)
     mnuTools(ucsMnuToolsReset).Enabled = (lstPrinters.ListIndex > 0)
+    mnuTools(ucsMnuToolsStatus).Enabled = (lstPrinters.ListIndex > 0)
     Exit Sub
 EH:
     PrintError FUNC_NAME
