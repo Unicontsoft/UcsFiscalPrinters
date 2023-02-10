@@ -19,6 +19,7 @@ Module=mdJson; Shared\mdJson.bas
 Class=cGlobals; cGlobals.cls
 Class=cExec; Shared\cExec.cls
 Class=cLabelProtocol; Protocols\cLabelProtocol.cls
+Class=cScalesProtocol; Protocols\cScalesProtocol.cls
 Startup="Sub Main"
 HelpFile=""
 Title="Fiscal Printers"

@@ -100,6 +100,7 @@ Private Const STR_ESP_POS_INTERNAL      As String = "Няма започната
 Private Const STR_ESP_POS_TEXTS         As String = "В БРОЙ|С ЧЕК|ТАЛОНИ|В.ТАЛОНИ|АМБАЛАЖ|В.ОБСЛУЖВАНЕ|ПОВРЕДИ|С КАРТА|ПО БАНКA|НЗОК|ПРОГ.ТИП 2|ЕВРО|НАДБАВКА %1|ОТСТЪПКА %1|СУМА|МЕЖДИННА СУМА|ФАКТУРА No %1|Продажби %1|ЕДИНИЧНА ЦЕНА|КОЛИЧЕСТВО|СУМА|ВСИЧКО ГРУПА %1|ДДС %1=%2|НЕТО СТОЙНОСТ|ОБЩО|%1 АРТИКУЛА|1 АРТИКУЛ|РЕСТО|ПРОДАВАЧ: |ПОЛУЧАТЕЛ: |КУПУВАЧ: |ИДЕНТ. No: |ЗДДС No: |СИСТЕМЕН БОН|ПОРЪЧКА КЪМ КУХНЯ|Дата:     %1|Оператор: %1|Маса:     %1|ЕИК №: %1"
 Private Const STR_PROXY_INTERNAL        As String = "Устройството не е намерено|Невалидно състояние на готовност %1|Невалидeн JSON: %1|Неподдържан вид отстъпка %1"
 Private Const STR_LABEL_INTERNAL        As String = "Невалиден модел на устройство (%1)|Невъзможно зареждане на шаблони от %1. %2|Шаблонът не е намерен (%1)|Поддръжка на ESC/POS не е довършена"
+Private Const STR_SCALES_INTERNAL       As String = "Невалиден модел на устройство (%1)|Неочаквана грешка: %1|Изтекло време за отговор от устройство|Липсва измерване|Претоварване"
 Private Const STR_CONNECTOR_ERRORS      As String = "Не е указано устройство|Грешка от %1: %2|Време за достъп изтече в очакване на отговор"
 '--- enums texts
 Private Const STR_ENUM_PAYMENT_TYPE     As String = "|Cash|Cheque|Coupon|Voucher|Packaging|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
@@ -905,6 +906,13 @@ Private Function pvInit(DeviceString As String, Optional ByVal SkipInit As Boole
         Set pvInit = New cLabelProtocol
         If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
             pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_LABEL_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
+        End If
+    Case STR_PROTOCOL_SCALES
+        Set pvInit = New cScalesProtocol
+        If GetSystemDefaultLCID() = LOCALE_BULGARIAN Then
+            pvInit.SetLocalizedText ucsFscLciInternalErrors, GetConfigValue(sProtocol, CFG_INTERNAL_ERRORS, STR_SCALES_INTERNAL)
+            pvInit.SetLocalizedText ucsFscLciConnectorErrors, GetConfigValue(sProtocol, CFG_CONNECTOR_ERRORS, STR_CONNECTOR_ERRORS)
         End If
     Case Else
         Err.Raise vbObjectError, , Printf(ERR_UNKNOWN_PROTOCOL, sProtocol)

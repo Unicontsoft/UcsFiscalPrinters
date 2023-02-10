@@ -136,6 +136,7 @@ Public Const STR_PROTOCOL_TREMOL        As String = "TREMOL"
 Public Const STR_PROTOCOL_ESCPOS        As String = "ESC/POS"
 Public Const STR_PROTOCOL_PROXY         As String = "PROXY"
 Public Const STR_PROTOCOL_LABEL         As String = "LABEL"
+Public Const STR_PROTOCOL_SCALES        As String = "SCALES"
 Public Const STR_CHR1                   As String = "" '--- CHAR(1)
 Public Const DBL_EPSILON                As Double = 0.0000000001
 Public Const FORMAT_BASE_2              As String = "0.00"
