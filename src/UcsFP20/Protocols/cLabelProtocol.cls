@@ -152,6 +152,10 @@ Property Let LocalizedText(ByVal eIdx As UcsFiscalLocalizedIndexesEnum, sValue A
     m_uConfig.LocalizedText(eIdx) = Split(sValue, "|")
 End Property
 
+Property Get IsConnected() As Boolean
+    IsConnected = Not m_oConnector Is Nothing
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
@@ -646,7 +650,7 @@ Private Function IDeviceProtocol_PrintServiceDeposit(OperatorCode As String, Ope
 End Function
 
 Private Function IDeviceProtocol_Connect() As Boolean
-    IDeviceProtocol_Connect = True
+    IDeviceProtocol_Connect = Connect()
 End Function
 
 Private Function IDeviceProtocol_PrintDuplicate(Optional DuplicateNo As String, Optional ReceiptNo As String, Optional ReceiptDate As Date) As Boolean
@@ -654,7 +658,7 @@ Private Function IDeviceProtocol_PrintDuplicate(Optional DuplicateNo As String, 
 End Function
 
 Private Function IDeviceProtocol_Disconnect() As Boolean
-    IDeviceProtocol_Disconnect = True
+    IDeviceProtocol_Disconnect = Disconnect()
 End Function
 
 Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Optional ReceiptNo As String, Optional ReceiptDate As Date, Optional ReceiptAmount As Double, Optional InvoiceNo As String) As Boolean
@@ -784,7 +788,7 @@ Private Function IDeviceProtocol_Init(DeviceString As String, Optional EventSink
 End Function
 
 Private Property Get IDeviceProtocol_IsConnected() As Boolean
-    IDeviceProtocol_IsConnected = True
+    IDeviceProtocol_IsConnected = IsConnected
 End Property
 
 Private Function IDeviceProtocol_OpenDrawer() As Boolean
