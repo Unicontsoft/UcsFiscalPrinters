@@ -1880,6 +1880,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim dLastDate       As Date
     Dim sSettingBeg     As String
     Dim sSettingEnd     As String
+    Dim dblRevTotal     As Double
+    Dim vErr            As Variant
     
     On Error GoTo EH
     '--- ring sale
@@ -1921,6 +1923,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH
                     End If
+                    dblRevTotal = dblTotal
                 End If
             End If
             '--- setup invoice no
@@ -2241,6 +2244,12 @@ QH:
     End If
     If LenB(m_uPrintData.LastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
         pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_uPrintData.LastError), m_uPrintData.LastErrNo
+    End If
+    If Not pvPrintReceipt And Abs(dblRevTotal) > DBL_EPSILON Then
+        vErr = Array(m_uPrintData.LastError, m_uPrintData.LastErrNo)
+        PrintServiceDeposit -dblRevTotal
+        m_uPrintData.LastError = vErr(0)
+        m_uPrintData.LastErrNo = vErr(1)
     End If
     Exit Function
 EH:

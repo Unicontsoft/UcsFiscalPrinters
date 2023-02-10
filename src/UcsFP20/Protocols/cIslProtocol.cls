@@ -2327,6 +2327,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sCodeData       As String
     Dim sUnit           As String
     Dim dLastDate       As Date
+    Dim dblRevTotal     As Double
+    Dim vErr            As Variant
     
     On Error GoTo EH
     '--- ring sale
@@ -2386,6 +2388,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         If LenB(m_uPrintData.LastError) <> 0 Then
                             GoTo QH
                         End If
+                        dblRevTotal = -dblTotal
                     End If
                 Else
                     vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
@@ -2395,6 +2398,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         If LenB(m_uPrintData.LastError) <> 0 Then
                             GoTo QH
                         End If
+                        dblRevTotal = dblTotal
                     End If
                 End If
             End If
@@ -2869,6 +2873,12 @@ QH:
     End If
     If LenB(m_uPrintData.LastError) <> 0 And uCtx.PluCount > 0 And Not uCtx.PmtPrinted Then
         pvSetLastError Printf(pvInternal(ucsErrErrorInLine), uCtx.PluCount, m_uPrintData.LastError), m_uPrintData.LastErrNo
+    End If
+    If Not pvPrintReceipt And Abs(dblRevTotal) > DBL_EPSILON Then
+        vErr = Array(m_uPrintData.LastError, m_uPrintData.LastErrNo)
+        PrintServiceDeposit uRow(0).InitOperatorCode, -dblRevTotal
+        m_uPrintData.LastError = vErr(0)
+        m_uPrintData.LastErrNo = vErr(1)
     End If
     Exit Function
 EH:
