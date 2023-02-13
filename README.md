@@ -121,7 +121,7 @@ Key              | Type   | Protocol | Description
 `MaxDiscount`    | number |          | Maximum percent discount (default `100`)
 `MaxReceiptLines`| number |          | Total number of lines in a receipt supported by the device
 `MaxItemLines`   | number |          | Maximum number of lines to print for a PLU row (default `2`)
-`CodePage`       | number | ESC/POS  | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
+`CodePage`       | number |          | Code page to use when encoding strings to/from the device (e.g. `1251` or `866`)
 `MaxPaymentLen`  | number | Datecs   | Maximum number of symbols in a payment name (default `16`)
 `PingTimeout`    | number | Tremol   | Timeout for replay from fast online check (default `200` ms)
 `DetailedReceipt`| bool   | Tremol   | For each PLU print quantity, price and  total on separate lines like on invoices (default `Off`)
@@ -129,6 +129,7 @@ Key              | Type   | Protocol | Description
 `DelayPrint`     | bool   | Tremol   | Spool receipt data to device before printing (default `On`)
 `BufferPrint`    | bool   | Tremol   | Buffer receipt data (default `Off`)
 `TemplateFile`   | string | Label    | Label templates JSON configuration (default [`LabelTemplates.conf`](TEMPLATES.md))
+`AllowBusy`      | bool   | Scales   | When unstable does not wait but returns current weight immediately (default `Off`)
 
 ### Available protocols
 
@@ -142,8 +143,9 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `DAISY`          | Daisy Ltd.   | CompactM       | All
 `INCOTEX`        | Incotex Ltd. | 181, 777       | All
 `ELTRADE`        | Eltrade Ltd. | A3             | All
-`ESC/POS`        | Tremol Ltd.  | EP-80250       | All ESC/POS "kitchen" printers
-`LABEL`          | Datecs Ltd.  | LP-50, LP-50MX | All EPL-2 label printers
+`ESC/POS`        | Tremol Ltd.  | EP-80250       | ESC/POS "kitchen" printers
+`LABEL`          | Datecs Ltd.  | LP-50, LP-50MX | EPL-2 label printers
+`SCALES`         | Bimko, Elicom  | B600         | Dibal, Mettler, Delmac & CAS
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
 ### REST service protocol description
