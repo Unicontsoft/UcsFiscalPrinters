@@ -38,7 +38,7 @@ Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cr
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
 Private Const DEF_CODEPAGE              As Long = 1251
-Private Const DEF_MODEL_GROUP           As String = "BIMKO"
+Private Const DEF_MODEL_GROUP           As String = "BIMCO"
 '--- numeric
 Private Const MAX_RETRY                 As Long = 3
 Private Const DBL_EPSILON               As Double = 0.000001
@@ -58,7 +58,8 @@ End Enum
 Private Type UcsConfigValues
     CodePage            As Long
     ModelGroup          As String
-    AllowBusy           As Boolean
+    AllowUnstable       As Boolean
+    AllowZero           As Boolean
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -81,7 +82,7 @@ Private Enum UcsScaleProtocolEnum
     ucsScaProtocolDibal
     ucsScaProtocolMettler
     ucsScaProtocolDelmac
-    ucsScaProtocolBimko
+    ucsScaProtocolBimco
 End Enum
 
 Private Enum UcsScaleStatusEnum
@@ -178,7 +179,8 @@ Public Function Init(sDeviceString As String) As Boolean
     With m_uConfig
         .CodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
         .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), DEF_MODEL_GROUP))
-        .AllowBusy = JsonBoolItem(oOptions, "AllowBusy")
+        .AllowUnstable = JsonBoolItem(oOptions, "AllowUnstable")
+        .AllowZero = JsonBoolItem(oOptions, "AllowZero", .AllowUnstable)
     End With
     Select Case m_uConfig.ModelGroup
     Case "ELICOM"
@@ -189,8 +191,8 @@ Public Function Init(sDeviceString As String) As Boolean
         m_uData.Protocol = ucsScaProtocolMettler
     Case "DELMAC"
         m_uData.Protocol = ucsScaProtocolDelmac
-    Case "BIMKO"
-        m_uData.Protocol = ucsScaProtocolBimko
+    Case "BIMCO"
+        m_uData.Protocol = ucsScaProtocolBimco
     Case "CAS"
         m_uData.Protocol = ucsScaProtocolCas
     End Select
@@ -245,18 +247,18 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     
     dblTimerEx = TimerEx + m_uData.CommandTimeout / 1000#
     Do While TimerEx < dblTimerEx
-        If Not pvReadWeight(dblTimerEx - TimerEx, MAX_RETRY, True, m_uPrintData.LastError) Then
+        If Not pvReadWeight(dblTimerEx - TimerEx, MAX_RETRY, m_uConfig.AllowZero, m_uPrintData.LastError) Then
             StatusText = m_uPrintData.LastError
             GetDeviceStatus = ucsFscStaFailed
             GoTo QH
         End If
-        If Abs(m_uData.Weight) > DBL_EPSILON Then
+        If Abs(m_uData.Weight) > DBL_EPSILON Or m_uConfig.AllowZero Then
             StatusText = Trim$(Replace(Replace(Str$(m_uData.Weight), " .", "0."), "-.", "-0."))
         End If
         If m_uData.Status = ucsScaStatusStable Then
             GetDeviceStatus = ucsFscStaReady
             GoTo QH
-        ElseIf m_uConfig.AllowBusy Then
+        ElseIf m_uConfig.AllowUnstable Then
             If m_uData.Status = ucsScaStatusOverload Then
                 StatusText = pvInternal(ucsErrOverload)
             End If
@@ -264,7 +266,7 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
             GoTo QH
         End If
     Loop
-    StatusText = pvInternal(ucsErrDeviceTimeout)
+    StatusText = pvInternal(IIf(m_uData.Status = ucsScaStatusOverload, ucsErrOverload, ucsErrDeviceTimeout))
     GetDeviceStatus = ucsFscStaFailed
 QH:
     m_uPrintData.LastError = vbNullString
@@ -306,7 +308,7 @@ Private Function pvReadWeight( _
             m_uData.Request = "SI" & vbCrLf
         Case ucsScaProtocolDelmac
             m_uData.Request = vbNullString
-        Case ucsScaProtocolBimko
+        Case ucsScaProtocolBimco
             m_uData.Request = Chr$(BMK_REQ)
         End Select
         m_uData.Received = vbNullString
@@ -332,8 +334,8 @@ Private Function pvReadWeight( _
                     eResult = pvParseMettlerResponse(m_uData, bAllowZero)
                 Case ucsScaProtocolDelmac
                     eResult = pvParseDelmacResponse(m_uData, bAllowZero)
-                Case ucsScaProtocolBimko
-                    eResult = pvParseBimkoResponse(m_uData, bAllowZero)
+                Case ucsScaProtocolBimco
+                    eResult = pvParseBimcoResponse(m_uData, bAllowZero)
                 Case Else
                     eResult = ucsScaResultContinue
                 End Select
@@ -545,7 +547,7 @@ Private Function pvParseDelmacResponse(uData As UcsScaleDataType, ByVal bAllowZe
     End With
 End Function
 
-Private Function pvParseBimkoResponse(uData As UcsScaleDataType, ByVal bAllowZero As Boolean) As UcsParseResultEnum
+Private Function pvParseBimcoResponse(uData As UcsScaleDataType, ByVal bAllowZero As Boolean) As UcsParseResultEnum
     Const IDX_WIEGHT    As Long = 0
     Const IDX_POWER10   As Long = 3
     Const IDX_STATUS    As Long = 4
@@ -567,7 +569,7 @@ Private Function pvParseBimkoResponse(uData As UcsScaleDataType, ByVal bAllowZer
                 lSum = lSum + baRecv(lIdx)
             Next
             If lSum <> (baRecv(IDX_CRC) * &H100& Or baRecv(IDX_CRC + 1)) Or baRecv(IDX_POWER10) > 10 Then
-                pvParseBimkoResponse = ucsScaResultRetrySend
+                pvParseBimcoResponse = ucsScaResultRetrySend
             Else
                 If baRecv(IDX_ERROR) <> 0 Then
                     .Status = ucsScaStatusOverload
@@ -583,10 +585,10 @@ Private Function pvParseBimkoResponse(uData As UcsScaleDataType, ByVal bAllowZer
                     Or baRecv(IDX_WIEGHT + 1) * &H100& _
                     Or baRecv(IDX_WIEGHT + 2)) / (10 ^ baRecv(IDX_POWER10))
                 If .Status = ucsScaStatusStable And Abs(.Weight) < DBL_EPSILON And Not bAllowZero Then
-                    pvParseBimkoResponse = ucsScaResultRetryZero
+                    pvParseBimcoResponse = ucsScaResultRetryZero
                 Else
                     '--- success
-                    pvParseBimkoResponse = ucsScaResultHasResult
+                    pvParseBimcoResponse = ucsScaResultHasResult
                 End If
             End If
         End If

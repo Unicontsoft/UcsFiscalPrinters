@@ -129,7 +129,8 @@ Key              | Type   | Protocol | Description
 `DelayPrint`     | bool   | Tremol   | Spool receipt data to device before printing (default `On`)
 `BufferPrint`    | bool   | Tremol   | Buffer receipt data (default `Off`)
 `TemplateFile`   | string | Label    | Label templates JSON configuration (default [`LabelTemplates.conf`](TEMPLATES.md))
-`AllowBusy`      | bool   | Scales   | When unstable does not wait but returns current weight immediately (default `Off`)
+`AllowUnstable`  | bool   | Scales   | When reading is unstable does not wait but returns current weight (default `Off`)
+`AllowZero`      | bool   | Scales   | When reading is empty does not wait but returns current weight (default `Off`)
 
 ### Available protocols
 
@@ -145,7 +146,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `ELTRADE`        | Eltrade Ltd. | A3             | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | ESC/POS "kitchen" printers
 `LABEL`          | Datecs Ltd.  | LP-50, LP-50MX | EPL-2 label printers
-`SCALES`         | Bimko, Elicom  | B600         | Dibal, Mettler, Delmac & CAS
+`SCALES`         | Bimco Ltd.   | B6, B600       | Elicom, Dibal, Mettler, Delmac & CAS
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
 ### REST service protocol description
