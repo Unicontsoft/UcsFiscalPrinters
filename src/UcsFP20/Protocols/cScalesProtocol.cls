@@ -126,6 +126,10 @@ Private Sub DebugLog(sFunction As String, sText As String)
     Logger.Log vbLogEventTypeDebug, MODULE_NAME, sFunction, sText
 End Sub
 
+Private Sub DebugDataDump(sFunction As String, sPrefix As String, sData As String)
+    Logger.DataDump MODULE_NAME, sFunction, sPrefix, sData
+End Sub
+
 '=========================================================================
 ' Properties
 '=========================================================================
@@ -286,6 +290,7 @@ Private Function pvReadWeight( _
     Dim eResult         As UcsParseResultEnum
     Dim bHasZero        As Boolean
     Dim baText()        As Byte
+    Dim sBuffer         As String
     
     On Error GoTo EH
     For lRetry = 1 To lMaxRetry
@@ -306,13 +311,16 @@ Private Function pvReadWeight( _
         End Select
         m_uData.Received = vbNullString
         If LenB(m_uData.Request) <> 0 Then
+            DebugDataDump FUNC_NAME, "[SEND ] ", m_uData.Request
             If Not m_uData.Connector.WriteData(ToMultiByte(m_uData.Request, m_uConfig.CodePage), 100) Then
                 DebugLog FUNC_NAME, "WriteData failed, GetLastError=" & m_uData.Connector.GetLastError()
             End If
         End If
         Do While TimerEx < dblTimerEx
             If m_uData.Connector.ReadData(baText, 100) Then
-                m_uData.Received = m_uData.Received & FromMultiByte(baText, m_uConfig.CodePage)
+                sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
+                DebugDataDump FUNC_NAME, "[RECV ] ", sBuffer
+                m_uData.Received = m_uData.Received & sBuffer
                 Select Case m_uData.Protocol
                 Case ucsScaProtocolCas
                     eResult = pvParseCasResponse(m_uData, bAllowZero)
@@ -340,6 +348,7 @@ Private Function pvReadWeight( _
                     End If
                     m_uData.Received = vbNullString
                     If LenB(m_uData.Request) <> 0 Then
+                        DebugDataDump FUNC_NAME, "[SEND ] ", m_uData.Request
                         m_uData.Connector.WriteData ToMultiByte(m_uData.Request, m_uConfig.CodePage), m_uData.CommandTimeout
                     End If
                 End Select
