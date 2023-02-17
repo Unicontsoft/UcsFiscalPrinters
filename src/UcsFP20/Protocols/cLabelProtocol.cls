@@ -439,6 +439,7 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
     Dim oCanvas         As Object
     Dim oItem           As Object
     Dim lTop            As Long
+    Dim sFormName       As String
     
     On Error GoTo EH
     Do While uCtx.Row < lRowCount
@@ -456,11 +457,7 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     On Error GoTo EH
                     Err.Raise vbObjectError, , Printf(pvInternal(ucsErrTemplateNotFound), sName)
                 End If
-                Set cOutput = New Collection
-                '--- FR Command - Retrieve Form
-                cOutput.Add "FR" & """" & sName & """"
-                '--- ? Command - Download Variables
-                cOutput.Add "?"
+                sFormName = sName
                 lTop = 0
                 For Each vElem In JsonKeys(oTemplate, "Controls")
                     Set oItem = C_Obj(JsonValue(oTemplate, "Controls/" & vElem))
@@ -511,20 +508,24 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
         Case ucsRowBarcode
         Case ucsRowPayment
             If .PmtType = 0 Then
-                For Each vElem In JsonValue(oCanvas, "*")
-                    cOutput.Add Zn(C_Str(vElem), " ")
-                Next
-                '--- P Command - Print
-                cOutput.Add "P" & 1 & "," & lCopies
+                '--- check connectivity
                 If m_lPingTimeout > 1 Then
-                    '--- US Command - Enable Error Reporting
-                    Call pvRawSendCommand(m_oConnector, m_lPingTimeout, "US1" & vbLf, FUNC_NAME, sError)
+                    sText = "US" & vbLf                             '--- US Command - Enable Error Reporting
+                    Call pvRawSendCommand(m_oConnector, m_lPingTimeout, vbLf & sText, FUNC_NAME, sError)
                     If LenB(sError) <> 0 Then
                         m_uPrintData.LastError = sError
                         GoTo QH
                     End If
                 End If
-                sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, ConcatCollection(cOutput, vbLf) & vbLf, FUNC_NAME, sError)
+                '--- render label/form
+                Set cOutput = New Collection
+                cOutput.Add "FR" & """" & sFormName & """"          '--- FR Command - Retrieve Form
+                cOutput.Add "?"                                     '--- ? Command - Download Variables
+                For Each vElem In JsonValue(oCanvas, "*")
+                    cOutput.Add Zn(C_Str(vElem), " ")
+                Next
+                cOutput.Add "P" & 1 & "," & lCopies                 '--- P Command - Print
+                sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, vbLf & ConcatCollection(cOutput, vbLf) & vbLf, FUNC_NAME, sError)
                 If LenB(sError) <> 0 Then
                     m_uPrintData.LastError = sError
                     GoTo QH
