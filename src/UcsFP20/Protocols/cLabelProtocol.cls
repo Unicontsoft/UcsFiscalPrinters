@@ -192,7 +192,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 With aPorts(lIdx)
                     Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
-                        sCmd = vbLf & "UF" & vbLf '--- Form Information Inquiry
+                        sCmd = vbCrLf & "UF" & vbCrLf               '--- UF Command - Form Information Inquiry
                         .Connector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), 1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
@@ -216,7 +216,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
                         If sReply Like "*[0-9][0-9][0-9]" & vbCrLf & "*" Or sReply Like "*[0-9][0-9][0-9]" & vbLf & "*" Then
                             DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
-                            sModel = At(pvRawGetDeviceInfo(.Connector), 0)
+                            sModel = At(pvRawGetDeviceInfo(.Connector, 100), 0)
                             vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
                         End If
                     End If
@@ -326,7 +326,7 @@ EH:
 End Function
 
 Public Function GetClock() As Date
-    GetClock = GetCurrentNow
+    GetClock = pvRawGetClock(m_oConnector, m_lCommandTimeout)
 End Function
 
 Public Function GetDeviceProtocol() As String
@@ -334,11 +334,17 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
-    GetDeviceModel = At(pvRawGetDeviceInfo(m_oConnector), 0)
+    GetDeviceModel = At(pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout), 0)
 End Function
 
 Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    Dim dClock          As Date
+    
     StatusText = vbNullString
+    dClock = pvRawGetClock(m_oConnector, m_lCommandTimeout, StatusText)
+    If LenB(StatusText) = 0 Then
+        StatusText = dClock
+    End If
     GetDeviceStatus = ucsFscStaReady
 QH:
     pvSetLastError vbNullString
@@ -510,8 +516,8 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
             If .PmtType = 0 Then
                 '--- check connectivity
                 If m_lPingTimeout > 1 Then
-                    sText = "US" & vbLf                             '--- US Command - Enable Error Reporting
-                    Call pvRawSendCommand(m_oConnector, m_lPingTimeout, vbLf & sText, FUNC_NAME, sError)
+                    sText = vbCrLf & "US1" & vbCrLf                 '--- US Command - Enable Error Reporting
+                    Call pvRawSendCommand(m_oConnector, m_lPingTimeout, sText, FUNC_NAME, sError)
                     If LenB(sError) <> 0 Then
                         m_uPrintData.LastError = sError
                         GoTo QH
@@ -525,7 +531,8 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     cOutput.Add Zn(C_Str(vElem), " ")
                 Next
                 cOutput.Add "P" & 1 & "," & lCopies                 '--- P Command - Print
-                sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, vbLf & ConcatCollection(cOutput, vbLf) & vbLf, FUNC_NAME, sError)
+                cOutput.Add vbNullString
+                sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, ConcatCollection(cOutput, vbCrLf), FUNC_NAME, sError)
                 If LenB(sError) <> 0 Then
                     m_uPrintData.LastError = sError
                     GoTo QH
@@ -559,26 +566,52 @@ Private Function pvPrintReceiptEscPos(uCtx As UcsPpdExecuteContext, uRow() As Uc
     Err.Raise vbObjectError, , pvInternal(ucsErrNotImplemented)
 End Function
 
-Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector) As Variant
+Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Variant
     Const FUNC_NAME     As String = "pvRawGetDeviceInfo"
-    Const DEF_MODEL     As String = "LP-50"
     Dim sCmd            As String
     Dim baBuffer()      As Byte
     Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = "UQ" & vbLf '--- Configuration Inquiry
+    sCmd = vbCrLf & "US1" & vbCrLf & "UQ" & vbCrLf          '--- UQ Command - Configuration Inquiry
     If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
-        If oConnector.ReadData(baBuffer, 100) Then
+        If oConnector.ReadData(baBuffer, lTimeout) Then
             sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
-            If sReply = pvChr(LNG_NACK) Then
-                pvRawGetDeviceInfo = Array(DEF_MODEL)
+            If InStr(sReply, pvChr(LNG_NACK)) > 0 Then
+                pvRawGetDeviceInfo = Array(m_uConfig.ModelGroup)
             ElseIf InStr(sReply, vbCrLf) Then
                 pvRawGetDeviceInfo = Split(sReply, vbCrLf)
             Else
                 pvRawGetDeviceInfo = Split(sReply, vbLf)
             End If
+        Else
+            Error = oConnector.GetLastError
+            pvRawGetDeviceInfo = Array(m_uConfig.ModelGroup)
         End If
+    Else
+        Error = oConnector.GetLastError
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvRawGetClock(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Date
+    Const FUNC_NAME     As String = "pvRawGetClock"
+    Dim sCmd            As String
+    Dim baBuffer()      As Byte
+    Dim sReply          As String
+    
+    On Error GoTo EH
+    sCmd = vbCrLf & "US1" & vbCrLf & "TI" & vbCrLf          '--- TI Command - Clock Inquiry
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
+        If oConnector.ReadData(baBuffer, lTimeout) Then
+            pvRawGetClock = ParseExtendedDate(Replace(FromMultiByte(baBuffer, m_uConfig.CodePage), pvChr(LNG_NACK), vbNullString))
+        Else
+            Error = m_oConnector.GetLastError
+        End If
+    Else
+        Error = m_oConnector.GetLastError
     End If
     Exit Function
 EH:
