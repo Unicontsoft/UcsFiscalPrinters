@@ -337,6 +337,7 @@ Private Enum UcsProtocolMarkers
     SYM_LINECONFIRM = &H11
     SYM_NAK = &H15
     SYM_SYN = &H16
+    SYM_SUB = &H1A
     SYM_BASEDATA = &H20
 End Enum
 
@@ -1934,11 +1935,6 @@ Public Function GetLastZReportDate() As Date
             vSplit = Split(Replace(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), " ", vbTab), vbTab)
             If At(vSplit, 0) = "D" Then
                 GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
-            Else
-                vSplit = Split(Replace(pvRawReadLine(m_oConnector, 1000, FUNC_NAME), " ", vbTab), vbTab)
-                If At(vSplit, 0) = "D" Then
-                    GetLastZReportDate = ParseExtendedDate(At(vSplit, lDateIndex) & " " & At(vSplit, lDateIndex + 1))
-                End If
             End If
         ElseIf IsFP Then
             sParam = "C" & DEF_SEP & "R%1"
@@ -2047,6 +2043,21 @@ RetrySend:
         If InStr(sBuffer, pvChr(SYM_SYN)) > 0 Then
             dblTimerEx = TimerEx
         End If
+        '--- check for line-by-line response
+        lPos = InStr(sText, vbLf)
+        Do While Left$(sText, 1) = pvChr(SYM_SUB) And lPos > 0
+            pvRawSendCommand = pvRawSendCommand & Mid$(sText, 2, lPos - 1)
+            sSend = pvChr(SYM_LINECONFIRM)
+            DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sSend
+            baText = ToMultiByte(sSend, m_uConfig.CodePage)
+            If Not oConnector.WriteData(baText, lTimeout) Then
+                Error = oConnector.GetLastError()
+                DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
+                GoTo QH
+            End If
+            sText = Mid$(sText, lPos + 1)
+            lPos = InStr(sText, vbLf)
+        Loop
     Loop While Right$(sText, 1) <> pvChr(SYM_TERMINATOR)
     lPos = 1
 RetryParse:
@@ -2112,53 +2123,6 @@ RetryParse:
     End If
 QH:
     RaiseEvent CommandComplete(eCmd, Data, pvRawSendCommand)
-    Exit Function
-EH:
-    PrintError FUNC_NAME
-    Resume Next
-End Function
-
-Private Function pvRawReadLine( _
-            oConnector As IDeviceConnector, _
-            ByVal lTimeout As Long, _
-            LogName As String, _
-            Optional Error As String) As String
-    Const FUNC_NAME     As String = "pvRawReadLine"
-    Dim sSend           As String
-    Dim sText           As String
-    Dim baText()        As Byte
-    Dim sBuffer         As String
-    Dim dblTimerEx      As Double
-    
-    On Error GoTo EH
-    dblTimerEx = TimerEx
-    sSend = pvChr(SYM_LINECONFIRM)
-    DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sSend
-    baText = ToMultiByte(sSend, m_uConfig.CodePage)
-    If Not oConnector.WriteData(baText, lTimeout) Then
-        Error = oConnector.GetLastError()
-        DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
-        GoTo QH
-    End If
-    '--- read response
-    sText = vbNullString
-    Do
-        If TimerEx > dblTimerEx + lTimeout / 1000# Then
-            Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
-            GoTo QH
-        End If
-        If Not oConnector.ReadData(baText, lTimeout) Then
-            Error = oConnector.GetLastError()
-            DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
-            GoTo QH
-        End If
-        sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
-        DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
-        '--- remove SYN (&H16)
-        sText = sText & Replace(sBuffer, pvChr(SYM_SYN), vbNullString)
-    Loop While Right$(sText, 1) <> vbLf
-QH:
-    pvRawReadLine = sText
     Exit Function
 EH:
     PrintError FUNC_NAME
