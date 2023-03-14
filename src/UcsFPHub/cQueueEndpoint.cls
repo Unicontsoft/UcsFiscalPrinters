@@ -566,6 +566,7 @@ Private Function pvMakeSshTunnel( _
     Const DEF_MAXATTEMPTS As Long = 10
     Const MIN_PORT      As Long = 2000
     Const MAX_PORT      As Long = &HFFFF&
+    Const ucsOsvWin10   As Long = 1000
     Dim sParams         As String
     Dim sInput          As String
     Dim lAttempt        As Long
@@ -577,6 +578,7 @@ Private Function pvMakeSshTunnel( _
     Dim sExeFile        As String
     Dim sLine           As String
     Dim bAcceptKeys     As Boolean
+    Dim bOpenSsh        As Boolean
     
     On Error GoTo EH
     '--- terminate previous tunnel
@@ -594,7 +596,11 @@ Private Function pvMakeSshTunnel( _
     If LenB(sExeFile) = 0 Then
         sExeFile = LocateFile(PathCombine(App.Path, "plink.exe"))
     End If
-    '--- check plink.exe exists
+    If LenB(sExeFile) = 0 And OsVersion >= ucsOsvWin10 Then
+        sExeFile = LocateFile(GetEnvironmentVar("WinDir") & "\SysNative\OpenSSH\ssh.exe")
+        bOpenSsh = True
+    End If
+    '--- check exe exists
     If FileExists(sExeFile) Then
         sExeFile = ArgvQuote(sExeFile)
     ElseIf LenB(sExeFile) = 0 Then
@@ -630,32 +636,36 @@ Private Function pvMakeSshTunnel( _
         sError = T(LANG_SSH_TUNNEL_NO_PORT_AVAILABLE)
         GoTo QH
     End If
-    '--- plink.exe options:
-    '---   -ssh   use SSH protocol
-    '---   -2     use version 2 of protocol
+    '--- exe options:
+    '---   -ssh   use SSH protocol (plink.exe only)
+    '---   -2     use version 2 of protocol (plink.exe only)
     '---   -C     compress w/ zlib
-    '---   -N     no shell
+    '---   -N     no command
     '---   -v     verbose
-    '---   -P     server port
-    '---   -l     (l)user
-    '---   -pw    password
-    '---   -i     keyfile
-    '---   -L     local port tunnel [local_IP:]local_port:remote_IP:remote_port
-    '---   -R     remote port tunnel [remote_IP:]remote_port:local_IP:local_port
+    '---   -P     server port (plink.exe only)   -p server port (ssh.exe only)
+    '---   -l     login name
+    '---   -pw    password (plink.exe only)
+    '---   -i identity_file keyfile
+    '---   -L [localip:]localport:remotehost:hostport local port tunnel
+    '---   -R [localip:]localport:remotehost:hostport remote port tunnel
     sParams = Printf("%1 -C -N -v -l %2", ArgvQuote(sSshSrv), ArgvQuote(sUser)) & _
         IIf(LenB(sSqlSrv) <> 0, Printf(" -L %1", ArgvQuote(lLocalPort & ":" & sSqlSrv & ":" & lSqlPort)), vbNullString) & _
         IIf(LenB(sMirrorSrv) <> 0, Printf(" -L %1", ArgvQuote((lLocalPort + 1) & ":" & sMirrorSrv & ":" & lMirrorPort)), vbNullString) & _
         IIf(LenB(sKeyFile) <> 0, Printf(" -i %1", ArgvQuote(sKeyFile)), vbNullString) & _
-        IIf(LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
-        IIf(lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
+        IIf(Not bOpenSsh And LenB(sPass) <> 0, Printf(" -pw %1", ArgvQuote(sPass)), vbNullString) & _
+        IIf(Not bOpenSsh And lSshPort <> 0, Printf(" -P %1", lSshPort), vbNullString) & _
+        IIf(bOpenSsh And lSshPort <> 0, Printf(" -p %1", lSshPort), vbNullString) & _
         IIf(LenB(sExtraParams) <> 0, " " & sExtraParams, vbNullString)
     If IsLogDataDumpEnabled Then '-- prevent password dump
         DebugLog MODULE_NAME, FUNC_NAME, "sParams=" & sParams, vbLogEventTypeDebug
     End If
-    '--- shell plink.exe
+    '--- shell exe
     Set oTunnel = InitExec()
     With oTunnel
-        .Run vbNullString, sExeFile & " " & sParams, StartHidden:=True
+        If Not .Run(vbNullString, sExeFile & " " & sParams, StartHidden:=True) Then
+            sError = Printf(T(LANG_SSH_TUNNEL_ERROR), .LastError)
+            GoTo QH
+        End If
         dblTimerEx = TimerEx
         Do While Not .AtEndOfError Or Not .AtEndOfOutput
             If TimerEx > dblTimerEx + lTimeout + lExtraTimeout Then
@@ -709,7 +719,7 @@ Private Function pvMakeSshTunnel( _
                     sError = T(LANG_SSH_TUNNEL_MISSING_PASSPHRASE)
                     GoTo QH
                 End If
-            ElseIf InStr(sInput, "Local port " & lLocalPort & " forwarding") > 0 Then
+            ElseIf InStr(sInput, "Local port " & lLocalPort & " forwarding") > 0 Or InStr(sInput, "Local forwarding listening on 127.0.0.1 port " & lLocalPort) > 0 Then
                 If Not pvTestListen(lLocalPort) Then
                     pvMakeSshTunnel = True
                 Else

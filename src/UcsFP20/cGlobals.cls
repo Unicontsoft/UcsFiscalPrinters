@@ -108,3 +108,7 @@ End Function
 Public Function InitExec() As Object
     Set InitExec = New cExec
 End Function
+
+Public Function OsVersion() As Long
+    OsVersion = mdGlobals.OsVersion
+End Function

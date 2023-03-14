@@ -126,6 +126,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
+Private m_sLastError            As String
 Private m_hProcess              As Long
 Private m_hReadOutput           As Long
 Private m_hReadError            As Long
@@ -142,6 +143,10 @@ Private Sub PrintError(sFunction As String)
         Debug.Print "Critical error: " & Err.Description & " [" & MODULE_NAME & "." & sFunction & "]"
     #End If
 End Sub
+
+Property Get LastError() As String
+    LastError = m_sLastError
+End Property
 
 '=========================================================================
 ' Methods
@@ -167,6 +172,7 @@ Public Function Run( _
     Dim uInfo           As JOBOBJECT_EXTENDED_LIMIT_INFORMATION
     
     On Error GoTo EH
+    m_sLastError = vbNullString
     '--- cleanup previous
     If m_hProcess <> 0 Then
         Call CloseHandle(m_hProcess)
@@ -231,6 +237,7 @@ Public Function Run( _
             Call AssignProcessToJobObject(hJob, m_hProcess)
         End If
     Else
+        m_sLastError = "Error " & Err.LastDllError
         Call CloseHandle(m_hReadOutput)
         m_hReadOutput = 0
         Call CloseHandle(m_hReadError)
