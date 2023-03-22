@@ -78,6 +78,7 @@ Private Const DEF_MIN_DISCOUNT          As Double = -100
 Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
+Private Const DEF_RETRYCOUNT            As Long = 3
 Private Const STR_GROUP_EPL2            As String = "EPL-2"
 Private Const STR_GROUP_ESCPOS          As String = "ESC/POS"
 Private Const LNG_ACK                   As Long = &H6
@@ -108,6 +109,7 @@ Private Type UcsConfigValues
     CodePage            As Long
     ModelGroup          As String
     Templates           As Object
+    RetryCount          As Long
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -274,6 +276,7 @@ Public Function Init(sDeviceString As String) As Boolean
             On Error GoTo 0
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadTemplates), sFile, sError)
         End If
+        .RetryCount = Znl(C_Lng(JsonValue(oOptions, "RetryCount")), DEF_RETRYCOUNT)
     End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
@@ -296,6 +299,7 @@ End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
+    Dim sCmd            As String
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout & ", m_uConfig.CodePage=" & m_uConfig.CodePage
@@ -304,6 +308,9 @@ Public Function Connect() As Boolean
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
     End If
+    sCmd = vbCrLf & "US" & vbCrLf         '--- US Command - Enable Error Reporting
+    DebugDataDump FUNC_NAME, "[SEND ] ", sCmd
+    m_oConnector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout
     '--- success
     Connect = True
 QH:
@@ -388,7 +395,7 @@ Private Function pvRawSendCommand( _
         sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
         pvRawSendCommand = pvRawSendCommand & sBuffer
-        If InStr(pvRawSendCommand, pvChr(LNG_NACK)) > 0 Or InStr(pvRawSendCommand, pvChr(LNG_ACK)) > 0 Then
+        If LenB(sBuffer) <> 0 Then
             Exit Do
         End If
     Loop
@@ -514,39 +521,54 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
         Case ucsRowBarcode
         Case ucsRowPayment
             If .PmtType = 0 Then
-                '--- check connectivity
-                If m_lPingTimeout > 1 Then
-                    sText = vbCrLf & "US1" & vbCrLf                 '--- US Command - Enable Error Reporting
-                    Call pvRawSendCommand(m_oConnector, m_lPingTimeout, sText, FUNC_NAME, sError)
-                    If LenB(sError) <> 0 Then
-                        m_uPrintData.LastError = sError
-                        GoTo QH
-                    End If
-                End If
-                '--- render label/form
+                '--- render form
                 Set cOutput = New Collection
                 cOutput.Add "FR" & """" & sFormName & """"          '--- FR Command - Retrieve Form
                 cOutput.Add "?"                                     '--- ? Command - Download Variables
                 For Each vElem In JsonValue(oCanvas, "*")
                     cOutput.Add Zn(C_Str(vElem), " ")
                 Next
-                cOutput.Add "P" & 1 & "," & lCopies                 '--- P Command - Print
                 cOutput.Add vbNullString
-                sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, ConcatCollection(cOutput, vbCrLf), FUNC_NAME, sError)
-                If LenB(sError) <> 0 Then
-                    m_uPrintData.LastError = sError
-                    GoTo QH
-                End If
-                If InStr(sResult, pvChr(LNG_NACK)) > 0 Then
-                    vErrors = SplitOrReindex(STR_ERRORS_EPL2, "|")
-                    For Each vElem In Split(sResult, pvChr(LNG_NACK))
-                        sText = At(vErrors, C_Lng(vElem))
-                        If LenB(sText) <> 0 Then
-                            m_uPrintData.LastError = sText
+                sText = ConcatCollection(cOutput, vbCrLf)
+                For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
+                    sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, sText, FUNC_NAME, sError)
+                    If InStr(sResult, pvChr(LNG_NACK)) = 0 Then
+                        Exit For
+                    End If
+                    If lIdx = m_uConfig.RetryCount Then
+                        If LenB(sError) <> 0 Then
+                            m_uPrintData.LastError = sError
                             GoTo QH
                         End If
-                    Next
-                End If
+                    End If
+                Next
+                '--- print label set
+                Set cOutput = New Collection
+                cOutput.Add "P" & 1 & "," & lCopies                 '--- P Command - Print
+                cOutput.Add vbNullString
+                sText = ConcatCollection(cOutput, vbCrLf)
+                For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
+                    sResult = pvRawSendCommand(m_oConnector, (m_lCommandTimeout + lCopies * m_lCommandTimeout) \ 2, sText, FUNC_NAME, sError)
+                    If InStr(sResult, pvChr(LNG_ACK)) > 0 Then
+                        Exit For
+                    End If
+                    If lIdx = m_uConfig.RetryCount Then
+                        If InStr(sResult, pvChr(LNG_NACK)) > 0 Then
+                            vErrors = SplitOrReindex(STR_ERRORS_EPL2, "|")
+                            For Each vElem In Split(sResult, pvChr(LNG_NACK))
+                                sText = At(vErrors, C_Lng(vElem))
+                                If LenB(sText) <> 0 Then
+                                    m_uPrintData.LastError = sText
+                                    GoTo QH
+                                End If
+                            Next
+                        End If
+                        If LenB(sError) <> 0 Then
+                            m_uPrintData.LastError = sError
+                            GoTo QH
+                        End If
+                    End If
+                Next
             End If
         End Select
         End With
@@ -573,7 +595,7 @@ Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeo
     Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = vbCrLf & "US1" & vbCrLf & "UQ" & vbCrLf          '--- UQ Command - Configuration Inquiry
+    sCmd = vbCrLf & "UQ" & vbCrLf                           '--- UQ Command - Configuration Inquiry
     If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
         If oConnector.ReadData(baBuffer, lTimeout) Then
             sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -600,10 +622,9 @@ Private Function pvRawGetClock(oConnector As IDeviceConnector, ByVal lTimeout As
     Const FUNC_NAME     As String = "pvRawGetClock"
     Dim sCmd            As String
     Dim baBuffer()      As Byte
-    Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = vbCrLf & "US1" & vbCrLf & "TI" & vbCrLf          '--- TI Command - Clock Inquiry
+    sCmd = vbCrLf & "TI" & vbCrLf                           '--- TI Command - Clock Inquiry
     If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
         If oConnector.ReadData(baBuffer, lTimeout) Then
             pvRawGetClock = ParseExtendedDate(Replace(FromMultiByte(baBuffer, m_uConfig.CodePage), pvChr(LNG_NACK), vbNullString))
@@ -643,6 +664,7 @@ End Function
 Private Sub Class_Initialize()
     m_lConnectionTimeout = DEF_CONNECTIONTIMEOUT
     m_lCommandTimeout = DEF_TIMEOUT
+    m_lPingTimeout = DEF_PING_TIMEOUT
     LocalizedText(ucsFscLciInternalErrors) = STR_INTERNAL
     m_uConfig.CodePage = DEF_CODEPAGE
 End Sub
