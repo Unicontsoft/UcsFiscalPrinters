@@ -2461,7 +2461,7 @@ Private Function pvFormatDstDate(ByVal dDate As Date, sFormat As String) As Stri
     Dim baBuffer(0 To 1000) As Byte
     
     pvFormatDstDate = Format$(dDate, sFormat)
-    If GetTimeZoneInformation(baBuffer(0)) <> TIME_ZONE_ID_DAYLIGHT Then
+    If GetTimeZoneInformation(baBuffer(0)) <> TIME_ZONE_ID_DAYLIGHT Or Val(Zn(GetEnvironmentVar("_UCS_FISCAL_PRINTER_DST"), "0")) = 0 Then
         pvFormatDstDate = Replace(pvFormatDstDate, " DST", vbNullString)
     End If
 End Function
