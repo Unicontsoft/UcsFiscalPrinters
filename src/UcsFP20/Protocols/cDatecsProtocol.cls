@@ -2207,6 +2207,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         Case ERR_FP_BAD_PARAM_8
                             pvSetLastError Printf(pvInternal(ucsErrInvalidVatNo), uRow(0).InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
                         End Select
+                        uCtx.PluCount = 0
                         uCtx.PmtPrinted = False
                         GoTo QH
                     End If

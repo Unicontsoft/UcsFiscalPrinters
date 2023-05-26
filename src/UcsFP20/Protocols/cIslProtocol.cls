@@ -936,13 +936,20 @@ Public Function PrintDuplicate( _
         If IsDaisy Then
             sParam = "R21" & DEF_SEP & "%1" & DEF_SEP & "%2"
             pvGetCommandConfig CONF_NAME, "ExtendedInitEJ", eCmd, ucsIslCmdExtendedInitEJ, sParam, sParam
+        ElseIf IsEcr Then
+            sParam = "3" & DEF_SEP & "%1" & DEF_SEP & "0" & DEF_SEP & "%2"
+            pvGetCommandConfig CONF_NAME, "InfoEcTapeByDocNo", eCmd, ucsIslCmdInfoEcTapeByDocNo, sParam, sParam
+            '--- ECR reuses original receipt no -> don't check increment of last receipt no
+            sPrevReceiptNo = STR_CHR1
         Else
             sParam = "P" & DEF_SEP & "%1" & DEF_SEP & "%2"
             pvGetCommandConfig CONF_NAME, "InitEJ", eCmd, ucsIslCmdInitEJ, sParam, sParam
         End If
         sParam = Printf(sParam, At(vSplit, 0), At(vSplit, 1, At(vSplit, 0)))
     End If
-    sPrevReceiptNo = GetLastReceiptNo()
+    If LenB(sPrevReceiptNo) = 0 Then
+        sPrevReceiptNo = GetLastReceiptNo()
+    End If
     ReceiptDate = GetClock()
     If LenB(m_uPrintData.LastError) <> 0 Then
         GoTo QH
