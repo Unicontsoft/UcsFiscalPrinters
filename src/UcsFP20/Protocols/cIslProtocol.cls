@@ -2782,8 +2782,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         pvSetLastError Printf(pvInternal(ucsErrUnsupportedPaymentType), GetPmtTypeName(.PmtType))
                         GoTo QH
                     End If
-                    pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sParam, DefPmtTypes
-                    sType = Mid$(sParam, lIndex + 1, 1)
+                    pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sType, DefPmtTypes
+                    sType = Mid$(sType, lIndex + 1, 1)
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab & sType & "%1", _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2
                     sParam = Printf(sParam, SafeFormat(.PmtAmount, sFormatAmount))
@@ -2800,7 +2800,18 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     If Not pvCommitReceipt(uCtx, At(vSplit, lAmountIndex), .PrintRowType) Then
                         GoTo QH
                     End If
-                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                    sData = SendCommand(eCmd, sParam, LogName:=FUNC_NAME)
+                    If LenB(sData) = 0 Then
+                        '--- bug: cannot pay storno with multiple rows -> send explicit pmt type and amount (TM-T810F)
+                        dblTotal = ParseSum(At(vSplit, lAmountIndex)) - ParseSum(At(vSplit, lPaidIndex))
+                        lIndex = pvToDevicePmtIndex(ucsFscPmtCash)
+                        pvGetCommandConfig CONF_NAME, "PaymentTypes", 0, 0, sType, DefPmtTypes
+                        sType = Mid$(sType, lIndex + 1, 1)
+                        pvGetCommandConfig CONF_NAME, "FiscalPayment" & ucsFscPmtCash, eCmd, ucsIslCmdFiscalPayment, sParam, vbTab & sType & "%1", _
+                            "FormatAmount", sFormatAmount, FORMAT_BASE_2
+                        sParam = Printf(sParam, SafeFormat(dblTotal, sFormatAmount))
+                        SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                    End If
                     If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
                         GoTo QH
                     End If
