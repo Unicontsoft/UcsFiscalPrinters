@@ -922,6 +922,8 @@ Public Function JsonAllKeys(oJson As Object, Optional ByVal Key As String) As Va
         For Each vElem In JsonKeys(oJson, sSubKey)
             If bPath And IsOnlyDigits(vElem) Then
                 JsonValue(oArray, -1) = sSubKey & "[" & vElem & "]"
+            ElseIf bPath And InStr(vElem, ".") > 0 Then
+                JsonValue(oArray, -1) = sSubKey & "['" & vElem & "']"
             ElseIf bPath Then
                 JsonValue(oArray, -1) = sSubKey & "." & vElem
             ElseIf LenB(sSubKey) <> 0 Then
@@ -1372,11 +1374,14 @@ Private Function pvSplitKey(sKey As String) As Variant
             m_oJsonPathRegExp.Pattern = STR_PATTERN_PATH
             m_oJsonPathRegExp.Global = True
         End If
-        sPath = m_oJsonPathRegExp.Replace(sKey, "/$1$2$3$4")
-        If Left$(sPath, 3) <> "/$/" Then
+        sPath = m_oJsonPathRegExp.Replace(sKey, Chr$(1) & "$1$2$3$4")
+        If Left$(sPath, 2) <> Chr$(1) & "$" Then
             Err.Raise vbObjectError, , Printf(ERR_INVALID_JSONPATH, sKey)
         End If
-        sKey = Mid$(sPath, 4)
+        sPath = Mid$(sPath, 4)
+        pvSplitKey = Split(sPath, Chr$(1))
+        sKey = Replace(sPath, Chr$(1), "/")
+        Exit Function
     Case "/"
         sKey = Mid$(sKey, 2)
     End Select
