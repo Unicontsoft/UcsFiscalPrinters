@@ -70,6 +70,7 @@ Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
 Private Const DEF_PING_TIMEOUT          As Long = 400
+Private Const DEF_CHUNKED_TIMEOUT       As Long = 50
 Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
 Private Const DEF_SOCKET_PORT           As Long = 9100
 Private Const DEF_TEMPLATE_FILE         As String = "LabelTemplates.conf"
@@ -387,17 +388,20 @@ Private Function pvRawSendCommand( _
             Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
             GoTo QH
         End If
-        If Not oConnector.ReadData(baText, lTimeout) Then
-            Error = oConnector.GetLastError()
-            DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
-            GoTo QH
+        If LenB(pvRawSendCommand) = 0 Then
+            If Not oConnector.ReadData(baText, lTimeout) Then
+                Error = oConnector.GetLastError()
+                DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
+                GoTo QH
+            End If
+        Else
+            If Not oConnector.ReadData(baText, DEF_CHUNKED_TIMEOUT) Then
+                GoTo QH
+            End If
         End If
         sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
         pvRawSendCommand = pvRawSendCommand & sBuffer
-        If LenB(sBuffer) <> 0 Then
-            Exit Do
-        End If
     Loop
 QH:
     RaiseEvent CommandComplete(Data, pvRawSendCommand)
