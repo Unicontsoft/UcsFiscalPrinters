@@ -37,10 +37,10 @@ Public Function GetLastError(Optional ErrNo As UcsConnectorErrorsEnum) As String
 
 End Function
 
-Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
+Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
 
 End Function
 
-Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Boolean
+Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
 
 End Function

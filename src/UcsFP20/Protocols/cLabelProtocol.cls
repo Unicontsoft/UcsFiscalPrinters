@@ -395,7 +395,10 @@ Private Function pvRawSendCommand( _
                 GoTo QH
             End If
         Else
-            If Not oConnector.ReadData(baText, DEF_CHUNKED_TIMEOUT) Then
+            If Not oConnector.ReadData(baText, DEF_CHUNKED_TIMEOUT, IgnoreError:=True) Then
+                GoTo QH
+            End If
+            If UBound(baText) < 0 Then
                 GoTo QH
             End If
         End If

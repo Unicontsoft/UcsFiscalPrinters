@@ -255,7 +255,7 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
+Public Function WriteData(Data() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
     Const FUNC_NAME     As String = "WriteData"
     Dim dblTimerEx      As Long
     Dim lOffset         As Long
@@ -278,13 +278,18 @@ RetryWrite:
             lResult = WaitForMultipleObjects(1, uWriteOver.hEvent, 0, Timeout)
             lLastErr = Err.LastDllError
             If lResult <> WAIT_OBJECT_0 Then
-                m_bClearPersistent = True
                 If lResult = WAIT_TIMEOUT Then
                     m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                    DebugLog FUNC_NAME, "WriteFile timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    If Not IgnoreError Then
+                        DebugLog FUNC_NAME, "WriteFile timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        m_bClearPersistent = True
+                    End If
                 Else
                     m_sLastError = GetErrorDescription(lLastErr)
-                    DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    If Not IgnoreError Then
+                        DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WriteFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        m_bClearPersistent = True
+                    End If
                 End If
                 GoTo QH
             End If
@@ -292,9 +297,11 @@ RetryWrite:
             m_lWritten = 0
             Call GetOverlappedResult(m_hComm, uWriteOver, m_lWritten, 0)
         Else
-            m_bClearPersistent = True
             m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "WriteFile", GetErrorDescription(lLastErr))
-            DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
+            If Not IgnoreError Then
+                DebugLog FUNC_NAME, "WriteFile, lResult=" & lResult & ", Err.LastDllError=" & lLastErr
+                m_bClearPersistent = True
+            End If
             GoTo QH
         End If
     End If
@@ -315,7 +322,7 @@ EH:
     Resume Next
 End Function
 
-Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Boolean
+Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
     Const FUNC_NAME     As String = "ReadData"
     Dim dblTimerEx      As Double
     Dim uReadOver       As OVERLAPPED
@@ -346,21 +353,28 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Bo
                 lResult = WaitForMultipleObjects(1, uWaitOver.hEvent, 0, Timeout)
                 lLastErr = Err.LastDllError
                 If lResult <> WAIT_OBJECT_0 Then
-                    m_bClearPersistent = True
                     If lResult = WAIT_TIMEOUT Then
                         m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                        DebugLog FUNC_NAME, "WaitCommEvent timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        If Not IgnoreError Then
+                            DebugLog FUNC_NAME, "WaitCommEvent timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                            m_bClearPersistent = True
+                        End If
                     Else
                         m_sLastError = GetErrorDescription(lLastErr)
-                        DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        If Not IgnoreError Then
+                            DebugLog FUNC_NAME, "WaitForMultipleObjects failure after WaitCommEvent, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                            m_bClearPersistent = True
+                        End If
                     End If
                     GoTo QH
                 End If
                 bPendingWait = False
             Else
-                m_bClearPersistent = True
                 m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "WaitCommEvent", GetErrorDescription(lLastErr))
-                DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                If Not IgnoreError Then
+                    DebugLog FUNC_NAME, "WaitCommEvent, lResult=" & lResult & ", m_sLastError=" & m_sLastError
+                    m_bClearPersistent = True
+                End If
                 GoTo QH
             End If
         End If
@@ -374,13 +388,18 @@ InLoop:
                 lResult = WaitForMultipleObjects(1, uReadOver.hEvent, 0, Timeout)
                 lLastErr = Err.LastDllError
                 If lResult <> WAIT_OBJECT_0 Then
-                    m_bClearPersistent = True
                     If lResult = WAIT_TIMEOUT Then
                         m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-                        DebugLog FUNC_NAME, "ReadFile timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        If Not IgnoreError Then
+                            DebugLog FUNC_NAME, "ReadFile timeout, Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                            m_bClearPersistent = True
+                        End If
                     Else
                         m_sLastError = GetErrorDescription(lLastErr)
-                        DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                        If Not IgnoreError Then
+                            DebugLog FUNC_NAME, "WaitForMultipleObjects failure after ReadFile, lResult=" & lResult & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                            m_bClearPersistent = True
+                        End If
                     End If
                     GoTo QH
                 End If
@@ -390,9 +409,11 @@ InLoop:
             ElseIf lLastErr = ERROR_HANDLE_EOF Then
                 GoTo Continue
             Else
-                m_bClearPersistent = True
                 m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "ReadFile", GetErrorDescription(lLastErr))
-                DebugLog FUNC_NAME, "ReadFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                If Not IgnoreError Then
+                    DebugLog FUNC_NAME, "ReadFile, lResult=" & lResult & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                    m_bClearPersistent = True
+                End If
                 GoTo QH
             End If
         End If
@@ -401,9 +422,11 @@ InLoop:
             GoTo QH
         End If
         If TimerEx > dblTimerEx + Timeout / 1000# Then
-            m_bClearPersistent = True
             m_sLastError = pvInternal(ucsErrTimeoutWaitingForResponse)
-            DebugLog FUNC_NAME, "ReadData timeout, lRetryCount=" & lRetryCount & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+            If Not IgnoreError Then
+                DebugLog FUNC_NAME, "ReadData timeout, lRetryCount=" & lRetryCount & ", Timeout=" & Timeout & ", m_sLastError=" & m_sLastError & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+                m_bClearPersistent = True
+            End If
             GoTo QH
         End If
         Call Sleep(1)
@@ -656,11 +679,11 @@ Private Function IDeviceConnector_Init(Device As String, Optional ByVal Timeout 
     IDeviceConnector_Init = Init(Device, Timeout)
 End Function
 
-Private Function IDeviceConnector_ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Boolean
-    IDeviceConnector_ReadData = ReadData(Result, Timeout)
+Private Function IDeviceConnector_ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
+    IDeviceConnector_ReadData = ReadData(Result, Timeout, IgnoreError)
 End Function
 
-Private Function IDeviceConnector_WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
-    IDeviceConnector_WriteData = WriteData(Data, Timeout)
+Private Function IDeviceConnector_WriteData(Data() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
+    IDeviceConnector_WriteData = WriteData(Data, Timeout, IgnoreError)
 End Function
 

@@ -575,12 +575,14 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function IDeviceConnector_ReadData(Result() As Byte, Optional ByVal Timeout As Long) As Boolean
+Private Function IDeviceConnector_ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
     Const FUNC_NAME     As String = "IDeviceConnector_ReadData"
     
     On Error GoTo EH
     If Not SyncReceiveArray(Result, Timeout:=Timeout) Then
-        DebugLog FUNC_NAME, "SyncReceiveArray failed, LastError=" & LastError
+        If Not IgnoreError Then
+            DebugLog FUNC_NAME, "SyncReceiveArray failed, LastError=" & LastError
+        End If
         GoTo QH
     End If
     '--- success
@@ -591,12 +593,14 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function IDeviceConnector_WriteData(Data() As Byte, Optional ByVal Timeout As Long) As Boolean
+Private Function IDeviceConnector_WriteData(Data() As Byte, Optional ByVal Timeout As Long, Optional IgnoreError As Boolean) As Boolean
     Const FUNC_NAME     As String = "IDeviceConnector_WriteData"
     
     On Error GoTo EH
     If Not SyncSendArray(Data, Timeout:=Timeout) Then
-        DebugLog FUNC_NAME, "SyncSendArray failed, LastError=" & LastError
+        If Not IgnoreError Then
+            DebugLog FUNC_NAME, "SyncSendArray failed, LastError=" & LastError
+        End If
         GoTo QH
     End If
     '--- success
