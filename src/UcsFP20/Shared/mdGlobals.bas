@@ -532,7 +532,10 @@ Public Function WrapText(ByVal sText As String, ByVal lWidth As Long) As Variant
                 End If
             End If
             lLeft = lRight - 1
-            Do While IsWhiteSpace(Mid$(sText, lLeft, 1)) And lLeft > 0
+            Do While lLeft > 0
+                If Not IsWhiteSpace(Mid$(sText, lLeft, 1)) Then
+                    Exit Do
+                End If
                 lLeft = lLeft - 1
             Loop
             vRet(lCount) = Left$(sText, lLeft)
