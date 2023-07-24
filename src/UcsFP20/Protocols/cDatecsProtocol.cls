@@ -724,7 +724,7 @@ Public Function SendCommand(ByVal eCmd As UcsDatecsCommandsEnum, Data As String,
             eErrNum = ucsFerGeneralError
         End Select
         If eErrNum <> 0 Then
-            pvSetLastError pvToErrorCode(sError), eErrNum, ErrCode:=lErrCode
+            pvSetLastError pvToErrorCode(SendCommand), eErrNum, ErrCode:=lErrCode
             GoTo QH
         End If
     End If
@@ -2011,7 +2011,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         GoTo QH
                     End If
                 Next
-                sData = At(vSplit, UBound(vSplit))
+                sData = Zn(At(vSplit, UBound(vSplit)), "-")
                 '--- bug: when qty is 0.000 total row as if qty is 1.000 -> transform row to 100% PLU discount (FP-700MX)
                 If Abs(.PluQuantity) < DBL_EPSILON And Abs(.PluPrice) > DBL_EPSILON Then
                     sDiscType = "2"
