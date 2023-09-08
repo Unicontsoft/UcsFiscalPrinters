@@ -111,6 +111,7 @@ Private Type UcsConfigValues
     ModelGroup          As String
     Templates           As Object
     RetryCount          As Long
+    DeviceSerialNo      As String
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -278,6 +279,7 @@ Public Function Init(sDeviceString As String) As Boolean
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadTemplates), sFile, sError)
         End If
         .RetryCount = Znl(C_Lng(JsonValue(oOptions, "RetryCount")), DEF_RETRYCOUNT)
+        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "LABEL_" & At(Split(m_sDevice, ","), 0))
     End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
@@ -823,7 +825,7 @@ Private Function IDeviceProtocol_GetResumeToken() As String
 End Function
 
 Private Function IDeviceProtocol_GetDeviceSerialNo() As String
-    IDeviceProtocol_GetDeviceSerialNo = "LABEL_" & At(Split(m_sDevice, ","), 0)
+    IDeviceProtocol_GetDeviceSerialNo = m_uConfig.DeviceSerialNo
 End Function
 
 Private Function IDeviceProtocol_GetTaxCaption() As String

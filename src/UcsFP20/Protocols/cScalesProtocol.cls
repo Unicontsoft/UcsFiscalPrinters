@@ -60,6 +60,7 @@ Private Type UcsConfigValues
     ModelGroup          As String
     AllowUnstable       As Boolean
     AllowZero           As Boolean
+    DeviceSerialNo      As String
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -181,6 +182,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), DEF_MODEL_GROUP))
         .AllowUnstable = JsonBoolItem(oOptions, "AllowUnstable")
         .AllowZero = JsonBoolItem(oOptions, "AllowZero", .AllowUnstable)
+        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "SCALES_" & At(Split(m_uData.Device, ","), 0))
     End With
     Select Case m_uConfig.ModelGroup
     Case "ELICOM"
@@ -740,7 +742,7 @@ Private Function IDeviceProtocol_GetResumeToken() As String
 End Function
 
 Private Function IDeviceProtocol_GetDeviceSerialNo() As String
-    IDeviceProtocol_GetDeviceSerialNo = "SCALES_" & At(Split(m_uData.Device, ","), 0)
+    IDeviceProtocol_GetDeviceSerialNo = m_uConfig.DeviceSerialNo
 End Function
 
 Private Function IDeviceProtocol_GetTaxCaption() As String

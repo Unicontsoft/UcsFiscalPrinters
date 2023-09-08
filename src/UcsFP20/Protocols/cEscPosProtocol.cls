@@ -139,6 +139,7 @@ Private Type UcsAutodetect
 End Type
 
 Private Type UcsConfigValues
+    DeviceSerialNo      As String
     ConfigCommands      As Collection
     LocalizedCommands   As Collection
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
@@ -376,6 +377,9 @@ Public Function Init(sDeviceString As String) As Boolean
     End If
     sDeviceString = ToDeviceString(oOptions)
     m_lCodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
+    With m_uConfig
+        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "ESC_" & At(Split(m_sDevice, ","), 0))
+    End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
         .CommentChars = C_Lng(JsonValue(oOptions, "CommentChars"))
@@ -1064,7 +1068,7 @@ Private Function IDeviceProtocol_GetResumeToken() As String
 End Function
 
 Private Function IDeviceProtocol_GetDeviceSerialNo() As String
-    IDeviceProtocol_GetDeviceSerialNo = "ESC_" & At(Split(m_sDevice, ","), 0)
+    IDeviceProtocol_GetDeviceSerialNo = m_uConfig.DeviceSerialNo
 End Function
 
 Private Function IDeviceProtocol_GetTaxCaption() As String
