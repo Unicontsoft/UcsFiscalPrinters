@@ -80,6 +80,7 @@ Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_RETRYCOUNT            As Long = 3
+Private Const DEF_CHARACTERSET          As Long = 6 '-- cp1251 on LP-50
 Private Const STR_GROUP_EPL2            As String = "EPL-2"
 Private Const STR_GROUP_ESCPOS          As String = "ESC/POS"
 Private Const LNG_ACK                   As Long = &H6
@@ -112,6 +113,7 @@ Private Type UcsConfigValues
     Templates           As Object
     RetryCount          As Long
     DeviceSerialNo      As String
+    CharacterSet        As Long
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -280,6 +282,11 @@ Public Function Init(sDeviceString As String) As Boolean
         End If
         .RetryCount = Znl(C_Lng(JsonValue(oOptions, "RetryCount")), DEF_RETRYCOUNT)
         .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "LABEL_" & At(Split(m_sDevice, ","), 0))
+        If LenB(C_Str(JsonValue(oOptions, "CharacterSet"))) <> 0 Then
+            .CharacterSet = C_Lng(JsonValue(oOptions, "CharacterSet"))
+        Else
+            .CharacterSet = DEF_CHARACTERSET
+        End If
     End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
@@ -532,6 +539,9 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
             If .PmtType = 0 Then
                 '--- render form
                 Set cOutput = New Collection
+                If m_uConfig.CharacterSet >= 0 Then
+                    cOutput.Add "I" & m_uConfig.CharacterSet        '--- I Command - Character Set Selection
+                End If
                 cOutput.Add "FR" & """" & sFormName & """"          '--- FR Command - Retrieve Form
                 cOutput.Add "?"                                     '--- ? Command - Download Variables
                 For Each vElem In JsonValue(oCanvas, "*")
