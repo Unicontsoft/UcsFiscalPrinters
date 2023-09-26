@@ -261,12 +261,12 @@ Public Function Init(sDeviceString As String) As Boolean
         m_lPingTimeout = DEF_PING_TIMEOUT
     End If
     m_sDevice = ToConnectorDevice(oOptions, DEF_SOCKET_PORT, Me)
+    m_uConfig.CodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
     If Not Connect() Then
         GoTo QH
     End If
     sDeviceString = ToDeviceString(oOptions)
     With m_uConfig
-        .CodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
         .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), STR_GROUP_EPL2))
         If .ModelGroup <> STR_GROUP_EPL2 And .ModelGroup <> STR_GROUP_ESCPOS Then
             On Error GoTo 0

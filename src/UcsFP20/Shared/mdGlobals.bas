@@ -1156,16 +1156,16 @@ End Function
 
 Public Function ToMultiByte(sSend As String, Optional ByVal CodePage As Long) As Byte()
     Dim lSize           As Long
-    Dim baText()        As Byte
+    Dim baRetVal()      As Byte
     
-    lSize = Len(sSend)
+    lSize = WideCharToMultiByte(CodePage, 0, StrPtr(sSend), Len(sSend), ByVal 0, 0, 0, 0)
     If lSize > 0 Then
-        ReDim baText(0 To lSize - 1) As Byte
-        Call WideCharToMultiByte(CodePage, 0, StrPtr(sSend), lSize, baText(0), Len(sSend), 0, 0)
+        ReDim baRetVal(0 To lSize - 1) As Byte
+        Call WideCharToMultiByte(CodePage, 0, StrPtr(sSend), Len(sSend), baRetVal(0), lSize, 0, 0)
     Else
-        baText = " "
+        baRetVal = " "
     End If
-    ToMultiByte = baText
+    ToMultiByte = baRetVal
 End Function
 
 Public Function FromMultiByte(baRecv() As Byte, Optional ByVal CodePage As Long) As String
