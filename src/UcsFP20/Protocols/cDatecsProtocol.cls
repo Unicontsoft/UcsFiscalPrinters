@@ -1564,7 +1564,7 @@ Public Function GetDepartmentName(DepartmentCode As String, Optional TaxGroup As
     pvGetCommandConfig CONF_NAME, "InfoSettings1", 0, 0, sParam, "Dept_name"
     GetDepartmentName = pvSettings(sParam, C_Lng(DepartmentCode))
     pvGetCommandConfig CONF_NAME, "InfoSettings2", 0, 0, sParam, "Dept_vat"
-    TaxGroup = C_Val(pvSettings(sParam, C_Lng(DepartmentCode)))
+    TaxGroup = Val(pvSettings(sParam, C_Lng(DepartmentCode)))
     Exit Function
 EH:
     RaiseError FUNC_NAME
@@ -1881,6 +1881,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sSettingBeg     As String
     Dim sSettingEnd     As String
     Dim dblRevTotal     As Double
+    Dim dblInvoiceNo    As Double
     Dim vErr            As Variant
     
     On Error GoTo EH
@@ -1934,15 +1935,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, sParam, _
                         "SettingBeg", sSettingBeg, "InvoiceRangeBeg", _
                         "SettingEnd", sSettingEnd, "InvoiceRangeEnd"
-                    sParam = Printf(sParam, .InitInvData(ucsInvDocNo), .InitInvData(ucsInvDocNo) + 1)
+                    dblInvoiceNo = Val(.InitInvData(ucsInvDocNo))
+                    sParam = Printf(sParam, dblInvoiceNo, dblInvoiceNo + 1)
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         '--- try alternative invoice no setup
-                        If pvSettings(sSettingBeg) <> .InitInvData(ucsInvDocNo) Then
-                            pvSettings(sSettingBeg) = .InitInvData(ucsInvDocNo)
+                        If Val(pvSettings(sSettingBeg)) <> dblInvoiceNo Then
+                            pvSettings(sSettingBeg) = dblInvoiceNo
                         End If
-                        If pvSettings(sSettingEnd) <> .InitInvData(ucsInvDocNo) + 1 Then
-                            pvSettings(sSettingEnd) = .InitInvData(ucsInvDocNo) + 1
+                        If Val(pvSettings(sSettingEnd)) <> dblInvoiceNo + 1 Then
+                            pvSettings(sSettingEnd) = dblInvoiceNo + 1
                         End If
                     End If
                 End Select
