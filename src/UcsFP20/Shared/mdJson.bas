@@ -1364,7 +1364,7 @@ EH:
 #End If
 
 Private Function pvSplitKey(sKey As String) As Variant
-    Const STR_PATTERN_PATH As String = "(?:^\s*(\$))|(?:\s*\.\s*([^.[ ]+))|(?:\s*\[\s*(-?\d+|\*)\s*\])|(?:\s*\[\s*'([^']*)'\s*\])"
+    Const STR_PATTERN_PATH As String = "(?:^\s*(\$))|(?:\s*\.\s*([^.[ ]+))|(?:\s*\[\s*(-?\d+|\*)\s*\])|(?:\s*\[\s*'((?:\\'|[^'])*)'\s*\])"
     Dim sPath           As String
     
     Select Case Left$(sKey, 1)
@@ -1378,7 +1378,7 @@ Private Function pvSplitKey(sKey As String) As Variant
         If Left$(sPath, 2) <> Chr$(1) & "$" Then
             Err.Raise vbObjectError, , Printf(ERR_INVALID_JSONPATH, sKey)
         End If
-        sPath = Mid$(sPath, 4)
+        sPath = Mid$(Replace(sPath, "\'", "'"), 4)
         pvSplitKey = Split(sPath, Chr$(1))
         sKey = Replace(sPath, Chr$(1), "/")
         Exit Function
