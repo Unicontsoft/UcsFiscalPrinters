@@ -22,6 +22,7 @@ Private Const MODULE_NAME As String = "mdJson"
 #Const ImplUseShared = (DebugMode <> 0)
 #Const ImplUseDebugLog = (USE_DEBUG_LOG <> 0)
 #Const ImplScripting = False
+#Const ImplExtCollection = (TWINBASIC <> 0)
 
 '=========================================================================
 ' API
@@ -314,7 +315,7 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
                 End If
                 Select Case pvJsonGetChar(uCtx)
                 Case 44, 125 '--- , }
-                    #If ImplScripting Then
+                    #If ImplScripting Or ImplExtCollection Then
                         If oRetVal.Exists(sKey) Then
                     #Else
                         If CollectionIndexByKey(oRetVal, sKey, DEF_IGNORE_CASE) > 0 Then
@@ -580,7 +581,7 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
             sSpace = IIf(Minimize, vbNullString, " ")
             ReDim vItems(0 To lCount - 1) As String
             If lCompareMode = vbBinaryCompare Then
-                #If ImplScripting Then
+                #If ImplScripting Or ImplExtCollection Then
                     vKeys = oJson.Keys
                 #Else
                     vKeys = CollectionAllKeys(oJson)
@@ -822,7 +823,11 @@ HandleArray:
                         oParam.Remove lKey
                     End If
                 Else
+                #If ImplExtCollection Then
+                    If oParam.Exists(vKey) Then
+                #Else
                     If CollectionIndexByKey(oParam, vKey, DEF_IGNORE_CASE) > 0 Then
+                #End If
                         oParam.Remove vKey
                     End If
                 End If
@@ -888,7 +893,7 @@ Public Function JsonKeys(oJson As Object, Optional ByVal Key As String) As Varia
     End If
     ReDim vItem(0 To lCount - 1) As Variant
     If pvJsonCompareMode(oParam) = vbBinaryCompare Then
-        #If ImplScripting Then
+        #If ImplScripting Or ImplExtCollection Then
             vItem = oParam.Keys
         #Else
             vItem = CollectionAllKeys(oParam)
@@ -1034,7 +1039,7 @@ Public Function JsonToXmlDocument(vJson As Variant, Optional Root As Object, Opt
                         Set oItem = Nothing
                     Next
                 Else
-                    #If ImplScripting Then
+                    #If ImplScripting Or ImplExtCollection Then
                         For Each vElem In oJson.Keys
                     #Else
                         For Each vElem In CollectionAllKeys(oJson)
@@ -1279,7 +1284,9 @@ EH:
 #Else
     Private Function pvJsonCreateObject(ByVal lCompareMode As VbCompareMethod) As VBA.Collection
         Set pvJsonCreateObject = New VBA.Collection
-        #If LargeAddressAware Then
+        #If ImplExtCollection Then
+            pvJsonCreateObject.KeyCompareMode = lCompareMode
+        #ElseIf LargeAddressAware Then
             Call CopyMemory(ByVal (ObjPtr(pvJsonCreateObject) Xor SIGN_BIT) + o_pvUnk5 Xor SIGN_BIT, lCompareMode, 4)
         #Else
             Call CopyMemory(ByVal ObjPtr(pvJsonCreateObject) + o_pvUnk5, lCompareMode, 4)
@@ -1287,7 +1294,9 @@ EH:
     End Function
     
     Private Function pvJsonCompareMode(oJson As VBA.Collection) As VbCompareMethod
-        #If LargeAddressAware Then
+        #If ImplExtCollection Then
+            pvJsonCompareMode = oJson.KeyCompareMode
+        #ElseIf LargeAddressAware Then
             Call CopyMemory(pvJsonCompareMode, ByVal (ObjPtr(oJson) Xor SIGN_BIT) + o_pvUnk5 Xor SIGN_BIT, 4)
         #Else
             Call CopyMemory(pvJsonCompareMode, ByVal ObjPtr(oJson) + o_pvUnk5, 4)
@@ -1308,12 +1317,16 @@ EH:
             
             On Error GoTo EH
             If VarType(vKey) = vbLong Then
-                lKey = vKey + 1
+                lKey = vKey + IDX_OFFSET
                 If lKey > 0 And lKey <= oParam.Count Then
                     AssignVariant pvJsonItem, oParam.Item(lKey)
                 End If
             Else
+            #If ImplExtCollection Then
+                If oParam.Exists(vKey) Then
+            #Else
                 If CollectionIndexByKey(oParam, vKey, DEF_IGNORE_CASE) > 0 Then
+            #End If
                     AssignVariant pvJsonItem, oParam.Item(vKey)
                 End If
             End If
@@ -1344,7 +1357,20 @@ EH:
                 oParam.Add vValue
             End If
         Else
-            lKey = CollectionIndexByKey(oParam, vKey, DEF_IGNORE_CASE)
+            #If ImplExtCollection Then
+                If oParam.Exists(vKey) Then
+                    lKey = 1
+                    Dim vElem As Variant
+                    For Each vElem In oParam.Keys
+                        If vElem = vKey Then
+                            Exit For
+                        End If
+                        lKey = lKey + 1
+                    Next
+                End If
+            #Else
+                lKey = CollectionIndexByKey(oParam, vKey, DEF_IGNORE_CASE)
+            #End If
             If lKey > 0 Then
                 oParam.Remove lKey
             End If
@@ -1456,7 +1482,7 @@ Private Function C_Obj(Value As Variant) As Object
 End Function
 
 Private Function Printf(ByVal sText As String, ParamArray A() As Variant) As String
-    Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    Const LNG_PRIVATE   As Long = &HE1B6& '-- U+E000 to U+F8FF - Private Use Area (PUA)
     Dim lIdx            As Long
     
     For lIdx = UBound(A) To LBound(A) Step -1
@@ -1553,3 +1579,4 @@ Private Sub Test()
     Debug.Print JsonDump(vJson)
 End Sub
 #End If
+
