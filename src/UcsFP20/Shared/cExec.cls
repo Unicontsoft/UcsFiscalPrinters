@@ -55,12 +55,12 @@ Private Declare Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHan
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, ByVal lpOverlapped As Long) As Long
 Private Declare Function TerminateProcess Lib "kernel32" (ByVal hProcess As Long, ByVal uExitCode As Long) As Long
 Private Declare Function WriteFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, ByVal lpOverlapped As Long) As Long
-Private Declare Function FlushFileBuffers Lib "kernel32" (ByVal hFile As Long) As Long
 Private Declare Function PeekNamedPipe Lib "kernel32" (ByVal hNamedPipe As Long, lpBuffer As Any, ByVal nBufferSize As Long, lpBytesRead As Long, lpTotalBytesAvail As Long, lpBytesLeftThisMessage As Long) As Long
 Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectW" (ByVal lpJobAttributes As Long, ByVal lpName As Long) As Long
 Private Declare Function SetInformationJobObject Lib "kernel32" (ByVal hJob As Long, ByVal JobObjectInformationClass As Long, lpJobObjectInformation As Any, ByVal cbJobObjectInformationLength As Long) As Long
 Private Declare Function AssignProcessToJobObject Lib "kernel32" (ByVal hJob As Long, ByVal hProcess As Long) As Long
 Private Declare Function OemToCharBuffA Lib "user32" (lpszSrc As Any, ByVal lpszDst As String, ByVal cchDstLength As Long) As Long
+Private Declare Function CharToOemBuffA Lib "user32" (ByVal lpszSrc As String, lpszDst As Any, ByVal cchDstLength As Long) As Long
 
 Private Type STARTUPINFO
     cb                  As Long
@@ -148,13 +148,17 @@ Property Get LastError() As String
     LastError = m_sLastError
 End Property
 
+Property Get hProcess() As Long
+    hProcess = m_hProcess
+End Property
+
 '=========================================================================
 ' Methods
 '=========================================================================
 
 Public Function Run( _
             sFile As String, _
-            sParams As String, _
+            Optional Params As String, _
             Optional ByVal StartHidden As Boolean, _
             Optional ByVal StartMinimized As Boolean, _
             Optional ByVal LimitFlags As Long = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, _
@@ -192,8 +196,8 @@ Public Function Run( _
     Else
         sCommandLine = sFile
     End If
-    If LenB(sParams) <> 0 Then
-        sCommandLine = IIf(LenB(sCommandLine) <> 0, sCommandLine & " ", vbNullString) & sParams
+    If LenB(Params) <> 0 Then
+        sCommandLine = IIf(LenB(sCommandLine) <> 0, sCommandLine & " ", vbNullString) & Params
     End If
     '--- create pipes
     uAttr.nLength = LenB(uAttr)
@@ -273,15 +277,27 @@ Public Sub Detach()
 End Sub
 
 Public Function AtEndOfError() As Boolean
-    Dim lTotal2         As Long
+    Dim lTotal          As Long
     
     If m_hReadError <> 0 Then
-        If PeekNamedPipe(m_hReadError, ByVal 0, 0, 0, lTotal2, 0) = 0 Then
+        If PeekNamedPipe(m_hReadError, ByVal 0, 0, 0, lTotal, 0) = 0 Then
             Call CloseHandle(m_hReadError)
             m_hReadError = 0
         End If
     End If
     AtEndOfError = (m_hReadError = 0)
+End Function
+
+Public Function SizeOfPendingError() As Long
+    Dim lTotal          As Long
+    
+    If m_hReadError <> 0 Then
+        If PeekNamedPipe(m_hReadError, ByVal 0, 0, 0, lTotal, 0) = 0 Then
+            Call CloseHandle(m_hReadError)
+            m_hReadError = 0
+        End If
+    End If
+    SizeOfPendingError = lTotal
 End Function
 
 Public Function ReadError(ByVal lSize As Long) As String
@@ -335,10 +351,10 @@ Public Function ReadPendingError() As String
 End Function
 
 Public Function AtEndOfOutput() As Boolean
-    Dim lTotal2         As Long
+    Dim lTotal          As Long
 
     If m_hReadOutput <> 0 Then
-        If PeekNamedPipe(m_hReadOutput, ByVal 0, 0, 0, lTotal2, 0) = 0 Then
+        If PeekNamedPipe(m_hReadOutput, ByVal 0, 0, 0, lTotal, 0) = 0 Then
             Call CloseHandle(m_hReadOutput)
             m_hReadOutput = 0
         End If
@@ -346,11 +362,36 @@ Public Function AtEndOfOutput() As Boolean
     AtEndOfOutput = (m_hReadOutput = 0)
 End Function
 
-Public Function ReadOutput(ByVal lSize As Long) As String
+Public Function SizeOfPendingOutput() As Long
+    Dim lTotal          As Long
+
+    If m_hReadOutput <> 0 Then
+        If PeekNamedPipe(m_hReadOutput, ByVal 0, 0, 0, lTotal, 0) = 0 Then
+            Call CloseHandle(m_hReadOutput)
+            m_hReadOutput = 0
+        End If
+    End If
+    SizeOfPendingOutput = lTotal
+End Function
+
+Public Function ReadOutput(ByVal lSize As Long, Optional ByVal TimeoutMs As Long) As String
     Dim baBuffer()      As Byte
     Dim lRead           As Long
+    Dim dblTimer        As Double
     
     If m_hReadOutput <> 0 Then
+        If TimeoutMs > 0 Then
+            dblTimer = Timer
+            Do While Timer < dblTimer + TimeoutMs / 1000#
+                If SizeOfPendingOutput >= lSize Then
+                    Exit Do
+                End If
+            Loop
+            If SizeOfPendingOutput < lSize Then
+                ReadOutput = ReadPendingOutput
+                Exit Function
+            End If
+        End If
         ReDim baBuffer(0 To lSize) As Byte
         If ReadFile(m_hReadOutput, baBuffer(0), lSize, lRead, 0) <> 0 And lRead > 0 Then
             ReadOutput = String$(lRead, 0)
@@ -395,11 +436,13 @@ Public Function ReadPendingOutput() As String
 End Function
 
 Public Function WriteInput(sValue As String) As Boolean
+    Dim baBuffer()      As Byte
     Dim lWritten        As Long
     
+    ReDim baBuffer(0 To Len(sValue)) As Byte
+    Call CharToOemBuffA(sValue, baBuffer(0), UBound(baBuffer) + 1)
     If m_hWriteInput <> 0 Then
-        If WriteFile(m_hWriteInput, ByVal sValue, Len(sValue), lWritten, 0) <> 0 Then
-            Call FlushFileBuffers(m_hWriteInput)
+        If WriteFile(m_hWriteInput, baBuffer(0), UBound(baBuffer), lWritten, 0) <> 0 Then
             WriteInput = True
         End If
     End If
