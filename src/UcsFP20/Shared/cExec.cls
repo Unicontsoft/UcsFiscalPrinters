@@ -59,8 +59,11 @@ Private Declare Function PeekNamedPipe Lib "kernel32" (ByVal hNamedPipe As Long,
 Private Declare Function CreateJobObject Lib "kernel32" Alias "CreateJobObjectW" (ByVal lpJobAttributes As Long, ByVal lpName As Long) As Long
 Private Declare Function SetInformationJobObject Lib "kernel32" (ByVal hJob As Long, ByVal JobObjectInformationClass As Long, lpJobObjectInformation As Any, ByVal cbJobObjectInformationLength As Long) As Long
 Private Declare Function AssignProcessToJobObject Lib "kernel32" (ByVal hJob As Long, ByVal hProcess As Long) As Long
-Private Declare Function OemToCharBuffA Lib "user32" (lpszSrc As Any, ByVal lpszDst As String, ByVal cchDstLength As Long) As Long
-Private Declare Function CharToOemBuffA Lib "user32" (ByVal lpszSrc As String, lpszDst As Any, ByVal cchDstLength As Long) As Long
+Private Declare Function OemToCharBuffA Lib "user32" (lpszSrc As Any, lpszDst As Any, ByVal cchDstLength As Long) As Long
+Private Declare Function CharToOemBuffA Lib "user32" (lpszSrc As Any, lpszDst As Any, ByVal cchDstLength As Long) As Long
+Private Declare Function GetSystemDefaultLCID Lib "kernel32" () As Long
+Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
+Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 
 Private Type STARTUPINFO
     cb                  As Long
@@ -300,15 +303,33 @@ Public Function SizeOfPendingError() As Long
     SizeOfPendingError = lTotal
 End Function
 
-Public Function ReadError(ByVal lSize As Long) As String
+Public Function ReadError(ByVal lSize As Long, Optional ByVal TimeoutMs As Long) As String
     Dim baBuffer()      As Byte
     Dim lRead           As Long
+    Dim dblTimer        As Double
     
-    If m_hReadError <> 0 Then
-        ReDim baBuffer(0 To lSize) As Byte
-        If ReadFile(m_hReadError, baBuffer(0), lSize, lRead, 0) <> 0 And lRead > 0 Then
-            ReadError = String$(lRead, 0)
-            Call OemToCharBuffA(baBuffer(0), ReadError, lRead + 1)
+    If m_hReadError <> 0 And lSize > 0 Then
+        If TimeoutMs > 0 Then
+            dblTimer = TimerEx
+            Do While TimerEx < dblTimer + TimeoutMs / 1000#
+                If SizeOfPendingError >= lSize Then
+                    Exit Do
+                End If
+            Loop
+            If SizeOfPendingError < lSize Then
+                ReadError = ReadPendingError
+                Exit Function
+            End If
+        End If
+        ReDim baBuffer(0 To lSize - 1) As Byte
+        If ReadFile(m_hReadError, baBuffer(0), lSize, lRead, 0) <> 0 Then
+            If lRead > 0 Then
+                If lRead <> lSize Then
+                    ReDim Preserve baBuffer(0 To lRead - 1) As Byte
+                End If
+                Call OemToCharBuffA(baBuffer(0), baBuffer(0), lRead)
+                ReadError = StrConv(baBuffer, vbUnicode, GetSystemDefaultLCID())
+            End If
         Else
             Call CloseHandle(m_hReadError)
             m_hReadError = 0
@@ -379,10 +400,10 @@ Public Function ReadOutput(ByVal lSize As Long, Optional ByVal TimeoutMs As Long
     Dim lRead           As Long
     Dim dblTimer        As Double
     
-    If m_hReadOutput <> 0 Then
+    If m_hReadOutput <> 0 And lSize > 0 Then
         If TimeoutMs > 0 Then
-            dblTimer = Timer
-            Do While Timer < dblTimer + TimeoutMs / 1000#
+            dblTimer = TimerEx
+            Do While TimerEx < dblTimer + TimeoutMs / 1000#
                 If SizeOfPendingOutput >= lSize Then
                     Exit Do
                 End If
@@ -392,10 +413,15 @@ Public Function ReadOutput(ByVal lSize As Long, Optional ByVal TimeoutMs As Long
                 Exit Function
             End If
         End If
-        ReDim baBuffer(0 To lSize) As Byte
-        If ReadFile(m_hReadOutput, baBuffer(0), lSize, lRead, 0) <> 0 And lRead > 0 Then
-            ReadOutput = String$(lRead, 0)
-            Call OemToCharBuffA(baBuffer(0), ReadOutput, lRead + 1)
+        ReDim baBuffer(0 To lSize - 1) As Byte
+        If ReadFile(m_hReadOutput, baBuffer(0), lSize, lRead, 0) <> 0 Then
+            If lRead > 0 Then
+                If lRead <> lSize Then
+                    ReDim Preserve baBuffer(0 To lRead - 1) As Byte
+                End If
+                Call OemToCharBuffA(baBuffer(0), baBuffer(0), lRead)
+                ReadOutput = StrConv(baBuffer, vbUnicode, GetSystemDefaultLCID())
+            End If
         Else
             Call CloseHandle(m_hReadOutput)
             m_hReadOutput = 0
@@ -439,10 +465,10 @@ Public Function WriteInput(sValue As String) As Boolean
     Dim baBuffer()      As Byte
     Dim lWritten        As Long
     
-    ReDim baBuffer(0 To Len(sValue)) As Byte
-    Call CharToOemBuffA(sValue, baBuffer(0), UBound(baBuffer) + 1)
+    baBuffer = StrConv(sValue, vbFromUnicode, GetSystemDefaultLCID())
+    Call CharToOemBuffA(baBuffer(0), baBuffer(0), UBound(baBuffer) + 1)
     If m_hWriteInput <> 0 Then
-        If WriteFile(m_hWriteInput, baBuffer(0), UBound(baBuffer), lWritten, 0) <> 0 Then
+        If WriteFile(m_hWriteInput, baBuffer(0), UBound(baBuffer) + 1, lWritten, 0) <> 0 Then
             WriteInput = True
         End If
     End If
@@ -480,8 +506,6 @@ Public Function KillProcess() As Boolean
     End If
 End Function
 
-'= private ===============================================================
-
 ' based on https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way
 Public Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As String
     Const WHITESPACE As String = "*[ " & vbTab & vbVerticalTab & vbCrLf & "]*"
@@ -496,6 +520,15 @@ Public Function ArgvQuote(sArg As String, Optional ByVal Force As Boolean) As St
         End With
     End If
 End Function
+
+Private Property Get TimerEx() As Double
+    Dim cFreq           As Currency
+    Dim cValue          As Currency
+    
+    Call QueryPerformanceFrequency(cFreq)
+    Call QueryPerformanceCounter(cValue)
+    TimerEx = cValue / cFreq
+End Property
 
 '=========================================================================
 ' Base class events
