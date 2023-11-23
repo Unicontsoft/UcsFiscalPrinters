@@ -56,12 +56,12 @@ Private Declare Function VariantChangeType Lib "oleaut32" (Dest As Variant, Src 
 #End If
 
 Private Const STR_PREFIX            As String = "__json__"
-Private Const STR_ATTR_EMPTY        As String = STR_PREFIX & "empty"
-Private Const STR_ATTR_ARRAY        As String = STR_PREFIX & "array"
-Private Const STR_ATTR_NAME         As String = STR_PREFIX & "name"
-Private Const STR_ATTR_NIL          As String = STR_PREFIX & "nil"
-Private Const STR_ATTR_BOOL         As String = STR_PREFIX & "bool"
-Private Const STR_NODE_ARRAY        As String = STR_PREFIX & "array"
+Private Const STR_ATTR_EMPTY        As String = STR_PREFIX & "empty"    '--- non-localizable
+Private Const STR_ATTR_ARRAY        As String = STR_PREFIX & "array"    '--- non-localizable
+Private Const STR_ATTR_NAME         As String = STR_PREFIX & "name"     '--- non-localizable
+Private Const STR_ATTR_NIL          As String = STR_PREFIX & "nil"      '--- non-localizable
+Private Const STR_ATTR_BOOL         As String = STR_PREFIX & "bool"     '--- non-localizable
+Private Const STR_NODE_ARRAY        As String = STR_PREFIX & "array"    '--- non-localizable
 Private Const ERR_EXTRA_SYMBOL      As String = "Extra '%1' found at position %2"
 Private Const ERR_DUPLICATE_KEY     As String = "Duplicate key '%1' found at position %2"
 Private Const ERR_UNEXPECTED_SYMBOL As String = "Unexpected '%1' at position %2"
@@ -136,9 +136,9 @@ Private Function RaiseError(sFunction As String) As VbMsgBoxResult
         Dim vErr            As Variant
         
         PushError vErr
-        RaiseError = GApp.HandleOutOfMemory(vErr)
+        RaiseError = GAppHandleOutOfMemory(vErr)
         If RaiseError <> vbRetry Then
-            PopRaiseError sFunction, MODULE_NAME, vErr
+            PopRaiseError vErr, MODULE_NAME, sFunction
         End If
     #Else
         Err.Raise Err.Number, MODULE_NAME & "." & sFunction & vbCrLf & Err.Source, Err.Description
@@ -150,9 +150,9 @@ Private Function PrintError(sFunction As String) As VbMsgBoxResult
         Dim vErr            As Variant
         
         PushError vErr
-        PrintError = GApp.HandleOutOfMemory(vErr)
+        PrintError = GAppHandleOutOfMemory(vErr)
         If PrintError <> vbRetry Then
-            PopPrintError sFunction, MODULE_NAME, vErr
+            PopPrintError vErr, MODULE_NAME, sFunction
         End If
     #ElseIf ImplUseDebugLog Then
         DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
@@ -911,36 +911,52 @@ EH:
     End If
 End Function
 
+Private Sub pvEnumAllKeys(ByVal oJson As Object, sSubKey As String, ByVal bPath As Boolean, oResult As Collection)
+    Dim vKeys           As Variant
+    Dim vItem           As Variant
+    Dim lIdx            As Long
+    Dim vElem           As String
+    
+    vKeys = JsonKeys(oJson)
+    For lIdx = 0 To oJson.Count - 1
+        AssignVariant vItem, oJson.Item(lIdx + IDX_OFFSET)
+        vElem = vKeys(lIdx)
+        If bPath And IsOnlyDigits(vElem) Then
+            vElem = sSubKey & "[" & vElem & "]"
+        ElseIf bPath And InStr(vElem, ".") > 0 Then
+            vElem = sSubKey & "['" & vElem & "']"
+        ElseIf bPath Then
+            vElem = sSubKey & "." & vElem
+        ElseIf LenB(sSubKey) <> 0 Then
+            vElem = sSubKey & "/" & vElem
+        End If
+        oResult.Add vElem
+        If IsObject(vItem) Then
+            pvEnumAllKeys vItem, vElem, bPath, oResult
+        End If
+    Next
+End Sub
+
 Public Function JsonAllKeys(oJson As Object, Optional ByVal Key As String) As Variant
     Const FUNC_NAME     As String = "JsonAllKeys"
-    Dim oArray          As Object
+    Dim oResult         As Collection
+    Dim vRetVal         As Variant
     Dim lIdx            As Long
-    Dim sSubKey         As String
     Dim vElem           As Variant
-    Dim bPath           As Boolean
-
+    
     On Error GoTo EH
-    JsonValue(oArray, -1) = Key
-    bPath = (Left$(Key, 1) = "$")
-    Do While lIdx < JsonValue(oArray, -1)
-        sSubKey = JsonValue(oArray, lIdx)
-        For Each vElem In JsonKeys(oJson, sSubKey)
-            If bPath And IsOnlyDigits(vElem) Then
-                JsonValue(oArray, -1) = sSubKey & "[" & vElem & "]"
-            ElseIf bPath And InStr(vElem, ".") > 0 Then
-                JsonValue(oArray, -1) = sSubKey & "['" & vElem & "']"
-            ElseIf bPath Then
-                JsonValue(oArray, -1) = sSubKey & "." & vElem
-            ElseIf LenB(sSubKey) <> 0 Then
-                JsonValue(oArray, -1) = sSubKey & "/" & vElem
-            Else
-                JsonValue(oArray, -1) = vElem
-            End If
+    Set oResult = New Collection
+    pvEnumAllKeys JsonValue(oJson, Key), Key, (Left$(Key, 1) = "$"), oResult
+    If oResult.Count > 0 Then
+        ReDim vRetVal(0 To oResult.Count - 1) As Variant
+        For Each vElem In oResult
+            vRetVal(lIdx) = vElem
+            lIdx = lIdx + 1
         Next
-        lIdx = lIdx + 1
-    Loop
-    JsonValue(oArray, 0) = Empty
-    JsonAllKeys = JsonValue(oArray, "*")
+    Else
+        vRetVal = Array()
+    End If
+    JsonAllKeys = vRetVal
     Exit Function
 EH:
     If RaiseError(FUNC_NAME & "(Key=" & Key & ")") = vbRetry Then
@@ -1579,4 +1595,3 @@ Private Sub Test()
     Debug.Print JsonDump(vJson)
 End Sub
 #End If
-
