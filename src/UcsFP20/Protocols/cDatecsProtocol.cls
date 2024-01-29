@@ -788,7 +788,7 @@ Public Function PrintDuplicate( _
         End If
     End If
     ReceiptNo = GetLastReceiptNo()
-    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+    If (eCmd <> ucsDcsCmdInfoEJ) And (LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo) Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
@@ -968,7 +968,7 @@ Public Function PrintMonthlyReport( _
         End If
     End If
     ReceiptNo = GetLastReceiptNo()
-    If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
+    If (eCmd <> ucsDcsCmdInfoEJ) And (LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo) Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
