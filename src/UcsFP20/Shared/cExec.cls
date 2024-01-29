@@ -134,12 +134,16 @@ Private m_hProcess              As Long
 Private m_hReadOutput           As Long
 Private m_hReadError            As Long
 Private m_hWriteInput           As Long
+#If DebugMode Then
+    Private m_sDebugID          As String
+#End If
 
 '=========================================================================
 ' Error handling
 '=========================================================================
 
 Private Sub PrintError(sFunction As String)
+    m_sLastError = Err.Description
     #If USE_DEBUG_LOG <> 0 Then
         DebugLog MODULE_NAME, sFunction & "(" & Erl & ")", Err.Description & " &H" & Hex$(Err.Number), vbLogEventTypeError
     #Else
@@ -534,9 +538,18 @@ End Property
 ' Base class events
 '=========================================================================
 
+#If DebugMode Then
+    Private Sub Class_Initialize()
+        DebugInstanceInit MODULE_NAME, m_sDebugID, Me
+    End Sub
+#End If
+
 Private Sub Class_Terminate()
     If m_hProcess <> 0 Then
         Call TerminateProcess(m_hProcess, 0)
     End If
     Detach
+    #If DebugMode Then
+        DebugInstanceTerm MODULE_NAME, m_sDebugID
+    #End If
 End Sub

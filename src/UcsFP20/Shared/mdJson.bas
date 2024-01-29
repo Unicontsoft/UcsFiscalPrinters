@@ -320,8 +320,11 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
                     #Else
                         If CollectionIndexByKey(oRetVal, sKey, DEF_IGNORE_CASE) > 0 Then
                     #End If
-                        .Error = Printf(ERR_DUPLICATE_KEY, sKey, .Pos)
-                        GoTo QH
+                        If .StrictMode Then
+                            .Error = Printf(ERR_DUPLICATE_KEY, sKey, .Pos)
+                            GoTo QH
+                        End If
+                        oRetVal.Remove sKey
                     End If
                     #If ImplScripting Then
                         oRetVal.Add sKey, vValue
@@ -392,6 +395,9 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
             End If
             On Error GoTo ErrorConvert
             pvJsonParse = Val(sText)
+            If sText <> Trim$(Replace(Replace(Str$(pvJsonParse), " .", "0."), "-.", "-0.")) Then
+                pvJsonParse = CDec(sText)
+            End If
             On Error GoTo 0
             .Pos = .Pos + lIdx
         Case 0
@@ -608,10 +614,8 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
                 JsonDump = Left$(CompoundChars, 1) & sSpace & Join(vItems, "," & sSpace) & sSpace & Right$(CompoundChars, 1)
             End If
         End If
-    Case vbNull
+    Case vbNull, vbEmpty
         JsonDump = "null"
-    Case vbEmpty
-        JsonDump = "empty"
     Case vbDate
         JsonDump = """" & Format$(vJson, "yyyy\-mm\-dd hh:nn:ss") & """"
         If Left$(JsonDump, 12) = """1899-12-30 " Then
