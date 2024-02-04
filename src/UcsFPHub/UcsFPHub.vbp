@@ -43,7 +43,7 @@ ServerSupportFiles=0
 VersionComments="UcsFPHub"
 VersionCompanyName="Unicontsoft"
 VersionFileDescription="Unicontsoft Fiscal Printers Hub (2.0.45)"
-VersionLegalCopyright="Copyright © 2019-2023 Unicontsoft"
+VersionLegalCopyright="Copyright © 2019-2024 Unicontsoft"
 VersionProductName="Unicontsoft Fiscal Printers Hub"
 CondComp="USE_DEBUG_LOG = 1"
 CompilationType=-1
