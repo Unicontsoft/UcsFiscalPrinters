@@ -182,7 +182,10 @@ Public Function Init(sDeviceString As String) As Boolean
         .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), DEF_MODEL_GROUP))
         .AllowUnstable = JsonBoolItem(oOptions, "AllowUnstable")
         .AllowZero = JsonBoolItem(oOptions, "AllowZero", .AllowUnstable)
-        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "SCALES_" & At(Split(m_uData.Device, ","), 0))
+        .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
+        If LenB(.DeviceSerialNo) = 0 Then
+            .DeviceSerialNo = "SCALES_" & At(Split(m_uData.Device, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+        End If
     End With
     Select Case m_uConfig.ModelGroup
     Case "ELICOM"

@@ -281,7 +281,10 @@ Public Function Init(sDeviceString As String) As Boolean
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadTemplates), sFile, sError)
         End If
         .RetryCount = Znl(C_Lng(JsonValue(oOptions, "RetryCount")), DEF_RETRYCOUNT)
-        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "LABEL_" & At(Split(m_sDevice, ","), 0))
+        .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
+        If LenB(.DeviceSerialNo) = 0 Then
+            .DeviceSerialNo = "LABEL_" & At(Split(m_sDevice, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+        End If
         If LenB(C_Str(JsonValue(oOptions, "CharacterSet"))) <> 0 Then
             .CharacterSet = C_Lng(JsonValue(oOptions, "CharacterSet"))
         Else

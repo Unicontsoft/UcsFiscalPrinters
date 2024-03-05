@@ -378,7 +378,10 @@ Public Function Init(sDeviceString As String) As Boolean
     sDeviceString = ToDeviceString(oOptions)
     m_lCodePage = Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE)
     With m_uConfig
-        .DeviceSerialNo = Zn(C_Str(JsonValue(oOptions, "DeviceSerialNo")), "ESC_" & At(Split(m_sDevice, ","), 0))
+        .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
+        If LenB(.DeviceSerialNo) = 0 Then
+            .DeviceSerialNo = "ESC_" & At(Split(m_sDevice, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+        End If
     End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))

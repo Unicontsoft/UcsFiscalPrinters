@@ -85,6 +85,15 @@ Private Declare Function GetTempPath Lib "kernel32" Alias "GetTempPathA" (ByVal 
 Private Declare Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As Currency) As Long
 Private Declare Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As Currency) As Long
 Private Declare Function GetEnvironmentVariable Lib "kernel32" Alias "GetEnvironmentVariableA" (ByVal lpName As String, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Private Declare Function CryptAcquireContext Lib "advapi32" Alias "CryptAcquireContextW" (phProv As Long, ByVal pszContainer As Long, ByVal pszProvider As Long, ByVal dwProvType As Long, ByVal dwFlags As Long) As Long
+Private Declare Function CryptCreateHash Lib "advapi32" (ByVal hProv As Long, ByVal AlgId As Long, ByVal hKey As Long, ByVal dwFlags As Long, phHash As Long) As Long
+Private Declare Function CryptHashData Lib "advapi32" (ByVal hHash As Long, pbData As Any, ByVal dwDataLen As Long, ByVal dwFlags As Long) As Long
+Private Declare Function CryptDestroyHash Lib "advapi32" (ByVal hHash As Long) As Long
+Private Declare Function CryptGetHashParam Lib "advapi32" (ByVal hHash As Long, ByVal dwParam As Long, pbData As Any, pdwDataLen As Long, ByVal dwFlags As Long) As Long
+Private Declare Function GetComputerName Lib "kernel32" Alias "GetComputerNameA" (ByVal lpBuffer As String, nSize As Long) As Long
+Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
+Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
+Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
@@ -157,6 +166,7 @@ Private m_oLogger                   As cFileLogger
 Private m_dCurrentStartDate         As Date
 Private m_dblCurrentStartTimer      As Double
 Private m_cRegExpCache              As Collection
+Private m_sErrComputerName          As String
 
 '=========================================================================
 ' Error handling
@@ -1641,4 +1651,61 @@ Public Function ConcatCollection(oCol As Collection, Optional Separator As Strin
     Exit Function
 EH:
     RaiseError FUNC_NAME
+End Function
+
+Public Function GetMd5Long(sText As String) As Long
+    Const FUNC_NAME     As String = "GetMd5Long"
+    Const PROV_RSA_FULL                 As Long = 1
+    Const CRYPT_VERIFYCONTEXT           As Long = &HF0000000
+    Const CALG_MD5                      As Long = &H8003&
+    Const HP_HASHVAL                    As Long = 2
+    Static hProv        As Long
+    Static aBuffer(0 To 3) As Long
+    Dim hHash           As Long
+    
+    On Error GoTo EH
+    If hProv = 0 Then
+        Call CryptAcquireContext(hProv, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)
+    End If
+    If CryptCreateHash(hProv, CALG_MD5, 0, 0, hHash) = 0 Then
+        GoTo QH
+    End If
+    If CryptHashData(hHash, ByVal StrPtr(sText), LenB(sText), 0) = 0 Then
+        GoTo QH
+    End If
+    If CryptGetHashParam(hHash, HP_HASHVAL, aBuffer(0), 16, 0) = 0 Then
+        GoTo QH
+    End If
+    GetMd5Long = aBuffer(0) Xor aBuffer(1) Xor aBuffer(2) Xor aBuffer(3)
+QH:
+    If hHash <> 0 Then
+        Call CryptDestroyHash(hHash)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As String
+    Const SM_REMOTESESSION              As Long = &H1000
+    Dim lSize           As Long
+    
+    If LenB(m_sErrComputerName) = 0 Then
+        m_sErrComputerName = Space$(256): lSize = 255
+        If GetComputerName(m_sErrComputerName, lSize) > 0 Then
+            m_sErrComputerName = Left$(m_sErrComputerName, lSize)
+        Else
+            m_sErrComputerName = vbNullString
+        End If
+    End If
+    GetErrorComputerName = m_sErrComputerName
+    If GetSystemMetrics(SM_REMOTESESSION) <> 0 And Not NoSession Then
+        lSize = -1
+        On Error Resume Next '--- checked
+        Call ProcessIdToSessionId(GetCurrentProcessId(), lSize)
+        On Error GoTo 0
+        If lSize <> -1 Then
+            GetErrorComputerName = GetErrorComputerName & ":" & lSize
+        End If
+    End If
 End Function
