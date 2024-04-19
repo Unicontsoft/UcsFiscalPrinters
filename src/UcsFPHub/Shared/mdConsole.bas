@@ -99,7 +99,7 @@ Public Function ConsoleColorError(ByVal wAttr As Long, ByVal wMask As Long, ByVa
 End Function
 
 Private Function pvConsoleOutput(ByVal hOut As Long, ByVal sText As String, A As Variant) As String
-    Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    Const LNG_PRIVATE   As Long = &HE1B6& '-- U+E000 to U+F8FF - Private Use Area (PUA)
     Dim lIdx            As Long
     Dim sArg            As String
     Dim baBuffer()      As Byte

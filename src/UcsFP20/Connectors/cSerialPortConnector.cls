@@ -633,7 +633,7 @@ Private Function GetErrorDescription(ByVal ErrorCode As Long) As String
 End Function
 
 Private Function Printf(ByVal sText As String, ParamArray A() As Variant) As String
-    Const LNG_PRIVATE   As Long = &HE1B6 '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    Const LNG_PRIVATE   As Long = &HE1B6& '-- U+E000 to U+F8FF - Private Use Area (PUA)
     Dim lIdx            As Long
     
     For lIdx = UBound(A) To LBound(A) Step -1

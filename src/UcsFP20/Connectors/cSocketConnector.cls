@@ -539,7 +539,7 @@ End Function
 '=========================================================================
 
 Private Sub Class_Initialize()
-    ReDim baWSAData(0 To 1000) As Byte
+    Dim baWSAData(0 To 1000) As Byte
     Call WSAStartup(&H101, baWSAData(0))
     m_hSocket = INVALID_SOCKET
 End Sub
