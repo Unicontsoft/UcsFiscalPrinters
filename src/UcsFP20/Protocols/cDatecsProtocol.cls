@@ -1882,6 +1882,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
     Dim sSettingEnd     As String
     Dim dblRevTotal     As Double
     Dim dblInvoiceNo    As Double
+    Dim sLastError      As String
+    Dim lLastErrNo      As Long
     Dim vErr            As Variant
     
     On Error GoTo EH
@@ -1931,6 +1933,8 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             If LenB(.InitInvData(ucsInvDocNo)) <> 0 Then
                 Select Case .InitReceiptType
                 Case ucsFscRcpInvoice, ucsFscRcpCreditNote
+                    '--- Syntax 2: If the current invoice counter have reached the end of the interval.
+                    '--- %1={Start}<SEP>%2={End}<SEP>
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP
                     pvGetCommandConfig CONF_NAME, "InitInvoiceNo", eCmd, ucsDcsCmdInitInvoiceNo, sParam, sParam, _
                         "SettingBeg", sSettingBeg, "InvoiceRangeBeg", _
@@ -1939,12 +1943,24 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     sParam = Printf(sParam, dblInvoiceNo, dblInvoiceNo + 1)
                     SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     If LenB(m_uPrintData.LastError) <> 0 Then
-                        '--- try alternative invoice no setup
-                        If Val(pvSettings(sSettingBeg)) <> dblInvoiceNo Then
-                            pvSettings(sSettingBeg) = dblInvoiceNo
+                        '--- Syntax 1: If the current invoice counter didn't reached the end of the interval.
+                        '--- %1={End}<SEP>
+                        SendCommand eCmd, Printf("%1" & DEF_SEP, dblInvoiceNo), LogName:=FUNC_NAME
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            If Val(pvSettings(sSettingEnd)) <> dblInvoiceNo Then
+                                pvSettings(sSettingEnd) = dblInvoiceNo
+                            End If
                         End If
-                        If Val(pvSettings(sSettingEnd)) <> dblInvoiceNo + 1 Then
-                            pvSettings(sSettingEnd) = dblInvoiceNo + 1
+                        '--- retry Syntax 2
+                        SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                        If LenB(m_uPrintData.LastError) <> 0 Then
+                            '--- try alternative invoice no setup
+                            If Val(pvSettings(sSettingBeg)) <> dblInvoiceNo Then
+                                pvSettings(sSettingBeg) = dblInvoiceNo
+                            End If
+                            If Val(pvSettings(sSettingEnd)) <> dblInvoiceNo + 1 Then
+                                pvSettings(sSettingEnd) = dblInvoiceNo + 1
+                            End If
                         End If
                     End If
                 End Select
@@ -2207,7 +2223,11 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         Case ERR_FP_BAD_PARAM_7
                             pvSetLastError Printf(pvInternal(ucsErrInvalidTaxNo), uRow(0).InitInvData(ucsInvCgTaxNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
                         Case ERR_FP_BAD_PARAM_8
-                            pvSetLastError Printf(pvInternal(ucsErrInvalidVatNo), uRow(0).InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError, m_uPrintData.LastErrNo
+                            sLastError = Printf(pvInternal(ucsErrInvalidVatNo), uRow(0).InitInvData(ucsInvCgVatNo)) & ". " & m_uPrintData.LastError
+                            lLastErrNo = m_uPrintData.LastErrNo
+                            sParam = DEF_SEP & DEF_SEP & DEF_SEP & DEF_SEP & DEF_SEP & "0" & DEF_SEP & "0000000000" & DEF_SEP & DEF_SEP
+                            SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                            pvSetLastError sLastError, lLastErrNo
                         End Select
                         uCtx.PluCount = 0
                         uCtx.PmtPrinted = False
