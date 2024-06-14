@@ -739,14 +739,14 @@ Private Function pvLoadPrinters() As Boolean
     Set oForm = MainForm
     vSplit = Split(T(LANG_HEADER_PRINTERS), "|")
     lstPrinters.Clear
-    lstPrinters.AddItem Pad(At(vSplit, 0), 15) & vbTab & Pad(At(vSplit, 1), 15) & vbTab & Pad(At(vSplit, 2), 15) & vbTab & _
-        Pad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
+    lstPrinters.AddItem pvPad(At(vSplit, 0), 23) & vbTab & pvPad(At(vSplit, 1), 15) & vbTab & pvPad(At(vSplit, 2), 15) & vbTab & _
+        pvPad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
     For Each vKey In JsonValue(oForm.Printers, "*/DeviceSerialNo")
         If LenB(vKey) <> 0 Then
-            lstPrinters.AddItem Pad(vKey, 15) & vbTab & _
-                Pad(JsonValue(oForm.Printers, vKey & "/DevicePort"), 15) & vbTab & _
-                Pad(JsonValue(oForm.Printers, vKey & "/DeviceHost"), 15) & vbTab & _
-                Pad(JsonValue(oForm.Printers, vKey & "/DeviceModel"), 23) & vbTab & _
+            lstPrinters.AddItem pvPad(vKey, 23) & vbTab & _
+                pvPad(JsonValue(oForm.Printers, vKey & "/DevicePort"), 15) & vbTab & _
+                pvPad(JsonValue(oForm.Printers, vKey & "/DeviceHost"), 15) & vbTab & _
+                pvPad(JsonValue(oForm.Printers, vKey & "/DeviceModel"), 23) & vbTab & _
                 JsonValue(oForm.Printers, vKey & "/FirmwareVersion")
         End If
     Next
@@ -989,6 +989,14 @@ End Sub
 
 Private Function pvItemHeight(oCtl As ListBox) As Single
     pvItemHeight = ScaleY(SendMessage(oCtl.hWnd, LB_GETITEMHEIGHT, 0, ByVal 0), vbPixels)
+End Function
+
+Private Function pvPad(ByVal sText As String, ByVal lSize As Long) As String
+    If Len(sText) < lSize Then
+        pvPad = Pad(sText, lSize)
+    Else
+        pvPad = sText
+    End If
 End Function
 
 '=========================================================================
