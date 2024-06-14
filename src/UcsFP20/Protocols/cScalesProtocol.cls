@@ -78,7 +78,7 @@ Private Type UcsScaleDataType
 End Type
 
 Private Enum UcsScaleProtocolEnum
-    ucsScaProtocolCas
+    ucsScaProtocolCas = 1
     ucsScaProtocolElicom
     ucsScaProtocolDibal
     ucsScaProtocolMettler
@@ -187,20 +187,40 @@ Public Function Init(sDeviceString As String) As Boolean
             .DeviceSerialNo = "SCALES_" & At(Split(m_uData.Device, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
         End If
     End With
-    Select Case m_uConfig.ModelGroup
-    Case "ELICOM"
-        m_uData.Protocol = ucsScaProtocolElicom
-    Case "DIBAL"
-        m_uData.Protocol = ucsScaProtocolDibal
-    Case "METTLER"
-        m_uData.Protocol = ucsScaProtocolMettler
-    Case "DELMAC"
-        m_uData.Protocol = ucsScaProtocolDelmac
-    Case "BIMCO"
-        m_uData.Protocol = ucsScaProtocolBimco
-    Case "CAS"
-        m_uData.Protocol = ucsScaProtocolCas
-    End Select
+    If IsNumeric(m_uConfig.ModelGroup) Then
+        m_uData.Protocol = C_Lng(m_uConfig.ModelGroup)
+        Select Case m_uData.Protocol
+        Case ucsScaProtocolElicom
+            m_uConfig.ModelGroup = "ELICOM"
+        Case ucsScaProtocolDibal
+            m_uConfig.ModelGroup = "DIBAL"
+        Case ucsScaProtocolMettler
+            m_uConfig.ModelGroup = "METTLER"
+        Case ucsScaProtocolDelmac
+            m_uConfig.ModelGroup = "DELMAC"
+        Case ucsScaProtocolBimco
+            m_uConfig.ModelGroup = "BIMCO"
+        Case ucsScaProtocolCas
+            m_uConfig.ModelGroup = "CAS"
+        Case Else
+            m_uData.Protocol = 0
+        End Select
+    Else
+        Select Case m_uConfig.ModelGroup
+        Case "ELICOM"
+            m_uData.Protocol = ucsScaProtocolElicom
+        Case "DIBAL"
+            m_uData.Protocol = ucsScaProtocolDibal
+        Case "METTLER"
+            m_uData.Protocol = ucsScaProtocolMettler
+        Case "DELMAC"
+            m_uData.Protocol = ucsScaProtocolDelmac
+        Case "BIMCO"
+            m_uData.Protocol = ucsScaProtocolBimco
+        Case "CAS"
+            m_uData.Protocol = ucsScaProtocolCas
+        End Select
+    End If
     If m_uData.Protocol = 0 Then
         On Error GoTo 0
         Err.Raise vbObjectError, , Printf(pvInternal(ucsErrInvalidModelGroup), Zn(m_uConfig.ModelGroup, STR_NONE))
