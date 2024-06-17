@@ -1,87 +1,70 @@
+*                   text=auto eol=crlf
+
 # VB6 source files (show diff + keep CRLF in zip download)
 
-*.bas        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.cls        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.ctl        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.dob        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.dsr        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.frm        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.pag        working-tree-encoding=CP1251 text eol=crlf linguist-language=vb6
-*.vbg        working-tree-encoding=CP1251 text eol=crlf
-*.vbl        working-tree-encoding=CP1251 text eol=crlf
-*.vbp        working-tree-encoding=CP1251 text eol=crlf
-*.vbr        working-tree-encoding=CP1251 text eol=crlf
-*.vbw        working-tree-encoding=CP1251 text eol=crlf
-*.sql        working-tree-encoding=CP1251 text eol=crlf
+*.[bB][aA][sS]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[cC][lL][sS]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[cC][tT][lL]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[dD][oO][bB]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[dD][sS][rR]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[fF][rR][mM]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[pP][aA][gG]      text eol=crlf working-tree-encoding=CP1251 linguist-language=vb6
+*.[vV][bB][gG]      text eol=crlf working-tree-encoding=CP1251
+*.[vV][bB][lL]      text eol=crlf working-tree-encoding=CP1251
+*.[vV][bB][pP]      text eol=crlf working-tree-encoding=CP1251
+*.[vV][bB][rR]      text eol=crlf working-tree-encoding=CP1251
+*.[vV][bB][wW]      text eol=crlf working-tree-encoding=CP1251
+*.[sS][qQ][lL]      text eol=crlf working-tree-encoding=CP1251
  
 # Other source files (show diff + LF only in zip download)
 
-*.asm        text
-*.asp        text
-*.bat        text
-*.c          text
-*.cpp        text
-*.dsp        text
-*.dsw        text
-*.h          text
-*.idl        text
-*.java       text
-*.js         text
-*.manifest   text
-*.odl        text
-*.php        text
-*.php3       text
-*.rc         text
-*.sln        text
-*.sql        text
-*.vb         text
-*.vbs        text
+*.[aA][sS][mM]      text
+*.[aA][sS][pP]      text
+*.[bB][aA][tT]      text
+*.[cC]              text
+*.[cC][pP][pP]      text
+*.[dD][sS][pP]      text
+*.[dD][sS][wW]      text
+*.[hH]              text
+*.[iI][dD][lL]      text
+*.[jJ][aA][vV][aA]  text
+*.[jJ][sS]          text
+*.[mM][aA][nN][iI][fF][eE][sS][tT]  text
+*.[oO][dD][lL]      text
+*.[pP][hH][pP]      text
+*.[pP][hH][pP][3]   text
+*.[rR][cC]          text
+*.[sS][lL][nN]      text
+*.[sS][qQ][lL]      text
+*.[vV][bB]          text
+*.[vV][bB][sS]      text
 
 # Binary
 
-*.res        binary
-*.frx        binary
-*.ctx        binary
-*.dsx        binary
-*.exe        binary
-*.dll        binary
-*.ocx        binary
-*.cmp        binary
-*.pdb        binary
-*.tlb        binary
-*.xls        binary
-*.doc        binary
-*.ppt        binary
-*.xlsx       binary
-*.docx       binary
-*.pptx       binary
-*.chm        binary
-*.hlp        binary
-*.jpg        binary
-*.png        binary
-*.bmp        binary
-*.gif        binary
-*.ico        binary
-*.zip        binary
-*.cab        binary
-*.7z         binary
-*.gz         binary
-
-# Text files but keep as binary (no diff)
-
-# *.cfg        text
-# *.conf       text
-# *.csi        text
-# *.css        text
-# *.csv        text
-# *.def        text
-# *.htm        text
-# *.html       text
-# *.inf        text
-# *.ini        text
-# *.log        text
-# *.reg        text
-# *.rtf        text
-# *.txt        text
-# *.url        text
-# *.xml        text
+*.[rR][eE][sS]      binary
+*.[fF][rR][xX]      binary
+*.[cC][tT][xX]      binary
+*.[dD][sS][xX]      binary
+*.[eE][xX][eE]      binary
+*.[dD][lL][lL]      binary
+*.[oO][cC][xX]      binary
+*.[cC][mM][pP]      binary
+*.[pP][dD][bB]      binary
+*.[tT][lL][bB]      binary
+*.[xX][lL][sS]      binary
+*.[dD][oO][cC]      binary
+*.[pP][pP][tT]      binary
+*.[xX][lL][sS][xX]  binary
+*.[dD][oO][cC][xX]  binary
+*.[pP][pP][tT][xX]  binary
+*.[cC][hH][mM]      binary
+*.[hH][lL][pP]      binary
+*.[jJ][pP][gG]      binary
+*.[pP][nN][gG]      binary
+*.[bB][mM][pP]      binary
+*.[gG][iI][fF]      binary
+*.[iI][cC][oO]      binary
+*.[zZ][iI][pP]      binary
+*.[cC][aA][bB]      binary
+*.[77][zZ]          binary
+*.[gG][zZ]          binary
