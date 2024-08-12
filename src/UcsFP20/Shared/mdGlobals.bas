@@ -1026,6 +1026,29 @@ Public Function ToHexDump(sText As String) As String
     Next
 End Function
 
+Public Function FromHex(sText As String) As Byte()
+    Dim baRetVal()      As Byte
+    Dim lIdx            As Long
+    
+    On Error GoTo QH
+    '--- check for hexdump delimiter
+    If sText Like "*[!0-9A-Fa-f]*" Then
+        ReDim baRetVal(0 To Len(sText) \ 3) As Byte
+        For lIdx = 1 To Len(sText) Step 3
+            baRetVal(lIdx \ 3) = "&H" & Mid$(sText, lIdx, 2)
+        Next
+    ElseIf LenB(sText) <> 0 Then
+        ReDim baRetVal(0 To Len(sText) \ 2 - 1) As Byte
+        For lIdx = 1 To Len(sText) Step 2
+            baRetVal(lIdx \ 2) = "&H" & Mid$(sText, lIdx, 2)
+        Next
+    Else
+        baRetVal = vbNullString
+    End If
+    FromHex = baRetVal
+QH:
+End Function
+
 Public Function SearchCollection(ByVal pCol As Object, Index As Variant, Optional RetVal As Variant) As Boolean
     Const DISPID_VALUE  As Long = 0
     Const VT_BYREF      As Long = &H4000

@@ -217,6 +217,9 @@ Public Function PpdStartReceipt( _
         sCgTaxNo = sCgVatNo
         sCgVatNo = sTemp
     End If
+    If preg_match("^[a-zA-Z]{2}\d+$", sCgVatNo) = 0 Then
+        sCgVatNo = vbNullString
+    End If
     SplitCgAddress Trim$(SafeText(InvCgCity)) & vbCrLf & Trim$(SafeText(InvCgAddress)), sCgCity, sCgAddress, uData.Config.CommentChars
     uData.ExecCtx = uCtxEmpty
     ReDim uData.Row(0 To 10) As UcsPpdRowData

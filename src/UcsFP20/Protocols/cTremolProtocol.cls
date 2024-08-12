@@ -2346,6 +2346,8 @@ Private Function pvRawGetDeviceInfo( _
             "SerialIndex", lSerialIndex, 0
         If pvRawIsDeviceReady(oConnector, m_lConnectionTimeout) Then
             vSplit = Split(pvRawSendCommand(oConnector, lTimeout, eCmd, sParam, FUNC_NAME, Error:=uRetVal.Error), DEF_SEP)
+        Else
+            vSplit = Split(vbNullString)
         End If
         If UBound(vSplit) >= lSerialIndex Then
             pvGetCommandConfig CONF_NAME, "InfoVersion", eCmd, ucsZekCmdInfoVersion, sParam, vbNullString, _
