@@ -123,6 +123,7 @@ Public Enum UcsIslCommandsEnum
     ucsIslCmdExtendedFiscalDepartmentSell = 138    '-- command above &H7F
     ucsIslCmdExtendedFiscalOpen = 144              '-- command above &H7F
     '--- info
+    ucsIslCmdInfoLastError = 32
     ucsIslCmdInfoServiceContract = 34
     ucsIslCmdInfoNap = 37
     ucsIslCmdInfoDateTime = 62
@@ -263,6 +264,7 @@ Private Const DEF_MAX_REV_REASON        As Long = 30
 Private Const DEF_MAX_ECR_REV_REASON    As Long = 42
 Private Const DEF_SEQUENCE              As Long = &H20
 Private Const DEF_EMPTY_RECEIPTNO       As String = "9999999"
+Private Const DEF_EMPTY_UNIQUESALENO    As String = "OO000000-0000-0000000"
 Private Const LNG_MAX_SEQUENCE          As Long = &H7F
 Private Const FORMAT_DATE_EXTENDED      As String = "dd\-mm\-yy hh\:nn\:ss"
 Private Const FORMAT_DATE_SHORT         As String = "ddmmyyhhnnss"
@@ -836,6 +838,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .MaxReceiptLines = GetConfigNumber(sDeviceSerialNo, "MaxReceiptLines", Znl(C_Lng(JsonValue(oOptions, "MaxReceiptLines")), IIf(IsEcr, DEF_MAX_ECR_RECEIPT_LINES, IIf(IsDaisy, DEF_MAX_DAISY_RECEIPT_LINES, DEF_MAX_RECEIPT_LINES))))
         .NegativePrices = C_Bool(GetConfigValue(sDeviceSerialNo, "NegativePrices", JsonBoolItem(oOptions, "NegativePrices", Not IsFP And Not IsIncotex)))
         .MaxItemLines = GetConfigNumber(sDeviceSerialNo, "MaxItemLines", Znl(C_Lng(JsonValue(oOptions, "MaxItemLines")), IIf(IsEltrade, 0, DEF_MAX_ITEM_LINES)))
+        .EmptyUniqueSaleNo = Trim$(GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", Zn(C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")), IIf(IsEltrade, DEF_EMPTY_UNIQUESALENO, vbNullString))))
     End With
     '--- success
     Init = True
@@ -3295,6 +3298,7 @@ End Sub
 
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
     Const FUNC_NAME     As String = "pvSetLastError"
+    Dim vSplit          As Variant
     
     On Error GoTo EH
     If ErrNum < 0 Then
@@ -3303,7 +3307,12 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
-    If LenB(sError) = 0 Then
+    If LenB(sError) <> 0 Then
+        vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, ucsIslCmdInfoLastError, vbNullString, FUNC_NAME), DEF_SEP)
+        If At(vSplit, 3) <> 0 Then
+            m_uPrintData.LastError = At(vSplit, 3) & vbCrLf & vbCrLf & m_uPrintData.LastError
+        End If
+    Else
         m_eStatus = 0
         m_eDip = 0
         m_eMemory = 0
