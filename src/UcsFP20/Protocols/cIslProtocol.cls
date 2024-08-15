@@ -3307,12 +3307,13 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
         m_uPrintData.LastErrNo = ErrNum
     End If
     m_uPrintData.LastError = sError
-    If LenB(sError) <> 0 Then
+    If LenB(sError) <> 0 And IsFP Then
         vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, ucsIslCmdInfoLastError, vbNullString, FUNC_NAME), DEF_SEP)
-        If At(vSplit, 3) <> 0 Then
+        If LenB(At(vSplit, 3)) <> 0 Then
             m_uPrintData.LastError = At(vSplit, 3) & vbCrLf & vbCrLf & m_uPrintData.LastError
         End If
-    Else
+    End If
+    If LenB(sError) = 0 Then
         m_eStatus = 0
         m_eDip = 0
         m_eMemory = 0
