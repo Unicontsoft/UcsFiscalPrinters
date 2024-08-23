@@ -35,6 +35,8 @@ Private Const PaletteTypeCustom             As Long = 0
 Private Const PaletteTypeFixedBW            As Long = 2
 '--- for GdipBitmapLockBits
 Private Const ImageLockModeRead             As Long = 1
+'--- for GdipSetInterpolationMode
+Private Const InterpolationModeHighQualityBicubic As Long = 7
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
 Private Declare Function LoadLibrary Lib "kernel32" Alias "LoadLibraryW" (ByVal lpLibFileName As Long) As Long
@@ -58,7 +60,7 @@ Private Declare Function FPDFBitmap_GetStride Lib "pdfium" Alias "_FPDFBitmap_Ge
 Private Declare Function GdipCreateBitmapFromScan0 Lib "gdiplus" (ByVal lWidth As Long, ByVal lHeight As Long, ByVal lStride As Long, ByVal lPixelFormat As Long, ByVal pScanData As Long, hImage As Long) As Long
 Private Declare Function GdipDisposeImage Lib "gdiplus" (ByVal hImage As Long) As Long
 Private Declare Function GdipBitmapConvertFormat Lib "gdiplus" (ByVal hImage As Long, ByVal lFormat As Long, ByVal lDitherType As Long, ByVal lPaletteType As Long, pPalette As Any, ByVal AlphaThresholdPercent As Single) As Long
-Private Declare Function GdipDrawImageRectRect Lib "gdiplus" (ByVal hGraphics As Long, ByVal hImage As Long, ByVal dstX As Single, ByVal dstY As Single, ByVal dstWidth As Single, ByVal dstHeight As Single, ByVal srcX As Single, ByVal srcY As Single, ByVal srcWidth As Single, ByVal srcHeight As Single, Optional ByVal srcUnit As Long = UnitPixel, Optional ByVal hImageAttributes As Long, Optional ByVal pfnCallback As Long, Optional ByVal lCallbackData As Long) As Long
+Private Declare Function GdipDrawImageRectRectI Lib "gdiplus" (ByVal hGraphics As Long, ByVal hImage As Long, ByVal dstX As Long, ByVal dstY As Long, ByVal dstWidth As Long, ByVal dstHeight As Long, ByVal srcX As Long, ByVal srcY As Long, ByVal srcWidth As Long, ByVal srcHeight As Long, Optional ByVal srcUnit As Long = UnitPixel, Optional ByVal hImageAttributes As Long, Optional ByVal pfnCallback As Long, Optional ByVal lCallbackData As Long) As Long
 Private Declare Function GdipCreateFromHDC Lib "gdiplus" (ByVal hDC As Long, hGraphics As Long) As Long
 Private Declare Function GdipDeleteGraphics Lib "gdiplus" (ByVal hGraphics As Long) As Long
 Private Declare Function GdipInitializePalette Lib "gdiplus" (pPalette As Any, ByVal lPaletteType As Long, ByVal lOptimalColors As Long, ByVal fUseTransparentColor As Long, ByVal hBitmap As Long) As Long
@@ -69,9 +71,9 @@ Private Declare Function GdipGetImageGraphicsContext Lib "gdiplus" (ByVal hImage
 Private Declare Function GdipCreateSolidFill Lib "gdiplus" (ByVal clrFill As Long, hBrush As Long) As Long
 Private Declare Function GdipDeleteBrush Lib "gdiplus" (ByVal hBrush As Long) As Long
 Private Declare Function GdipFillRectangleI Lib "gdiplus" (ByVal hGraphics As Long, ByVal hBrush As Long, ByVal lX As Long, ByVal lY As Long, ByVal lWidth As Long, ByVal lHeight As Long) As Long
-Private Declare Function GdipCloneBitmapAreaI Lib "gdiplus" (ByVal lX As Long, ByVal lY As Long, ByVal lWidth As Long, ByVal lHeight As Long, ByVal lPixelFormat As Long, ByVal srcBitmap As Long, dstBitmap As Long) As Long
 Private Declare Function GdipBitmapLockBits Lib "gdiplus" (ByVal hBitmap As Long, lpRect As Any, ByVal lFlags As Long, ByVal lPixelFormat As Long, uLockedBitmapData As BitmapData) As Long
 Private Declare Function GdipBitmapUnlockBits Lib "gdiplus" (ByVal hBitmap As Long, uLockedBitmapData As BitmapData) As Long
+Private Declare Function GdipSetInterpolationMode Lib "gdiplus" (ByVal hGraphics As Long, ByVal lMode As Long) As Long
 
 Private Type ColorPalette
     Flags               As Long
@@ -124,8 +126,9 @@ Public Function LoadPdfPageToBitmap(baPdf() As Byte, _
     Dim pData           As Long
     Dim hTempImg        As Long
     Dim hNewImg         As Long
-    Dim sngWidth        As Single
-    Dim sngHeight       As Single
+    Dim lWidth          As Long
+    Dim lHeight         As Long
+    Dim hGraphics       As Long
     Dim sApiSource      As String
     
     On Error GoTo EH
@@ -140,27 +143,40 @@ Public Function LoadPdfPageToBitmap(baPdf() As Byte, _
         pvSetPdfError FPDF_GetLastError
         GoTo QH
     End If
-    sngWidth = FPDF_GetPageWidth(hPage)
-    sngHeight = FPDF_GetPageHeight(hPage)
-    pvSetAspect sngWidth, sngHeight, TargetWidth, TargetHeight
-    hBM = FPDFBitmap_Create(TargetWidth, TargetHeight, 1)
+    '--- convert width/height from points to pixels at 300 DPI
+    lWidth = Int(FPDF_GetPageWidth(hPage) * 300# / 72# + 0.5)
+    lHeight = Int(FPDF_GetPageHeight(hPage) * 300# / 72# + 0.5)
+    pvSetAspect lWidth, lHeight, TargetWidth, TargetHeight
+    hBM = FPDFBitmap_Create(lWidth, lHeight, 1)
     If hBM = 0 Then
         pvSetPdfError FPDF_GetLastError
         GoTo QH
     End If
-    Call FPDFBitmap_FillRect(hBM, 0, 0, TargetWidth, TargetHeight, -1)
-    Call FPDF_RenderPageBitmap(hBM, hPage, 0, 0, TargetWidth, TargetHeight, PdfRotation, PdfFlags)
+    Call FPDFBitmap_FillRect(hBM, 0, 0, lWidth, lHeight, -1)
+    Call FPDF_RenderPageBitmap(hBM, hPage, 0, 0, lWidth, lHeight, PdfRotation, PdfFlags)
     pData = FPDFBitmap_GetBuffer(hBM)
     If pData = 0 Then
         pvSetPdfError FPDF_GetLastError
         GoTo QH
     End If
-    If pvCheckGdipError(GdipCreateBitmapFromScan0(TargetWidth, TargetHeight, FPDFBitmap_GetStride(hBM), PixelFormat32bppPARGB, pData, hTempImg)) Then
+    If pvCheckGdipError(GdipCreateBitmapFromScan0(lWidth, lHeight, FPDFBitmap_GetStride(hBM), PixelFormat32bppPARGB, pData, hTempImg)) Then
         sApiSource = "GdipCreateBitmapFromScan0"
         GoTo QH
     End If
-    If pvCheckGdipError(GdipCloneBitmapAreaI(0, 0, TargetWidth, TargetHeight, PixelFormat32bppARGB, hTempImg, hNewImg)) Then
-        sApiSource = "GdipCloneBitmapAreaI"
+    If pvCheckGdipError(GdipCreateBitmapFromScan0(TargetWidth, TargetHeight, 0, PixelFormat32bppPARGB, 0, hNewImg)) Then
+        sApiSource = "GdipCreateBitmapFromScan0"
+        GoTo QH
+    End If
+    If pvCheckGdipError(GdipGetImageGraphicsContext(hNewImg, hGraphics)) Then
+        sApiSource = "GdipGetImageGraphicsContext"
+        GoTo QH
+    End If
+    If pvCheckGdipError(GdipSetInterpolationMode(hGraphics, InterpolationModeHighQualityBicubic)) Then
+        sApiSource = "GdipSetInterpolationMode"
+        GoTo QH
+    End If
+    If pvCheckGdipError(GdipDrawImageRectRectI(hGraphics, hTempImg, 0, 0, TargetWidth, TargetHeight, 0, 0, lWidth, lHeight)) Then
+        sApiSource = "GdipDrawImageRectRectI"
         GoTo QH
     End If
     '--- commit
@@ -175,6 +191,9 @@ QH:
     End If
     If hDoc <> 0 Then
         Call FPDF_CloseDocument(hDoc)
+    End If
+    If hGraphics <> 0 Then
+        Call GdipDeleteGraphics(hGraphics)
     End If
     If hTempImg <> 0 Then
         Call GdipDisposeImage(hTempImg)
@@ -197,6 +216,8 @@ Public Function LoadPngToBitmap(baPng() As Byte, Optional TargetWidth As Long, O
     Dim hImg            As Long
     Dim sngWidth        As Single
     Dim sngHeight       As Single
+    Dim lWidth          As Long
+    Dim lHeight         As Long
     Dim hNewImg         As Long
     Dim hGraphics       As Long
     Dim hBrush          As Long
@@ -213,13 +234,19 @@ Public Function LoadPngToBitmap(baPng() As Byte, Optional TargetWidth As Long, O
         sApiSource = "GdipGetImageDimension"
         GoTo QH
     End If
-    pvSetAspect sngWidth, sngHeight, TargetWidth, TargetHeight
-    If pvCheckGdipError(GdipCreateBitmapFromScan0(TargetWidth, TargetHeight, TargetHeight * 4, PixelFormat32bppARGB, 0, hNewImg)) Then
+    lWidth = Int(sngWidth + 0.5)
+    lHeight = Int(sngHeight + 0.5)
+    pvSetAspect lWidth, lHeight, TargetWidth, TargetHeight
+    If pvCheckGdipError(GdipCreateBitmapFromScan0(TargetWidth, TargetHeight, 0, PixelFormat32bppARGB, 0, hNewImg)) Then
         sApiSource = "GdipCreateBitmapFromScan0"
         GoTo QH
     End If
     If pvCheckGdipError(GdipGetImageGraphicsContext(hNewImg, hGraphics)) Then
         sApiSource = "GdipGetImageGraphicsContext"
+        GoTo QH
+    End If
+    If pvCheckGdipError(GdipSetInterpolationMode(hGraphics, InterpolationModeHighQualityBicubic)) Then
+        sApiSource = "GdipSetInterpolationMode"
         GoTo QH
     End If
     If pvCheckGdipError(GdipCreateSolidFill(-1, hBrush)) Then
@@ -230,8 +257,8 @@ Public Function LoadPngToBitmap(baPng() As Byte, Optional TargetWidth As Long, O
         sApiSource = "GdipFillRectangleI"
         GoTo QH
     End If
-    If pvCheckGdipError(GdipDrawImageRectRect(hGraphics, hImg, 0, 0, TargetWidth, TargetHeight, 0, 0, sngWidth, sngHeight)) Then
-        sApiSource = "GdipDrawImageRectRect"
+    If pvCheckGdipError(GdipDrawImageRectRectI(hGraphics, hImg, 0, 0, TargetWidth, TargetHeight, 0, 0, lWidth, lHeight)) Then
+        sApiSource = "GdipDrawImageRectRectI"
         GoTo QH
     End If
     '--- commit
@@ -363,6 +390,8 @@ Public Sub DrawBitmapToHDC(ByVal hDC As Long, ByVal hImg As Long, ByVal lLeft As
     Dim hGraphics       As Long
     Dim sngWidth        As Single
     Dim sngHeight       As Single
+    Dim lWidth          As Long
+    Dim lHeight         As Long
     Dim sApiSource      As String
     
     On Error GoTo EH
@@ -371,12 +400,14 @@ Public Sub DrawBitmapToHDC(ByVal hDC As Long, ByVal hImg As Long, ByVal lLeft As
         sApiSource = "GdipGetImageDimension"
         GoTo QH
     End If
+    lWidth = Int(sngWidth + 0.5)
+    lHeight = Int(sngHeight + 0.5)
     If pvCheckGdipError(GdipCreateFromHDC(hDC, hGraphics)) Then
         sApiSource = "GdipCreateFromHDC"
         GoTo QH
     End If
-    If pvCheckGdipError(GdipDrawImageRectRect(hGraphics, hImg, lLeft, lTop, sngWidth, sngHeight, 0, 0, sngWidth, sngHeight)) Then
-        sApiSource = "GdipDrawImageRectRect"
+    If pvCheckGdipError(GdipDrawImageRectRectI(hGraphics, hImg, lLeft, lTop, lWidth, lHeight, 0, 0, lWidth, lHeight)) Then
+        sApiSource = "GdipDrawImageRectRectI"
         GoTo QH
     End If
 QH:
@@ -410,19 +441,19 @@ Private Sub pvInit()
     m_sLastError = vbNullString
 End Sub
 
-Private Sub pvSetAspect(ByVal sngWidth As Single, ByVal sngHeight As Single, lTargetWidth As Long, lTargetHeight As Long)
+Private Sub pvSetAspect(ByVal lWidth As Long, ByVal lHeight As Long, lTargetWidth As Long, lTargetHeight As Long)
     If lTargetWidth = 0 And lTargetHeight = 0 Then
-        lTargetWidth = sngWidth
-        lTargetHeight = sngHeight
+        lTargetWidth = lWidth
+        lTargetHeight = lHeight
     ElseIf lTargetWidth <> 0 And lTargetHeight = 0 Then
-        lTargetHeight = sngHeight * lTargetWidth / sngWidth
+        lTargetHeight = lHeight * lTargetWidth / lWidth
     ElseIf lTargetWidth = 0 And lTargetHeight <> 0 Then
-        lTargetWidth = sngWidth * lTargetHeight / sngHeight
+        lTargetWidth = lWidth * lTargetHeight / lHeight
     Else
-        If lTargetWidth / sngWidth < lTargetHeight / sngHeight Then
-            lTargetHeight = sngHeight * lTargetWidth / sngWidth
+        If lHeight * lTargetWidth < lWidth * lTargetHeight Then
+            lTargetHeight = lHeight * lTargetWidth / lWidth
         Else
-            lTargetWidth = sngWidth * lTargetHeight / sngHeight
+            lTargetWidth = lWidth * lTargetHeight / lHeight
         End If
     End If
 End Sub
