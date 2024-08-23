@@ -184,8 +184,12 @@ Public Function Init(sDeviceString As String) As Boolean
         .AllowZero = JsonBoolItem(oOptions, "AllowZero", .AllowUnstable)
         .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
         If LenB(.DeviceSerialNo) = 0 Then
-            .DeviceSerialNo = "SCALES_" & At(Split(m_uData.Device, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+            .DeviceSerialNo = "SCALES_" & Replace(At(Split(m_uData.Device, ","), 0), ":", "_")
+            If LCase$(Left$(m_uData.Device, 3)) = "com" Then
+                .DeviceSerialNo = .DeviceSerialNo & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+            End If
         End If
+        .DeviceSerialNo = Left$(.DeviceSerialNo, MAX_DEVICE_SERIALNO)
     End With
     If IsNumeric(m_uConfig.ModelGroup) Then
         m_uData.Protocol = C_Lng(m_uConfig.ModelGroup)

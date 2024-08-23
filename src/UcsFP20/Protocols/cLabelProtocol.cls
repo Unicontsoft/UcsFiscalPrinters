@@ -283,8 +283,12 @@ Public Function Init(sDeviceString As String) As Boolean
         .RetryCount = Znl(C_Lng(JsonValue(oOptions, "RetryCount")), DEF_RETRYCOUNT)
         .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
         If LenB(.DeviceSerialNo) = 0 Then
-            .DeviceSerialNo = "LABEL_" & At(Split(m_sDevice, ","), 0) & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+            .DeviceSerialNo = "LABEL_" & Replace(At(Split(m_sDevice, ","), 0), ":", "_")
+            If LCase$(Left$(m_sDevice, 3)) = "com" Then
+                .DeviceSerialNo = .DeviceSerialNo & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
+            End If
         End If
+        .DeviceSerialNo = Left$(.DeviceSerialNo, MAX_DEVICE_SERIALNO)
         If LenB(C_Str(JsonValue(oOptions, "CharacterSet"))) <> 0 Then
             .CharacterSet = C_Lng(JsonValue(oOptions, "CharacterSet"))
         Else

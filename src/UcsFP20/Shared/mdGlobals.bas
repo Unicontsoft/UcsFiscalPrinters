@@ -157,6 +157,7 @@ Public Const STR_ENUM_STATUS_CODE       As String = "ready|busy|failed"
 Private Const STR_VL_PMTTYPE_NAME       As String = "Cash|Cheque|Coupon|Voucher|Packaging|Maintenance|Damage|Card|Bank|Custom1|Custom2|EUR"
 Private Const STR_VL_DISCTYPE_NAME      As String = "Plu|Subtotal|Total|SubtotalAbs"
 Private Const STR_VL_REPORTTYPE_NAME    As String = "Daily|DailyByItems|DailyByDepartments|DailyByItemsAndDepartments|DailyByOperators|MonthlyShort|MonthlyDetailed"
+Public Const MAX_DEVICE_SERIALNO        As Long = 50
 
 Private m_sDecimalSeparator         As String
 Private m_oConfig                   As Object

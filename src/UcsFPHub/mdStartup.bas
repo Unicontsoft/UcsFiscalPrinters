@@ -624,7 +624,9 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
             sRetVal = Left$(sRetVal, InStr(lPos, sRetVal, "/") - 1)
         End If
     ElseIf Not IsEmpty(JsonValue(oJson, "IP")) Then
-        sRetVal = JsonValue(oJson, "Port")
+        If InStr(JsonValue(oJson, "IP"), ":") = 0 Then
+            sRetVal = JsonValue(oJson, "Port")
+        End If
         sRetVal = JsonValue(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
     Else
         sRetVal = JsonValue(oJson, "Speed")
