@@ -37,12 +37,12 @@ Description="Unicontsoft Fiscal Printers Hub (2.0.46)"
 CompatibleMode="0"
 MajorVer=2
 MinorVer=0
-RevisionVer=46
+RevisionVer=47
 AutoIncrementVer=0
 ServerSupportFiles=0
 VersionComments="UcsFPHub"
 VersionCompanyName="Unicontsoft"
-VersionFileDescription="Unicontsoft Fiscal Printers Hub (2.0.46)"
+VersionFileDescription="Unicontsoft Fiscal Printers Hub (2.0.47)"
 VersionLegalCopyright="Copyright © 2019-2024 Unicontsoft"
 VersionProductName="Unicontsoft Fiscal Printers Hub"
 CondComp="USE_DEBUG_LOG = 1"

@@ -35,13 +35,13 @@ CompatibleEXE32="..\..\bin\UcsFP20.cmp"
 VersionCompatible32="1"
 MajorVer=2
 MinorVer=0
-RevisionVer=46
+RevisionVer=47
 AutoIncrementVer=0
 ServerSupportFiles=1
 DllBaseAddress=&H5ba00000
 VersionComments="UcsFP20"
 VersionCompanyName="Unicontsoft"
-VersionFileDescription="Unicontsoft Fiscal Printers Component 2.0 (2.0.46)"
+VersionFileDescription="Unicontsoft Fiscal Printers Component 2.0 (2.0.47)"
 VersionLegalCopyright="Copyright © 2008-2024 Unicontsoft"
 VersionProductName="Unicontsoft Fiscal Printers Component"
 CondComp="USE_SHARED = 1 : USE_DEBUG_LOG = 1"
