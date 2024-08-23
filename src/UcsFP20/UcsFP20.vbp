@@ -20,6 +20,7 @@ Class=cGlobals; cGlobals.cls
 Class=cExec; Shared\cExec.cls
 Class=cLabelProtocol; Protocols\cLabelProtocol.cls
 Class=cScalesProtocol; Protocols\cScalesProtocol.cls
+Module=mdImageConvert; Protocols\mdImageConvert.bas
 Startup="Sub Main"
 HelpFile=""
 Title="Fiscal Printers"

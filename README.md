@@ -129,6 +129,11 @@ Key              | Type   | Protocol | Description
 `DelayPrint`     | bool   | Tremol   | Spool receipt data to device before printing (default `On`)
 `BufferPrint`    | bool   | Tremol   | Buffer receipt data (default `Off`)
 `TemplateFile`   | string | Label    | Label templates JSON configuration (default [`LabelTemplates.conf`](TEMPLATES.md))
+`PaperWidth`     | number | Label    | Width of label paper in mm (default `108`)
+`DPI`            | number | Label    | DPI of thermal printer (default `203`)
+`TopMargin`      | number | Label    | Label top margin (default `0`)
+`LeftMargin`     | number | Label    | Label teft margin (default `3`)
+`RightMargin`    | number | Label    | Label right margin (default `3`)
 `AllowUnstable`  | bool   | Scales   | When reading is unstable does not wait but returns current weight (default `Off`)
 `AllowZero`      | bool   | Scales   | When reading is empty does not wait but returns current weight (default `Off`)
 
@@ -145,7 +150,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `INCOTEX`        | Incotex Ltd. | 181, 777       | All
 `ELTRADE`        | Eltrade Ltd. | A3             | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | ESC/POS "kitchen" printers
-`LABEL`          | Datecs Ltd.  | LP-50, LP-50MX | EPL-2 label printers
+`LABEL`          | Datecs Ltd.  | LP-50, LP-50MX, Alpha | EPL-2 and ZPL label printers
 `SCALES`         | Bimco Ltd.   | B6, B600       | Elicom, Dibal, Mettler, Delmac & CAS
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 

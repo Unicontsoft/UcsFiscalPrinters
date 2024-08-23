@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdGlobals"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2023 by Unicontsoft
+' UcsFP20 (c) 2008-2024 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -61,6 +61,8 @@ Private Const REG_EXPAND_SZ                 As Long = 2
 Private Const REG_DWORD                     As Long = 4
 '--- for VariantChangeType
 Private Const VARIANT_ALPHABOOL             As Long = 2
+'--- for CryptStringToBinary
+Private Const CRYPT_STRING_BASE64           As Long = 1
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (lpDst As Any, lpSrc As Any, ByVal ByteLength As Long)
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
@@ -94,6 +96,7 @@ Private Declare Function GetComputerName Lib "kernel32" Alias "GetComputerNameA"
 Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As Long
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
+Private Declare Function CryptStringToBinary Lib "crypt32" Alias "CryptStringToBinaryW" (ByVal pszString As Long, ByVal cchString As Long, ByVal dwFlags As Long, ByVal pbBinary As Long, pcbBinary As Long, Optional ByVal pdwSkip As Long, Optional ByVal pdwFlags As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
@@ -1429,8 +1432,10 @@ Public Function ToConnectorDevice( _
     Dim vElem           As Variant
     
     If LenB(JsonValue(oOptions, "IP")) <> 0 Then
-        ToConnectorDevice = Trim$(JsonValue(oOptions, "IP")) & _
-            ":" & Znl(C_Lng(JsonValue(oOptions, "Port")), DefSocketPort)
+        ToConnectorDevice = Trim$(JsonValue(oOptions, "IP"))
+        If InStr(ToConnectorDevice, ":") = 0 Then
+            ToConnectorDevice = ToConnectorDevice & ":" & Znl(C_Lng(JsonValue(oOptions, "Port")), DefSocketPort)
+        End If
     Else
         If Not oProtocol Is Nothing Then
             If LenB(JsonValue(oOptions, "Port")) = 0 Then
@@ -1732,4 +1737,41 @@ Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As Str
             GetErrorComputerName = GetErrorComputerName & ":" & lSize
         End If
     End If
+End Function
+
+Public Function ToHex(baText() As Byte, Optional Delimiter As String) As String
+    Dim aText()         As String
+    Dim lIdx            As Long
+    
+    If LenB(CStr(baText)) <> 0 Then
+        ReDim aText(0 To UBound(baText)) As String
+        For lIdx = 0 To UBound(baText)
+            aText(lIdx) = Right$("0" & Hex$(baText(lIdx)), 2)
+        Next
+        ToHex = LCase$(Join(aText, Delimiter))
+    End If
+End Function
+
+Public Function FromBase64Array(sText As String) As Byte()
+    Dim lSize           As Long
+    Dim baOutput()      As Byte
+    
+    On Error GoTo EH
+    lSize = Len(sText) + 1
+    ReDim baOutput(0 To lSize - 1) As Byte
+    If CryptStringToBinary(StrPtr(sText), Len(sText), CRYPT_STRING_BASE64, VarPtr(baOutput(0)), lSize) <> 0 Then
+        ReDim Preserve baOutput(0 To lSize - 1) As Byte
+        FromBase64Array = baOutput
+        Exit Function
+    End If
+EH:
+    With CreateObject("MSXML2.DOMDocument").createElement("dummy")
+        .DataType = "bin.base64"
+        .Text = sText
+        If IsArray(.NodeTypedValue) Then
+            FromBase64Array = .NodeTypedValue
+        Else
+            FromBase64Array = vbNullString
+        End If
+    End With
 End Function

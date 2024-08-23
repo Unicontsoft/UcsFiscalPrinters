@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2022 by Unicontsoft
+' UcsFP20 (c) 2008-2024 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -22,7 +22,7 @@ Attribute VB_Exposed = True
 '
 '=========================================================================
 '
-' Implementation of label protocol for Datecs LP-50MX
+' Implementation of label protocol for Datecs LP-50MX and Datecs Alpha
 '
 '=========================================================================
 Option Explicit
@@ -51,6 +51,7 @@ Private Declare Function WaitCommEvent Lib "kernel32" (ByVal hFile As Long, lpEv
 Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal lpEventAttributes As Long, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As Long) As Long
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+Private Declare Function GdipDisposeImage Lib "gdiplus" (ByVal hImage As Long) As Long
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -64,7 +65,7 @@ End Type
 ' Constant and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented"
+Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented|Cannot load PDF. %1|Cannot load image. %1"
 Private Const STR_ERRORS_EPL2           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 53
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
@@ -80,11 +81,19 @@ Private Const DEF_MAX_DISCOUNT          As Double = 100
 Private Const DEF_MAX_RECEIPT_LINES     As Long = 1000
 Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_RETRYCOUNT            As Long = 3
-Private Const DEF_CHARACTERSET          As Long = 6 '-- cp1251 on LP-50
+Private Const DEF_CHARACTERSET          As Long = 6     '-- cp1251 on LP-50
+Private Const DEF_DPI                   As Long = 203
+Private Const DEF_PAPERWIDTH            As Double = 108 '-- mm
+Private Const DEF_TOPMARGIN             As Double = 0   '-- mm
+Private Const DEF_LEFTMARGIN            As Double = 3   '-- mm
+Private Const DEF_RIGHTMARGIN           As Double = 3   '-- mm
 Private Const STR_GROUP_EPL2            As String = "EPL-2"
 Private Const STR_GROUP_ESCPOS          As String = "ESC/POS"
+Private Const STR_GROUP_ZPL             As String = "ZPL"
 Private Const LNG_ACK                   As Long = &H6
 Private Const LNG_NACK                  As Long = &H15
+Private Const LNG_STX                   As Long = &H2
+Private Const LNG_ETX                   As Long = &H3
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -99,6 +108,8 @@ Private Enum UcsInternalErrors
     ucsErrCannotLoadTemplates
     ucsErrTemplateNotFound
     ucsErrNotImplemented
+    ucsErrCannotLoadPdf
+    ucsErrCannotLoadImage
 End Enum
 
 Private Type UcsAutodetect
@@ -114,6 +125,11 @@ Private Type UcsConfigValues
     RetryCount          As Long
     DeviceSerialNo      As String
     CharacterSet        As Long
+    DPI                 As Long
+    PaperWidth          As Double
+    TopMargin           As Double
+    LeftMargin          As Double
+    RightMargin         As Double
     LocalizedText(0 To [_ucsFscLciMax] - 1) As Variant
 End Type
 
@@ -222,7 +238,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
                         If sReply Like "*[0-9][0-9][0-9]" & vbCrLf & "*" Or sReply Like "*[0-9][0-9][0-9]" & vbLf & "*" Then
                             DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
-                            sModel = At(pvRawGetDeviceInfo(.Connector, 100), 0)
+                            sModel = At(pvEpl2GetDeviceInfo(.Connector, 100), 0)
                             vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
                         End If
                     End If
@@ -270,13 +286,13 @@ Public Function Init(sDeviceString As String) As Boolean
     sDeviceString = ToDeviceString(oOptions)
     With m_uConfig
         .ModelGroup = UCase$(Zn(C_Str(JsonValue(oOptions, "ModelGroup")), STR_GROUP_EPL2))
-        If .ModelGroup <> STR_GROUP_EPL2 And .ModelGroup <> STR_GROUP_ESCPOS Then
+        If .ModelGroup <> STR_GROUP_EPL2 And .ModelGroup <> STR_GROUP_ESCPOS And .ModelGroup <> STR_GROUP_ZPL Then
             On Error GoTo 0
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrInvalidModelGroup), Zn(.ModelGroup, STR_NONE))
         End If
         sFile = Zn(C_Str(JsonValue(oOptions, "TemplateFile")), DEF_TEMPLATE_FILE)
         Set .Templates = JsonParseObject(pvReadTextFile(sFile), Error:=sError)
-        If .Templates Is Nothing Then
+        If .Templates Is Nothing And .ModelGroup = STR_GROUP_EPL2 Then
             On Error GoTo 0
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadTemplates), sFile, sError)
         End If
@@ -294,6 +310,11 @@ Public Function Init(sDeviceString As String) As Boolean
         Else
             .CharacterSet = DEF_CHARACTERSET
         End If
+        .DPI = Znl(C_Lng(JsonValue(oOptions, "DPI")), DEF_DPI)
+        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), DEF_PAPERWIDTH)
+        .TopMargin = Zndbl(C_Dbl(JsonValue(oOptions, "TopMargin")), DEF_TOPMARGIN)
+        .LeftMargin = Zndbl(C_Dbl(JsonValue(oOptions, "LeftMargin")), DEF_LEFTMARGIN)
+        .RightMargin = Zndbl(C_Dbl(JsonValue(oOptions, "RightMargin")), DEF_RIGHTMARGIN)
     End With
     With m_uPrintData.Config
         .RowChars = C_Lng(JsonValue(oOptions, "RowChars"))
@@ -350,7 +371,10 @@ EH:
 End Function
 
 Public Function GetClock() As Date
-    GetClock = pvRawGetClock(m_oConnector, m_lCommandTimeout)
+    Select Case m_uConfig.ModelGroup
+    Case STR_GROUP_EPL2
+        GetClock = pvEpl2GetClock(m_oConnector, m_lCommandTimeout)
+    End Select
 End Function
 
 Public Function GetDeviceProtocol() As String
@@ -358,17 +382,57 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
-    GetDeviceModel = At(pvRawGetDeviceInfo(m_oConnector, m_lCommandTimeout), 0)
+    Select Case m_uConfig.ModelGroup
+    Case STR_GROUP_EPL2
+        GetDeviceModel = At(pvEpl2GetDeviceInfo(m_oConnector, m_lCommandTimeout), 0)
+    Case Else
+        GetDeviceModel = m_uConfig.ModelGroup
+    End Select
 End Function
 
 Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
+    Const FUNC_NAME     As String = "GetDeviceStatus"
     Dim dClock          As Date
+    Dim vSplit          As Variant
     
     StatusText = vbNullString
-    dClock = pvRawGetClock(m_oConnector, m_lCommandTimeout, StatusText)
-    If LenB(StatusText) = 0 Then
-        StatusText = dClock
-    End If
+    Select Case m_uConfig.ModelGroup
+    Case STR_GROUP_EPL2
+        dClock = pvEpl2GetClock(m_oConnector, m_lCommandTimeout, StatusText)
+        If LenB(StatusText) = 0 Then
+            StatusText = dClock
+        End If
+    Case STR_GROUP_ZPL
+        If Not pvZplSendCommand(m_oConnector, m_lCommandTimeout, "~HS", FUNC_NAME, StatusText) Then
+            GetDeviceStatus = ucsFscStaFailed
+            GoTo QH
+        End If
+        vSplit = pvZplReadResponse(m_oConnector, m_lCommandTimeout, FUNC_NAME, StatusText)
+        vSplit = Split(Replace(Replace(Replace(vSplit, pvChr(LNG_STX), vbNullString), pvChr(LNG_ETX), vbNullString), vbCrLf, ","), ",")
+        If UBound(vSplit) < 0 Then
+            GetDeviceStatus = ucsFscStaFailed
+            GoTo QH
+        End If
+        If C_Lng(At(vSplit, 1)) Then
+            StatusText = "Paper out"
+        ElseIf C_Lng(At(vSplit, 2)) Then
+            StatusText = "Paused"
+        ElseIf C_Lng(At(vSplit, 5)) Then
+            StatusText = "Buffer full"
+        ElseIf C_Lng(At(vSplit, 7)) Then
+            StatusText = "Partial format"
+        ElseIf C_Lng(At(vSplit, 9)) Then
+            StatusText = "Corrupt RAM"
+        ElseIf C_Lng(At(vSplit, 10)) Then
+            StatusText = "Under temperature"
+        ElseIf C_Lng(At(vSplit, 11)) Then
+            StatusText = "Over temperature"
+        End If
+        If LenB(StatusText) <> 0 Then
+            GetDeviceStatus = ucsFscStaFailed
+            GoTo QH
+        End If
+    End Select
     GetDeviceStatus = ucsFscStaReady
 QH:
     pvSetLastError vbNullString
@@ -376,13 +440,13 @@ End Function
 
 '= private ===============================================================
 
-Private Function pvRawSendCommand( _
+Private Function pvEpl2SendCommand( _
             oConnector As IDeviceConnector, _
             ByVal lTimeout As Long, _
             Data As String, _
             LogName As String, _
             Optional Error As String) As String
-    Const FUNC_NAME     As String = "pvRawSendCommand"
+    Const FUNC_NAME     As String = "pvEpl2SendCommand"
     Dim dblTimerEx      As Double
     Dim sSend           As String
     Dim baText()        As Byte
@@ -404,7 +468,7 @@ Private Function pvRawSendCommand( _
             Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
             GoTo QH
         End If
-        If LenB(pvRawSendCommand) = 0 Then
+        If LenB(pvEpl2SendCommand) = 0 Then
             If Not oConnector.ReadData(baText, lTimeout) Then
                 Error = oConnector.GetLastError()
                 DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
@@ -420,43 +484,17 @@ Private Function pvRawSendCommand( _
         End If
         sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
         DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
-        pvRawSendCommand = pvRawSendCommand & sBuffer
+        pvEpl2SendCommand = pvEpl2SendCommand & sBuffer
     Loop
 QH:
-    RaiseEvent CommandComplete(Data, pvRawSendCommand)
+    RaiseEvent CommandComplete(Data, pvEpl2SendCommand)
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
-    Const FUNC_NAME     As String = "pvInternal"
-    
-    On Error GoTo EH
-    pvInternal = At(m_uConfig.LocalizedText(ucsFscLciInternalErrors), lIdx)
-    If LenB(pvInternal) = 0 Then
-        pvInternal = At(Split(STR_INTERNAL, "|"), lIdx)
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Private Function pvConnectorError(ByVal lIdx As UcsConnectorErrorsEnum) As String
-    Const FUNC_NAME     As String = "pvConnectorError"
-    
-    On Error GoTo EH
-    pvConnectorError = At(m_uConfig.LocalizedText(ucsFscLciConnectorErrors), lIdx)
-    If LenB(pvConnectorError) = 0 Then
-        pvConnectorError = At(Split(STR_CONNECTOR_ERRORS, "|"), lIdx)
-    End If
-    Exit Function
-EH:
-    RaiseError FUNC_NAME
-End Function
-
-Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
-    Const FUNC_NAME     As String = "pvPrintReceiptEpl2"
+Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
+    Const FUNC_NAME     As String = "pvEpl2PrintReceipt"
     Dim vSplit          As Variant
     Dim lCopies         As Long
     Dim oTemplate       As Object
@@ -538,10 +576,6 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     End If
                 Next
             End If
-        Case ucsRowInit
-        Case ucsRowPlu
-        Case ucsRowDiscount
-        Case ucsRowBarcode
         Case ucsRowPayment
             If .PmtType = 0 Then
                 '--- render form
@@ -557,7 +591,7 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 cOutput.Add vbNullString
                 sText = ConcatCollection(cOutput, vbCrLf)
                 For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
-                    sResult = pvRawSendCommand(m_oConnector, m_lCommandTimeout, sText, FUNC_NAME, sError)
+                    sResult = pvEpl2SendCommand(m_oConnector, m_lCommandTimeout, sText, FUNC_NAME, sError)
                     If InStr(sResult, pvChr(LNG_NACK)) = 0 Then
                         Exit For
                     End If
@@ -574,7 +608,7 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 cOutput.Add vbNullString
                 sText = ConcatCollection(cOutput, vbCrLf)
                 For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
-                    sResult = pvRawSendCommand(m_oConnector, (m_lCommandTimeout + lCopies * m_lCommandTimeout) \ 2, sText, FUNC_NAME, sError)
+                    sResult = pvEpl2SendCommand(m_oConnector, (m_lCommandTimeout + lCopies * m_lCommandTimeout) \ 2, sText, FUNC_NAME, sError)
                     If InStr(sResult, pvChr(LNG_ACK)) > 0 Then
                         Exit For
                     End If
@@ -595,27 +629,23 @@ Private Function pvPrintReceiptEpl2(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                         End If
                     End If
                 Next
+                uCtx.ReceiptNo = "N/A"
+                uCtx.ReceiptDate = GetCurrentNow
             End If
         End Select
         End With
         uCtx.Row = uCtx.Row + 1
     Loop
     '--- success
-    pvPrintReceiptEpl2 = True
+    pvEpl2PrintReceipt = True
 QH:
     Exit Function
 EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvPrintReceiptEscPos(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
-    #If uCtx And uRow And lRowCount Then '--- touch args
-    #End If
-    Err.Raise vbObjectError, , pvInternal(ucsErrNotImplemented)
-End Function
-
-Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Variant
-    Const FUNC_NAME     As String = "pvRawGetDeviceInfo"
+Private Function pvEpl2GetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Variant
+    Const FUNC_NAME     As String = "pvEpl2GetDeviceInfo"
     Dim sCmd            As String
     Dim baBuffer()      As Byte
     Dim sReply          As String
@@ -626,15 +656,15 @@ Private Function pvRawGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeo
         If oConnector.ReadData(baBuffer, lTimeout) Then
             sReply = FromMultiByte(baBuffer, m_uConfig.CodePage)
             If InStr(sReply, pvChr(LNG_NACK)) > 0 Then
-                pvRawGetDeviceInfo = Array(m_uConfig.ModelGroup)
+                pvEpl2GetDeviceInfo = Array(m_uConfig.ModelGroup)
             ElseIf InStr(sReply, vbCrLf) Then
-                pvRawGetDeviceInfo = Split(sReply, vbCrLf)
+                pvEpl2GetDeviceInfo = Split(sReply, vbCrLf)
             Else
-                pvRawGetDeviceInfo = Split(sReply, vbLf)
+                pvEpl2GetDeviceInfo = Split(sReply, vbLf)
             End If
         Else
             Error = oConnector.GetLastError
-            pvRawGetDeviceInfo = Array(m_uConfig.ModelGroup)
+            pvEpl2GetDeviceInfo = Array(m_uConfig.ModelGroup)
         End If
     Else
         Error = oConnector.GetLastError
@@ -644,8 +674,8 @@ EH:
     RaiseError FUNC_NAME
 End Function
 
-Private Function pvRawGetClock(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Date
-    Const FUNC_NAME     As String = "pvRawGetClock"
+Private Function pvEpl2GetClock(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Date
+    Const FUNC_NAME     As String = "pvEpl2GetClock"
     Dim sCmd            As String
     Dim baBuffer()      As Byte
     
@@ -653,12 +683,217 @@ Private Function pvRawGetClock(oConnector As IDeviceConnector, ByVal lTimeout As
     sCmd = vbCrLf & "TI" & vbCrLf                           '--- TI Command - Clock Inquiry
     If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
         If oConnector.ReadData(baBuffer, lTimeout) Then
-            pvRawGetClock = ParseExtendedDate(Replace(FromMultiByte(baBuffer, m_uConfig.CodePage), pvChr(LNG_NACK), vbNullString))
+            pvEpl2GetClock = ParseExtendedDate(Replace(FromMultiByte(baBuffer, m_uConfig.CodePage), pvChr(LNG_NACK), vbNullString))
         Else
             Error = m_oConnector.GetLastError
         End If
     Else
         Error = m_oConnector.GetLastError
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvEscPosPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
+    #If uCtx And uRow And lRowCount Then '--- touch args
+    #End If
+    Err.Raise vbObjectError, , pvInternal(ucsErrNotImplemented)
+End Function
+
+Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
+    Const FUNC_NAME     As String = "pvEpl2PrintReceipt"
+    Const DEF_PAGE      As Long = 1
+    Const DEF_COPIES    As Long = 1
+    Dim vSplit          As Variant
+    Dim cOutput         As Collection
+    Dim sName           As String
+    Dim sText           As String
+    Dim sFormName       As String
+    Dim oConfig         As Object
+    Dim baData()        As Byte
+    Dim lDpmm           As Long
+    Dim hImg            As Long
+    Dim lTargetWidth    As Long
+    Dim lIdx            As Long
+    Dim sError          As String
+    
+    On Error GoTo EH
+    Do While uCtx.Row < lRowCount
+        With uRow(uCtx.Row)
+        Select Case .RowType
+        Case ucsRowLine
+            vSplit = Split(.LineText, "=", Limit:=2)
+            sName = At(vSplit, 0)
+            sText = Replace(At(vSplit, 1), "^p", vbCrLf)
+            If LenB(sFormName) = 0 Then
+                sFormName = sName
+                JsonValue(oConfig, "DPI") = m_uConfig.DPI
+                JsonValue(oConfig, "PaperWidth") = m_uConfig.PaperWidth
+                JsonValue(oConfig, "TopMargin") = m_uConfig.TopMargin
+                JsonValue(oConfig, "LeftMargin") = m_uConfig.LeftMargin
+                JsonValue(oConfig, "RightMargin") = m_uConfig.RightMargin
+            End If
+            JsonValue(oConfig, sName) = sText
+        Case ucsRowPayment
+            If .PmtType = 0 And LenB(sFormName) <> 0 Then
+                '--- load and convert image
+                baData = FromBase64Array(JsonValue(oConfig, sFormName))
+                lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                lTargetWidth = C_Lng(JsonValue(oConfig, "TargetWidth"))
+                If lTargetWidth = 0 Then
+                    lTargetWidth = Int((C_Val(JsonValue(oConfig, "PaperWidth")) - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
+                End If
+                If LCase$(sFormName) = "pdf" Then
+                    hImg = LoadPdfPageToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), _
+                        TargetHeight:=Clamp(C_Lng(JsonValue(oConfig, "TargetHeight")), 0), _
+                        PdfPage:=Znl(C_Lng(JsonValue(oConfig, "Page")), DEF_PAGE) - 1, _
+                        PdfRotation:=C_Lng(JsonValue(oConfig, "Rotation")), _
+                        PdfFlags:=C_Lng(JsonValue(oConfig, "Flags")))
+                    If hImg = 0 Then
+                        On Error GoTo EH
+                        Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadPdf), GetImageConvertLastError())
+                    End If
+                Else
+                    hImg = LoadPngToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), TargetHeight:=Clamp(C_Lng(JsonValue(oConfig, "TargetHeight")), 0))
+                    If hImg = 0 Then
+                        On Error GoTo EH
+                        Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadImage), GetImageConvertLastError())
+                    End If
+                End If
+                hImg = ConvertBitmapToMonochrome(hImg)
+                If hImg = 0 Then
+                    On Error GoTo EH
+                    Err.Raise vbObjectError, , GetImageConvertLastError()
+                End If
+                sText = ConvertBitmapToZplGraphics(hImg)
+                If LenB(sText) = 0 Then
+                    On Error GoTo EH
+                    Err.Raise vbObjectError, , GetImageConvertLastError()
+                End If
+                hImg = 0
+                '--- render form
+                Set cOutput = New Collection
+                cOutput.Add "^XA"                                   '--- ^XA Command - Start Format
+                                                                    '--- ^FO Command - Field Origin
+                cOutput.Add "^FO" & Int(C_Val(JsonValue(oConfig, "LeftMargin")) * lDpmm + 0.5) & "," & Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5)
+                cOutput.Add "^GF" & sText                           '--- ^GF Command - Graphic Field
+                cOutput.Add "^FS"                                   '--- ^FS Command - Field Separator
+                                                                    '--- ^PQ Command - Print Quantity
+                cOutput.Add "^PQ" & Znl(C_Lng(JsonValue(oConfig, "Copies")), DEF_COPIES) & ",0,1,Y"
+                cOutput.Add "^XZ"                                   '--- ^XZ Command - End Format
+                sText = ConcatCollection(cOutput, vbCrLf)
+                For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
+                    If pvZplSendCommand(m_oConnector, m_lCommandTimeout, sText, FUNC_NAME, sError) Then
+                        Exit For
+                    End If
+                    If lIdx = m_uConfig.RetryCount Then
+                        If LenB(sError) <> 0 Then
+                            m_uPrintData.LastError = sError
+                            GoTo QH
+                        End If
+                    End If
+                Next
+                uCtx.ReceiptNo = "N/A"
+                uCtx.ReceiptDate = GetCurrentNow
+            End If
+        End Select
+        End With
+        uCtx.Row = uCtx.Row + 1
+    Loop
+    '--- success
+    pvZplPrintReceipt = True
+QH:
+    Exit Function
+EH:
+    If hImg <> 0 Then
+        Call GdipDisposeImage(hImg)
+    End If
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvZplSendCommand( _
+            oConnector As IDeviceConnector, _
+            ByVal lTimeout As Long, _
+            Data As String, _
+            LogName As String, _
+            Optional Error As String) As Boolean
+    Const FUNC_NAME     As String = "pvZplSendCommand"
+    Dim dblTimerEx      As Double
+    Dim sSend           As String
+    Dim baText()        As Byte
+    
+    On Error GoTo EH
+    dblTimerEx = TimerEx
+    sSend = Data
+    DebugDataDump Zn(LogName, FUNC_NAME), "[SEND ] ", sSend
+    baText = ToMultiByte(sSend, m_uConfig.CodePage)
+    If Not oConnector.WriteData(baText, lTimeout) Then
+        Error = oConnector.GetLastError()
+        DebugLog Zn(LogName, FUNC_NAME), "WriteData failed, Error=" & Error
+        GoTo QH
+    End If
+    '--- success
+    pvZplSendCommand = True
+QH:
+    RaiseEvent CommandComplete(Data, vbNullString)
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvZplReadResponse( _
+            oConnector As IDeviceConnector, _
+            ByVal lTimeout As Long, _
+            LogName As String, _
+            Optional Error As String) As String
+    Const FUNC_NAME     As String = "pvZplReadResponse"
+    Dim dblTimerEx      As Double
+    Dim baText()        As Byte
+    Dim sBuffer         As String
+    
+    On Error GoTo EH
+    dblTimerEx = TimerEx
+    Do
+        If TimerEx > dblTimerEx + lTimeout / 1000# Then
+            Error = pvConnectorError(ucsErrTimeoutWaitingForResponse)
+            GoTo QH
+        End If
+        If Not oConnector.ReadData(baText, lTimeout) Then
+            Error = oConnector.GetLastError()
+            DebugLog Zn(LogName, FUNC_NAME), "ReadData failed, Error=" & Error
+            GoTo QH
+        End If
+        sBuffer = FromMultiByte(baText, m_uConfig.CodePage)
+        DebugDataDump Zn(LogName, FUNC_NAME), "[RECV ] ", sBuffer
+        pvZplReadResponse = pvZplReadResponse & sBuffer
+    Loop While Right$(sBuffer, 3) <> pvChr(LNG_ETX) & vbCrLf
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
+    Const FUNC_NAME     As String = "pvInternal"
+    
+    On Error GoTo EH
+    pvInternal = At(m_uConfig.LocalizedText(ucsFscLciInternalErrors), lIdx)
+    If LenB(pvInternal) = 0 Then
+        pvInternal = At(Split(STR_INTERNAL, "|"), lIdx)
+    End If
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvConnectorError(ByVal lIdx As UcsConnectorErrorsEnum) As String
+    Const FUNC_NAME     As String = "pvConnectorError"
+    
+    On Error GoTo EH
+    pvConnectorError = At(m_uConfig.LocalizedText(ucsFscLciConnectorErrors), lIdx)
+    If LenB(pvConnectorError) = 0 Then
+        pvConnectorError = At(Split(STR_CONNECTOR_ERRORS, "|"), lIdx)
     End If
     Exit Function
 EH:
@@ -747,9 +982,11 @@ Private Function IDeviceProtocol_PrintReceipt(Optional ResumeToken As String, Op
     If PpdEndReceipt(m_uPrintData, ResumeToken) Then
         Select Case m_uConfig.ModelGroup
         Case STR_GROUP_EPL2
-            IDeviceProtocol_PrintReceipt = pvPrintReceiptEpl2(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+            IDeviceProtocol_PrintReceipt = pvEpl2PrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
         Case STR_GROUP_ESCPOS
-            IDeviceProtocol_PrintReceipt = pvPrintReceiptEscPos(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+            IDeviceProtocol_PrintReceipt = pvEscPosPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
+        Case STR_GROUP_ZPL
+            IDeviceProtocol_PrintReceipt = pvZplPrintReceipt(m_uPrintData.ExecCtx, m_uPrintData.Row, m_uPrintData.RowCount)
         End Select
         With m_uPrintData.ExecCtx
             ReceiptNo = .ReceiptNo

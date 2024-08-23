@@ -390,7 +390,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFPHub (c) 2019-2022 by Unicontsoft
+' UcsFPHub (c) 2019-2024 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Hub
 '
@@ -739,14 +739,14 @@ Private Function pvLoadPrinters() As Boolean
     Set oForm = MainForm
     vSplit = Split(T(LANG_HEADER_PRINTERS), "|")
     lstPrinters.Clear
-    lstPrinters.AddItem pvPad(At(vSplit, 0), 23) & vbTab & pvPad(At(vSplit, 1), 15) & vbTab & pvPad(At(vSplit, 2), 15) & vbTab & _
-        pvPad(At(vSplit, 3), 23) & vbTab & At(vSplit, 4)
+    lstPrinters.AddItem pvPad(At(vSplit, 0), 31) & vbTab & pvPad(At(vSplit, 1), 23) & vbTab & pvPad(At(vSplit, 2), 15) & vbTab & _
+        pvPad(At(vSplit, 3), 15) & vbTab & At(vSplit, 4)
     For Each vKey In JsonValue(oForm.Printers, "*/DeviceSerialNo")
         If LenB(vKey) <> 0 Then
-            lstPrinters.AddItem pvPad(vKey, 23) & vbTab & _
-                pvPad(JsonValue(oForm.Printers, vKey & "/DevicePort"), 15) & vbTab & _
+            lstPrinters.AddItem pvPad(vKey, 31) & vbTab & _
+                pvPad(JsonValue(oForm.Printers, vKey & "/DevicePort"), 23) & vbTab & _
                 pvPad(JsonValue(oForm.Printers, vKey & "/DeviceHost"), 15) & vbTab & _
-                pvPad(JsonValue(oForm.Printers, vKey & "/DeviceModel"), 23) & vbTab & _
+                pvPad(JsonValue(oForm.Printers, vKey & "/DeviceModel"), 15) & vbTab & _
                 JsonValue(oForm.Printers, vKey & "/FirmwareVersion")
         End If
     Next
