@@ -83,10 +83,11 @@ Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_RETRYCOUNT            As Long = 3
 Private Const DEF_CHARACTERSET          As Long = 6     '-- cp1251 on LP-50
 Private Const DEF_DPI                   As Long = 203
-Private Const DEF_PAPERWIDTH            As Double = 108 '-- mm
+Private Const DEF_DEVICEWIDTH           As Double = 108 '-- mm
+Private Const DEF_PAPERWIDTH            As Double = DEF_DEVICEWIDTH - 8 '-- mm
 Private Const DEF_TOPMARGIN             As Double = 0   '-- mm
-Private Const DEF_LEFTMARGIN            As Double = 3   '-- mm
-Private Const DEF_RIGHTMARGIN           As Double = 3   '-- mm
+Private Const DEF_LEFTMARGIN            As Double = 0   '-- mm
+Private Const DEF_RIGHTMARGIN           As Double = 0   '-- mm
 Private Const STR_GROUP_EPL2            As String = "EPL-2"
 Private Const STR_GROUP_ESCPOS          As String = "ESC/POS"
 Private Const STR_GROUP_ZPL             As String = "ZPL"
@@ -126,6 +127,7 @@ Private Type UcsConfigValues
     DeviceSerialNo      As String
     CharacterSet        As Long
     DPI                 As Long
+    DeviceWidth         As Double
     PaperWidth          As Double
     TopMargin           As Double
     LeftMargin          As Double
@@ -311,6 +313,7 @@ Public Function Init(sDeviceString As String) As Boolean
             .CharacterSet = DEF_CHARACTERSET
         End If
         .DPI = Znl(C_Lng(JsonValue(oOptions, "DPI")), DEF_DPI)
+        .DeviceWidth = Zndbl(C_Dbl(JsonValue(oOptions, "DeviceWidth")), DEF_DEVICEWIDTH)
         .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), DEF_PAPERWIDTH)
         .TopMargin = Zndbl(C_Dbl(JsonValue(oOptions, "TopMargin")), DEF_TOPMARGIN)
         .LeftMargin = Zndbl(C_Dbl(JsonValue(oOptions, "LeftMargin")), DEF_LEFTMARGIN)
@@ -715,6 +718,7 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
     Dim lDpmm           As Long
     Dim hImg            As Long
     Dim lTargetWidth    As Long
+    Dim lLeftMargin     As Long
     Dim lIdx            As Long
     Dim sError          As String
     
@@ -729,6 +733,7 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
             If LenB(sFormName) = 0 Then
                 sFormName = sName
                 JsonValue(oConfig, "DPI") = m_uConfig.DPI
+                JsonValue(oConfig, "DeviceWidth") = m_uConfig.DeviceWidth
                 JsonValue(oConfig, "PaperWidth") = m_uConfig.PaperWidth
                 JsonValue(oConfig, "TopMargin") = m_uConfig.TopMargin
                 JsonValue(oConfig, "LeftMargin") = m_uConfig.LeftMargin
@@ -773,10 +778,11 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
                 End If
                 hImg = 0
                 '--- render form
+                lLeftMargin = Int(((C_Val(JsonValue(oConfig, "DeviceWidth")) - C_Val(JsonValue(oConfig, "PaperWidth"))) / 2 + C_Val(JsonValue(oConfig, "LeftMargin"))) * lDpmm + 0.5)
                 Set cOutput = New Collection
                 cOutput.Add "^XA"                                   '--- ^XA Command - Start Format
                                                                     '--- ^FO Command - Field Origin
-                cOutput.Add "^FO" & Int(C_Val(JsonValue(oConfig, "LeftMargin")) * lDpmm + 0.5) & "," & Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5)
+                cOutput.Add "^FO" & Clamp(lLeftMargin, 0) & "," & Clamp(Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5), 0)
                 cOutput.Add "^GF" & sText                           '--- ^GF Command - Graphic Field
                 cOutput.Add "^FS"                                   '--- ^FS Command - Field Separator
                                                                     '--- ^PQ Command - Print Quantity

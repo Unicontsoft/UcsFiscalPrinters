@@ -1739,17 +1739,15 @@ Public Function GetErrorComputerName(Optional ByVal NoSession As Boolean) As Str
     End If
 End Function
 
-Public Function ToHex(baText() As Byte, Optional Delimiter As String) As String
-    Dim aText()         As String
+Public Function ToHex(baData() As Byte) As String
     Dim lIdx            As Long
+    Dim sByte           As String
     
-    If LenB(CStr(baText)) <> 0 Then
-        ReDim aText(0 To UBound(baText)) As String
-        For lIdx = 0 To UBound(baText)
-            aText(lIdx) = Right$("0" & Hex$(baText(lIdx)), 2)
-        Next
-        ToHex = LCase$(Join(aText, Delimiter))
-    End If
+    ToHex = String$(UBound(baData) * 2 + 2, 48)
+    For lIdx = 0 To UBound(baData)
+        sByte = LCase$(Hex$(baData(lIdx)))
+        Mid$(ToHex, lIdx * 2 + 3 - Len(sByte)) = sByte
+    Next
 End Function
 
 Public Function FromBase64Array(sText As String) As Byte()
