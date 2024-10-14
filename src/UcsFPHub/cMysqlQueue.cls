@@ -69,7 +69,7 @@ Private m_sLastError                As String
 Private m_sSqlInstance              As String
 Private m_sSqlDatabase              As String
 Private m_lSqlProcessID             As Long
-Private m_pRecordset                As Recordset
+Private m_pRecordset                As ADODB.Recordset
 
 '=========================================================================
 ' Error handling

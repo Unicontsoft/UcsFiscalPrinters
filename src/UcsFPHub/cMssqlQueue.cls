@@ -27,6 +27,12 @@ Private Const MODULE_NAME As String = "cMssqlQueue"
 Implements IQueue
 
 '=========================================================================
+' API
+'=========================================================================
+
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
+'=========================================================================
 ' Constants and member variables
 '=========================================================================
 
@@ -51,6 +57,7 @@ Private Const ERR_FORCIBLY_CLOSED       As String = "*existing connection was fo
 '--- numeric
 Private Const ERR_DB_E_NOTABLE          As Long = &H80040E37
 Private Const LNG_QUEUE_FIELDS          As Long = 6
+Private Const LNG_PING_TIMEOUT          As Long = 5
 
 Private m_pTimeoutTimer             As IUnknown
 Attribute m_pTimeoutTimer.VB_VarHelpID = -1
@@ -197,8 +204,26 @@ EH:
 End Function
 
 Private Function pvIsConnAlive(cn As ADODB.Connection, Optional lSqlProcessID As Long) As Boolean
+    Const FUNC_NAME     As String = "pvIsConnAlive"
+    Dim dblTimer        As Double
+    Dim bAsyncExec      As Boolean
+    
     On Error GoTo QH
-    With cn.Execute("SELECT @@SERVERNAME, DB_NAME(), @@SPID", Options:=adCmdText)
+    If cn Is Nothing Then
+        GoTo QH
+    End If
+    dblTimer = TimerEx
+    bAsyncExec = (cn.State And adStateExecuting) = 0
+    With cn.Execute("SELECT @@SERVERNAME, DB_NAME(), @@SPID", Options:=adCmdText Or IIf(bAsyncExec, adAsyncExecute, 0))
+        If bAsyncExec Then
+            Do While (.State And adStateExecuting) <> 0
+                If TimerEx > dblTimer + LNG_PING_TIMEOUT Then
+                    DebugLog MODULE_NAME, FUNC_NAME, "Timeout after " & Format$(TimerEx - dblTimer, FORMAT_BASE_3), vbLogEventTypeDebug
+                    GoTo QH
+                End If
+                Call Sleep(1)
+            Loop
+        End If
         m_sSqlInstance = .Fields.Item(0).Value
         m_sSqlDatabase = .Fields.Item(1).Value
         lSqlProcessID = .Fields.Item(2).Value
@@ -274,7 +299,7 @@ Private Function pvPrepareServiceBrokerSendCommand( _
             .Parameters("Handle").Value = Handle
         End If
         Set .ActiveConnection = cn
-        .CommandTimeout = 3
+        .CommandTimeout = LNG_PING_TIMEOUT
     End With
     Exit Function
 EH:
@@ -283,18 +308,26 @@ End Function
 
 Public Function TimerProc() As Long
     Const FUNC_NAME     As String = "TimerProc"
+    Dim bRelease        As Boolean
     Dim oCtrlConn       As Object
     Dim oRecvConn       As Object
     
     On Error GoTo EH
-    If Not m_oCtrlConn Is Nothing Then
-        If pvIsQueueAlive(m_oCtrlConn) Then
-            GoTo QH
-        End If
+    If Not pvIsConnAlive(m_oCtrlConn) Then
+        bRelease = True
+    ElseIf Not pvIsQueueAlive(m_oCtrlConn) Then
+        bRelease = False
+    Else
+        GoTo QH
     End If
     '--- if heart-beat timer is reached -> bad things must have happened to connection so re-open it
     DebugLog MODULE_NAME, FUNC_NAME, Printf(T(LANG_QUEUE_HEARTBEAT), m_sQueueName, (m_lQueueTimeout) / 1000)
-    If Not pvQueueTerminate() Then
+    If Not bRelease Then
+        If Not pvQueueTerminate() Then
+            bRelease = True
+        End If
+    End If
+    If bRelease Then
         m_oCallback.frReleaseConn
         Set m_oCtrlConn = Nothing
         Set m_oRecvConn = Nothing
