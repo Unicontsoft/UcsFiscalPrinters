@@ -593,12 +593,15 @@ Private Function pvMakeSshTunnel( _
     lMaxAttempts = DEF_MAXATTEMPTS
     bAcceptKeys = True
     sExeFile = GetEnvironmentVar("_UCS_SSH_PLINK")
-    If LenB(sExeFile) = 0 Then
-        sExeFile = LocateFile(PathCombine(App.Path, "plink.exe"))
-    End If
-    If LenB(sExeFile) = 0 And OsVersion >= ucsOsvWin10 Then
-        sExeFile = LocateFile(GetEnvironmentVar("WinDir") & "\SysNative\OpenSSH\ssh.exe")
-        bOpenSsh = True
+    If LCase$(Right$(sKeyFile, 4)) <> ".pem" Then
+        If LenB(sExeFile) = 0 Then
+            sExeFile = LocateFile(PathCombine(App.Path, "plink.exe"))
+        End If
+    Else
+        If LenB(sExeFile) = 0 And OsVersion >= ucsOsvWin10 And LenB(sKeyFile) <> 0 Then
+            sExeFile = LocateFile(GetEnvironmentVar("WinDir") & "\SysNative\OpenSSH\ssh.exe")
+            bOpenSsh = LenB(sExeFile) <> 0
+        End If
     End If
     '--- check exe exists
     If FileExists(sExeFile) Then
