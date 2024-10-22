@@ -704,8 +704,6 @@ Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
             Else
                 AssignVariant JsonValue, vItem
             End If
-        ElseIf C_Str(vKey) = "0" Then
-            '--- do nothing & continue
         Else
             If LenB(vKey) = 0 Then
                 Set JsonValue = oParam
