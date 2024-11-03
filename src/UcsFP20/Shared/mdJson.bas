@@ -678,10 +678,9 @@ Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
     If oJson Is Nothing Then
         GoTo ReturnEmpty
     End If
-    If LenB(sKey) = 0 Then
+    vSplit = pvSplitKey(sKey)
+    If UBound(vSplit) < 0 Then
         vSplit = Array(vbNullString)
-    Else
-        vSplit = pvSplitKey(sKey)
     End If
     Set oParam = oJson
     For lIdx = 0 To UBound(vSplit)
@@ -768,10 +767,9 @@ Public Property Let JsonValue(oJson As Object, ByVal sKey As String, vValue As V
     #End If
 
     On Error GoTo EH
-    If LenB(sKey) = 0 Then
+    vSplit = pvSplitKey(sKey)
+    If UBound(vSplit) < 0 Then
         vSplit = Array(vbNullString)
-    Else
-        vSplit = pvSplitKey(sKey)
     End If
     If oJson Is Nothing Then
         If UBound(vSplit) < 0 Then
