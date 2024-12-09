@@ -83,8 +83,10 @@ Private Const DEF_MAX_ITEM_LINES        As Long = 2
 Private Const DEF_RETRYCOUNT            As Long = 3
 Private Const DEF_CHARACTERSET          As Long = 6     '-- cp1251 on LP-50
 Private Const DEF_DPI                   As Long = 203
-Private Const DEF_DEVICEWIDTH           As Double = 108 '-- mm
-Private Const DEF_PAPERWIDTH            As Double = DEF_DEVICEWIDTH - 8 '-- mm
+Private Const DEF_DEVICEWIDTH_ZPL       As Double = 108 '-- mm
+Private Const DEF_PAPERWIDTH_ZPL        As Double = DEF_DEVICEWIDTH_ZPL - 8 '-- mm
+Private Const DEF_DEVICEWIDTH_EPL2      As Double = 57 '-- mm
+Private Const DEF_PAPERWIDTH_EPL2       As Double = DEF_DEVICEWIDTH_EPL2 - 8 '-- mm
 Private Const DEF_TOPMARGIN             As Double = 0   '-- mm
 Private Const DEF_LEFTMARGIN            As Double = 0   '-- mm
 Private Const DEF_RIGHTMARGIN           As Double = 0   '-- mm
@@ -313,8 +315,8 @@ Public Function Init(sDeviceString As String) As Boolean
             .CharacterSet = DEF_CHARACTERSET
         End If
         .DPI = Znl(C_Lng(JsonValue(oOptions, "DPI")), DEF_DPI)
-        .DeviceWidth = Zndbl(C_Dbl(JsonValue(oOptions, "DeviceWidth")), DEF_DEVICEWIDTH)
-        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), DEF_PAPERWIDTH)
+        .DeviceWidth = Zndbl(C_Dbl(JsonValue(oOptions, "DeviceWidth")), IIf(.ModelGroup = STR_GROUP_ZPL, DEF_DEVICEWIDTH_ZPL, DEF_DEVICEWIDTH_EPL2))
+        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), IIf(.ModelGroup = STR_GROUP_ZPL, DEF_PAPERWIDTH_ZPL, DEF_PAPERWIDTH_EPL2))
         .TopMargin = Zndbl(C_Dbl(JsonValue(oOptions, "TopMargin")), DEF_TOPMARGIN)
         .LeftMargin = Zndbl(C_Dbl(JsonValue(oOptions, "LeftMargin")), DEF_LEFTMARGIN)
         .RightMargin = Zndbl(C_Dbl(JsonValue(oOptions, "RightMargin")), DEF_RIGHTMARGIN)
@@ -498,6 +500,8 @@ End Function
 
 Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
     Const FUNC_NAME     As String = "pvEpl2PrintReceipt"
+    Const DEF_PAGE      As Long = 1
+    Const DEF_COPIES    As Long = 1
     Dim vSplit          As Variant
     Dim lCopies         As Long
     Dim oTemplate       As Object
@@ -517,6 +521,11 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
     Dim oItem           As Object
     Dim lTop            As Long
     Dim sFormName       As String
+    Dim oConfig         As Object
+    Dim baData()        As Byte
+    Dim lDpmm           As Long
+    Dim hImg            As Long
+    Dim lTargetWidth    As Long
     
     On Error GoTo EH
     Do While uCtx.Row < lRowCount
@@ -526,7 +535,18 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
             vSplit = Split(.LineText, "=", Limit:=2)
             sName = At(vSplit, 0)
             sText = Replace(At(vSplit, 1), "^p", vbCrLf)
-            If oTemplate Is Nothing Then
+            If LCase$(sName) = "pdf" Or LCase$(sName) = "png" Or LCase$(sFormName) = "pdf" Or LCase$(sFormName) = "png" Then
+                If LenB(sFormName) = 0 Then
+                    sFormName = sName
+                    JsonValue(oConfig, "DPI") = m_uConfig.DPI
+                    JsonValue(oConfig, "DeviceWidth") = m_uConfig.DeviceWidth
+                    JsonValue(oConfig, "PaperWidth") = m_uConfig.PaperWidth
+                    JsonValue(oConfig, "TopMargin") = m_uConfig.TopMargin
+                    JsonValue(oConfig, "LeftMargin") = m_uConfig.LeftMargin
+                    JsonValue(oConfig, "RightMargin") = m_uConfig.RightMargin
+                End If
+                JsonValue(oConfig, sName) = sText
+            ElseIf oTemplate Is Nothing Then
                 vSplit = Split(sText, ",")
                 lCopies = Znl(C_Lng(At(vSplit, 0)), 1)
                 Set oTemplate = C_Obj(JsonValue(m_uConfig.Templates, sName))
@@ -580,19 +600,59 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 Next
             End If
         Case ucsRowPayment
-            If .PmtType = 0 Then
-                '--- render form
-                Set cOutput = New Collection
-                If m_uConfig.CharacterSet >= 0 Then
-                    cOutput.Add "I" & m_uConfig.CharacterSet        '--- I Command - Character Set Selection
+            If .PmtType = 0 And LenB(sFormName) <> 0 Then
+                If LCase$(sFormName) = "pdf" Or LCase$(sFormName) = "png" Then
+                    '--- load and convert image
+                    baData = FromBase64Array(JsonValue(oConfig, sFormName))
+                    lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                    lTargetWidth = C_Lng(JsonValue(oConfig, "TargetWidth"))
+                    If lTargetWidth = 0 Then
+                        lTargetWidth = Int((C_Val(JsonValue(oConfig, "PaperWidth")) - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
+                    End If
+                    If LCase$(sFormName) = "pdf" Then
+                        hImg = LoadPdfPageToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), _
+                            TargetHeight:=Clamp(C_Lng(JsonValue(oConfig, "TargetHeight")), 0), _
+                            PdfPage:=Znl(C_Lng(JsonValue(oConfig, "Page")), DEF_PAGE) - 1, _
+                            PdfRotation:=C_Lng(JsonValue(oConfig, "Rotation")), _
+                            PdfFlags:=C_Lng(JsonValue(oConfig, "Flags")))
+                        If hImg = 0 Then
+                            On Error GoTo EH
+                            Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadPdf), GetImageConvertLastError())
+                        End If
+                    Else
+                        hImg = LoadPngToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), TargetHeight:=Clamp(C_Lng(JsonValue(oConfig, "TargetHeight")), 0))
+                        If hImg = 0 Then
+                            On Error GoTo EH
+                            Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadImage), GetImageConvertLastError())
+                        End If
+                    End If
+                    hImg = ConvertBitmapToMonochrome(hImg)
+                    If hImg = 0 Then
+                        On Error GoTo EH
+                        Err.Raise vbObjectError, , GetImageConvertLastError()
+                    End If
+                    sText = ConvertBitmapToEpl2Graphics(hImg, Invert:=True, _
+                        LeftMargin:=Int(C_Val(JsonValue(oConfig, "LeftMargin")) * lDpmm + 0.5), _
+                        TopMargin:=Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5))
+                    If LenB(sText) = 0 Then
+                        On Error GoTo EH
+                        Err.Raise vbObjectError, , GetImageConvertLastError()
+                    End If
+                    hImg = 0
+                Else
+                    '--- render form
+                    Set cOutput = New Collection
+                    If m_uConfig.CharacterSet >= 0 Then
+                        cOutput.Add "I" & m_uConfig.CharacterSet        '--- I Command - Character Set Selection
+                    End If
+                    cOutput.Add "FR" & """" & sFormName & """"          '--- FR Command - Retrieve Form
+                    cOutput.Add "?"                                     '--- ? Command - Download Variables
+                    For Each vElem In JsonValue(oCanvas, "*")
+                        cOutput.Add Zn(C_Str(vElem), " ")
+                    Next
+                    cOutput.Add vbNullString
+                    sText = ConcatCollection(cOutput, vbCrLf)
                 End If
-                cOutput.Add "FR" & """" & sFormName & """"          '--- FR Command - Retrieve Form
-                cOutput.Add "?"                                     '--- ? Command - Download Variables
-                For Each vElem In JsonValue(oCanvas, "*")
-                    cOutput.Add Zn(C_Str(vElem), " ")
-                Next
-                cOutput.Add vbNullString
-                sText = ConcatCollection(cOutput, vbCrLf)
                 For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
                     sResult = pvEpl2SendCommand(m_oConnector, m_lCommandTimeout, sText, FUNC_NAME, sError)
                     If InStr(sResult, pvChr(LNG_NACK)) = 0 Then
@@ -607,7 +667,11 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 Next
                 '--- print label set
                 Set cOutput = New Collection
-                cOutput.Add "P" & 1 & "," & lCopies                 '--- P Command - Print
+                If lCopies <> 0 Then
+                    cOutput.Add "P1," & lCopies                         '--- P Command - Print
+                Else
+                    cOutput.Add "P" & Znl(C_Lng(JsonValue(oConfig, "Copies")), DEF_COPIES)
+                End If
                 cOutput.Add vbNullString
                 sText = ConcatCollection(cOutput, vbCrLf)
                 For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
@@ -644,6 +708,9 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
 QH:
     Exit Function
 EH:
+    If hImg <> 0 Then
+        Call GdipDisposeImage(hImg)
+    End If
     RaiseError FUNC_NAME
 End Function
 
@@ -705,7 +772,7 @@ Private Function pvEscPosPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As Uc
 End Function
 
 Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRowData, ByVal lRowCount As Long) As Boolean
-    Const FUNC_NAME     As String = "pvEpl2PrintReceipt"
+    Const FUNC_NAME     As String = "pvZplPrintReceipt"
     Const DEF_PAGE      As Long = 1
     Const DEF_COPIES    As Long = 1
     Dim vSplit          As Variant
@@ -776,7 +843,6 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
                     On Error GoTo EH
                     Err.Raise vbObjectError, , GetImageConvertLastError()
                 End If
-                hImg = 0
                 '--- render form
                 lLeftMargin = Int(((C_Val(JsonValue(oConfig, "DeviceWidth")) - C_Val(JsonValue(oConfig, "PaperWidth"))) / 2 + C_Val(JsonValue(oConfig, "LeftMargin"))) * lDpmm + 0.5)
                 Set cOutput = New Collection
