@@ -396,7 +396,7 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
             On Error GoTo ErrorConvert
             pvJsonParse = Val(sText)
             If sText <> Trim$(Replace(Replace(Str$(pvJsonParse), " .", "0."), "-.", "-0.")) Then
-                pvJsonParse = CDec(sText)
+                Call VariantChangeType(pvJsonParse, sText, 0, vbDecimal)
             End If
             On Error GoTo 0
             .Pos = .Pos + lIdx
@@ -678,9 +678,10 @@ Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
     If oJson Is Nothing Then
         GoTo ReturnEmpty
     End If
-    vSplit = pvSplitKey(sKey)
-    If UBound(vSplit) < 0 Then
+    If LenB(sKey) = 0 Or sKey = "$" Then
         vSplit = Array(vbNullString)
+    Else
+        vSplit = pvSplitKey(sKey)
     End If
     Set oParam = oJson
     For lIdx = 0 To UBound(vSplit)
@@ -767,9 +768,10 @@ Public Property Let JsonValue(oJson As Object, ByVal sKey As String, vValue As V
     #End If
 
     On Error GoTo EH
-    vSplit = pvSplitKey(sKey)
-    If UBound(vSplit) < 0 Then
+    If LenB(sKey) = 0 Or sKey = "$" Then
         vSplit = Array(vbNullString)
+    Else
+        vSplit = pvSplitKey(sKey)
     End If
     If oJson Is Nothing Then
         If UBound(vSplit) < 0 Then

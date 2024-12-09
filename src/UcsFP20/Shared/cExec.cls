@@ -169,7 +169,7 @@ Public Function Run( _
             Optional ByVal StartHidden As Boolean, _
             Optional ByVal StartMinimized As Boolean, _
             Optional ByVal LimitFlags As Long = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, _
-            Optional CurrentDir As String) As Boolean
+            Optional ByVal CurrentDir As String) As Boolean
     Const FUNC_NAME     As String = "Run"
     Dim uProcInfo       As PROCESS_INFORMATION
     Dim uStart          As STARTUPINFO
@@ -335,6 +335,7 @@ Public Function ReadError(ByVal lSize As Long, Optional ByVal TimeoutMs As Long)
                 ReadError = StrConv(baBuffer, vbUnicode, GetSystemDefaultLCID())
             End If
         Else
+            m_sLastError = "Error " & Err.LastDllError
             Call CloseHandle(m_hReadError)
             m_hReadError = 0
         End If
@@ -427,6 +428,7 @@ Public Function ReadOutput(ByVal lSize As Long, Optional ByVal TimeoutMs As Long
                 ReadOutput = StrConv(baBuffer, vbUnicode, GetSystemDefaultLCID())
             End If
         Else
+            m_sLastError = "Error " & Err.LastDllError
             Call CloseHandle(m_hReadOutput)
             m_hReadOutput = 0
         End If
