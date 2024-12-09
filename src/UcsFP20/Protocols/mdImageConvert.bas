@@ -333,14 +333,13 @@ EH:
     Resume QH
 End Function
 
-Public Function ConvertBitmapToZplGraphics(ByVal hImg As Long, Optional ByVal Invert As Boolean) As String
+Public Function ConvertBitmapToZplGraphics(hImg As Long, Optional ByVal Invert As Boolean, Optional RetVal As Collection) As Boolean
     Const FUNC_NAME     As String = "ConvertBitmapToZplGraphics"
     Dim uData           As BitmapData
     Dim baData()        As Byte
     Dim lSize           As Long
     Dim lIdx            As Long
     Dim lStride         As Long
-    Dim cOutput         As Collection
     Dim sApiSource      As String
     
     On Error GoTo EH
@@ -363,18 +362,79 @@ Public Function ConvertBitmapToZplGraphics(ByVal hImg As Long, Optional ByVal In
             baData(lIdx) = baData(lIdx) Xor &HFF
         Next
     End If
-    Set cOutput = New Collection
-    cOutput.Add "A," & lSize & "," & lSize & "," & lStride & ","
-    If Not pvToCompressedHex(baData, lStride, cOutput) Then
+    If RetVal Is Nothing Then
+        Set RetVal = New Collection
+    End If
+    RetVal.Add "^GFA," & lSize & "," & lSize & "," & lStride & ","      '--- ^GF Command - Graphic Field
+    If Not pvToCompressedHex(baData, lStride, RetVal) Then
         GoTo QH
     End If
-    ConvertBitmapToZplGraphics = ConcatCollection(cOutput, vbNullString)
+    RetVal.Add vbCrLf
+    '--- success
+    ConvertBitmapToZplGraphics = True
 QH:
     If uData.Scan0 <> 0 Then
         Call GdipBitmapUnlockBits(hImg, uData)
     End If
     If hImg <> 0 Then
         Call GdipDisposeImage(hImg)
+        hImg = 0
+    End If
+    If LenB(sApiSource) <> 0 Then
+        m_sLastError = m_sLastError & " [" & FUNC_NAME & "." & sApiSource & "]"
+    End If
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume QH
+End Function
+
+Public Function ConvertBitmapToEpl2Graphics(hImg As Long, Optional ByVal Invert As Boolean, Optional ByVal LeftMargin As Long, Optional ByVal TopMargin As Long, Optional RetVal As Collection) As Boolean
+    Const FUNC_NAME     As String = "ConvertBitmapToEpl2Graphics"
+    Dim uData           As BitmapData
+    Dim baData()        As Byte
+    Dim lSize           As Long
+    Dim lIdx            As Long
+    Dim lStride         As Long
+    Dim sApiSource      As String
+    
+    On Error GoTo EH
+    pvInit
+    If pvCheckGdipError(GdipBitmapLockBits(hImg, ByVal 0, ImageLockModeRead, PixelFormat1bppIndexed, uData)) Then
+        sApiSource = "GdipBitmapLockBits"
+        GoTo QH
+    End If
+    lStride = (uData.Width + 7) \ 8
+    If uData.Stride < lStride Then
+        lStride = uData.Stride
+    End If
+    lSize = lStride * uData.Height
+    ReDim baData(0 To lSize - 1) As Byte
+    For lIdx = 0 To uData.Height - 1
+        Call CopyMemory(baData(lIdx * lStride), ByVal uData.Scan0 + lIdx * uData.Stride, lStride)
+    Next
+    If Invert Then
+        For lIdx = 0 To UBound(baData)
+            baData(lIdx) = baData(lIdx) Xor &HFF
+        Next
+    End If
+    If RetVal Is Nothing Then
+        Set RetVal = New Collection
+    End If
+    RetVal.Add "q" & uData.Width & vbCrLf                               '--- q Command - Set Label Width
+                                                                        '--- GW Command - Direct Graphic Write
+    RetVal.Add "GW" & LeftMargin & "," & TopMargin & "," & lStride & "," & uData.Height & ","
+    RetVal.Add StrConv(baData, vbUnicode)
+    RetVal.Add vbCrLf
+    '--- success
+    ConvertBitmapToEpl2Graphics = True
+QH:
+    If uData.Scan0 <> 0 Then
+        Call GdipBitmapUnlockBits(hImg, uData)
+    End If
+    If hImg <> 0 Then
+        Call GdipDisposeImage(hImg)
+        hImg = 0
     End If
     If LenB(sApiSource) <> 0 Then
         m_sLastError = m_sLastError & " [" & FUNC_NAME & "." & sApiSource & "]"
