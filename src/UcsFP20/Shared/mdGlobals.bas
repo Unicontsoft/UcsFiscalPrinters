@@ -1454,8 +1454,12 @@ Public Function ToConnectorDevice( _
                             If LenB(JsonValue(oOptions, "Speed")) = 0 Then
                                 JsonValue(oOptions, "Speed") = Zn(Trim$(At(vElem, 1)), Empty)
                             End If
-                            JsonValue(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
-                            JsonValue(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
+                            If LenB(JsonValue(oOptions, "DeviceSerialNo")) = 0 Then
+                                JsonValue(oOptions, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
+                            End If
+                            If LenB(JsonValue(oOptions, "FiscalMemoryNo")) = 0 Then
+                                JsonValue(oOptions, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
+                            End If
                             Exit For
                         End If
                     End If
