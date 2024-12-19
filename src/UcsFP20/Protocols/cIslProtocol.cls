@@ -2357,7 +2357,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
                         dblTotal = C_Dbl(At(vSplit, ucsFscPmtCash))
                     End If
-                    If Abs(dblTotal) > DBL_EPSILON Then
+                    If dblTotal > DBL_EPSILON Then
                         PrintServiceDeposit .InitOperatorCode, -dblTotal
                         If LenB(m_uPrintData.LastError) <> 0 Then
                             GoTo QH
@@ -2367,7 +2367,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 Else
                     vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
                     dblTotal = C_Dbl(At(vSplit, 0)) - IIf(.InitRevData(ucsRevReceiptDate) > dLastDate, C_Dbl(At(vSplit, ucsFscPmtCash)), 0)
-                    If Abs(dblTotal) > DBL_EPSILON Then
+                    If dblTotal > DBL_EPSILON Then
                         PrintServiceDeposit .InitOperatorCode, dblTotal
                         If LenB(m_uPrintData.LastError) <> 0 Then
                             GoTo QH

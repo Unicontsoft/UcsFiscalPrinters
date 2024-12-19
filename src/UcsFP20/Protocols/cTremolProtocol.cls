@@ -1965,7 +1965,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     vSplit = PpdGetTotalsByPaymentTypes(uRow, lRowCount)
                     dblTotal = C_Dbl(At(vSplit, ucsFscPmtCash))
                 End If
-                If Abs(dblTotal) > DBL_EPSILON Then
+                If dblTotal > DBL_EPSILON Then
                     PrintServiceDeposit .InitOperatorCode, .InitOperatorPassword, -dblTotal
                     If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH
