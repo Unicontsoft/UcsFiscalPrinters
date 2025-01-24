@@ -314,6 +314,7 @@ RetryWrite:
 QH:
     If bPendingWrite Then
         Call CancelIo(m_hComm)
+        Call GetOverlappedResult(m_hComm, uWriteOver, m_lWritten, 1)
     End If
     Call CloseHandle(uWriteOver.hEvent)
     Exit Function
@@ -369,6 +370,8 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optio
                     GoTo QH
                 End If
                 bPendingWait = False
+                m_lActual = 0
+                Call GetOverlappedResult(m_hComm, uWaitOver, m_lActual, 0)
             Else
                 m_sLastError = Printf(pvInternal(ucsErrApiCallFailed), "WaitCommEvent", GetErrorDescription(lLastErr))
                 If Not IgnoreError Then
@@ -446,6 +449,12 @@ QH:
     End If
     If bPendingRead Or bPendingWait Then
         Call CancelIo(m_hComm)
+        If bPendingRead Then
+            Call GetOverlappedResult(m_hComm, uReadOver, m_lActual, 1)
+        End If
+        If bPendingWait Then
+            Call GetOverlappedResult(m_hComm, uWaitOver, m_lActual, 1)
+        End If
     End If
     Call CloseHandle(uReadOver.hEvent)
     Call CloseHandle(uWaitOver.hEvent)
@@ -661,7 +670,6 @@ End Sub
 
 Private Sub Class_Terminate()
     If m_hComm <> INVALID_HANDLE_VALUE Then
-        Call CancelIo(m_hComm)
         PortWrapper.CloseComPort m_hComm, m_bClearPersistent
         m_hComm = INVALID_HANDLE_VALUE
     End If
