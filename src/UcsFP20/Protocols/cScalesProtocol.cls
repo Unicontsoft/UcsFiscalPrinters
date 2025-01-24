@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2023 by Unicontsoft
+' UcsFP20 (c) 2008-2025 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -509,7 +509,7 @@ Private Function pvParseMettlerResponse(uData As UcsScaleDataType, ByVal bAllowZ
 
     With uData
         lStart = InStr(.Received, "S ")
-        lEnd = InStr(.Received, " Kg")
+        lEnd = InStr(1, .Received, " Kg", vbTextCompare)
         If lStart > 0 And lEnd > lStart + 2 Then
             .Response = Mid$(.Received, lStart + 2, lEnd - lStart - 2)
             .Status = ucsScaStatusStable
@@ -532,7 +532,30 @@ Private Function pvParseMettlerResponse(uData As UcsScaleDataType, ByVal bAllowZ
                 pvParseMettlerResponse = ucsScaResultHasResult
             End If
         ElseIf lEnd > 0 Then
-            .Received = Mid$(.Received, lEnd + 3)
+            lStart = InStr(.Received, Chr$(STX))
+            If lStart > 0 And lEnd > lStart Then
+                .Response = Mid$(.Received, lStart + 1, lEnd - lStart - 1)
+                .Status = ucsScaStatusStable
+                .Weight = 0
+                Select Case Left$(.Response, 1)
+                Case "+"
+                    .Status = ucsScaStatusOverload
+                Case "-"
+                    .Status = ucsScaStatusUnderload
+                Case "D"
+                    .Status = ucsScaStatusUnstable
+                End Select
+                lSign = IIf(Mid$(.Response, 2, 1) = "-", -1, 1)
+                .Weight = lSign * Val(Mid$(.Response, 3))
+                If .Status = ucsScaStatusStable And Abs(.Weight) < DBL_EPSILON And Not bAllowZero Then
+                    pvParseMettlerResponse = ucsScaResultRetryZero
+                Else
+                    '--- success
+                    pvParseMettlerResponse = ucsScaResultHasResult
+                End If
+            Else
+                .Received = Mid$(.Received, lEnd + 3)
+            End If
         End If
     End With
 End Function
