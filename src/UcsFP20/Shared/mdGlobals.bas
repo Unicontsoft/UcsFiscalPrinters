@@ -797,9 +797,9 @@ Public Function ReadTextFile(sFile As String) As String
 QH:
 End Function
 
-Public Function SetProtocolConfigRoot(oValue As Object)
+Public Sub SetProtocolConfigRoot(oValue As Object)
     Set m_oProtocolConfig = oValue
-End Function
+End Sub
 
 Public Function GetConfigValue(sSerial As String, sKey As String, Optional vDefault As Variant) As Variant
     Const FUNC_NAME     As String = "GetConfigValue"
@@ -861,7 +861,7 @@ EH:
     RaiseError FUNC_NAME & "(sSerial=" & sSerial & ", sKey=" & sKey & ")"
 End Function
 
-Private Function pvAppendConfigCollection(oDict As Object, sPrefix As String, oCol As Collection)
+Private Sub pvAppendConfigCollection(oDict As Object, sPrefix As String, oCol As Collection)
     Dim vKey            As Variant
     
     For Each vKey In oDict
@@ -871,7 +871,7 @@ Private Function pvAppendConfigCollection(oDict As Object, sPrefix As String, oC
             oCol.Add oDict(vKey), sPrefix & "\" & vKey
         End If
     Next
-End Function
+End Sub
 
 Public Function LocateFile(sFile As String) As String
     Dim sDir            As String
