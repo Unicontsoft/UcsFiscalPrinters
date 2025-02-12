@@ -637,6 +637,7 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     End If
                     '--- render image
                     Set cOutput = New Collection
+                    cOutput.Add vbCrLf & "N" & vbCrLf                   '--- N Command - Clear Image Buffer
                     If m_uConfig.Density >= 0 Then
                         cOutput.Add "D" & m_uConfig.Density & vbCrLf    '--- D Command - Density
                     End If
@@ -651,6 +652,7 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                 Else
                     '--- render form
                     Set cOutput = New Collection
+                    cOutput.Add vbCrLf & "N"                            '--- N Command - Clear Image Buffer
                     If m_uConfig.Density >= 0 Then
                         cOutput.Add "D" & m_uConfig.Density             '--- D Command - Density
                     End If
