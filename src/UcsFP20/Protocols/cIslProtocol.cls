@@ -3299,6 +3299,7 @@ End Sub
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
     Const FUNC_NAME     As String = "pvSetLastError"
     Dim vSplit          As Variant
+    Dim sText           As Long
     
     On Error GoTo EH
     If ErrNum < 0 Then
@@ -3309,8 +3310,9 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
     m_uPrintData.LastError = sError
     If LenB(sError) <> 0 And IsFP Then
         vSplit = Split(pvRawSendCommand(m_oConnector, m_lCommandTimeout, ucsIslCmdInfoLastError, vbNullString, FUNC_NAME), DEF_SEP)
-        If LenB(At(vSplit, 3)) <> 0 Then
-            m_uPrintData.LastError = At(vSplit, 3) & vbCrLf & vbCrLf & m_uPrintData.LastError
+        sText = At(vSplit, 3)
+        If LenB(sText) <> 0 And Left$(m_uPrintData.LastError, Len(sText)) <> sText Then
+            m_uPrintData.LastError = sText & vbCrLf & vbCrLf & m_uPrintData.LastError
         End If
     End If
     If LenB(sError) = 0 Then
