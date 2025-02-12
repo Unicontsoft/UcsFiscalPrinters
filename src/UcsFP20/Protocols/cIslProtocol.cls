@@ -536,7 +536,7 @@ Property Get DefPmtTypes() As String
         ElseIf IsEcr Then
             m_uConfig.DefPmtTypes = "PNCDIJ"
         Else
-            m_uConfig.DefPmtTypes = "PNCDIJKL  mnopqrs"
+            m_uConfig.DefPmtTypes = "PNDCIJKL      mnopqrs"
         End If
     End If
     DefPmtTypes = m_uConfig.DefPmtTypes
@@ -1587,7 +1587,6 @@ Public Function GetTotalsByPaymentTypes() As Variant
     Dim lPmtIndex       As Long
     Dim lOffset         As Long
     Dim lRevOffset      As Long
-    Dim vTemp           As Variant
     Dim lPmtRange       As Long
     Dim vTotals(0 To MAX_PMT_TYPE - MIN_PMT_TYPE) As Variant
     Dim bHasTotals      As Boolean
@@ -1610,10 +1609,6 @@ Public Function GetTotalsByPaymentTypes() As Variant
         vPmtSum = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
         If IsFP And UBound(vPmtSum) > 0 Then
             vPmtSum = ConcatArrays(Split(SendCommand(eCmd, vbNullString, LogName:=FUNC_NAME), DEF_SEP), vPmtSum)
-            '--- datecs FP idiosyncrasy: cheque and debit cards are swapped
-            vTemp = vPmtSum(2)
-            vPmtSum(2) = vPmtSum(3)
-            vPmtSum(3) = vTemp
         End If
     End If
     If UBound(vPmtSum) <= 0 Then
@@ -3199,10 +3194,10 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 0      ' P=SCash (В брой)
         Case ucsFscPmtCard + PMT_STEP
             pvToDevicePmtIndex = 1      ' N=SCards (С кредит)
-        Case ucsFscPmtCheque
-            pvToDevicePmtIndex = 2      ' C=SChecks (С чек)
         Case ucsFscPmtCard
-            pvToDevicePmtIndex = 3      ' D=SCards (С дебитна карта)
+            pvToDevicePmtIndex = 2      ' D=SCards (С дебитна карта)
+        Case ucsFscPmtCheque
+            pvToDevicePmtIndex = 3      ' C=SChecks (С чек)
         Case ucsFscPmtCustom1
             pvToDevicePmtIndex = 4      ' I=SR1 (Програмируем тип плащане 1)
         Case ucsFscPmtCustom1 + PMT_STEP
@@ -3211,22 +3206,19 @@ Private Function pvToDevicePmtIndex(ByVal PmtType As UcsFiscalPaymentTypeEnum) A
             pvToDevicePmtIndex = 6      ' K=SR1 (Програмируем тип плащане 3)
         Case ucsFscPmtCustom2
             pvToDevicePmtIndex = 7      ' L=SR2 (Програмируем тип плащане 4)
-'        Case ucsFscPmtCash
-'            pvToDevicePmtIndex = 8      ' unused
-'        Case ucsFscPmtCash
-'            pvToDevicePmtIndex = 9      ' unused
+        '--- indexes 8 to 13 are not used
         Case ucsFscPmtCoupon
-            pvToDevicePmtIndex = 10     ' m=ST (Талони)
+            pvToDevicePmtIndex = 14     ' m=ST (Талони)
         Case ucsFscPmtVoucher
-            pvToDevicePmtIndex = 11     ' n=SOT (Външни талони)
+            pvToDevicePmtIndex = 15     ' n=SOT (Външни талони)
         Case ucsFscPmtPackaging
-            pvToDevicePmtIndex = 12     ' o=SP (Амбалаж)
+            pvToDevicePmtIndex = 16     ' o=SP (Амбалаж)
         Case ucsFscPmtMaintenance
-            pvToDevicePmtIndex = 13     ' p=SSelf (Вътрешно обслужване)
+            pvToDevicePmtIndex = 17     ' p=SSelf (Вътрешно обслужване)
         Case ucsFscPmtDamage
-            pvToDevicePmtIndex = 14     ' q=SDmg (Повреди)
+            pvToDevicePmtIndex = 18     ' q=SDmg (Повреди)
         Case ucsFscPmtBank
-            pvToDevicePmtIndex = 15     ' r=SW (Банкови трансфери)
+            pvToDevicePmtIndex = 19     ' r=SW (Банкови трансфери)
         End Select
     End If
     Exit Function
@@ -3299,7 +3291,7 @@ End Sub
 Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalErrorsEnum = -1)
     Const FUNC_NAME     As String = "pvSetLastError"
     Dim vSplit          As Variant
-    Dim sText           As Long
+    Dim sText           As String
     
     On Error GoTo EH
     If ErrNum < 0 Then
