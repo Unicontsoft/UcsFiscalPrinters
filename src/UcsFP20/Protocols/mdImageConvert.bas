@@ -286,7 +286,7 @@ EH:
     Resume QH
 End Function
 
-Public Function ConvertBitmapToMonochrome(ByVal hImg As Long, Optional ByVal ErrorDiffusion As Boolean) As Long
+Public Function ConvertBitmapToMonochrome(ByVal hImg As Long, Optional ByVal Invert As Boolean, Optional ByVal ErrorDiffusion As Boolean) As Long
     Const FUNC_NAME     As String = "ConvertBitmapToMonochrome"
     Dim uPal            As ColorPalette
     Dim lTemp           As Long
@@ -301,10 +301,12 @@ Public Function ConvertBitmapToMonochrome(ByVal hImg As Long, Optional ByVal Err
         sApiSource = "GdipInitializePalette"
         GoTo QH
     End If
-    '--- swap palette entries so white is 0 and black is 1
-    lTemp = uPal.Entries(0)
-    uPal.Entries(0) = uPal.Entries(1)
-    uPal.Entries(1) = lTemp
+    If Invert Then
+        '--- swap palette entries so white is 0 and black is 1
+        lTemp = uPal.Entries(0)
+        uPal.Entries(0) = uPal.Entries(1)
+        uPal.Entries(1) = lTemp
+    End If
     If pvCheckGdipError(GdipCloneImage(hImg, hNewImg)) Then
         sApiSource = "GdipCloneImage"
         GoTo QH
@@ -333,7 +335,7 @@ EH:
     Resume QH
 End Function
 
-Public Function ConvertBitmapToZplGraphics(hImg As Long, Optional ByVal Invert As Boolean, Optional RetVal As Collection) As Boolean
+Public Function ConvertBitmapToZplGraphics(hImg As Long, Optional RetVal As Collection) As Boolean
     Const FUNC_NAME     As String = "ConvertBitmapToZplGraphics"
     Dim uData           As BitmapData
     Dim baData()        As Byte
@@ -357,11 +359,6 @@ Public Function ConvertBitmapToZplGraphics(hImg As Long, Optional ByVal Invert A
     For lIdx = 0 To uData.Height - 1
         Call CopyMemory(baData(lIdx * lStride), ByVal uData.Scan0 + lIdx * uData.Stride, lStride)
     Next
-    If Invert Then
-        For lIdx = 0 To UBound(baData)
-            baData(lIdx) = baData(lIdx) Xor &HFF
-        Next
-    End If
     If RetVal Is Nothing Then
         Set RetVal = New Collection
     End If
@@ -389,13 +386,16 @@ EH:
     Resume QH
 End Function
 
-Public Function ConvertBitmapToEpl2Graphics(hImg As Long, Optional ByVal Invert As Boolean, Optional ByVal LeftMargin As Long, Optional ByVal TopMargin As Long, Optional RetVal As Collection) As Boolean
+Public Function ConvertBitmapToEpl2Graphics(hImg As Long, Optional ByVal LeftMargin As Long, Optional ByVal TopMargin As Long, Optional RetVal As Collection) As Boolean
     Const FUNC_NAME     As String = "ConvertBitmapToEpl2Graphics"
+    Const LNG_STEP      As Long = 16
     Dim uData           As BitmapData
     Dim baData()        As Byte
     Dim lSize           As Long
     Dim lIdx            As Long
     Dim lStride         As Long
+    Dim lTop            As Long
+    Dim lHeight         As Long
     Dim sApiSource      As String
     
     On Error GoTo EH
@@ -405,27 +405,27 @@ Public Function ConvertBitmapToEpl2Graphics(hImg As Long, Optional ByVal Invert 
         GoTo QH
     End If
     lStride = (uData.Width + 7) \ 8
-    If uData.Stride < lStride Then
+    If lStride >= uData.Stride Then
         lStride = uData.Stride
-    End If
-    lSize = lStride * uData.Height
-    ReDim baData(0 To lSize - 1) As Byte
-    For lIdx = 0 To uData.Height - 1
-        Call CopyMemory(baData(lIdx * lStride), ByVal uData.Scan0 + lIdx * uData.Stride, lStride)
-    Next
-    If Invert Then
-        For lIdx = 0 To UBound(baData)
-            baData(lIdx) = baData(lIdx) Xor &HFF
-        Next
     End If
     If RetVal Is Nothing Then
         Set RetVal = New Collection
     End If
     RetVal.Add "q" & uData.Width & vbCrLf                               '--- q Command - Set Label Width
-                                                                        '--- GW Command - Direct Graphic Write
-    RetVal.Add "GW" & LeftMargin & "," & TopMargin & "," & lStride & "," & uData.Height & ","
-    RetVal.Add StrConv(baData, vbUnicode)
-    RetVal.Add vbCrLf
+    For lTop = 0 To uData.Height - 1 Step LNG_STEP
+        lHeight = uData.Height - lTop
+        If lHeight > LNG_STEP Then
+            lHeight = LNG_STEP
+        End If
+        lSize = lStride * lHeight
+        ReDim baData(0 To lSize - 1) As Byte
+        For lIdx = 0 To lHeight - 1
+            Call CopyMemory(baData(lIdx * lStride), ByVal uData.Scan0 + (lTop + lIdx) * uData.Stride, lStride)
+        Next
+        RetVal.Add "GW" & LeftMargin & "," & (lTop + TopMargin) & "," & lStride & "," & lHeight & "," '--- GW Command - Direct Graphic Write
+        RetVal.Add StrConv(baData, vbUnicode)
+        RetVal.Add vbCrLf
+    Next
     '--- success
     ConvertBitmapToEpl2Graphics = True
 QH:
