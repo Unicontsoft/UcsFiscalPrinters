@@ -818,7 +818,6 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .AbsoluteDiscount = C_Bool(GetConfigValue(sDeviceSerialNo, "AbsoluteDiscount", JsonBoolItem(oOptions, "AbsoluteDiscount", True)))
         .MinDiscount = GetConfigNumber(sDeviceSerialNo, "MinDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MinDiscount")), DEF_MIN_DISCOUNT))
         .MaxDiscount = GetConfigNumber(sDeviceSerialNo, "MaxDiscount", Zndbl(C_Dbl(JsonValue(oOptions, "MaxDiscount")), DEF_MAX_DISCOUNT))
-        .EmptyUniqueSaleNo = GetConfigValue(sDeviceSerialNo, "EmptyUniqueSaleNo", C_Str(JsonValue(oOptions, "EmptyUniqueSaleNo")))
         .EmptyReceiptNo = GetConfigValue(sDeviceSerialNo, "EmptyReceiptNo", Zn(C_Str(JsonValue(oOptions, "EmptyReceiptNo")), DEF_EMPTY_RECEIPTNO))
         .EmptyFiscalMemoryNo = GetConfigValue(sDeviceSerialNo, "EmptyFiscalMemoryNo", Zn(C_Str(JsonValue(oOptions, "EmptyFiscalMemoryNo")), GetFiscalMemoryNo()))
     End With
@@ -1475,8 +1474,8 @@ Public Function GetPaymentName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As Str
     Const FUNC_NAME     As String = "GetPaymentName"
     
     On Error GoTo EH
-    If PmtType >= ucsFscPmtCash And PmtType <= ucsFscPmtCash Then
-        GetPaymentName = pvText(ucsTxtPaymentCash + PmtType - 1)
+    If PmtType = ucsFscPmtCash Then
+        GetPaymentName = pvText(ucsTxtPaymentCash)
     Else
         GetPaymentName = pvToDevicePmtName(PmtType)
     End If
@@ -2518,16 +2517,16 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "E", _
                         True, "R")
                     '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>]%4=[,<UNP>],%5=(<StType><DocNo>)%6=[,(<StUNP>,<StDT>,<StFMIN>)])[%7=#<RevType>]
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & "%3", vbNullString) & _
-                        IIf(LenB(.InitUniqueSaleNo) <> 0, "%4", vbNullString) & DEF_SEP & "%5" & IIf(LenB(.InitUniqueSaleNo) <> 0, "%6", vbNullString) & _
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I%3", vbNullString) & _
+                        IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & "%4", vbNullString) & DEF_SEP & "%5" & DEF_SEP & "%6" & _
                         IIf(LenB(.InitRevData(ucsRevReason)) <> 0, "#%7", vbNullString)
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsIslCmdFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                         .InitRevData(ucsRevInvoiceNo), _
-                        DEF_SEP & .InitUniqueSaleNo, _
+                        .InitUniqueSaleNo, _
                         sRevType & .InitRevData(ucsRevReceiptNo), _
-                        DEF_SEP & .InitUniqueSaleNo & _
+                        Zn(.InitUniqueSaleNo, DEF_EMPTY_UNIQUESALENO) & _
                             DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                             DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo), _
                         Left$(.InitRevData(ucsRevReason), m_uConfig.MaxRevReason))
@@ -2559,6 +2558,21 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
                 '--- use resume token on failure from this point on
                 uCtx.PmtPrinted = True
+            Case ucsFscRcpReversal, ucsFscRcpCreditNote
+                If IsFP Then
+                    pvGetCommandConfig CONF_NAME, "InfoTransactionFP", eCmd, ucsIslCmdInfoTransaction, sParam, "T", _
+                        "Index", lIndex, 0, _
+                        "StatusClosed", lStatusClosed, 0
+                    vSplit = Split(SendCommand(eCmd, sParam, LogName:=FUNC_NAME), DEF_SEP)
+                    If LenB(m_uPrintData.LastError) <> 0 Then
+                        GoTo QH
+                    End If
+                    If IsNumeric(At(vSplit, lIndex)) And C_Lng(At(vSplit, lIndex)) = lStatusClosed Then
+                        '--- success
+                        pvPrintReceipt = True
+                        GoTo QH
+                    End If
+                End If
             End Select
         Case ucsRowPlu
             uCtx.PluCount = uCtx.PluCount + 1
@@ -3257,11 +3271,18 @@ Private Function pvToDevicePmtName(ByVal PmtType As UcsFiscalPaymentTypeEnum) As
     pvToDevicePmtName = RTrim$(pvStripBold(SendCommand(eCmd, sParam, LogName:=FUNC_NAME)))
     '--- check for failure (returns 'F')
     If pvToDevicePmtName = "F" Then
-        If lIndex < 4 Then
-            pvToDevicePmtName = pvText(ucsTxtPaymentCash + lIndex)
-        Else
+        Select Case PmtType
+        Case ucsFscPmtCash
+            pvToDevicePmtName = pvText(ucsTxtPaymentCash)
+        Case ucsFscPmtCard + PMT_STEP
+            pvToDevicePmtName = pvText(ucsTxtPaymentCredit)
+        Case ucsFscPmtCheque
+            pvToDevicePmtName = pvText(ucsTxtPaymentCheque)
+        Case ucsFscPmtCard
+            pvToDevicePmtName = pvText(ucsTxtPaymentCard)
+        Case Else
             pvToDevicePmtName = vbNullString
-        End If
+        End Select
     ElseIf IsIncotex Then
         pvToDevicePmtName = At(Split(pvToDevicePmtName, DEF_SEP), 1)
     End If
