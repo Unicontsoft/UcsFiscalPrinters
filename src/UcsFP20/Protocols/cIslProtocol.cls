@@ -2517,15 +2517,17 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         .InitRevData(ucsRevType) = ucsFscRevTaxBaseReduction, "T", _
                         .InitRevData(ucsRevType) = ucsFscRevOperatorError, "E", _
                         True, "R")
-                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>][,<UNP>],%4=(<StType><DocNo>)[,%5=(<StUNP>,<StDT>,<StFMIN>)])%6=[#<RevType>]
+                    '--- %1=<OpNum>,%2=<Password>,<TillNum>[,<Invoice>%3=<InvNum>]%4=[,<UNP>],%5=(<StType><DocNo>)%6=[,(<StUNP>,<StDT>,<StFMIN>)])[%7=#<RevType>]
                     sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & IIf(.InitReceiptType = ucsFscRcpCreditNote, DEF_SEP & "I" & "%3", vbNullString) & _
-                        DEF_SEP & "%4" & DEF_SEP & "%5" & IIf(.InitReceiptType = ucsFscRcpCreditNote, "#%6", vbNullString)
+                        IIf(LenB(.InitUniqueSaleNo) <> 0, "%4", vbNullString) & DEF_SEP & "%5" & IIf(LenB(.InitUniqueSaleNo) <> 0, "%6", vbNullString) & _
+                        IIf(LenB(.InitRevData(ucsRevReason)) <> 0, "#%7", vbNullString)
                     pvGetCommandConfig CONF_NAME, "FiscalReversal" & .PrintRowType, eCmd, ucsIslCmdFiscalReversal, sParam, sParam, _
                         "FormatDate", sFormatDate, FORMAT_DATE_SHORT
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
                         .InitRevData(ucsRevInvoiceNo), _
+                        DEF_SEP & .InitUniqueSaleNo, _
                         sRevType & .InitRevData(ucsRevReceiptNo), _
-                        .InitUniqueSaleNo & _
+                        DEF_SEP & .InitUniqueSaleNo & _
                             DEF_SEP & Format$(.InitRevData(ucsRevReceiptDate), sFormatDate) & _
                             DEF_SEP & .InitRevData(ucsRevFiscalMemoryNo), _
                         Left$(.InitRevData(ucsRevReason), m_uConfig.MaxRevReason))
@@ -2875,6 +2877,9 @@ Private Function pvCommitReceipt(uCtx As UcsPpdExecuteContext, sAmountSum As Str
             uCtx.ReceiptNo = Val(uCtx.ReceiptNo) + 1
         End If
         uCtx.ReceiptDate = GetClock()
+        If LenB(m_uPrintData.LastError) <> 0 Then
+            GoTo QH
+        End If
         uCtx.ReceiptAmount = ParseSum(sAmountSum)
         Select Case ePrintRowType
         Case ucsFscRcpReversal, ucsFscRcpCreditNote
@@ -3321,7 +3326,6 @@ Private Function pvParseDdmmyyDate(sText As String) As Date
     If Len(sText) = 6 And IsNumeric(sText) Then
         pvParseDdmmyyDate = DateSerial(2000 + C_Lng(Mid$(sText, 5, 2)), C_Lng(Mid$(sText, 3, 2)), C_Lng(Mid$(sText, 1, 2)))
     End If
-QH:
 End Function
 
 Private Sub pvEltradeMergeInfoArray(vResult As Variant)
