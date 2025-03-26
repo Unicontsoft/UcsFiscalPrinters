@@ -2540,7 +2540,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             bInLogin = Not IsIncotex And Not IsEltrade
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+            If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
             bInLogin = False
@@ -2826,7 +2826,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                         sParam = Printf(sParam, SafeFormat(dblTotal, sFormatAmount))
                         SendCommand eCmd, sParam, LogName:=FUNC_NAME
                     End If
-                    If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+                    If LenB(m_uPrintData.LastError) <> 0 Then
                         GoTo QH
                     End If
                     uCtx.PmtPrinted = True
@@ -2846,7 +2846,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 End If
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+            If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
             If eCmd <> ucsIslCmdNoop Then

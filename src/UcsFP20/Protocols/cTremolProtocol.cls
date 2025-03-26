@@ -2026,7 +2026,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     DEF_SEP & Pad(.InitRevData(ucsRevFiscalMemoryNo), m_uConfig.MaxFiscalMemoryNo) & _
                     IIf(LenB(.InitUniqueSaleNo) <> 0, DEF_SEP & Left$(.InitUniqueSaleNo, m_uConfig.MaxUniqueSaleNo), vbNullString))
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+            If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
             Select Case .InitReceiptType
@@ -2226,7 +2226,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                 uCtx.CommitSent = True
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
-            If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+            If LenB(m_uPrintData.LastError) <> 0 Then
                 GoTo QH
             End If
             If eCmd <> ucsZekCmdNoop And Not (m_uConfig.DelayPrint Or m_uConfig.BufferPrint) Then
