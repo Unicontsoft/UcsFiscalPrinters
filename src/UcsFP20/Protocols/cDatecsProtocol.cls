@@ -90,6 +90,7 @@ Public Enum UcsDatecsCommandsEnum
     ucsDcsCmdFiscalSubtotal = 51
     ucsDcsCmdFiscalPayment = 53
     ucsDcsCmdFiscalText = 54
+    ucsDcsCmdFiscalPinpad = 55
     ucsDcsCmdFiscalClose = 56
     ucsDcsCmdFiscalCgInfo = 57
     ucsDcsCmdFiscalCancel = 60
@@ -167,7 +168,7 @@ End Type
 ' Constants and member variables
 '=========================================================================
 
-Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available|Invalid Tax No. %1 for invoice printing|Invalid VAT No. %1 for invoice printing|"
+Private Const STR_INTERNAL              As String = "Timeout waiting for response|Invalid response length: %1|Invalid response checksum: %1|Response missing postamble: %1|Response missing preamble: %1|No receipt started| or invalid operator password|Error in line %1: %2|Cannot cancel previous receipt|Invalid report type|Error %1|Memory %1|Unsupported payment type %1|Cannot print|Wrong invoice number %1 generated|Unsupported discount type %1|Commit receipt cancelled|Insufficient sum available|Invalid Tax No. %1 for invoice printing|Invalid VAT No. %1 for invoice printing|Payment terminal timeout|Payment terminal communication error: %1|Payment transaction cancelled by user|Invalid PIN"
 Private Const STR_STATUSES              As String = "Syntax error|Command code is invalid|The real time clock is not synchronized|3|Failure in printing mechanism|5|Cover is open|7|Overflow during command execution|Command is not permitted|2|3|4|5|6|7|End of paper|Near paper end|EJ is full|Fiscal receipt is open|EJ nearly full|Nonfiscal receipt is open"
 Private Const STR_ERRORS_ONLY           As String = "Syntax error|Command code is invalid|2|3|Failure in printing mechanism|5|6|7|0|Command is not permitted|2|3|4|5|6|7|End of paper"
 Private Const STR_MEMORY                As String = "Error when trying to access data stored in the FM|Tax number is set|Serial number and number of FM are set|There is space for less then 60 reports in Fiscal memory|Fiscal memory is full|FM error|Fiscal memory is not found or damaged|7|0|FM is formatted|2|Device is fiscalized|VAT are set at least once"
@@ -218,6 +219,18 @@ Private Const ERR_R_PAY_NOCASH          As Long = -111017
 Private Const ERR_FP_NO_PAPER           As Long = -112006
 Private Const ERR_FP_BAD_PARAM_7        As Long = -112207
 Private Const ERR_FP_BAD_PARAM_8        As Long = -112208
+Private Const ERR_PINPAD_TIMEOUT        As Long = -111509
+Private Const ERR_PINPAD_COMMUNICATION  As Long = -111546
+Private Const ERR_PINPAD_SAME_TRANS     As Long = -111558
+Private Const ERR_PINPAD_FP_TRANS       As Long = -111560
+Private Const ERR_PINPAD_INVALID_DEVICE As Long = -111512
+Private Const ERR_PINPAD_NOT_CONNECTED  As Long = -111550
+Private Const ERR_PINPAD_NO_CONN        As Long = -111555
+Private Const ERR_PINPAD_NOT_CONF       As Long = -111557
+Private Const ERR_PINPAD_NOT_CONF_TYPE  As Long = -111561
+Private Const ERR_PINPAD_CANCEL         As Long = -111518
+Private Const ERR_PINPAD_PIN_LIMIT      As Long = -111514
+Private Const ERR_PINPAD_NO_PIN_DATA    As Long = -111526
 Private Const MAX_HEADER_LINES          As Long = 10
 Private Const MAX_FOOTER_LINES          As Long = 10
 Private Const MAX_UNIT_OF_MEASURE       As Long = 6
@@ -256,6 +269,10 @@ Private Enum UcsInternalErrors
     ucsErrInsufficientSum
     ucsErrInvalidTaxNo
     ucsErrInvalidVatNo
+    ucsErrPinpadTimeout
+    ucsErrPinpadCommunicationFailure
+    ucsErrPinpadUserCancelled
+    ucsErrPinpadInvalidPin
 End Enum
 
 Private Enum UcsReceiptTextsEnum
@@ -297,6 +314,7 @@ Private Type UcsConfigValues
     DefaultPassword     As String
     CodePage            As Long
     IsEcr               As VbTriState
+    UsePaymentTerminal  As Boolean
     MaxCgInfo(0 To [_ucsMciLast] - 1) As Long
     MaxOperatorName     As Long
     ConfigCommands      As Collection
@@ -638,6 +656,7 @@ Public Function Init(sDeviceString As String, Optional EventSink As Object) As B
         .DefaultPassword = GetConfigValue(sDeviceSerialNo, "DefaultPassword", C_Str(JsonValue(oOptions, "DefaultPassword")))
         .CodePage = GetConfigNumber(sDeviceSerialNo, "CodePage", Znl(C_Lng(JsonValue(oOptions, "CodePage")), DEF_CODEPAGE))
         .IsEcr = GetConfigNumber(sDeviceSerialNo, "IsEcr", Znl(C_Lng(JsonValue(oOptions, "IsEcr")), vbUseDefault))
+        .UsePaymentTerminal = C_Bool(GetConfigValue(sDeviceSerialNo, "UsePaymentTerminal", False))
         vSplit = Split(DEF_MAX_CGINFO, "|")
         For lIdx = LBound(.MaxCgInfo) To UBound(.MaxCgInfo)
             .MaxCgInfo(lIdx) = GetConfigNumber(sDeviceSerialNo, "MaxCgInfo" & lIdx, Znl(C_Lng(JsonValue(oOptions, "MaxCgInfo" & lIdx)), C_Lng(vSplit(lIdx))))
@@ -842,6 +861,10 @@ Public Function PrintDailyXReport( _
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
     End If
+    If m_uConfig.UsePaymentTerminal Then
+        pvGetCommandConfig CONF_NAME, "PinpadPrintDailyReport", eCmd, ucsDcsCmdFiscalPinpad, sParam, "6" & DEF_SEP
+        SendCommand eCmd, sParam, LogName:=FUNC_NAME
+    End If
     '--- success
     PrintDailyXReport = True
 QH:
@@ -887,6 +910,10 @@ Public Function PrintDailyZReport( _
     If LenB(ReceiptNo) = 0 Or ReceiptNo = sPrevReceiptNo Then
         pvSetLastError pvInternal(ucsErrCannotPrint)
         GoTo QH
+    End If
+    If m_uConfig.UsePaymentTerminal Then
+        pvGetCommandConfig CONF_NAME, "PinpadPrintDailyReport", eCmd, ucsDcsCmdFiscalPinpad, sParam, "5" & DEF_SEP
+        SendCommand eCmd, sParam, LogName:=FUNC_NAME
     End If
     '--- success
     PrintDailyZReport = True
@@ -2171,7 +2198,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                     eCmd = ucsDcsCmdNoop
                 Else
                     '--- %1={PaidMode}<SEP>%2={Amount}<SEP>{Type}<SEP>
-                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & DEF_SEP
+                    sParam = "%1" & DEF_SEP & "%2" & DEF_SEP & "1" & DEF_SEP
                     pvGetCommandConfig CONF_NAME, "FiscalPayment" & .PmtType, eCmd, ucsDcsCmdFiscalPayment, sParam, sParam, _
                         "FormatAmount", sFormatAmount, FORMAT_BASE_2, _
                         "FormatZero", sFormatZero, "\"
@@ -2245,10 +2272,20 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
             End If
             SendCommand eCmd, sParam, LogName:=FUNC_NAME
             If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
-                GoTo QH
+                If m_uConfig.UsePaymentTerminal And m_lLastErrCode = ERR_PINPAD_FP_TRANS Then
+                    pvGetCommandConfig CONF_NAME, "PinpadFinalizeTransaction", eCmd, ucsDcsCmdFiscalPinpad, sParam, "13" & DEF_SEP & "1" & DEF_SEP
+                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                End If
+                If LenB(m_uPrintData.LastError) <> 0 And m_uPrintData.LastErrNo <> ucsFerOutOfPaper Then
+                    GoTo QH
+                End If
             End If
             If eCmd <> ucsDcsCmdNoop Then
                 uCtx.PmtPrinted = True
+                If m_uConfig.UsePaymentTerminal And pvToDevicePmtIndex(.PmtType) = 2 Then
+                    pvGetCommandConfig CONF_NAME, "PinpadPrintReceipt", eCmd, ucsDcsCmdFiscalPinpad, sParam, "15" & DEF_SEP
+                    SendCommand eCmd, sParam, LogName:=FUNC_NAME
+                End If
             End If
         End Select
         End With
@@ -2309,8 +2346,6 @@ Private Function pvCommitReceipt(uCtx As UcsPpdExecuteContext, sReceiptNo As Str
     pvCommitReceipt = True
 QH:
 End Function
-
-
 
 Private Function pvRawGetDeviceInfo( _
             oConnector As IDeviceConnector, _
@@ -2433,7 +2468,19 @@ Private Sub pvSetLastError(sError As String, Optional ByVal ErrNum As UcsFiscalE
     Else
         m_uPrintData.LastErrNo = ErrNum
     End If
-    m_uPrintData.LastError = sError
+    Select Case ErrCode
+    Case ERR_PINPAD_TIMEOUT
+        m_uPrintData.LastError = pvInternal(ucsErrPinpadTimeout)
+    Case ERR_PINPAD_COMMUNICATION, ERR_PINPAD_SAME_TRANS, ERR_PINPAD_FP_TRANS, ERR_PINPAD_INVALID_DEVICE, ERR_PINPAD_NOT_CONNECTED, _
+            ERR_PINPAD_NO_CONN, ERR_PINPAD_NOT_CONF, ERR_PINPAD_NOT_CONF_TYPE
+        m_uPrintData.LastError = Printf(pvInternal(ucsErrPinpadCommunicationFailure), sError)
+    Case ERR_PINPAD_CANCEL
+        m_uPrintData.LastError = pvInternal(ucsErrPinpadUserCancelled)
+    Case ERR_PINPAD_PIN_LIMIT, ERR_PINPAD_NO_PIN_DATA
+        m_uPrintData.LastError = pvInternal(ucsErrPinpadInvalidPin)
+    Case Else
+        m_uPrintData.LastError = sError
+    End Select
     m_lLastErrCode = ErrCode
     If LenB(sError) = 0 Then
         m_eStatus = 0
