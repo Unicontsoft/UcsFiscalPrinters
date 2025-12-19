@@ -535,7 +535,6 @@ Private Function pvParseMettlerResponse(uData As UcsScaleDataType, ByVal bAllowZ
             lStart = InStr(.Received, Chr$(STX))
             If lStart > 0 And lEnd > lStart Then
                 .Response = Mid$(.Received, lStart + 1, lEnd - lStart - 1)
-                .Status = ucsScaStatusStable
                 .Weight = 0
                 Select Case Left$(.Response, 1)
                 Case "+"
@@ -544,14 +543,30 @@ Private Function pvParseMettlerResponse(uData As UcsScaleDataType, ByVal bAllowZ
                     .Status = ucsScaStatusUnderload
                 Case "D"
                     .Status = ucsScaStatusUnstable
+                Case "S"
+                    .Status = ucsScaStatusStable
+                Case Else
+                    GoTo SkipInput
                 End Select
-                lSign = IIf(Mid$(.Response, 2, 1) = "-", -1, 1)
-                .Weight = lSign * Val(Mid$(.Response, 3))
-                If .Status = ucsScaStatusStable And Abs(.Weight) < DBL_EPSILON And Not bAllowZero Then
-                    pvParseMettlerResponse = ucsScaResultRetryZero
+                Select Case Mid$(.Response, 2, 1)
+                Case "+"
+                    lSign = 1
+                Case "-"
+                    lSign = -1
+                Case Else
+                    GoTo SkipInput
+                End Select
+                If Mid$(.Response, 3, 1) Like "[0-9]" Then
+                    .Weight = lSign * Val(Mid$(.Response, 3))
+                    If .Status = ucsScaStatusStable And Abs(.Weight) < DBL_EPSILON And Not bAllowZero Then
+                        pvParseMettlerResponse = ucsScaResultRetryZero
+                    Else
+                        '--- success
+                        pvParseMettlerResponse = ucsScaResultHasResult
+                    End If
                 Else
-                    '--- success
-                    pvParseMettlerResponse = ucsScaResultHasResult
+SkipInput:
+                    .Received = Mid$(.Received, lStart + 1)
                 End If
             Else
                 .Received = Mid$(.Received, lEnd + 3)
