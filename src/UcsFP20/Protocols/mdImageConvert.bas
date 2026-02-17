@@ -412,6 +412,7 @@ Public Function ConvertBitmapToEpl2Graphics(hImg As Long, Optional ByVal LeftMar
         Set RetVal = New Collection
     End If
     RetVal.Add "q" & uData.Width & vbCrLf                               '--- q Command - Set Label Width
+    RetVal.Add "Q" & uData.Height & ",0" & vbCrLf                       '--- Q Command - Set Form Length
     For lTop = 0 To uData.Height - 1 Step LNG_STEP
         lHeight = uData.Height - lTop
         If lHeight > LNG_STEP Then
