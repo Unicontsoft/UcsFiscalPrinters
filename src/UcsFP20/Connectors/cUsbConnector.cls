@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2021 by Unicontsoft
+' UcsFP20 (c) 2008-2026 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
