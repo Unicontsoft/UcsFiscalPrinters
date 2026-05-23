@@ -299,18 +299,15 @@ Public Function ReadData(Result() As Byte, Optional ByVal Timeout As Long, Optio
     Const FUNC_NAME     As String = "ReadData"
     Dim dblTimerEx      As Double
     Dim uReadOver       As OVERLAPPED
-    Dim uWaitOver       As OVERLAPPED
     Dim lResult         As Long
     Dim lLastErr        As Long
     Dim lRetryCount     As Long
     Dim lActual         As Long
     Dim bPendingRead    As Boolean
-    Dim bPendingWait    As Boolean
     
     On Error GoTo EH
     dblTimerEx = TimerEx
     uReadOver.hEvent = CreateEvent(0, 1, 0, 0)
-    uWaitOver.hEvent = CreateEvent(0, 1, 0, 0)
     If UBound(m_baBuffer) < 0 Then
         ReDim m_baBuffer(0 To 65535) As Byte
     End If
@@ -371,7 +368,7 @@ Continue:
     Loop
 QH:
     If IsLogDataDumpEnabled Then
-        DebugLog FUNC_NAME, "Will return, lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", bPendingWait=" & bPendingWait & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
+        DebugLog FUNC_NAME, "Will return, lActual=" & lActual & ", lRetryCount=" & lRetryCount & ", bPendingRead=" & bPendingRead & ", Elapsed=" & Format$(TimerEx - dblTimerEx, "0.000")
     End If
     If lActual > 0 Then
         ReDim Result(0 To lActual - 1) As Byte
@@ -381,17 +378,13 @@ QH:
     Else
         Result = vbNullString
     End If
-    If bPendingRead Or bPendingWait Then
+    If bPendingRead Then
         Call CancelIo(m_hFile)
         If bPendingRead Then
             Call GetOverlappedResult(m_hFile, uReadOver, m_lActual, 1)
         End If
-        If bPendingWait Then
-            Call GetOverlappedResult(m_hFile, uWaitOver, m_lActual, 1)
-        End If
     End If
     Call CloseHandle(uReadOver.hEvent)
-    Call CloseHandle(uWaitOver.hEvent)
     Exit Function
 EH:
     PrintError FUNC_NAME
