@@ -1252,6 +1252,7 @@ Public Function InitDeviceConnector( _
             Optional Error As String) As IDeviceConnector
     Dim oSerialPortConn As cSerialPortConnector
     Dim oSocketConn     As cSocketConnector
+    Dim oUsbConn        As cUsbConnector
     
     If LenB(sDevice) = 0 Then
         Error = At(Split(LocalizedConnectorErrors, "|"), ucsErrNoDeviceInfoSet, "No device info set")
@@ -1267,6 +1268,16 @@ Public Function InitDeviceConnector( _
             GoTo QH
         End If
         Set InitDeviceConnector = oSerialPortConn
+    ElseIf InStr(sDevice, ":") = 0 Then
+        Set oUsbConn = New cUsbConnector
+        If LenB(LocalizedConnectorErrors) <> 0 Then
+            oUsbConn.LocalizedText(ucsFscLciInternalErrors) = LocalizedConnectorErrors
+        End If
+        If Not oUsbConn.Init(sDevice, lTimeout) Then
+            Error = oUsbConn.GetLastError()
+            GoTo QH
+        End If
+        Set InitDeviceConnector = oUsbConn
     Else
         Set oSocketConn = New cSocketConnector
         If Not oSocketConn.Init(sDevice, lTimeout) Then
@@ -1436,12 +1447,19 @@ Public Function ToConnectorDevice( _
         If InStr(ToConnectorDevice, ":") = 0 Then
             ToConnectorDevice = ToConnectorDevice & ":" & Znl(C_Lng(JsonValue(oOptions, "Port")), DefSocketPort)
         End If
+    ElseIf LenB(JsonValue(oOptions, "Usb")) <> 0 Then
+        ToConnectorDevice = Trim$(JsonValue(oOptions, "Usb"))
     Else
         If Not oProtocol Is Nothing Then
             If LenB(JsonValue(oOptions, "Port")) = 0 Then
                 vPorts = EnumSerialPorts
             ElseIf LenB(JsonValue(oOptions, "Speed")) = 0 Then
-                vPorts = Array(JsonValue(oOptions, "Port"))
+                If LCase$(Left$(JsonValue(oOptions, "Port"), 3)) = "com" Then
+                    vPorts = Array(JsonValue(oOptions, "Port"))
+                Else
+                    ToConnectorDevice = Trim$(JsonValue(oOptions, "Port"))
+                    GoTo QH
+                End If
             End If
             If IsArray(vPorts) Then
                 vPorts = oProtocol.AutodetectDevices(vPorts)

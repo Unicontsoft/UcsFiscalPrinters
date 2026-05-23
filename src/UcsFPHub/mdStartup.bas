@@ -628,6 +628,8 @@ Private Function pvGetDevicePort(sDeviceString As String) As String
             sRetVal = JsonValue(oJson, "Port")
         End If
         sRetVal = JsonValue(oJson, "IP") & IIf(LenB(sRetVal) <> 0, ":" & sRetVal, vbNullString)
+    ElseIf Not IsEmpty(JsonValue(oJson, "Usb")) Then
+        sRetVal = JsonValue(oJson, "Usb")
     Else
         sRetVal = JsonValue(oJson, "Speed")
         If sRetVal = "115200" Then

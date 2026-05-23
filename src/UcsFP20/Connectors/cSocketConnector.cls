@@ -95,8 +95,7 @@ Private Const FORMAT_MESSAGE_FROM_SYSTEM    As Long = &H1000
 Private Const FORMAT_MESSAGE_IGNORE_INSERTS As Long = &H200
 
 Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
-Private Declare Function lstrlen Lib "kernel32" Alias "lstrlenA" (ByVal lpString As Long) As Long
-Private Declare Function lstrcpy Lib "kernel32" Alias "lstrcpyA" (ByVal lpString1 As String, ByVal lpString2 As Long) As Long
+Private Declare Function SysReAllocString Lib "oleaut32" (ByVal pBSTR As Long, Optional ByVal pszStrPtr As Long) As Long
 Private Declare Function FormatMessage Lib "kernel32" Alias "FormatMessageA" (ByVal dwFlags As Long, lpSource As Long, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Args As Any) As Long
 Private Declare Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Long, lpWSADATA As Any) As Long
 Private Declare Function WSACleanup Lib "ws2_32" () As Long
@@ -118,7 +117,7 @@ Private Declare Function ws_recv Lib "ws2_32" Alias "recv" (ByVal s As Long, ByR
 Private Declare Function ws_recvfrom Lib "ws2_32" Alias "recvfrom" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long, ByRef from As SOCKADDR_IN, ByRef fromlen As Long) As Long
 Private Declare Function ws_send Lib "ws2_32" Alias "send" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long) As Long
 Private Declare Function ws_sendto Lib "ws2_32" Alias "sendto" (ByVal s As Long, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As Long, ByRef toaddr As SOCKADDR_IN, ByVal tolen As Long) As Long
-Private Declare Function ws_select Lib "ws2_32" Alias "select" (ByVal reserved As Long, readfds As Any, writefds As Any, exceptfds As Any, Timeout As Any) As Long
+Private Declare Function ws_select Lib "ws2_32" Alias "select" (ByVal dwReserved As Long, readfds As Any, writefds As Any, exceptfds As Any, Timeout As Any) As Long
 
 Private Type SOCKADDR_IN
     sin_family          As Integer
@@ -521,10 +520,7 @@ Private Function pvToLong(ByVal nLoWord As Integer) As Long
 End Function
 
 Private Function pvToString(ByVal lPtr As Long) As String
-    If lPtr <> 0 Then
-        pvToString = String$(lstrlen(lPtr), 0)
-        Call lstrcpy(pvToString, lPtr)
-    End If
+    Call SysReAllocString(VarPtr(pvToString), lPtr)
 End Function
 
 #If Not ImplUseShared Then
