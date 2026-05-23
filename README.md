@@ -107,11 +107,12 @@ Here is a short list of entries supported, all of which are optional unless mark
 Key                  | Type    | Protocol | Description
 ----                 | ----    | -------  | -----------
 `Protocol`           | string  |          | (Required) See [**Available protocols**](#available-protocols) below
-`Port`               | string  |          | Serial port the device is attached to (e.g. `COM1`)
+`Port`               | string  |          | Serial/USB port the device is attached to (e.g. `COM1`, `USB001`)
 `Speed`              | number  |          | Baud rate of serial port used (e.g. `9600`)
 `Persistent`         | bool    |          | Keep serial port open after operation complete (default `No`)
 `IP`                 | address |          | IP address on which the device is accessible in LAN (e.g. `192.168.10.200`)
 `Port`               | number  |          | TCP port to connect to (e.g. `4999`)
+`USB`                | string  |          | USB label printer name (e.g. `HPRT Alpha (203 dpi)`)
 `Timeout`            | number  |          | Protocol timeout for complete command execution (e.g. `15000` ms)
 `ConnectionTimeout`  | number  |          | Connector timeout for connection attempt (e.g. `3000` ms)
 `RowChars`           | number  |          | Total number of characters printable on paper roll (default to auto-detected)
