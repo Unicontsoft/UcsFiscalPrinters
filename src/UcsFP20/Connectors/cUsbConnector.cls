@@ -445,13 +445,9 @@ Private Function pvGetUsbDevicePath(sDevice As String) As String
 End Function
 
 Private Function pvGetPortDevicePath(ByVal sPortName As String) As String
-    Const HKLM          As Long = &H80000002
-    Dim sKey            As String
-    
-    sKey = "SYSTEM\CurrentControlSet\Control\Print\Monitors\USB Monitor\Ports\" & sPortName
-    With GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
-        .GetStringValue HKLM, sKey, "Device Path", pvGetPortDevicePath
-    End With
+    On Error GoTo QH
+    pvGetPortDevicePath = CreateObject("WScript.Shell").RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors\USB Monitor\Ports\" & sPortName & "\Device Path")
+QH:
 End Function
 
 Private Function pvGetPrinterDeviceIDs(ByVal sPrinterName As String) As Collection

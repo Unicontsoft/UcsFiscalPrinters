@@ -325,7 +325,7 @@ Public Function Init(sDeviceString As String) As Boolean
         .DPI = Znl(C_Lng(JsonValue(oOptions, "DPI")), DEF_DPI)
         .Density = Znl(C_Lng(JsonValue(oOptions, "Density")), DEF_DENSITY)
         .DeviceWidth = Zndbl(C_Dbl(JsonValue(oOptions, "DeviceWidth")), IIf(.ModelGroup = STR_GROUP_ZPL, DEF_DEVICEWIDTH_ZPL, DEF_DEVICEWIDTH_EPL2))
-        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), IIf(.ModelGroup = STR_GROUP_ZPL, DEF_PAPERWIDTH_ZPL, DEF_PAPERWIDTH_EPL2))
+        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), .DeviceWidth)
         .TopMargin = Zndbl(C_Dbl(JsonValue(oOptions, "TopMargin")), DEF_TOPMARGIN)
         .LeftMargin = Zndbl(C_Dbl(JsonValue(oOptions, "LeftMargin")), DEF_LEFTMARGIN)
         .RightMargin = Zndbl(C_Dbl(JsonValue(oOptions, "RightMargin")), DEF_RIGHTMARGIN)

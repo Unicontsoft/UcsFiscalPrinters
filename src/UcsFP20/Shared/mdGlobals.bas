@@ -1447,8 +1447,8 @@ Public Function ToConnectorDevice( _
         If InStr(ToConnectorDevice, ":") = 0 Then
             ToConnectorDevice = ToConnectorDevice & ":" & Znl(C_Lng(JsonValue(oOptions, "Port")), DefSocketPort)
         End If
-    ElseIf LenB(JsonValue(oOptions, "Usb")) <> 0 Then
-        ToConnectorDevice = Trim$(JsonValue(oOptions, "Usb"))
+    ElseIf LenB(JsonValue(oOptions, "USB")) <> 0 Then
+        ToConnectorDevice = Trim$(JsonValue(oOptions, "USB"))
     Else
         If Not oProtocol Is Nothing Then
             If LenB(JsonValue(oOptions, "Port")) = 0 Then
