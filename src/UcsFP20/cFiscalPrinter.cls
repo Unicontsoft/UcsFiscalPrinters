@@ -221,6 +221,9 @@ End Property
 
 Public Function EnumPorts(sResponse As String) As Boolean
     Const FUNC_NAME     As String = "EnumPorts"
+    Dim cPorts          As Collection
+    Dim oPrinter        As VB.Printer
+    Dim sKey            As String
     Dim vPorts          As Variant
     Dim vElem           As Variant
     Dim oFP             As IDeviceProtocol
@@ -228,12 +231,21 @@ Public Function EnumPorts(sResponse As String) As Boolean
     Dim oRetVal         As Object
     
     On Error GoTo EH
+    Set cPorts = New Collection
+    For Each oPrinter In Printers
+        sKey = GetPrinterPort(oPrinter.DeviceName)
+        If Not SearchCollection(cPorts, sKey) Then
+            cPorts.Add oPrinter.DeviceName, sKey
+        End If
+    Next
     JsonValue(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
+    vPorts = ConcatArrays(vPorts, EnumUsbPorts)
     For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipInit:=True), _
                             pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipInit:=True), _
                             pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipInit:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipInit:=True))
+                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipInit:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_LABEL, SkipInit:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next
@@ -248,6 +260,9 @@ Public Function EnumPorts(sResponse As String) As Boolean
             JsonValue(oItem, "DeviceSerialNo") = Zn(Trim$(At(vElem, 5)), Empty)
             JsonValue(oItem, "FiscalMemoryNo") = Zn(Trim$(At(vElem, 6)), Empty)
             JsonValue(oItem, "ModelGroup") = Zn(Trim$(At(vElem, 7)), Empty)
+            If SearchCollection(cPorts, Trim$(At(vElem, 0)), sKey) Then
+                JsonValue(oItem, "Description") = sKey
+            End If
         Else
             JsonValue(oItem, "Port") = Zn(Trim$(C_Str(vElem)), Empty)
         End If

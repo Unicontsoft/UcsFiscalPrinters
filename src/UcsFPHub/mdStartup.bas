@@ -390,6 +390,7 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
     Dim sKey            As String
     Dim oAliases        As Object
     Dim oInfo           As Object
+    Dim oItem           As Object
     
     On Error GoTo EH
     Set oFP = New cFiscalPrinter
@@ -410,16 +411,17 @@ Private Function pvCollectPrinters(oRetVal As Object) As Boolean
                         Set oRequest = Nothing
                         JsonValue(oRequest, "DeviceString") = sDeviceString
                         JsonValue(oRequest, "IncludeTaxNo") = True
-                        If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oInfo) Then
-                            sDeviceString = Zn(JsonValue(oInfo, "DeviceString"), sDeviceString)
-                            sKey = JsonValue(oInfo, "DeviceSerialNo")
+                        If oFP.GetDeviceInfo(JsonDump(oRequest, Minimize:=True), sResponse) And JsonParse(sResponse, oItem) Then
+                            sDeviceString = Zn(JsonValue(oItem, "DeviceString"), sDeviceString)
+                            sKey = JsonValue(oItem, "DeviceSerialNo")
                             If LenB(sKey) <> 0 Then
-                                JsonValue(oInfo, "Ok") = Empty
-                                JsonValue(oInfo, "DeviceString") = sDeviceString
-                                JsonValue(oInfo, "DeviceHost") = GetErrorComputerName()
-                                JsonValue(oInfo, "DevicePort") = pvGetDevicePort(sDeviceString)
-                                JsonValue(oInfo, "Autodetected") = True
-                                JsonValue(oRetVal, sKey) = oInfo
+                                JsonValue(oItem, "Ok") = Empty
+                                JsonValue(oItem, "DeviceString") = sDeviceString
+                                JsonValue(oItem, "DeviceHost") = GetErrorComputerName()
+                                JsonValue(oItem, "DevicePort") = pvGetDevicePort(sDeviceString)
+                                JsonValue(oItem, "Description") = JsonValue(oInfo, "Description")
+                                JsonValue(oItem, "Autodetected") = True
+                                JsonValue(oRetVal, sKey) = oItem
                                 JsonValue(oRetVal, "Count") = JsonValue(oRetVal, "Count") + 1
                             End If
                         End If

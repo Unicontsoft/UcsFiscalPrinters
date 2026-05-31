@@ -97,6 +97,11 @@ Private Declare Function GetSystemMetrics Lib "user32" (ByVal nIndex As Long) As
 Private Declare Function GetCurrentProcessId Lib "kernel32" () As Long
 Private Declare Function ProcessIdToSessionId Lib "kernel32" (ByVal dwProcessID As Long, dwSessionID As Long) As Long
 Private Declare Function CryptStringToBinary Lib "crypt32" Alias "CryptStringToBinaryW" (ByVal pszString As Long, ByVal cchString As Long, ByVal dwFlags As Long, ByVal pbBinary As Long, pcbBinary As Long, Optional ByVal pdwSkip As Long, Optional ByVal pdwFlags As Long) As Long
+Private Declare Function EnumPorts Lib "winspool.drv" Alias "EnumPortsW" (ByVal pName As Long, ByVal Level As Long, ByVal pPorts As Long, ByVal cbBuf As Long, ByRef pcbNeeded As Long, ByRef pcReturned As Long) As Long
+Private Declare Function SysReAllocString Lib "oleaut32" (ByVal pBSTR As Long, Optional ByVal pszStrPtr As Long) As Long
+Private Declare Function OpenPrinter Lib "winspool.drv" Alias "OpenPrinterW" (ByVal pPrinterName As Long, phPrinter As Long, ByVal pDefault As Long) As Long
+Private Declare Function ClosePrinter Lib "winspool.drv" (ByVal hPrinter As Long) As Long
+Private Declare Function GetPrinter Lib "winspool.drv" Alias "GetPrinterW" (ByVal hPrinter As Long, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
 
 Private Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
@@ -131,6 +136,14 @@ Private Type EXCEPINFO
     pvReserved          As Long
     pfnDeferredFillIn   As Long
     sCode               As Long
+End Type
+
+Private Type PORT_INFO_2
+    pPortName           As Long
+    pMonitorName        As Long
+    pDescription        As Long
+    fPortType           As Long
+    Reserved            As Long
 End Type
 
 '=========================================================================
@@ -402,15 +415,62 @@ Public Function EnumSerialPorts() As Variant
         Next
     End If
     If lCount = 0 Then
-        EnumSerialPorts = Array()
+        vRet = Array()
     Else
         ReDim Preserve vRet(0 To lCount - 1) As Variant
-        EnumSerialPorts = vRet
     End If
+    EnumSerialPorts = vRet
     Exit Function
 EH:
     PrintError FUNC_NAME
     Resume Next
+End Function
+
+Public Function EnumUsbPorts() As Variant
+    Const FUNC_NAME     As String = "EnumUsbPorts"
+    Dim cIndex          As Collection
+    Dim vRetVal         As Variant
+    Dim lNeeded         As Long
+    Dim baBuffer()      As Byte
+    Dim lCount          As Long
+    Dim lIdx            As Long
+    Dim uInfo()         As PORT_INFO_2
+    Dim sName           As String
+    
+    On Error GoTo EH
+    Set cIndex = New Collection
+    Call EnumPorts(0, 2, 0, 0, lNeeded, 0)
+    ReDim baBuffer(0 To lNeeded) As Byte
+    If EnumPorts(0, 2, VarPtr(baBuffer(0)), lNeeded, lNeeded, lCount) = 0 Then
+        GoTo QH
+    End If
+    ReDim vRetVal(0 To lCount) As Variant
+    ReDim uInfo(0 To lCount) As PORT_INFO_2
+    Call CopyMemory(uInfo(0), baBuffer(0), lCount * LenB(uInfo(0)))
+    For lIdx = 0 To lCount - 1
+        sName = pvToString(uInfo(lIdx).pPortName)
+        If LCase$(Left$(sName, 3)) = "usb" Then
+            If Not SearchCollection(cIndex, sName) Then
+                vRetVal(cIndex.Count) = sName
+                cIndex.Add sName, sName
+            End If
+        End If
+    Next
+QH:
+    If cIndex.Count = 0 Then
+        vRetVal = Array()
+    Else
+        ReDim Preserve vRetVal(0 To cIndex.Count - 1) As Variant
+    End If
+    EnumUsbPorts = vRetVal
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+    Resume Next
+End Function
+
+Private Function pvToString(ByVal lPtr As Long) As String
+    Call SysReAllocString(VarPtr(pvToString), lPtr)
 End Function
 
 Property Get Logger() As cFileLogger
@@ -1795,3 +1855,20 @@ EH:
         End If
     End With
 End Function
+
+Public Function GetPrinterPort(sPrinterName As String) As String
+    Dim hPrinter        As Long
+    Dim lNeeded         As Long
+    Dim aInfoData()     As Long
+    
+    If OpenPrinter(StrPtr(sPrinterName), hPrinter, 0) <> 0 Then
+        Call GetPrinter(hPrinter, 2, ByVal 0, 0, lNeeded)
+        ReDim aInfoData(0 To lNeeded \ 4) As Long
+        Call GetPrinter(hPrinter, 2, aInfoData(0), lNeeded, lNeeded)
+        Call ClosePrinter(hPrinter)
+    End If
+    If UBound(aInfoData) >= 3 Then
+        GetPrinterPort = pvToString(aInfoData(3))
+    End If
+End Function
+

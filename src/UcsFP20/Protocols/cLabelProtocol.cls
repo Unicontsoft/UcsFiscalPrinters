@@ -52,6 +52,8 @@ Private Declare Function CreateEvent Lib "kernel32" Alias "CreateEventA" (ByVal 
 Private Declare Function CloseHandle Lib "kernel32" (ByVal hObject As Long) As Long
 Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, lpHandles As Long, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Private Declare Function GdipDisposeImage Lib "gdiplus" (ByVal hImage As Long) As Long
+Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
+Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -67,12 +69,13 @@ End Type
 
 Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented|Cannot load PDF. %1|Cannot load image. %1"
 Private Const STR_ERRORS_EPL2           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
+Private Const STR_AUTODETECTSPEEDS      As String = "115200|9600"
+Private Const STR_FIRSTDETECTSPEED      As String = "115200"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 54
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
 Private Const DEF_PING_TIMEOUT          As Long = 100
 Private Const DEF_CHUNKED_TIMEOUT       As Long = 50
-Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
 Private Const DEF_SOCKET_PORT           As Long = 9100
 Private Const DEF_TEMPLATE_FILE         As String = "LabelTemplates.conf"
 Private Const DEF_CODEPAGE              As Long = 1251
@@ -120,6 +123,9 @@ Private Type UcsAutodetect
     Connector           As cSerialPortConnector
     WaitOver            As OVERLAPPED
     EventMask           As Long
+    UsbConnector        As cUsbConnector
+    Buffer(0 To 1023)   As Byte
+    Actual              As Long
 End Type
 
 Private Type UcsConfigValues
@@ -212,19 +218,33 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         GoTo QH
     End If
     lTimeout = GetConfigNumber(STR_PROTOCOL_LABEL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
-    For Each vSpeed In Split(DEF_AUTODETECTSPEEDS, "|")
+    For Each vSpeed In Split(STR_AUTODETECTSPEEDS, "|")
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
         For lIdx = 0 To UBound(aPorts)
             If Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) = "com" Then
                 With aPorts(lIdx)
-                    Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
+                    Set .Connector = InitDeviceConnector(At(vPorts, lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
                         sCmd = vbCrLf & "UF" & vbCrLf               '--- UF Command - Form Information Inquiry
-                        .Connector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), 1
+                        .Connector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), Timeout:=1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
                         lResult = WaitCommEvent(.Connector.hComm, .EventMask, .WaitOver)
+                        If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
+                            hEvents(lEventsCount) = .WaitOver.hEvent
+                            lEventsCount = lEventsCount + 1
+                        End If
+                    End If
+                End With
+            ElseIf Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) <> "com" And vSpeed = STR_FIRSTDETECTSPEED Then
+                With aPorts(lIdx)
+                    Set .UsbConnector = InitDeviceConnector(At(vPorts, lIdx), lTimeout, LocalizedText(ucsFscLciConnectorErrors))
+                    If Not .UsbConnector Is Nothing Then
+                        sCmd = "~HS"
+                        .UsbConnector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), Timeout:=1
+                        .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
+                        lResult = ReadFile(.UsbConnector.hFile, .Buffer(0), UBound(.Buffer) + 1, .Actual, .WaitOver)
                         If lResult = 0 And Err.LastDllError = ERROR_IO_PENDING Then
                             hEvents(lEventsCount) = .WaitOver.hEvent
                             lEventsCount = lEventsCount + 1
@@ -255,6 +275,27 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
                     End If
                     Set .Connector = Nothing
+                    If .WaitOver.hEvent <> 0 Then
+                        Call CloseHandle(.WaitOver.hEvent)
+                    End If
+                End If
+                If Not .UsbConnector Is Nothing Then
+                    If .Actual = 0 Then
+                        Call GetOverlappedResult(.UsbConnector.hFile, .WaitOver, .Actual, 0)
+                    End If
+                    sReply = Left$(FromMultiByte(.Buffer, m_uConfig.CodePage), .Actual)
+                    Do While Right$(sReply, 3) <> pvChr(LNG_ETX) & vbCrLf
+                        If .UsbConnector.ReadData(baBuffer, lTimeout) Then
+                            sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
+                        Else
+                            Exit Do
+                        End If
+                    Loop
+                    If InStr(sReply, pvChr(LNG_ETX)) > 0 Then
+                        sModel = At(pvZplGetDeviceInfo(.UsbConnector, lTimeout), 0)
+                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vbNullString, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_ZPL)
+                    End If
+                    Set .UsbConnector = Nothing
                     If .WaitOver.hEvent <> 0 Then
                         Call CloseHandle(.WaitOver.hEvent)
                     End If
