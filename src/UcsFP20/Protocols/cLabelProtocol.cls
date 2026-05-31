@@ -216,7 +216,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
         For lIdx = 0 To UBound(aPorts)
-            If Not IsArray(vRetVal(lIdx)) Then
+            If Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) = "com" Then
                 With aPorts(lIdx)
                     Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then

@@ -534,7 +534,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         lEventsCount = 0
         For lIdx = 0 To UBound(aPorts)
             With aPorts(lIdx)
-                If Not IsArray(vRetVal(lIdx)) And LenB(At(vPorts, lIdx)) <> 0 Then
+                If Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) = "com" Then
                     Set .Connector = InitDeviceConnector(vRetVal(lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
                         .Connector.WriteData baProbe, 1
