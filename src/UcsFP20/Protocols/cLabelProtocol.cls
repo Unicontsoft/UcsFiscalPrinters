@@ -87,10 +87,9 @@ Private Const DEF_RETRYCOUNT            As Long = 3
 Private Const DEF_CHARACTERSET          As Long = 6     '-- cp1251 on LP-50
 Private Const DEF_DPI                   As Long = 203
 Private Const DEF_DENSITY               As Long = -1
-Private Const DEF_DEVICEWIDTH_ZPL       As Double = 108 '-- mm
-Private Const DEF_PAPERWIDTH_ZPL        As Double = DEF_DEVICEWIDTH_ZPL - 8 '-- mm
-Private Const DEF_DEVICEWIDTH_EPL2      As Double = 57 '-- mm
-Private Const DEF_PAPERWIDTH_EPL2       As Double = DEF_DEVICEWIDTH_EPL2 - 3 '-- mm
+Private Const DEF_DEVICEWIDTH_ZPL       As Double = 104 '-- mm, 4", 832 dots
+Private Const DEF_DEVICEWIDTH_EPL2      As Double = 56  '-- mm, 2", 448 dots
+Private Const DEF_PAPERWIDTH            As Double = 0   '-- mm
 Private Const DEF_TOPMARGIN             As Double = 0   '-- mm
 Private Const DEF_LEFTMARGIN            As Double = 0   '-- mm
 Private Const DEF_RIGHTMARGIN           As Double = 0   '-- mm
@@ -363,10 +362,10 @@ Public Function Init(sDeviceString As String) As Boolean
         Else
             .CharacterSet = DEF_CHARACTERSET
         End If
-        .DPI = Znl(C_Lng(JsonValue(oOptions, "DPI")), DEF_DPI)
+        .DPI = C_Lng(JsonValue(oOptions, "DPI"))
         .Density = Znl(C_Lng(JsonValue(oOptions, "Density")), DEF_DENSITY)
         .DeviceWidth = Zndbl(C_Dbl(JsonValue(oOptions, "DeviceWidth")), IIf(.ModelGroup = STR_GROUP_ZPL, DEF_DEVICEWIDTH_ZPL, DEF_DEVICEWIDTH_EPL2))
-        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), .DeviceWidth)
+        .PaperWidth = Zndbl(C_Dbl(JsonValue(oOptions, "PaperWidth")), DEF_PAPERWIDTH)
         .TopMargin = Zndbl(C_Dbl(JsonValue(oOptions, "TopMargin")), DEF_TOPMARGIN)
         .LeftMargin = Zndbl(C_Dbl(JsonValue(oOptions, "LeftMargin")), DEF_LEFTMARGIN)
         .RightMargin = Zndbl(C_Dbl(JsonValue(oOptions, "RightMargin")), DEF_RIGHTMARGIN)
@@ -440,6 +439,8 @@ Public Function GetDeviceModel() As String
     Select Case m_uConfig.ModelGroup
     Case STR_GROUP_EPL2
         GetDeviceModel = At(pvEpl2GetDeviceInfo(m_oConnector, m_lPingTimeout), 0)
+    Case STR_GROUP_ZPL
+        GetDeviceModel = At(pvZplGetDeviceInfo(m_oConnector, m_lPingTimeout), 0)
     Case Else
         GetDeviceModel = m_uConfig.ModelGroup
     End Select
@@ -576,6 +577,7 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
     Dim lDpmm           As Long
     Dim hImg            As Long
     Dim lTargetWidth    As Long
+    Dim dblPaperWidth   As Double
     
     On Error GoTo EH
     Do While uCtx.Row < lRowCount
@@ -655,10 +657,29 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     lCopies = Znl(C_Lng(JsonValue(oConfig, "Copies")), DEF_COPIES)
                     '--- load and convert image
                     baData = FromBase64Array(JsonValue(oConfig, sFormName))
-                    lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                    If Abs(C_Val(JsonValue(oConfig, "DPI"))) < DBL_EPSILON Then
+                        lDpmm = Int(DEF_DPI / 25.4 + 0.5)
+                    Else
+                        lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                    End If
+                    dblPaperWidth = C_Val(JsonValue(oConfig, "PaperWidth"))
+                    If Abs(dblPaperWidth) < DBL_EPSILON Then
+                        lIdx = 0
+                        If LCase$(sFormName) = "pdf" Then
+                            LoadPdfPageToBitmap baData, lIdx, 0, DimensionsOnly:=True
+                        Else
+                            LoadPngToBitmap baData, lIdx, 0, DimensionsOnly:=True
+                        End If
+                        If lIdx > 0 Then
+                            '--- winagi ot 300 DPI -> mm
+                            dblPaperWidth = (lIdx * 25.4 / 300) + C_Val(JsonValue(oConfig, "LeftMargin")) + C_Val(JsonValue(oConfig, "RightMargin"))
+                        Else
+                            dblPaperWidth = C_Val(JsonValue(oConfig, "DeviceWidth"))
+                        End If
+                    End If
                     lTargetWidth = C_Lng(JsonValue(oConfig, "TargetWidth"))
                     If lTargetWidth = 0 Then
-                        lTargetWidth = Int((C_Val(JsonValue(oConfig, "PaperWidth")) - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
+                        lTargetWidth = Int((dblPaperWidth - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
                     End If
                     If LCase$(sFormName) = "pdf" Then
                         hImg = LoadPdfPageToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), _
@@ -776,7 +797,7 @@ Private Function pvEpl2GetDeviceInfo(oConnector As IDeviceConnector, ByVal lTime
     
     On Error GoTo EH
     sCmd = vbCrLf & "U@" & vbCrLf                           '--- U@ Command - Read Configuration
-    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
         Do While InStr(sReply, pvChr(LNG_NACK)) = 0 And InStr(sReply, vbLf) = 0
             If oConnector.ReadData(baBuffer, lTimeout) Then
                 sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -809,7 +830,7 @@ Private Function pvEpl2GetClock(oConnector As IDeviceConnector, ByVal lTimeout A
     
     On Error GoTo EH
     sCmd = vbCrLf & "TI" & vbCrLf                           '--- TI Command - Clock Inquiry
-    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), 100) Then
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
         Do While InStr(sReply, pvChr(LNG_NACK)) = 0 And InStr(sReply, vbLf) = 0 Or Len(sReply) < 17
             If oConnector.ReadData(baBuffer, lTimeout) Then
                 sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -851,9 +872,9 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
     Dim lDpmm           As Long
     Dim hImg            As Long
     Dim lTargetWidth    As Long
-    Dim lLeftMargin     As Long
     Dim lIdx            As Long
     Dim sError          As String
+    Dim dblPaperWidth   As Double
     
     On Error GoTo EH
     Do While uCtx.Row < lRowCount
@@ -877,10 +898,29 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
             If .PmtType = 0 And LenB(sFormName) <> 0 Then
                 '--- load and convert image
                 baData = FromBase64Array(JsonValue(oConfig, sFormName))
-                lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                If Abs(C_Val(JsonValue(oConfig, "DPI"))) < DBL_EPSILON Then
+                    lDpmm = C_Val(At(pvZplGetDeviceInfo(m_oConnector, m_lPingTimeout), 2))
+                Else
+                    lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                End If
+                dblPaperWidth = C_Val(JsonValue(oConfig, "PaperWidth"))
+                If Abs(dblPaperWidth) < DBL_EPSILON Then
+                    lIdx = 0
+                    If LCase$(sFormName) = "pdf" Then
+                        LoadPdfPageToBitmap baData, lIdx, 0, DimensionsOnly:=True
+                    Else
+                        LoadPngToBitmap baData, lIdx, 0, DimensionsOnly:=True
+                    End If
+                    If lIdx > 0 Then
+                        '--- winagi ot 300 DPI -> mm
+                        dblPaperWidth = (lIdx * 25.4 / 300) + C_Val(JsonValue(oConfig, "LeftMargin")) + C_Val(JsonValue(oConfig, "RightMargin"))
+                    Else
+                        dblPaperWidth = C_Val(JsonValue(oConfig, "DeviceWidth"))
+                    End If
+                End If
                 lTargetWidth = C_Lng(JsonValue(oConfig, "TargetWidth"))
                 If lTargetWidth = 0 Then
-                    lTargetWidth = Int((C_Val(JsonValue(oConfig, "PaperWidth")) - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
+                    lTargetWidth = Int((dblPaperWidth - C_Val(JsonValue(oConfig, "LeftMargin")) - C_Val(JsonValue(oConfig, "RightMargin"))) * lDpmm + 0.5)
                 End If
                 If LCase$(sFormName) = "pdf" Then
                     hImg = LoadPdfPageToBitmap(baData, TargetWidth:=Clamp(lTargetWidth, 0), _
@@ -905,15 +945,17 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
                     Err.Raise vbObjectError, , GetImageConvertLastError()
                 End If
                 '--- render form
-                lLeftMargin = Int(((C_Val(JsonValue(oConfig, "DeviceWidth")) - C_Val(JsonValue(oConfig, "PaperWidth"))) / 2 + C_Val(JsonValue(oConfig, "LeftMargin"))) * lDpmm + 0.5)
                 Set cOutput = New Collection
                 If m_uConfig.Density >= 0 Then
                                                                     '--- ~SD Command - Set Darkness
                     cOutput.Add "~SD" & Format$(m_uConfig.Density, "00") & vbCrLf
                 End If
                 cOutput.Add "^XA" & vbCrLf                          '--- ^XA Command - Start Format
+                                                                    '--- ^PW Command - Print Width
+                cOutput.Add "^PW" & Int(dblPaperWidth * lDpmm + 0.5) & vbCrLf
+                cOutput.Add "^JUS" & vbCrLf                         '--- ^JU Command - Configuration Update
                                                                     '--- ^FO Command - Field Origin
-                cOutput.Add "^FO" & Clamp(lLeftMargin, 0) & "," & Clamp(Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5), 0) & vbCrLf
+                cOutput.Add "^FO" & Clamp(Int(C_Val(JsonValue(oConfig, "LeftMargin")) * lDpmm + 0.5), 0) & "," & Clamp(Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5), 0) & vbCrLf
                 If Not ConvertBitmapToZplGraphics(hImg, RetVal:=cOutput) Then
                     On Error GoTo EH
                     Err.Raise vbObjectError, , GetImageConvertLastError()
@@ -1009,6 +1051,40 @@ Private Function pvZplReadResponse( _
         pvZplReadResponse = pvZplReadResponse & sBuffer
     Loop While Right$(sBuffer, 3) <> pvChr(LNG_ETX) & vbCrLf
 QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
+End Function
+
+Private Function pvZplGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeout As Long, Optional Error As String) As Variant
+    Const FUNC_NAME     As String = "pvZplGetDeviceInfo"
+    Dim sCmd            As String
+    Dim baBuffer()      As Byte
+    Dim sReply          As String
+    Dim lPos            As Long
+    
+    On Error GoTo EH
+    sCmd = "~HI"
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
+        Do While InStr(sReply, pvChr(LNG_ETX) & vbCrLf) = 0
+            If oConnector.ReadData(baBuffer, lTimeout) Then
+                sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
+            Else
+                Exit Do
+            End If
+        Loop
+        lPos = InStr(sReply, pvChr(LNG_ETX) & vbCrLf)
+        If lPos > 2 Then
+            sReply = Mid$(sReply, 2, lPos - 2)
+        End If
+        If InStr(sReply, ",") > 0 Then
+            pvZplGetDeviceInfo = Split(sReply, ",")
+        Else
+            pvZplGetDeviceInfo = Array(m_uConfig.ModelGroup)
+        End If
+    Else
+        Error = oConnector.GetLastError
+    End If
     Exit Function
 EH:
     RaiseError FUNC_NAME

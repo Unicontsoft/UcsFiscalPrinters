@@ -87,7 +87,7 @@ Private Type BitmapData
     Stride              As Long
     PixelFormat         As Long
     Scan0               As Long
-    reserved            As Long
+    dwReserved          As Long
 End Type
 
 Private m_hPdfiumLib                As Long
@@ -118,7 +118,8 @@ Public Function LoadPdfPageToBitmap(baPdf() As Byte, _
             Optional TargetHeight As Long, _
             Optional ByVal PdfPage As Long, _
             Optional ByVal PdfRotation As Long, _
-            Optional ByVal PdfFlags As Long) As Long
+            Optional ByVal PdfFlags As Long, _
+            Optional ByVal DimensionsOnly As Boolean) As Long
     Const FUNC_NAME     As String = "LoadPdfPageToBitmap"
     Dim hDoc            As Long
     Dim hPage           As Long
@@ -147,6 +148,9 @@ Public Function LoadPdfPageToBitmap(baPdf() As Byte, _
     lWidth = Int(FPDF_GetPageWidth(hPage) * 300# / 72# + 0.5)
     lHeight = Int(FPDF_GetPageHeight(hPage) * 300# / 72# + 0.5)
     pvSetAspect lWidth, lHeight, TargetWidth, TargetHeight
+    If DimensionsOnly Then
+        GoTo QH
+    End If
     hBM = FPDFBitmap_Create(lWidth, lHeight, 1)
     If hBM = 0 Then
         pvSetPdfError FPDF_GetLastError
@@ -206,11 +210,15 @@ QH:
     End If
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Function
 
-Public Function LoadPngToBitmap(baPng() As Byte, Optional TargetWidth As Long, Optional TargetHeight As Long) As Long
+Public Function LoadPngToBitmap(baPng() As Byte, _
+            Optional TargetWidth As Long, _
+            Optional TargetHeight As Long, _
+            Optional ByVal DimensionsOnly As Boolean) As Long
     Const FUNC_NAME     As String = "LoadPdfPageToBitmap"
     Dim pStream         As stdole.IUnknown
     Dim hImg            As Long
@@ -237,6 +245,9 @@ Public Function LoadPngToBitmap(baPng() As Byte, Optional TargetWidth As Long, O
     lWidth = Int(sngWidth + 0.5)
     lHeight = Int(sngHeight + 0.5)
     pvSetAspect lWidth, lHeight, TargetWidth, TargetHeight
+    If DimensionsOnly Then
+        GoTo QH
+    End If
     If pvCheckGdipError(GdipCreateBitmapFromScan0(TargetWidth, TargetHeight, 0, PixelFormat32bppARGB, 0, hNewImg)) Then
         sApiSource = "GdipCreateBitmapFromScan0"
         GoTo QH
@@ -282,6 +293,7 @@ QH:
     End If
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Function
@@ -331,6 +343,7 @@ QH:
     End If
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Function
@@ -382,6 +395,7 @@ QH:
     End If
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Function
@@ -442,6 +456,7 @@ QH:
     End If
     Exit Function
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Function
@@ -480,6 +495,7 @@ QH:
     End If
     Exit Sub
 EH:
+    m_sLastError = Err.Description
     PrintError FUNC_NAME
     Resume QH
 End Sub
