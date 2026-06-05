@@ -1,7 +1,7 @@
 Attribute VB_Name = "mdJson"
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2023 by Unicontsoft
+' UcsFP20 (c) 2008-2026 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -179,7 +179,6 @@ Public Function JsonParse(sText As String, Optional RetVal As Variant, Optional 
             .cDims = 1
             .fFeatures = FADF_AUTO
             .cbElements = 2
-            .cLocks = 1
             .pvData = StrPtr(sText)
             If .pvData = 0 Then
                 .pvData = StrPtr("")
@@ -342,42 +341,24 @@ Private Function pvJsonParse(uCtx As JsonContext) As Variant
             .Error = vbNullString
             Set pvJsonParse = oRetVal
         Case 116, 84  '--- "t", "T"
-            If (.Text(.Pos + 0) Or &H20) <> 114 Then    '--- r
+            Select Case False '--- [rR] [uU] [eE]
+            Case (.Text(.Pos + 0) Or &H20) = 114, (.Text(.Pos + 1) Or &H20) = 117, (.Text(.Pos + 2) Or &H20) = 101
                 GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 1) Or &H20) <> 117 Then    '--- u
-                GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 2) Or &H20) <> 101 Then    '--- e
-                GoTo UnexpectedSymbol
-            End If
+            End Select
             .Pos = .Pos + 3
             pvJsonParse = True
         Case 102, 70 '--- "f", "F"
-            If (.Text(.Pos + 0) Or &H20) <> 97 Then     '--- a
+            Select Case False '--- [aA] [lL] [sS] [eE]
+            Case (.Text(.Pos + 0) Or &H20) = 97, (.Text(.Pos + 1) Or &H20) = 108, (.Text(.Pos + 2) Or &H20) = 115, (.Text(.Pos + 3) Or &H20) = 101
                 GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 1) Or &H20) <> 108 Then    '--- l
-                GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 2) Or &H20) <> 115 Then    '--- s
-                GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 3) Or &H20) <> 101 Then    '--- e
-                GoTo UnexpectedSymbol
-            End If
+            End Select
             .Pos = .Pos + 4
             pvJsonParse = False
         Case 110, 78 '--- "n", "N"
-            If (.Text(.Pos + 0) Or &H20) <> 117 Then    '--- u
+            Select Case False '--- [uU] [lL] [lL]
+            Case (.Text(.Pos + 0) Or &H20) = 117, (.Text(.Pos + 1) Or &H20) = 108, (.Text(.Pos + 2) Or &H20) = 108
                 GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 1) Or &H20) <> 108 Then    '--- l
-                GoTo UnexpectedSymbol
-            End If
-            If (.Text(.Pos + 2) Or &H20) <> 108 Then    '--- l
-                GoTo UnexpectedSymbol
-            End If
+            End Select
             .Pos = .Pos + 3
             pvJsonParse = Null
         Case 48 To 57, 43, 45, 46 '--- 0-9 + - .
@@ -525,14 +506,23 @@ Private Function pvJsonGetString(uCtx As JsonContext) As String
                 Case 47  '--- /
                     pvJsonGetString = pvJsonGetString & "/"
                 Case 117 '--- u
+                    Select Case False
+                    Case pvIsHex(.Text(.Pos + lIdx + 1)), pvIsHex(.Text(.Pos + lIdx + 2)), pvIsHex(.Text(.Pos + lIdx + 3)), pvIsHex(.Text(.Pos + lIdx + 4))
+                        GoTo InvalidEscape
+                    End Select
                     pvJsonGetString = pvJsonGetString & ChrW$(CLng("&H" & ChrW$(.Text(.Pos + lIdx + 1)) & ChrW$(.Text(.Pos + lIdx + 2)) & ChrW$(.Text(.Pos + lIdx + 3)) & ChrW$(.Text(.Pos + lIdx + 4))))
                     lIdx = lIdx + 4
                 Case 120 '--- x
+                    Select Case False
+                    Case pvIsHex(.Text(.Pos + lIdx + 1)), pvIsHex(.Text(.Pos + lIdx + 2))
+                        GoTo InvalidEscape
+                    End Select
                     pvJsonGetString = pvJsonGetString & ChrW$(CLng("&H" & ChrW$(.Text(.Pos + lIdx + 1)) & ChrW$(.Text(.Pos + lIdx + 2))))
                     lIdx = lIdx + 2
                 Case Else
+InvalidEscape:
                     nChar = 0
-                    .Pos = .Pos + lIdx + 1
+                    .Pos = .Pos + lIdx - 1
                     .Error = Printf(ERR_INVALID_ESCAPE, .Pos)
                     Exit For
                 End Select
@@ -698,12 +688,23 @@ Public Property Get JsonValue(oJson As Object, ByVal sKey As String) As Variant
         If Not IsEmpty(vItem) Then
             If lIdx < UBound(vSplit) Then
                 If Not IsObject(vItem) Then
+                    If lIdx + 1 = UBound(vSplit) And Right$(sKey, 1) = "/" Then
+                        Set JsonValue = pvJsonCreateObject(vbTextCompare)
+                        #If ImplScripting Then
+                            JsonValue.Add 0&, vItem
+                        #Else
+                            JsonValue.Add vItem
+                        #End If
+                        GoTo QH
+                    End If
                     GoTo ReturnEmpty
                 End If
                 Set oParam = vItem
             Else
                 AssignVariant JsonValue, vItem
             End If
+        ElseIf C_Str(vKey) = "0" Then
+            '--- do nothing & continue
         Else
             If LenB(vKey) = 0 Then
                 Set JsonValue = oParam
@@ -1430,6 +1431,13 @@ Private Function pvSplitKey(sKey As String) As Variant
         sKey = Mid$(sKey, 2)
     End Select
     pvSplitKey = Split(sKey, "/")
+End Function
+
+Private Function pvIsHex(ByVal nChar As Integer) As Boolean
+    Select Case nChar
+    Case 48 To 57, 65 To 70, 97 To 102 '--- 0-9, A-F, a-f
+        pvIsHex = True
+    End Select
 End Function
 
 #If Not ImplUseShared Then
