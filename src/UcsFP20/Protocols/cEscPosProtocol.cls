@@ -381,9 +381,10 @@ Public Function Init(sDeviceString As String) As Boolean
         .DeviceSerialNo = C_Str(JsonValue(oOptions, "DeviceSerialNo"))
         If LenB(.DeviceSerialNo) = 0 Then
             .DeviceSerialNo = "ESC_" & Replace(At(Split(m_sDevice, ","), 0), ":", "_")
-            If Left$(LCase$(m_sDevice), 3) = "com" Then
+            Select Case LCase$(Left$(m_sDevice, 3))
+            Case "com", "usb"
                 .DeviceSerialNo = .DeviceSerialNo & "_" & Hex$(GetMd5Long(GetErrorComputerName()) And &HFFFF&)
-            End If
+            End Select
         End If
         .DeviceSerialNo = Left$(.DeviceSerialNo, MAX_DEVICE_SERIALNO)
     End With
