@@ -54,6 +54,7 @@ Private Declare Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As 
 Private Declare Function GdipDisposeImage Lib "gdiplus" (ByVal hImage As Long) As Long
 Private Declare Function ReadFile Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Long
 Private Declare Function GetOverlappedResult Lib "kernel32" (ByVal hFile As Long, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As Long) As Long
+Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Private Type OVERLAPPED
     Internal                    As Long
@@ -100,6 +101,7 @@ Private Const LNG_ACK                   As Long = &H6
 Private Const LNG_NACK                  As Long = &H15
 Private Const LNG_STX                   As Long = &H2
 Private Const LNG_ETX                   As Long = &H3
+Private Const MAX_RETRY                 As Long = 3
 
 Private m_sDevice                   As String
 Private m_oConnector                As IDeviceConnector
@@ -658,10 +660,9 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     lCopies = Znl(C_Lng(JsonValue(oConfig, "Copies")), DEF_COPIES)
                     '--- load and convert image
                     baData = FromBase64Array(JsonValue(oConfig, sFormName))
-                    If Abs(C_Val(JsonValue(oConfig, "DPI"))) < DBL_EPSILON Then
+                    lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                    If lDpmm = 0 Then
                         lDpmm = Int(DEF_DPI / 25.4 + 0.5)
-                    Else
-                        lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
                     End If
                     dblPaperWidth = C_Val(JsonValue(oConfig, "PaperWidth"))
                     If Abs(dblPaperWidth) < DBL_EPSILON Then
@@ -899,10 +900,19 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
             If .PmtType = 0 And LenB(sFormName) <> 0 Then
                 '--- load and convert image
                 baData = FromBase64Array(JsonValue(oConfig, sFormName))
-                If Abs(C_Val(JsonValue(oConfig, "DPI"))) < DBL_EPSILON Then
-                    lDpmm = C_Val(At(pvZplGetDeviceInfo(m_oConnector, m_lPingTimeout), 2))
-                Else
-                    lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                lDpmm = Int(C_Val(JsonValue(oConfig, "DPI")) / 25.4 + 0.5)
+                If lDpmm = 0 Then
+                    For lIdx = 1 To MAX_RETRY
+                        lDpmm = C_Val(At(pvZplGetDeviceInfo(m_oConnector, m_lPingTimeout), 2))
+                        If lDpmm <> 0 Then
+                            m_uConfig.DPI = lDpmm * 25.4
+                            Exit For
+                        End If
+                        Call Sleep(100)
+                    Next
+                End If
+                If lDpmm = 0 Then
+                    lDpmm = Int(DEF_DPI / 25.4 + 0.5)
                 End If
                 dblPaperWidth = C_Val(JsonValue(oConfig, "PaperWidth"))
                 If Abs(dblPaperWidth) < DBL_EPSILON Then
@@ -954,7 +964,6 @@ Private Function pvZplPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPp
                 cOutput.Add "^XA" & vbCrLf                          '--- ^XA Command - Start Format
                                                                     '--- ^PW Command - Print Width
                 cOutput.Add "^PW" & Int(dblPaperWidth * lDpmm + 0.5) & vbCrLf
-                cOutput.Add "^JUS" & vbCrLf                         '--- ^JU Command - Configuration Update
                                                                     '--- ^FO Command - Field Origin
                 cOutput.Add "^FO" & Clamp(Int(C_Val(JsonValue(oConfig, "LeftMargin")) * lDpmm + 0.5), 0) & "," & Clamp(Int(C_Val(JsonValue(oConfig, "TopMargin")) * lDpmm + 0.5), 0) & vbCrLf
                 If Not ConvertBitmapToZplGraphics(hImg, RetVal:=cOutput) Then
