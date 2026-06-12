@@ -248,6 +248,8 @@ Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 15000
 Private Const DEF_OPERNO                As String = "1"
 Private Const DEF_PASSWORD              As String = "0000"
+Private Const DEF_ADMIN_OPERNO          As String = "20"
+Private Const DEF_ADMIN_PASSWORD        As String = "9999"
 Private Const DEF_SOCKET_PORT           As Long = 4999
 Private Const DEF_ROW_CHARS             As Long = 42
 Private Const DEF_MIN_DISCOUNT          As Double = -99
@@ -1830,8 +1832,10 @@ End Function
 Public Function GetDefaultPassword(OperatorCode As String) As String
     If LenB(m_uConfig.DefaultPassword) <> 0 Then
         GetDefaultPassword = m_uConfig.DefaultPassword
-    ElseIf IsEcr Or IsDaisy Or IsIncotex Then
+    ElseIf IsEcr Or IsIncotex Then
         GetDefaultPassword = OperatorCode
+    ElseIf IsDaisy Then
+        GetDefaultPassword = IIf(OperatorCode = DEF_ADMIN_OPERNO, DEF_ADMIN_PASSWORD, OperatorCode)
     Else
         GetDefaultPassword = DEF_PASSWORD
     End If
@@ -2425,7 +2429,7 @@ Private Function pvPrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsPpdRo
                             "FormatDate", sFormatDate, FORMAT_DATE_EXTENDED
                     End If
                     sParam = Printf(sParam, .InitOperatorCode, .InitOperatorPassword, _
-                        .InitUniqueSaleNo, _
+                        Zn(.InitUniqueSaleNo, DEF_EMPTY_UNIQUESALENO), _
                         IIf(.InitReceiptType = ucsFscRcpReversal, "R", "C" & .InitRevData(ucsRevInvoiceNo) & DEF_SEP), _
                         sRevType, _
                         .InitRevData(ucsRevReceiptNo), _
