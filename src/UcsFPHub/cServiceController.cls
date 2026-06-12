@@ -126,17 +126,16 @@ Public Function ServiceRequest(sPath As String, sQueryString As String, sRequest
             End If
         End If
     End If
-    If preg_match("/^/autoupdate$/i", sPath) Then
+    If preg_match("/^/(autoupdate|shutdown|restart)$/i", sPath, vMatches) > 0 Then
         Set oEntry = Nothing
-        JsonValue(oEntry, "StartAutoUpdate") = MainForm.DelayStartAutoUpdate()
-        sResponse = JsonDump(oEntry, Minimize:=True)
-        '--- success
-        ServiceRequest = True
-        GoTo QH
-    End If
-    If preg_match("/^/shutdown$/i", sPath) Then
-        Set oEntry = Nothing
-        JsonValue(oEntry, "ShutDown") = MainForm.DelayShutDown()
+        Select Case LCase$(At(vMatches, 0))
+        Case "autoupdate"
+            JsonValue(oEntry, "StartAutoUpdate") = MainForm.DelayStartAutoUpdate()
+        Case "shutdown"
+            JsonValue(oEntry, "ShutDown") = MainForm.DelayShutDown()
+        Case "restart"
+            JsonValue(oEntry, "Restart") = MainForm.DelayRestart()
+        End Select
         sResponse = JsonDump(oEntry, Minimize:=True)
         '--- success
         ServiceRequest = True

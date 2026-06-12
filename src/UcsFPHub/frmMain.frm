@@ -94,6 +94,7 @@ Private m_sExeAutoUpdate            As String
 Private m_pUpdateTimer              As IUnknown
 Private m_pAutoUpdateTimer          As IUnknown
 Private m_pShutDownTimer            As IUnknown
+Private m_pRestartTimer             As IUnknown
 Private WithEvents m_oSysTray       As cSysTray
 Attribute m_oSysTray.VB_VarHelpID = -1
 Private m_hDevNotify                As Long
@@ -195,6 +196,7 @@ Public Sub ShutDown()
     Set m_pUpdateTimer = Nothing
     Set m_pAutoUpdateTimer = Nothing
     Set m_pShutDownTimer = Nothing
+    Set m_pRestartTimer = Nothing
     TerminateEndpoints
     FlushDebugLog
     For Each oFrm In Forms
@@ -211,7 +213,7 @@ Public Function DelayShutDown(Optional ByVal Delay As Long = 1000) As Boolean
     Const FUNC_NAME     As String = "DelayShutDown"
     
     On Error GoTo EH
-    Set m_pShutDownTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.StartShutDown, Delay:=Delay)
+    Set m_pShutDownTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.DelayShutDownTimerProc, Delay:=Delay)
     '--- success
     DelayShutDown = True
     Exit Function
@@ -219,9 +221,9 @@ EH:
     PrintError FUNC_NAME
 End Function
 
-Public Function StartShutDown() As Long
-Attribute StartShutDown.VB_MemberFlags = "40"
-    Const FUNC_NAME     As String = "StartShutDown"
+Public Function DelayShutDownTimerProc() As Long
+Attribute DelayShutDownTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "DelayShutDownTimerProc"
     
     On Error GoTo EH
     Set m_pShutDownTimer = Nothing
@@ -245,6 +247,30 @@ Public Sub Restart(Optional AddParam As Variant)
 EH:
     PrintError FUNC_NAME
 End Sub
+
+Public Function DelayRestart(Optional ByVal Delay As Long = 1000) As Boolean
+    Const FUNC_NAME     As String = "DelayRestart"
+    
+    On Error GoTo EH
+    Set m_pRestartTimer = InitFireOnceTimerThunk(Me, pvAddressOfTimerProc.DelayRestartTimerProc, Delay:=Delay)
+    '--- success
+    DelayRestart = True
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
+
+Public Function DelayRestartTimerProc() As Long
+Attribute DelayRestartTimerProc.VB_MemberFlags = "40"
+    Const FUNC_NAME     As String = "DelayRestartTimerProc"
+    
+    On Error GoTo EH
+    Set m_pRestartTimer = Nothing
+    Restart
+    Exit Function
+EH:
+    PrintError FUNC_NAME
+End Function
 
 Public Function StartAutoUpdate(Optional ByVal CheckUpdate As VbTriState = vbUseDefault) As Boolean
     Const FUNC_NAME     As String = "StartAutoUpdate"
