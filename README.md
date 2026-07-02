@@ -69,6 +69,13 @@ Here is a sample settings file:
     "Environment": {
         "_UCS_FISCAL_PRINTER_LOG": "C:\\Unicontsoft\\POS\\Logs\\UcsFP20.log",
         "_UCS_SSH_PASSWORD": "s3cr3t"
+    },
+    "ProtocolConfig": {
+        "DY513508": {
+            "Commands": {
+                "PrintReceipt": { "FiscalReversal2Param": "20,9999,OO000000-0000-0000000\t%4%5,%6,%7\t%8" }
+            }
+        }
     }
 }
 ```
@@ -157,7 +164,7 @@ Protocol         | Manufacturer | Tested models  | Other supported models
 `ELTRADE`        | Eltrade Ltd. | A3             | All
 `ESC/POS`        | Tremol Ltd.  | EP-80250       | ESC/POS "kitchen" printers
 `LABEL`          | Datecs Ltd.  | LP-50, LP-50MX, Alpha | EPL-2 and ZPL label printers
-`SCALES`         | Bimco Ltd.   | B6, B600       | Elicom, Dibal, Mettler, Delmac & CAS
+`SCALES`         | Bimco Ltd.   | B6, B600       | Elicom, Dibal, Mettler, Delmac, CAS & ACS
 `PROXY`          | Unicontsoft  | UcsFPHub       | All
 
 ### REST service protocol description

@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = True
 '=========================================================================
 '
-' UcsFP20 (c) 2008-2025 by Unicontsoft
+' UcsFP20 (c) 2008-2026 by Unicontsoft
 '
 ' Unicontsoft Fiscal Printers Component 2.0
 '
@@ -84,6 +84,7 @@ Private Enum UcsScaleProtocolEnum
     ucsScaProtocolMettler
     ucsScaProtocolDelmac
     ucsScaProtocolBimco
+    ucsScaProtocolAcs
 End Enum
 
 Private Enum UcsScaleStatusEnum
@@ -105,6 +106,7 @@ Private Enum UcsControlSymbols
     BMK_REQ = &H36
     ELI_REQ = &HAA
     ELI_UNS = &HBB
+    ACS_STX = &HFF
 End Enum
 
 Private Enum UcsParseResultEnum
@@ -207,6 +209,8 @@ Public Function Init(sDeviceString As String) As Boolean
             m_uConfig.ModelGroup = "BIMCO"
         Case ucsScaProtocolCas
             m_uConfig.ModelGroup = "CAS"
+        Case ucsScaProtocolAcs
+            m_uConfig.ModelGroup = "ACS"
         Case Else
             m_uData.Protocol = 0
         End Select
@@ -224,6 +228,8 @@ Public Function Init(sDeviceString As String) As Boolean
             m_uData.Protocol = ucsScaProtocolBimco
         Case "CAS"
             m_uData.Protocol = ucsScaProtocolCas
+        Case "ACS"
+            m_uData.Protocol = ucsScaProtocolAcs
         End Select
     End If
     If m_uData.Protocol = 0 Then
@@ -340,6 +346,8 @@ Private Function pvReadWeight( _
             m_uData.Request = vbNullString
         Case ucsScaProtocolBimco
             m_uData.Request = Chr$(BMK_REQ)
+        Case ucsScaProtocolAcs
+            m_uData.Request = vbNullString
         End Select
         m_uData.Received = vbNullString
         If LenB(m_uData.Request) <> 0 Then
@@ -366,6 +374,8 @@ Private Function pvReadWeight( _
                     eResult = pvParseDelmacResponse(m_uData, bAllowZero)
                 Case ucsScaProtocolBimco
                     eResult = pvParseBimcoResponse(m_uData, bAllowZero)
+                Case ucsScaProtocolAcs
+                    eResult = pvParseAcsResponse(m_uData, bAllowZero)
                 Case Else
                     eResult = ucsScaResultContinue
                 End Select
@@ -657,6 +667,60 @@ Private Function pvParseBimcoResponse(uData As UcsScaleDataType, ByVal bAllowZer
                 Else
                     '--- success
                     pvParseBimcoResponse = ucsScaResultHasResult
+                End If
+            End If
+        End If
+    End With
+End Function
+
+Private Function pvParseAcsResponse(uData As UcsScaleDataType, ByVal bAllowZero As Boolean) As UcsParseResultEnum
+    Const IDX_STATUS    As Long = 1
+    Const IDX_WIEGHT    As Long = 2
+    Const FLAG_OVERFLOW As Long = 2 ^ 3
+    Const FLAG_UNSTABLE As Long = 2 ^ 6
+    Const FLAG_UNDRLOAD As Long = 2 ^ 7
+    Static PrevWeight   As Double
+    Static PrevCount    As Long
+    Const STABLE_COUNT  As Long = 5
+    Dim lStart          As Long
+    Dim baRecv()        As Byte
+    Dim baWeight(0 To 2) As Byte
+    
+    With uData
+        lStart = Len(.Received) - 14
+        If lStart > 0 Then
+            .Response = Mid$(.Received, lStart)
+            baRecv = StrConv(.Response, vbFromUnicode)
+            If baRecv(0) <> ACS_STX Then
+                pvParseAcsResponse = ucsScaResultRetrySend
+            Else
+                If (baRecv(IDX_STATUS) And FLAG_OVERFLOW) <> 0 Then
+                    .Status = ucsScaStatusOverload
+                ElseIf (baRecv(IDX_STATUS) And FLAG_UNSTABLE) <> 0 Then
+                    .Status = ucsScaStatusUnstable
+                ElseIf (baRecv(IDX_STATUS) And FLAG_UNDRLOAD) <> 0 Then
+                    .Status = ucsScaStatusUnderload
+                Else
+                    .Status = ucsScaStatusStable
+                End If
+                baWeight(2) = baRecv(IDX_WIEGHT + 0)
+                baWeight(1) = baRecv(IDX_WIEGHT + 1)
+                baWeight(0) = baRecv(IDX_WIEGHT + 2)
+                .Weight = C_Dbl(ToHex(baWeight)) / 1000
+                If Abs(PrevWeight - .Weight) < DBL_EPSILON Then
+                    PrevCount = PrevCount + 1
+                Else
+                    PrevWeight = .Weight
+                    PrevCount = 0
+                End If
+                If PrevCount < STABLE_COUNT And .Status = ucsScaStatusStable Then
+                    .Status = ucsScaStatusUnstable
+                End If
+                If .Status = ucsScaStatusStable And Abs(.Weight) < DBL_EPSILON And Not bAllowZero Then
+                    pvParseAcsResponse = ucsScaResultRetryZero
+                Else
+                    '--- success
+                    pvParseAcsResponse = ucsScaResultHasResult
                 End If
             End If
         End If
