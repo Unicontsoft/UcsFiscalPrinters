@@ -564,6 +564,10 @@ Public Function JsonDump(vJson As Variant, Optional ByVal Level As Long, Optiona
     Case vbObject
         Set oJson = vJson
         If oJson Is Nothing Then
+            If LenB(CompoundChars) = 0 Then
+                CompoundChars = "{}"
+            End If
+            JsonDump = CompoundChars
             Exit Function
         End If
         lCompareMode = pvJsonCompareMode(oJson)
