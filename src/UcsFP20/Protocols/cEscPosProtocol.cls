@@ -1044,7 +1044,7 @@ End Function
 
 Private Function IDeviceProtocol_GetHeaderText(ByVal Index As Long) As String
     If Index = 1 Then
-        If Not GetDeviceStatus(vbNullString) Then
+        If GetDeviceStatus(vbNullString) <> ucsFscStaReady Then
             Err.Raise vbObjectError, , LastError
         End If
     End If

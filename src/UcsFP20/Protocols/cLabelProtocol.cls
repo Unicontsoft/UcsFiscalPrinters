@@ -227,7 +227,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 With aPorts(lIdx)
                     Set .Connector = InitDeviceConnector(At(vPorts, lIdx) & "," & vSpeed, lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .Connector Is Nothing Then
-                        sCmd = vbCrLf & "UF" & vbCrLf               '--- UF Command - Form Information Inquiry
+                        sCmd = vbCrLf & "UN" & vbCrLf               '--- UN Command - Disable Error Reporting
+                        sCmd = sCmd & "UQ" & vbCrLf                 '--- UQ Command - Configuration Inquiry
+                        sCmd = sCmd & "UF" & vbCrLf                 '--- UF Command - Form Information Inquiry
                         .Connector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), Timeout:=1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         Call SetCommMask(.Connector.hComm, EV_RXCHAR Or EV_ERR)
@@ -242,7 +244,9 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                 With aPorts(lIdx)
                     Set .UsbConnector = InitDeviceConnector(At(vPorts, lIdx), lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .UsbConnector Is Nothing Then
-                        sCmd = "~HS"
+                        sCmd = vbCrLf & "UN" & vbCrLf               '--- UN Command - Disable Error Reporting
+                        sCmd = sCmd & "~HS" & vbCrLf                '--- Host Status Return (ZPL)
+                        sCmd = sCmd & "UQ" & vbCrLf                 '--- UQ Command - Configuration Inquiry
                         .UsbConnector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), Timeout:=1
                         .WaitOver.hEvent = CreateEvent(0, 1, 0, 0)
                         lResult = ReadFile(.UsbConnector.hFile, .Buffer(0), UBound(.Buffer) + 1, .Actual, .WaitOver)
@@ -270,7 +274,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         End If
                     Loop
                     sReply = Replace(sReply, pvChr(LNG_NACK), vbNullString)
-                    If sReply Like "*[0-9][0-9][0-9]" & vbCrLf & "*" Or sReply Like "*[0-9][0-9][0-9]" & vbLf & "*" Then
+                    If sReply Like "*S/N: [0-9]*" Or sReply Like "*[0-9][0-9][0-9]" & vbCrLf & "*" Or sReply Like "*[0-9][0-9][0-9]" & vbLf & "*" Then
                         DebugLog FUNC_NAME, "Auto-detecting " & .Connector.Device & " reply 0x" & ToHexDump(StrConv(baBuffer, vbUnicode))
                         sModel = At(pvEpl2GetDeviceInfo(.Connector, lTimeout), 0)
                         vRetVal(lIdx) = Array(At(vPorts, lIdx), vSpeed, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
@@ -293,8 +297,13 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         End If
                     Loop
                     If InStr(sReply, pvChr(LNG_ETX)) > 0 Then
+                        DebugLog FUNC_NAME, "Auto-detecting " & .UsbConnector.Device & " reply 0x" & ToHexDump(sReply)
                         sModel = At(pvZplGetDeviceInfo(.UsbConnector, lTimeout), 0)
                         vRetVal(lIdx) = Array(At(vPorts, lIdx), vbNullString, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_ZPL)
+                    ElseIf sReply Like "*S/N: [0-9]*" Then
+                        DebugLog FUNC_NAME, "Auto-detecting " & .UsbConnector.Device & " reply 0x" & ToHexDump(sReply)
+                        sModel = At(Split(sReply, vbCrLf), 0)
+                        vRetVal(lIdx) = Array(At(vPorts, lIdx), vbNullString, STR_PROTOCOL_LABEL, sModel, vbNullString, vbNullString, vbNullString, STR_GROUP_EPL2)
                     End If
                     Set .UsbConnector = Nothing
                     If .WaitOver.hEvent <> 0 Then
@@ -346,7 +355,7 @@ Public Function Init(sDeviceString As String) As Boolean
         End If
         sFile = Zn(C_Str(JsonValue(oOptions, "TemplateFile")), DEF_TEMPLATE_FILE)
         Set .Templates = JsonParseObject(pvReadTextFile(sFile), Error:=sError)
-        If .Templates Is Nothing And .ModelGroup = STR_GROUP_EPL2 Then
+        If .Templates Is Nothing And Not IsEmpty(JsonValue(oOptions, "TemplateFile")) Then
             On Error GoTo 0
             Err.Raise vbObjectError, , Printf(pvInternal(ucsErrCannotLoadTemplates), sFile, sError)
         End If
@@ -394,7 +403,6 @@ End Function
 
 Public Function Connect() As Boolean
     Const FUNC_NAME     As String = "Connect"
-    Dim sCmd            As String
     
     On Error GoTo EH
     DebugLog FUNC_NAME, "m_sDevice=" & m_sDevice & ", m_lConnectionTimeout=" & m_lConnectionTimeout & ", m_uConfig.CodePage=" & m_uConfig.CodePage
@@ -403,9 +411,6 @@ Public Function Connect() As Boolean
         DebugLog FUNC_NAME, "InitDeviceConnector failed, m_uPrintData.LastError=" & m_uPrintData.LastError
         GoTo QH
     End If
-    sCmd = vbCrLf & "US" & vbCrLf         '--- US Command - Enable Error Reporting
-    DebugDataDump FUNC_NAME, "[SEND ] ", sCmd
-    m_oConnector.WriteData ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout
     '--- success
     Connect = True
 QH:
@@ -439,13 +444,34 @@ Public Function GetDeviceProtocol() As String
 End Function
 
 Public Function GetDeviceModel() As String
+    Dim lIdx            As Long
+    
     Select Case m_uConfig.ModelGroup
     Case STR_GROUP_EPL2
-        GetDeviceModel = At(pvEpl2GetDeviceInfo(m_oConnector, m_lPingTimeout), 0)
+        For lIdx = 1 To 10
+            GetDeviceModel = At(preg_split("\s+", At(pvEpl2GetDeviceInfo(m_oConnector, m_lPingTimeout), 0)), 0)
+            If Len(GetDeviceModel) > 2 And GetDeviceModel <> m_uConfig.ModelGroup Then
+                Exit For
+            End If
+        Next
     Case STR_GROUP_ZPL
         GetDeviceModel = At(pvZplGetDeviceInfo(m_oConnector, m_lPingTimeout), 0)
     Case Else
         GetDeviceModel = m_uConfig.ModelGroup
+    End Select
+End Function
+
+Public Function GetDeviceFirmware() As String
+    Dim lIdx            As Long
+    
+    Select Case m_uConfig.ModelGroup
+    Case STR_GROUP_EPL2
+        For lIdx = 1 To 10
+            GetDeviceFirmware = At(preg_split("\s+", At(pvEpl2GetDeviceInfo(m_oConnector, m_lPingTimeout), 0)), 1)
+            If Len(GetDeviceFirmware) > 2 Then
+                Exit For
+            End If
+        Next
     End Select
 End Function
 
@@ -458,8 +484,12 @@ Public Function GetDeviceStatus(StatusText As String) As UcsFiscalStatusCodeEnum
     Select Case m_uConfig.ModelGroup
     Case STR_GROUP_EPL2
         dClock = pvEpl2GetClock(m_oConnector, m_lPingTimeout, StatusText)
-        If LenB(StatusText) = 0 Then
+        If LenB(StatusText) = 0 And dClock <> 0 Then
             StatusText = dClock
+        End If
+        If StatusText = At(Split(LocalizedText(ucsFscLciConnectorErrors), "|"), ucsErrTimeoutWaitingForResponse) Then
+            vSplit = pvEpl2GetDeviceInfo(m_oConnector, m_lPingTimeout)
+            StatusText = At(vSplit, 0) & vbCrLf & At(vSplit, 1) & vbCrLf & At(vSplit, 2) & vbCrLf & At(vSplit, 3)
         End If
     Case STR_GROUP_ZPL
         If Not pvZplSendCommand(m_oConnector, m_lPingTimeout, "~HS", FUNC_NAME, StatusText) Then
@@ -707,7 +737,8 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     End If
                     '--- render image
                     Set cOutput = New Collection
-                    cOutput.Add vbCrLf & "N" & vbCrLf                   '--- N Command - Clear Image Buffer
+                    cOutput.Add vbCrLf & "US" & vbCrLf                  '--- US Command - Enable Error Reporting
+                    cOutput.Add "N" & vbCrLf                            '--- N Command - Clear Image Buffer
                     If m_uConfig.Density >= 0 Then
                         cOutput.Add "D" & m_uConfig.Density & vbCrLf    '--- D Command - Density
                     End If
@@ -718,11 +749,14 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                         Err.Raise vbObjectError, , GetImageConvertLastError()
                     End If
                     cOutput.Add "P" & lCopies & vbCrLf                  '--- P Command - Print
+                    cOutput.Add "UN" & vbCrLf                           '--- UN Command - Disable Error Reporting
+                    cOutput.Add "UQ" & vbCrLf                           '--- UQ Command - Configuration Inquiry
                     sText = ConcatCollection(cOutput, vbNullString)
                 Else
                     '--- render form
                     Set cOutput = New Collection
-                    cOutput.Add vbCrLf & "N"                            '--- N Command - Clear Image Buffer
+                    cOutput.Add vbCrLf & "US"                           '--- US Command - Enable Error Reporting
+                    cOutput.Add "N"                                     '--- N Command - Clear Image Buffer
                     If m_uConfig.Density >= 0 Then
                         cOutput.Add "D" & m_uConfig.Density             '--- D Command - Density
                     End If
@@ -750,10 +784,15 @@ Private Function pvEpl2PrintReceipt(uCtx As UcsPpdExecuteContext, uRow() As UcsP
                     Next
                     '--- print label set
                     sText = "P1," & lCopies & vbCrLf                    '--- P Command - Print
+                    sText = sText & "UN" & vbCrLf                       '--- UN Command - Disable Error Reporting
+                    sText = sText & "UQ" & vbCrLf                       '--- UQ Command - Configuration Inquiry
                 End If
                 For lIdx = 1 To Clamp(m_uConfig.RetryCount, 1)
                     sResult = pvEpl2SendCommand(m_oConnector, (m_lCommandTimeout + lCopies * m_lCommandTimeout) \ 2, sText, FUNC_NAME, sError)
                     If InStr(sResult, pvChr(LNG_ACK)) > 0 Then
+                        Exit For
+                    End If
+                    If LenB(sResult) <> 0 And InStr(sResult, pvChr(LNG_NACK)) = 0 Then
                         Exit For
                     End If
                     If lIdx = m_uConfig.RetryCount Then
@@ -798,8 +837,11 @@ Private Function pvEpl2GetDeviceInfo(oConnector As IDeviceConnector, ByVal lTime
     Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = vbCrLf & "U@" & vbCrLf                           '--- U@ Command - Read Configuration
-    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
+    sCmd = vbCrLf & "UN" & vbCrLf                           '--- UN Command - Disable Error Reporting
+    sCmd = sCmd & "U@" & vbCrLf                             '--- U@ Command - Read Configuration
+    sCmd = sCmd & "UQ" & vbCrLf                             '--- UQ Command - Configuration Inquiry
+    DebugDataDump FUNC_NAME, "[SEND ] ", sCmd
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), lTimeout) Then
         Do While InStr(sReply, pvChr(LNG_NACK)) = 0 And InStr(sReply, vbLf) = 0
             If oConnector.ReadData(baBuffer, lTimeout) Then
                 sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -807,6 +849,7 @@ Private Function pvEpl2GetDeviceInfo(oConnector As IDeviceConnector, ByVal lTime
                 Exit Do
             End If
         Loop
+        DebugDataDump FUNC_NAME, "[RECV ] ", sReply
         sReply = Replace(sReply, pvChr(LNG_NACK), vbNullString)
         sReply = Replace(sReply, "Label printer ", vbNullString)
         If InStr(sReply, vbCrLf) > 0 Then
@@ -831,8 +874,10 @@ Private Function pvEpl2GetClock(oConnector As IDeviceConnector, ByVal lTimeout A
     Dim sReply          As String
     
     On Error GoTo EH
-    sCmd = vbCrLf & "TI" & vbCrLf                           '--- TI Command - Clock Inquiry
-    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
+    sCmd = vbCrLf & "UN" & vbCrLf                           '--- UN Command - Disable Error Reporting
+    sCmd = sCmd & "TI" & vbCrLf                             '--- TI Command - Clock Inquiry
+    DebugDataDump FUNC_NAME, "[SEND ] ", sCmd
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), lTimeout) Then
         Do While InStr(sReply, pvChr(LNG_NACK)) = 0 And InStr(sReply, vbLf) = 0 Or Len(sReply) < 17
             If oConnector.ReadData(baBuffer, lTimeout) Then
                 sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -840,6 +885,7 @@ Private Function pvEpl2GetClock(oConnector As IDeviceConnector, ByVal lTimeout A
                 Exit Do
             End If
         Loop
+        DebugDataDump FUNC_NAME, "[RECV ] ", sReply
         sReply = Replace(sReply, pvChr(LNG_NACK), vbNullString)
         If LenB(sReply) <> 0 Then
             pvEpl2GetClock = ParseExtendedDate(sReply)
@@ -1075,7 +1121,8 @@ Private Function pvZplGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeo
     
     On Error GoTo EH
     sCmd = "~HI"
-    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), m_lPingTimeout) Then
+    DebugDataDump FUNC_NAME, "[SEND ] ", sCmd
+    If oConnector.WriteData(ToMultiByte(sCmd, m_uConfig.CodePage), lTimeout) Then
         Do While InStr(sReply, pvChr(LNG_ETX) & vbCrLf) = 0
             If oConnector.ReadData(baBuffer, lTimeout) Then
                 sReply = sReply & FromMultiByte(baBuffer, m_uConfig.CodePage)
@@ -1083,6 +1130,7 @@ Private Function pvZplGetDeviceInfo(oConnector As IDeviceConnector, ByVal lTimeo
                 Exit Do
             End If
         Loop
+        DebugDataDump FUNC_NAME, "[RECV ] ", sReply
         lPos = InStr(sReply, pvChr(LNG_ETX) & vbCrLf)
         If lPos > 2 Then
             sReply = Mid$(sReply, 2, lPos - 2)
@@ -1252,11 +1300,11 @@ Private Function IDeviceProtocol_GetDefaultPassword(OperatorCode As String) As S
 End Function
 
 Private Function IDeviceProtocol_GetDeviceModel() As String
-    IDeviceProtocol_GetDeviceModel = GetDeviceModel
+    IDeviceProtocol_GetDeviceModel = GetDeviceModel()
 End Function
 
 Private Function IDeviceProtocol_GetDeviceFirmware() As String
-    
+    IDeviceProtocol_GetDeviceFirmware = GetDeviceFirmware()
 End Function
 
 Private Function IDeviceProtocol_GetDeviceProtocol() As String

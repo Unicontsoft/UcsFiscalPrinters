@@ -1015,6 +1015,13 @@ Public Function preg_replace(find_re As String, sText As String, Optional sRepla
     preg_replace = InitRegExp(find_re).Replace(sText, sReplace)
 End Function
 
+Public Function preg_split(find_re As String, sText As String) As Variant
+    Dim esc             As String
+    
+    esc = ChrW$(&HE1B6&) '-- U+E000 to U+F8FF - Private Use Area (PUA)
+    preg_split = Split(InitRegExp(find_re).Replace(sText, esc), esc)
+End Function
+
 Public Function InitRegExp(sPattern As String) As Object
     Const FUNC_NAME     As String = "InitRegExp"
     Dim lPos            As Long
