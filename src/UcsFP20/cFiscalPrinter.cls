@@ -241,11 +241,11 @@ Public Function EnumPorts(sResponse As String) As Boolean
     JsonValue(oRetVal, "Ok") = True
     vPorts = EnumSerialPorts
     vPorts = ConcatArrays(vPorts, EnumUsbPorts)
-    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipInit:=True), _
+    For Each vElem In Array(pvInit("Protocol=" & STR_PROTOCOL_LABEL, SkipInit:=True), _
+                            pvInit("Protocol=" & STR_PROTOCOL_TREMOL, SkipInit:=True), _
                             pvInit("Protocol=" & STR_PROTOCOL_DATECS_FP, SkipInit:=True), _
                             pvInit("Protocol=" & STR_PROTOCOL_DATECS_X, SkipInit:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipInit:=True), _
-                            pvInit("Protocol=" & STR_PROTOCOL_LABEL, SkipInit:=True))
+                            pvInit("Protocol=" & STR_PROTOCOL_ESCPOS, SkipInit:=True))
         Set oFP = vElem
         vPorts = oFP.AutodetectDevices(vPorts)
     Next

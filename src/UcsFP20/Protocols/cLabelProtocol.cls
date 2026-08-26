@@ -70,9 +70,8 @@ End Type
 
 Private Const STR_INTERNAL              As String = "Invalid model group (%1)|Cannot load templates from %1. %2|Template not found (%1)|ESC/POS not implemented|Cannot load PDF. %1|Cannot load image. %1"
 Private Const STR_ERRORS_EPL2           As String = "1|Syntax error|2|Object exceeded label border|3|Bar code data length error|4|Insufficient memory to store data|5|Memory configuration error|6|RS-232 interface error|7|Paper or ribbon empty|8|Duplicate name: form, graphic or soft font|9|Name not found: form, graphic or soft font|10|Not in data entry mode|11|Print head up (open)|12|Pause mode or paused in peel mode|50|Does not fit in area specified|51|Data length too long|80|Undefined|81|Cutter jammed or not installed|82|AutoSense or sensor failure|83|Illegal interrupt occurred|84|Excessive media feeding|93|PDF-417 coded data to large to fit in bar code"
-Private Const STR_AUTODETECTSPEEDS      As String = "115200|9600"
-Private Const STR_FIRSTDETECTSPEED      As String = "115200"
 Private Const DEF_AUTODETECTTIMEOUT     As Long = 54
+Private Const DEF_AUTODETECTSPEEDS      As String = "115200|9600"
 Private Const DEF_CONNECTIONTIMEOUT     As Long = 3000
 Private Const DEF_TIMEOUT               As Long = 5000
 Private Const DEF_PING_TIMEOUT          As Long = 100
@@ -209,6 +208,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
     Dim hEvents()       As Long
     Dim lEventsCount    As Long
     Dim lTimeout        As Long
+    Dim vSpeeds         As Variant
     
     On Error GoTo EH
     vRetVal = vPorts
@@ -219,7 +219,11 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
         GoTo QH
     End If
     lTimeout = GetConfigNumber(STR_PROTOCOL_LABEL, "AutodetectTimeout", DEF_AUTODETECTTIMEOUT)
-    For Each vSpeed In Split(STR_AUTODETECTSPEEDS, "|")
+    AssignVariant vSpeeds, GetConfigValue(STR_PROTOCOL_LABEL, "AutodetectSpeeds", Split(DEF_AUTODETECTSPEEDS, "|"))
+    If IsObject(vSpeeds) Then
+        vSpeeds = vSpeeds.Items()
+    End If
+    For Each vSpeed In vSpeeds
         ReDim aPorts(0 To UBound(vPorts)) As UcsAutodetect
         ReDim hEvents(0 To UBound(vPorts)) As Long
         For lIdx = 0 To UBound(aPorts)
@@ -240,7 +244,7 @@ Public Function AutodetectDevices(vPorts As Variant) As Variant
                         End If
                     End If
                 End With
-            ElseIf Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) <> "com" And vSpeed = STR_FIRSTDETECTSPEED Then
+            ElseIf Not IsArray(vRetVal(lIdx)) And LCase$(Left$(At(vPorts, lIdx), 3)) <> "com" And vSpeed = At(vSpeeds, 0) Then
                 With aPorts(lIdx)
                     Set .UsbConnector = InitDeviceConnector(At(vPorts, lIdx), lTimeout, LocalizedText(ucsFscLciConnectorErrors))
                     If Not .UsbConnector Is Nothing Then
