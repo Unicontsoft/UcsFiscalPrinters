@@ -42,27 +42,38 @@ steps:
       pathToPublish: '$(Build.ArtifactStagingDirectory)'
       artifactName: UcsFPHub
 
-  - task: GithubRelease@0
+  - task: GitHubRelease@1
     displayName: 'Remove release `UcsFPHub-latest` on github.com'
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     continueOnError: true
     inputs:
-      githubConnection: github.com_wqweto
-      repositoryName: wqweto/UcsFiscalPrinters
+      gitHubConnection: github.com_wqweto
+      repositoryName: Unicontsoft/UcsFiscalPrinters
       action: delete
       tag: UcsFPHub-latest
   
-  - task: GithubRelease@0
+  - powershell: |
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-RestMethod -Method Delete `
+        -Uri 'https://api.github.com/repos/Unicontsoft/UcsFiscalPrinters/git/refs/tags/UcsFPHub-latest' `
+        -Headers @{ Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'azure-pipelines' }
+    displayName: 'Remove tag `UcsFPHub-latest` on github.com'
+    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
+    continueOnError: true
+    env:
+      GITHUB_TOKEN: $(GitHubToken)
+  
+  - task: GitHubRelease@1
     displayName: 'Create release `UcsFPHub-latest` on github.com'
     condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull')))
     inputs:
-      githubConnection: github.com_wqweto
-      repositoryName: wqweto/UcsFiscalPrinters
+      gitHubConnection: github.com_wqweto
+      repositoryName: Unicontsoft/UcsFiscalPrinters
       action: create
-      tagSource: manual
+      tagSource: userSpecifiedTag
       tag: UcsFPHub-latest
       title: 'UcsFPHub latest build'
       assets: $(Build.ArtifactStagingDirectory)/*
       addChangeLog: true
-      compareWith: lastRelease
+      changeLogCompareToRelease: lastNonDraftRelease
       isPreRelease: true
