@@ -354,8 +354,8 @@ Public Function PrintReceipt(sRequest As String, sResponse As String) As Boolean
         End If
         '--- check if receipt already printed
         If LenB(Trim$(sPrevReceiptNo)) <> 0 Then
-            If Pad(sPrevReceiptNo, -Len(JsonValue(oRetVal, "PrevReceiptNo"))) <> JsonValue(oRetVal, "PrevReceiptNo") And C_Lng(JsonValue(oJson, "PrevReceiptCount")) <> 0 Then
-                If C_Lng(JsonValue(oJson, "PrevReceiptCount")) < C_Lng(At(oFP.GetTotalsStats(), 0)) Then
+            If Pad(sPrevReceiptNo, -Len(JsonValue(oRetVal, "PrevReceiptNo"))) <> JsonValue(oRetVal, "PrevReceiptNo") Then
+                If pvIsAlreadyPrinted(oFP, oJson) Then
                     JsonValue(oRetVal, "PrevReceiptNo") = Empty
                     GoTo ReturnReceiptInfo
                 End If
@@ -1025,6 +1025,60 @@ Private Function pvGetTaxGroup(sTaxGroup As String) As Long
             pvGetTaxGroup = DEF_TAX_GROUP
         End If
     End If
+End Function
+
+Private Function pvIsAlreadyPrinted(oFP As IDeviceProtocol, oJson As Object) As Boolean
+    Const FUNC_NAME     As String = "pvIsAlreadyPrinted"
+    Const DBL_AMOUNT_EPSILON As Double = 0.005
+    Dim lPrevReceiptCount As Long
+    Dim lTotalIdx       As Long
+    Dim vPrevTotal      As Variant
+    Dim vTotals         As Variant
+    Dim lIdx            As Long
+    Dim dblTotalAmount  As Double
+
+    On Error GoTo EH
+    lPrevReceiptCount = C_Lng(JsonValue(oJson, "PrevReceiptCount"))
+    If lPrevReceiptCount = 0 Then
+        GoTo QH
+    End If
+    If lPrevReceiptCount >= C_Lng(At(oFP.GetTotalsStats(), 0)) Then
+        GoTo QH
+    End If
+    pvIsAlreadyPrinted = True
+    Select Case JsonEnumValue(JsonValue(oJson, "ReceiptType"), STR_ENUM_RECEIPT_TYPE)
+    Case ucsFscRcpSale, ucsFscRcpInvoice
+        lTotalIdx = 1
+        vPrevTotal = JsonValue(oJson, "PrevTotalAmount")
+    Case ucsFscRcpReversal, ucsFscRcpCreditNote
+        lTotalIdx = 2
+        vPrevTotal = JsonValue(oJson, "PrevTotalReversal")
+    Case Else
+        GoTo QH
+    End Select
+    If IsEmpty(vPrevTotal) Then
+        GoTo QH
+    End If
+    vTotals = oFP.GetTotalsByTaxGroups()
+    If Not IsArray(vTotals) Then
+        GoTo QH
+    End If
+    For lIdx = 0 To UBound(vTotals)
+        If IsArray(vTotals(lIdx)) Then
+            If UBound(vTotals(lIdx)) < lTotalIdx Then
+                GoTo QH
+            End If
+            dblTotalAmount = dblTotalAmount + vTotals(lIdx)(lTotalIdx)
+        End If
+    Next
+    If Abs(Abs(dblTotalAmount) - Abs(C_Dbl(vPrevTotal))) < DBL_AMOUNT_EPSILON Then
+        pvIsAlreadyPrinted = False
+    End If
+    DebugLog FUNC_NAME, "RetVal=" & pvIsAlreadyPrinted & ", lTotalIdx=" & lTotalIdx & ", dblTotalAmount=" & dblTotalAmount & ", vPrevTotal=" & C_Dbl(vPrevTotal)
+QH:
+    Exit Function
+EH:
+    RaiseError FUNC_NAME
 End Function
 
 Private Function pvInternal(ByVal lIdx As UcsInternalErrors) As String
